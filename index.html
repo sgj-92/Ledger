@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<title>Ledger — Training Log</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #14171a;
+    --panel: #1b1f23;
+    --panel-raised: #21262b;
+    --border: #2a2f34;
+    --text: #edeae3;
+    --text-muted: #8b9198;
+    --text-faint: #5a6067;
+    --amber: #e8a33d;
+    --padel: #e4572e;
+    --gym: #c9a66b;
+    --running: #4fa8a0;
+    --yoga: #9b8aa3;
+    --danger: #d9534f;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100%;
+  }
+  body {
+    max-width: 560px;
+    margin: 0 auto;
+    padding-bottom: 88px;
+    position: relative;
+  }
+  .display {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  header.top {
+    padding: 28px 20px 18px;
+    position: sticky;
+    top: 0;
+    background: linear-gradient(var(--bg) 82%, transparent);
+    z-index: 5;
+  }
+  .top-date-label { font-size: 13px; color: var(--text-muted); margin: 0 0 2px; }
+  .top-date { font-size: 40px; line-height: 1; margin: 0; }
+  main { padding: 0 20px; }
+  section.view { display: none; animation: fadein 0.18s ease; }
+  section.view.active { display: block; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
+
+  h2.section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 28px 0 12px;
+  }
+  h2.section-title:first-child { margin-top: 4px; }
+
+  .quicklog-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .quicklog-card {
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 16px 14px;
+    text-align: left;
+    cursor: pointer;
+    color: #14171a;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    min-height: 92px;
+    transition: transform 0.12s ease;
+    font-family: inherit;
+  }
+  .quicklog-card:active { transform: scale(0.97); }
+  .quicklog-card .ql-icon { font-size: 20px; opacity: 0.85; }
+  .quicklog-card .ql-label { font-size: 16px; font-weight: 700; }
+  .quicklog-card.padel { background: var(--padel); color: #2b0e05; }
+  .quicklog-card.gym { background: var(--gym); color: #2b2210; }
+  .quicklog-card.running { background: var(--running); color: #08211e; }
+  .quicklog-card.yoga { background: var(--yoga); color: #241f29; }
+
+  .custom-log-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 13px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .custom-log-btn:active { background: var(--panel); }
+
+  .session-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    background: var(--panel);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .dot.padel { background: var(--padel); }
+  .dot.gym { background: var(--gym); }
+  .dot.running { background: var(--running); }
+  .dot.yoga { background: var(--yoga); }
+  .session-item .si-main { flex: 1; min-width: 0; }
+  .session-item .si-type { font-size: 13px; font-weight: 600; text-transform: capitalize; }
+  .session-item .si-detail { font-size: 12.5px; color: var(--text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .session-item .si-time { font-size: 12px; color: var(--text-faint); flex-shrink: 0; }
+
+  .empty-state {
+    padding: 30px 16px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 13.5px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  /* Calendar */
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .cal-nav button {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .cal-month-label { font-size: 17px; font-weight: 600; }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-dow { text-align: center; font-size: 11px; color: var(--text-faint); padding-bottom: 6px; }
+  .cal-cell {
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 13px;
+    cursor: pointer;
+    background: var(--panel);
+    border: 1px solid transparent;
+    color: var(--text-muted);
+  }
+  .cal-cell.empty { background: transparent; cursor: default; }
+  .cal-cell.today { border-color: var(--amber); color: var(--text); font-weight: 700; }
+  .cal-cell.selected { background: var(--panel-raised); border-color: var(--text-faint); }
+  .cal-cell .cal-dots { display: flex; gap: 2px; height: 6px; }
+  .cal-cell .cal-dots .dot { width: 5px; height: 5px; }
+  .cal-day-detail { margin-top: 20px; }
+
+  /* Stats */
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .stat-card-head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+  .stat-card-head .dot { width: 10px; height: 10px; }
+  .stat-card-head .name { font-size: 14px; font-weight: 600; text-transform: capitalize; }
+  .stat-row { display: flex; gap: 18px; }
+  .stat-num { flex: 1; }
+  .stat-num .val { font-size: 30px; line-height: 1; }
+  .stat-num .lbl { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+
+  .weekbar { margin-bottom: 22px; }
+  .weekbar-bars { display: flex; align-items: flex-end; gap: 6px; height: 90px; margin-top: 10px; }
+  .weekbar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }
+  .weekbar-stack { width: 100%; max-width: 26px; display: flex; flex-direction: column-reverse; border-radius: 4px; overflow: hidden; }
+  .weekbar-seg { width: 100%; height: 14px; }
+  .weekbar-day { font-size: 10.5px; color: var(--text-faint); }
+
+  /* Tab bar */
+  nav.tabbar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    max-width: 560px;
+    margin: 0 auto;
+    background: rgba(27, 31, 35, 0.92);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+    z-index: 20;
+  }
+  nav.tabbar button {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-family: inherit;
+    font-size: 11.5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 0;
+    cursor: pointer;
+  }
+  nav.tabbar button .tab-icon { font-size: 19px; }
+  nav.tabbar button.active { color: var(--amber); }
+
+  /* Sheet / modal */
+  .sheet-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 30;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .sheet-backdrop.open { display: flex; }
+  .sheet {
+    background: var(--panel);
+    width: 100%;
+    max-width: 560px;
+    border-radius: 22px 22px 0 0;
+    padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+    max-height: 88vh;
+    overflow-y: auto;
+    border-top: 1px solid var(--border);
+  }
+  .sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .sheet-title { font-size: 18px; font-weight: 700; text-transform: capitalize; }
+  .sheet-close { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 4px; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px; }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 11px 12px;
+    font-family: inherit;
+    font-size: 14.5px;
+  }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+
+  .seg-toggle { display: flex; gap: 8px; }
+  .seg-toggle button {
+    flex: 1;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 13.5px;
+    cursor: pointer;
+  }
+  .seg-toggle button.sel { border-color: var(--amber); color: var(--amber); background: rgba(232,163,61,0.08); }
+
+  .exercise-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .exercise-row input { flex: 1; }
+  .exercise-row input.ex-name { flex: 2; }
+  .exercise-row .ex-rm { background: none; border: none; color: var(--text-faint); font-size: 18px; cursor: pointer; padding: 0 4px; }
+  .add-exercise-btn {
+    width: 100%; padding: 10px; border-radius: var(--radius-sm);
+    border: 1px dashed var(--border); background: none; color: var(--text-muted);
+    font-family: inherit; font-size: 13px; cursor: pointer; margin-bottom: 6px;
+  }
+
+  .save-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--amber);
+    color: #201404;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .save-btn:active { opacity: 0.85; }
+  .delete-btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--danger);
+    background: none;
+    color: var(--danger);
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  .sync-note { font-size: 11px; color: var(--text-faint); text-align: center; margin: 18px 0 4px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <p class="top-date-label" id="topDateLabel">—</p>
+  <h1 class="top-date display" id="topDate">—</h1>
+</header>
+
+<main>
+
+  <section class="view active" id="view-log">
+    <h2 class="section-title">Quick log</h2>
+    <div class="quicklog-grid">
+      <button class="quicklog-card padel" data-type="padel">
+        <span class="ql-icon">●</span><span class="ql-label">Padel</span>
+      </button>
+      <button class="quicklog-card gym" data-type="gym">
+        <span class="ql-icon">●</span><span class="ql-label">Gym</span>
+      </button>
+      <button class="quicklog-card running" data-type="running">
+        <span class="ql-icon">●</span><span class="ql-label">Running</span>
+      </button>
+      <button class="quicklog-card yoga" data-type="yoga">
+        <span class="ql-icon">●</span><span class="ql-label">Yoga / mobility</span>
+      </button>
+    </div>
+
+    <h2 class="section-title">Today</h2>
+    <div id="todayList"></div>
+
+    <h2 class="section-title">Recent</h2>
+    <div id="recentList"></div>
+    <p class="sync-note" id="syncNote"></p>
+  </section>
+
+  <section class="view" id="view-calendar">
+    <div class="cal-nav">
+      <button id="calPrev">‹</button>
+      <span class="cal-month-label" id="calMonthLabel">—</span>
+      <button id="calNext">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-day-detail" id="calDayDetail"></div>
+  </section>
+
+  <section class="view" id="view-stats">
+    <h2 class="section-title">Last 7 days</h2>
+    <div class="weekbar" id="weekBar"></div>
+
+    <h2 class="section-title">By discipline</h2>
+    <div id="statsCards"></div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button class="tab-btn active" data-view="log"><span class="tab-icon">＋</span>Log</button>
+  <button class="tab-btn" data-view="calendar"><span class="tab-icon">▦</span>Calendar</button>
+  <button class="tab-btn" data-view="stats"><span class="tab-icon">◔</span>Stats</button>
+</nav>
+
+<div class="sheet-backdrop" id="sheetBackdrop">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<script>
+(function(){
+
+  // ---------- state ----------
+  var sessions = [];   // {id, type, date, ...fields}
+  var dbRef = null;
+  var dbReady = false;
+  var currentView = 'log';
+  var calMonth = new Date(); calMonth.setDate(1);
+  var selectedDay = null;
+  var editingId = null;
+
+  var TYPE_LABEL = { padel: 'Padel', gym: 'Gym', running: 'Running', yoga: 'Yoga / mobility' };
+
+  function todayStr(){ return fmtDate(new Date()); }
+  function fmtDate(d){
+    var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+da;
+  }
+  function niceDate(d){
+    return d.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long' });
+  }
+  function niceTime(iso){
+    try { return new Date(iso).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); } catch(e){ return ''; }
+  }
+  function uid(){ return 'l' + Math.random().toString(36).slice(2,10); }
+
+  // ---------- persistence (Firebase Firestore) ----------
+  // Fill in your project's config here — Firebase console → Project settings →
+  // "Your apps" → the </> web icon → copy the firebaseConfig object.
+  var firebaseConfig = {
+    apiKey: "AIzaSyA1W9UcEkQ67cy1oY6PfPqaylDXhUxGqb8",
+    authDomain: "ledger-6aec3.firebaseapp.com",
+    projectId: "ledger-6aec3",
+    storageBucket: "ledger-6aec3.firebasestorage.app",
+    messagingSenderId: "607695857530",
+    appId: "1:607695857530:web:5cd564760be8a755de58c3"
+  };
+
+  function localSave(){
+    try { localStorage.setItem('ledger_sessions_fallback', JSON.stringify(sessions)); } catch(e){}
+  }
+  function localLoad(){
+    try {
+      var raw = localStorage.getItem('ledger_sessions_fallback');
+      if (raw) sessions = JSON.parse(raw);
+    } catch(e){}
+  }
+
+  async function initDb(){
+    try {
+      if (firebaseConfig.apiKey === "YOUR_API_KEY") { fallbackMode(); return; }
+      firebase.initializeApp(firebaseConfig);
+      dbRef = firebase.firestore();
+      dbReady = true;
+      document.getElementById('syncNote').textContent = '';
+      dbRef.collection('ledger_sessions').orderBy('date','desc')
+        .onSnapshot(function(snap){
+          sessions = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
+          renderAll();
+        }, function(err){
+          console.error('firestore snapshot error', err);
+          fallbackMode();
+        });
+    } catch(e){
+      console.error(e);
+      fallbackMode();
+    }
+  }
+
+  function fallbackMode(){
+    dbReady = false;
+    localLoad();
+    document.getElementById('syncNote').textContent = 'Saving on this device only — add your Firebase config to sync';
+    renderAll();
+  }
+
+  async function saveSession(data){
+    if (dbReady && dbRef){
+      try {
+        if (data.id){
+          var id = data.id; var copy = Object.assign({}, data); delete copy.id;
+          await dbRef.collection('ledger_sessions').doc(id).set(copy);
+        } else {
+          await dbRef.collection('ledger_sessions').add(data);
+        }
+        return;
+      } catch(e){ console.error('save failed, falling back', e); }
+    }
+    // local fallback
+    if (data.id){
+      var idx = sessions.findIndex(function(s){ return s.id === data.id; });
+      if (idx > -1) sessions[idx] = data;
+    } else {
+      data.id = uid();
+      sessions.unshift(data);
+    }
+    localSave();
+    renderAll();
+  }
+
+  async function deleteSession(id){
+    if (dbReady && dbRef){
+      try { await dbRef.collection('ledger_sessions').doc(id).delete(); return; }
+      catch(e){ console.error(e); }
+    }
+    sessions = sessions.filter(function(s){ return s.id !== id; });
+    localSave();
+    renderAll();
+  }
+
+  // ---------- tab switching ----------
+  document.querySelectorAll('.tab-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentView = btn.dataset.view;
+      document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+      document.getElementById('view-' + currentView).classList.add('active');
+      if (currentView === 'calendar') renderCalendar();
+      if (currentView === 'stats') renderStats();
+    });
+  });
+
+  // ---------- header ----------
+  function renderHeader(){
+    var now = new Date();
+    document.getElementById('topDateLabel').textContent = now.toLocaleDateString(undefined,{ weekday:'long' });
+    document.getElementById('topDate').textContent = now.toLocaleDateString(undefined,{ day:'numeric', month:'long' });
+  }
+
+  // ---------- log view ----------
+  function sessionDetailText(s){
+    if (s.type === 'padel'){
+      var parts = [];
+      if (s.result) parts.push(s.result === 'win' ? 'Won' : s.result === 'loss' ? 'Lost' : 'Played');
+      if (s.gamesWon != null && s.gamesLost != null) parts.push(s.gamesWon + '–' + s.gamesLost);
+      if (s.opponent) parts.push('vs ' + s.opponent);
+      return parts.join(' · ') || 'Match logged';
+    }
+    if (s.type === 'gym'){
+      var n = (s.exercises||[]).length;
+      return n ? n + ' exercise' + (n===1?'':'s') + (s.bodyweight ? ' · ' + s.bodyweight + 'kg' : '') : 'Session logged';
+    }
+    if (s.type === 'running'){
+      var bits = [];
+      if (s.distanceKm) bits.push(s.distanceKm + ' km');
+      if (s.durationMin) bits.push(s.durationMin + ' min');
+      if (s.distanceKm && s.durationMin) bits.push(paceStr(s.distanceKm, s.durationMin) + '/km');
+      return bits.join(' · ') || 'Run logged';
+    }
+    if (s.type === 'yoga'){
+      var b2 = [];
+      if (s.focus) b2.push(s.focus);
+      if (s.durationMin) b2.push(s.durationMin + ' min');
+      return b2.join(' · ') || 'Session logged';
+    }
+    return s.notes || '';
+  }
+  function paceStr(km, min){
+    if (!km) return '—';
+    var p = min / km;
+    var m = Math.floor(p), s = Math.round((p-m)*60);
+    return m + ':' + String(s).padStart(2,'0');
+  }
+
+  function renderSessionItem(s){
+    var div = document.createElement('div');
+    div.className = 'session-item';
+    div.innerHTML =
+      '<span class="dot ' + s.type + '"></span>' +
+      '<div class="si-main">' +
+        '<div class="si-type">' + TYPE_LABEL[s.type] + '</div>' +
+        '<div class="si-detail">' + sessionDetailText(s) + '</div>' +
+      '</div>' +
+      '<div class="si-time">' + (s.createdAt ? niceTime(s.createdAt) : '') + '</div>';
+    div.addEventListener('click', function(){ openSheet(s.type, s); });
+    return div;
+  }
+
+  function renderLogView(){
+    var today = todayStr();
+    var todayList = document.getElementById('todayList');
+    var recentList = document.getElementById('recentList');
+    todayList.innerHTML = '';
+    recentList.innerHTML = '';
+
+    var todaysSessions = sessions.filter(function(s){ return s.date === today; });
+    if (!todaysSessions.length){
+      var e = document.createElement('div');
+      e.className = 'empty-state';
+      e.textContent = 'Nothing logged yet today — tap a card above to start';
+      todayList.appendChild(e);
+    } else {
+      todaysSessions.forEach(function(s){ todayList.appendChild(renderSessionItem(s)); });
+    }
+
+    var recent = sessions.filter(function(s){ return s.date !== today; }).slice(0, 8);
+    if (!recent.length){
+      var e2 = document.createElement('div');
+      e2.className = 'empty-state';
+      e2.textContent = 'Your recent sessions will show up here';
+      recentList.appendChild(e2);
+    } else {
+      recent.forEach(function(s){ recentList.appendChild(renderSessionItem(s)); });
+    }
+  }
+
+  document.querySelectorAll('.quicklog-card').forEach(function(card){
+    card.addEventListener('click', function(){ openSheet(card.dataset.type, null); });
+  });
+
+  // ---------- calendar view ----------
+  function renderCalendar(){
+    var label = calMonth.toLocaleDateString(undefined, { month:'long', year:'numeric' });
+    document.getElementById('calMonthLabel').textContent = label;
+    var grid = document.getElementById('calGrid');
+    grid.innerHTML = '';
+    ['S','M','T','W','T','F','S'].forEach(function(d){
+      var el = document.createElement('div');
+      el.className = 'cal-dow';
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+
+    var year = calMonth.getFullYear(), month = calMonth.getMonth();
+    var firstDow = new Date(year, month, 1).getDay();
+    var daysInMonth = new Date(year, month+1, 0).getDate();
+    var today = todayStr();
+
+    for (var i=0; i<firstDow; i++){
+      var pad = document.createElement('div');
+      pad.className = 'cal-cell empty';
+      grid.appendChild(pad);
+    }
+    for (var day=1; day<=daysInMonth; day++){
+      var dateObj = new Date(year, month, day);
+      var dateStr = fmtDate(dateObj);
+      var cell = document.createElement('div');
+      cell.className = 'cal-cell';
+      if (dateStr === today) cell.classList.add('today');
+      if (dateStr === selectedDay) cell.classList.add('selected');
+
+      var daySessions = sessions.filter(function(s){ return s.date === dateStr; });
+      var typesPresent = [];
+      daySessions.forEach(function(s){ if (typesPresent.indexOf(s.type) === -1) typesPresent.push(s.type); });
+
+      var dotsHtml = typesPresent.slice(0,4).map(function(t){ return '<span class="dot ' + t + '"></span>'; }).join('');
+      cell.innerHTML = '<span>' + day + '</span><span class="cal-dots">' + dotsHtml + '</span>';
+      cell.addEventListener('click', function(ds){
+        return function(){ selectedDay = ds; renderCalendar(); };
+      }(dateStr));
+      grid.appendChild(cell);
+    }
+
+    renderDayDetail();
+  }
+
+  function renderDayDetail(){
+    var wrap = document.getElementById('calDayDetail');
+    wrap.innerHTML = '';
+    if (!selectedDay) return;
+    var d = new Date(selectedDay + 'T00:00:00');
+    var head = document.createElement('h2');
+    head.className = 'section-title';
+    head.style.marginTop = '0';
+    head.textContent = niceDate(d);
+    wrap.appendChild(head);
+
+    var daySessions = sessions.filter(function(s){ return s.date === selectedDay; });
+    if (!daySessions.length){
+      var e = document.createElement('div');
+      e.className = 'empty-state';
+      e.textContent = 'No sessions logged this day';
+      wrap.appendChild(e);
+    } else {
+      daySessions.forEach(function(s){ wrap.appendChild(renderSessionItem(s)); });
+    }
+
+    var addBtn = document.createElement('button');
+    addBtn.className = 'custom-log-btn';
+    addBtn.textContent = 'Log a session for this day';
+    addBtn.addEventListener('click', function(){ openSheet('padel', null, selectedDay); });
+    wrap.appendChild(addBtn);
+  }
+
+  document.getElementById('calPrev').addEventListener('click', function(){
+    calMonth.setMonth(calMonth.getMonth()-1); renderCalendar();
+  });
+  document.getElementById('calNext').addEventListener('click', function(){
+    calMonth.setMonth(calMonth.getMonth()+1); renderCalendar();
+  });
+
+  // ---------- stats view ----------
+  function withinDays(s, n){
+    var d = new Date(s.date + 'T00:00:00');
+    var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - n); cutoff.setHours(0,0,0,0);
+    return d >= cutoff;
+  }
+  function withinThisMonth(s){
+    var d = new Date(s.date + 'T00:00:00');
+    var now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }
+
+  function renderStats(){
+    renderWeekBar();
+    var container = document.getElementById('statsCards');
+    container.innerHTML = '';
+
+    // Padel
+    var padel = sessions.filter(function(s){ return s.type==='padel'; });
+    var padelMonth = padel.filter(withinThisMonth);
+    var wins = padelMonth.filter(function(s){ return s.result==='win'; }).length;
+    var winRate = padelMonth.length ? Math.round(100*wins/padelMonth.length) : 0;
+    container.appendChild(statCard('padel', [
+      { val: padelMonth.length, lbl: 'Matches this month' },
+      { val: padelMonth.length ? winRate + '%' : '—', lbl: 'Win rate' }
+    ]));
+
+    // Gym
+    var gym = sessions.filter(function(s){ return s.type==='gym'; });
+    var gymWeek = gym.filter(function(s){ return withinDays(s,7); });
+    var lastBw = gym.find(function(s){ return s.bodyweight; });
+    container.appendChild(statCard('gym', [
+      { val: gymWeek.length, lbl: 'Sessions this week' },
+      { val: lastBw && lastBw.bodyweight ? lastBw.bodyweight + 'kg' : '—', lbl: 'Last logged bodyweight' }
+    ]));
+
+    // Running
+    var running = sessions.filter(function(s){ return s.type==='running'; });
+    var runMonth = running.filter(withinThisMonth);
+    var totalKm = runMonth.reduce(function(a,s){ return a + (s.distanceKm||0); }, 0);
+    var totalMin = runMonth.reduce(function(a,s){ return a + (s.durationMin||0); }, 0);
+    container.appendChild(statCard('running', [
+      { val: totalKm ? totalKm.toFixed(1) : '0', lbl: 'km this month' },
+      { val: totalKm && totalMin ? paceStr(totalKm, totalMin)+'/km' : '—', lbl: 'Avg pace' }
+    ]));
+
+    // Yoga
+    var yoga = sessions.filter(function(s){ return s.type==='yoga'; });
+    var yogaWeek = yoga.filter(function(s){ return withinDays(s,7); });
+    container.appendChild(statCard('yoga', [
+      { val: yogaWeek.length, lbl: 'Sessions this week' },
+      { val: yoga.length, lbl: 'All-time sessions' }
+    ]));
+  }
+
+  function statCard(type, nums){
+    var card = document.createElement('div');
+    card.className = 'stat-card';
+    var head = document.createElement('div');
+    head.className = 'stat-card-head';
+    head.innerHTML = '<span class="dot ' + type + '"></span><span class="name">' + TYPE_LABEL[type] + '</span>';
+    card.appendChild(head);
+    var row = document.createElement('div');
+    row.className = 'stat-row';
+    nums.forEach(function(n){
+      var col = document.createElement('div');
+      col.className = 'stat-num';
+      col.innerHTML = '<div class="val display">' + n.val + '</div><div class="lbl">' + n.lbl + '</div>';
+      row.appendChild(col);
+    });
+    card.appendChild(row);
+    return card;
+  }
+
+  function renderWeekBar(){
+    var wrap = document.getElementById('weekBar');
+    wrap.innerHTML = '';
+    var bars = document.createElement('div');
+    bars.className = 'weekbar-bars';
+    var days = [];
+    for (var i=6; i>=0; i--){
+      var d = new Date(); d.setDate(d.getDate()-i);
+      days.push(d);
+    }
+    var maxCount = 1;
+    var counts = days.map(function(d){
+      var ds = fmtDate(d);
+      var daySessions = sessions.filter(function(s){ return s.date === ds; });
+      if (daySessions.length > maxCount) maxCount = daySessions.length;
+      return daySessions;
+    });
+
+    days.forEach(function(d, i){
+      var col = document.createElement('div');
+      col.className = 'weekbar-col';
+      var stack = document.createElement('div');
+      stack.className = 'weekbar-stack';
+      var h = (counts[i].length / maxCount) * 74;
+      stack.style.height = Math.max(h, counts[i].length ? 10 : 0) + 'px';
+      counts[i].forEach(function(s){
+        var seg = document.createElement('div');
+        seg.className = 'weekbar-seg ' + s.type;
+        seg.style.background = 'var(--' + s.type + ')';
+        stack.appendChild(seg);
+      });
+      col.appendChild(stack);
+      var lbl = document.createElement('div');
+      lbl.className = 'weekbar-day';
+      lbl.textContent = d.toLocaleDateString(undefined,{weekday:'narrow'});
+      col.appendChild(lbl);
+      bars.appendChild(col);
+    });
+    wrap.appendChild(bars);
+  }
+
+  // ---------- sheet (log form) ----------
+  var backdrop = document.getElementById('sheetBackdrop');
+  var sheetEl = document.getElementById('sheet');
+
+  function closeSheet(){
+    backdrop.classList.remove('open');
+    editingId = null;
+  }
+  backdrop.addEventListener('click', function(e){ if (e.target === backdrop) closeSheet(); });
+
+  function openSheet(type, existing, forcedDate){
+    editingId = existing ? existing.id : null;
+    var data = existing || { type: type, date: forcedDate || todayStr() };
+    sheetEl.innerHTML = buildFormHtml(type, data);
+    backdrop.classList.add('open');
+    wireForm(type, data);
+  }
+
+  function fieldNum(id, label, value, placeholder, step){
+    return '<div class="field"><label>'+label+'</label><input type="number" id="'+id+'" value="'+(value!=null?value:'')+'" placeholder="'+(placeholder||'')+'" step="'+(step||'any')+'"></div>';
+  }
+  function fieldText(id, label, value, placeholder){
+    return '<div class="field"><label>'+label+'</label><input type="text" id="'+id+'" value="'+(value!=null?value.replace(/"/g,'&quot;'):'')+'" placeholder="'+(placeholder||'')+'"></div>';
+  }
+  function fieldDate(id, label, value){
+    return '<div class="field"><label>'+label+'</label><input type="date" id="'+id+'" value="'+value+'"></div>';
+  }
+  function fieldNotes(value){
+    return '<div class="field"><label>Notes</label><textarea id="f_notes" placeholder="Anything worth remembering">'+(value||'')+'</textarea></div>';
+  }
+
+  function buildFormHtml(type, d){
+    var html = '<div class="sheet-handle"></div>';
+    html += '<div class="sheet-head"><div class="sheet-title">' + TYPE_LABEL[type] + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>';
+    html += fieldDate('f_date', 'Date', d.date || todayStr());
+
+    if (type === 'padel'){
+      html += '<div class="field"><label>Result</label><div class="seg-toggle" id="resultToggle">' +
+        '<button data-v="win" class="'+(d.result==='win'?'sel':'')+'">Win</button>' +
+        '<button data-v="loss" class="'+(d.result==='loss'?'sel':'')+'">Loss</button>' +
+        '</div></div>';
+      html += '<div class="field-row">' +
+        fieldNum('f_gamesWon','Games won', d.gamesWon, '6') +
+        fieldNum('f_gamesLost','Games lost', d.gamesLost, '3') +
+      '</div>';
+      html += fieldText('f_opponent', 'Group / opponent', d.opponent, 'e.g. Thursday group');
+      html += fieldNum('f_durationMin', 'Duration (min)', d.durationMin, '90');
+    }
+
+    if (type === 'gym'){
+      html += '<div class="field"><label>Exercises</label><div id="exerciseRows"></div>' +
+        '<button type="button" class="add-exercise-btn" id="addExerciseBtn">+ Add exercise</button></div>';
+      html += fieldNum('f_bodyweight', 'Bodyweight (kg, optional)', d.bodyweight, '104');
+      html += fieldNum('f_durationMin', 'Duration (min)', d.durationMin, '60');
+    }
+
+    if (type === 'running'){
+      html += '<div class="field-row">' +
+        fieldNum('f_distanceKm','Distance (km)', d.distanceKm, '5') +
+        fieldNum('f_durationMin','Duration (min)', d.durationMin, '28') +
+      '</div>';
+      html += fieldText('f_route', 'Route (optional)', d.route, 'e.g. river loop');
+    }
+
+    if (type === 'yoga'){
+      html += fieldText('f_focus', 'Focus', d.focus, 'e.g. hip mobility, full flow');
+      html += fieldNum('f_durationMin', 'Duration (min)', d.durationMin, '30');
+    }
+
+    html += fieldNotes(d.notes);
+    html += '<button class="save-btn" id="saveBtn">Save session</button>';
+    if (editingId) html += '<button class="delete-btn" id="deleteBtn">Delete session</button>';
+    return html;
+  }
+
+  function wireForm(type, d){
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+
+    var exerciseState = (d.exercises && d.exercises.length) ? d.exercises.slice() : (type==='gym' ? [{name:'',sets:'',reps:'',weight:''}] : []);
+
+    if (type === 'padel'){
+      var resultVal = d.result || null;
+      document.querySelectorAll('#resultToggle button').forEach(function(b){
+        b.addEventListener('click', function(){
+          resultVal = (resultVal === b.dataset.v) ? null : b.dataset.v;
+          document.querySelectorAll('#resultToggle button').forEach(function(x){ x.classList.remove('sel'); });
+          if (resultVal) b.classList.add('sel');
+        });
+      });
+    }
+
+    if (type === 'gym'){
+      var rowsWrap = document.getElementById('exerciseRows');
+      function renderRows(){
+        rowsWrap.innerHTML = '';
+        exerciseState.forEach(function(ex, i){
+          var row = document.createElement('div');
+          row.className = 'exercise-row';
+          row.innerHTML =
+            '<input class="ex-name" placeholder="Exercise" value="'+(ex.name||'').replace(/"/g,'&quot;')+'">' +
+            '<input placeholder="Sets" type="number" value="'+(ex.sets||'')+'" style="max-width:56px">' +
+            '<input placeholder="Reps" type="number" value="'+(ex.reps||'')+'" style="max-width:56px">' +
+            '<input placeholder="kg" type="number" value="'+(ex.weight||'')+'" style="max-width:64px">' +
+            '<button type="button" class="ex-rm">✕</button>';
+          var inputs = row.querySelectorAll('input');
+          inputs[0].addEventListener('input', function(){ exerciseState[i].name = inputs[0].value; });
+          inputs[1].addEventListener('input', function(){ exerciseState[i].sets = inputs[1].value; });
+          inputs[2].addEventListener('input', function(){ exerciseState[i].reps = inputs[2].value; });
+          inputs[3].addEventListener('input', function(){ exerciseState[i].weight = inputs[3].value; });
+          row.querySelector('.ex-rm').addEventListener('click', function(){
+            exerciseState.splice(i,1); renderRows();
+          });
+          rowsWrap.appendChild(row);
+        });
+      }
+      renderRows();
+      document.getElementById('addExerciseBtn').addEventListener('click', function(){
+        exerciseState.push({name:'',sets:'',reps:'',weight:''});
+        renderRows();
+      });
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', function(){
+      var out = { type: type, date: document.getElementById('f_date').value || todayStr() };
+      if (editingId) out.id = editingId;
+      out.createdAt = (d.createdAt) || new Date().toISOString();
+      var notesEl = document.getElementById('f_notes');
+      out.notes = notesEl ? notesEl.value : '';
+
+      if (type === 'padel'){
+        out.result = typeof resultVal !== 'undefined' ? resultVal : (d.result || null);
+        out.gamesWon = numOrNull('f_gamesWon');
+        out.gamesLost = numOrNull('f_gamesLost');
+        out.opponent = document.getElementById('f_opponent').value;
+        out.durationMin = numOrNull('f_durationMin');
+      }
+      if (type === 'gym'){
+        out.exercises = exerciseState.filter(function(e){ return e.name; }).map(function(e){
+          return { name: e.name, sets: e.sets ? Number(e.sets) : null, reps: e.reps ? Number(e.reps) : null, weight: e.weight ? Number(e.weight) : null };
+        });
+        out.bodyweight = numOrNull('f_bodyweight');
+        out.durationMin = numOrNull('f_durationMin');
+      }
+      if (type === 'running'){
+        out.distanceKm = numOrNull('f_distanceKm');
+        out.durationMin = numOrNull('f_durationMin');
+        out.route = document.getElementById('f_route').value;
+      }
+      if (type === 'yoga'){
+        out.focus = document.getElementById('f_focus').value;
+        out.durationMin = numOrNull('f_durationMin');
+      }
+
+      saveSession(out);
+      closeSheet();
+    });
+
+    if (editingId){
+      document.getElementById('deleteBtn').addEventListener('click', function(){
+        deleteSession(editingId);
+        closeSheet();
+      });
+    }
+  }
+
+  function numOrNull(id){
+    var el = document.getElementById(id);
+    if (!el || el.value === '') return null;
+    return Number(el.value);
+  }
+
+  // ---------- render orchestration ----------
+  function renderAll(){
+    renderHeader();
+    renderLogView();
+    if (currentView === 'calendar') renderCalendar();
+    if (currentView === 'stats') renderStats();
+  }
+
+  renderHeader();
+  renderAll();
+  initDb();
+
+})();
+</script>
+</body>
+</html>
