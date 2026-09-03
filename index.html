@@ -28,9 +28,15 @@
     --text-faint: #5a6067;
     --amber: #e8a33d;
     --padel: #e4572e;
-    --gym: #c9a66b;
-    --running: #4fa8a0;
+    --resistance: #c9a66b;
+    --cardio: #4fa8a0;
     --yoga: #9b8aa3;
+    --weight: #7c93a8;
+    --photo: #c97b84;
+    --nutrition: #8fae5d;
+    --day-good: #6fae5a;
+    --day-neutral: #d9b23c;
+    --day-bad: #8b9198;
     --danger: #d9534f;
     --radius-sm: 8px;
     --radius-md: 14px;
@@ -112,9 +118,22 @@
   .quicklog-card .ql-icon svg { width: 100%; height: 100%; display: block; }
   .quicklog-card .ql-label { font-size: 15.5px; font-weight: 700; position: relative; z-index: 1; letter-spacing: -0.01em; }
   .quicklog-card.padel { background: var(--padel); color: #2b0e05; }
-  .quicklog-card.gym { background: var(--gym); color: #2b2210; }
-  .quicklog-card.running { background: var(--running); color: #08211e; }
+  .quicklog-card.resistance { background: var(--resistance); color: #2b2210; }
+  .quicklog-card.cardio { background: var(--cardio); color: #08211e; }
   .quicklog-card.yoga { background: var(--yoga); color: #241f29; }
+  .quicklog-card.weight { background: var(--weight); color: #0d1a24; }
+  .quicklog-card.photo { background: var(--photo); color: #2a1013; }
+  .quicklog-card.nutrition { background: var(--nutrition); color: #131f0a; }
+  .quicklog-card.span-2 {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    min-height: auto;
+    padding: 18px 16px;
+  }
+  .quicklog-card.span-2 .ql-label { font-size: 16px; }
 
   .custom-log-btn {
     width: 100%;
@@ -145,9 +164,12 @@
   .session-item:active { transform: scale(0.985); background: var(--panel-raised); }
   .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
   .dot.padel { background: var(--padel); }
-  .dot.gym { background: var(--gym); }
-  .dot.running { background: var(--running); }
+  .dot.resistance { background: var(--resistance); }
+  .dot.cardio { background: var(--cardio); }
   .dot.yoga { background: var(--yoga); }
+  .dot.weight { background: var(--weight); }
+  .dot.photo { background: var(--photo); }
+  .dot.nutrition { background: var(--nutrition); }
   .session-item .si-main { flex: 1; min-width: 0; }
   .session-item .si-type { font-size: 13px; font-weight: 600; text-transform: capitalize; }
   .session-item .si-detail { font-size: 12.5px; color: var(--text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -338,15 +360,30 @@
   }
   .seg-toggle button.sel { border-color: var(--amber); color: var(--amber); background: rgba(232,163,61,0.1); }
 
-  .exercise-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-  .exercise-row input { flex: 1; }
-  .exercise-row input.ex-name { flex: 2; }
+  #dayRatingToggle button[data-v="good"].sel { border-color: var(--day-good); color: var(--day-good); background: rgba(111,174,90,0.14); }
+  #dayRatingToggle button[data-v="neutral"].sel { border-color: var(--day-neutral); color: var(--day-neutral); background: rgba(217,178,60,0.14); }
+  #dayRatingToggle button[data-v="off-track"].sel { border-color: var(--day-bad); color: var(--day-bad); background: rgba(139,145,152,0.14); }
+
+  .exercise-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .exercise-row input { flex: 1; min-width: 0; }
+  .exercise-row input.ex-name { flex-basis: 100%; }
+  .exercise-row select.ex-unit { flex: 0 0 72px; font-size: 13px; padding: 10px 6px; }
   .exercise-row .ex-rm { background: none; border: none; color: var(--text-faint); font-size: 18px; cursor: pointer; padding: 0 4px; }
   .add-exercise-btn {
     width: 100%; padding: 10px; border-radius: var(--radius-sm);
     border: 1px dashed var(--border); background: none; color: var(--text-muted);
     font-family: inherit; font-size: 13px; cursor: pointer; margin-bottom: 6px;
   }
+
+  .si-thumb { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+  .photo-preview-wrap { margin-bottom: 14px; }
+  .photo-preview-wrap img { width: 100%; max-height: 220px; object-fit: cover; border-radius: var(--radius-sm); display: block; }
+
+  .sparkline { display: block; margin-top: 4px; }
+
+  .checkbox-field { display: flex; align-items: center; justify-content: center; background: var(--panel-raised); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; }
+  .checkbox-label { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text); cursor: pointer; margin-bottom: 0 !important; }
+  .checkbox-label input[type="checkbox"] { width: 19px; height: 19px; accent-color: var(--amber); flex-shrink: 0; }
 
   .save-btn {
     width: 100%;
@@ -394,21 +431,33 @@
   <section class="view active" id="view-log">
     <h2 class="section-title">Quick log</h2>
     <div class="quicklog-grid">
+      <button class="quicklog-card nutrition span-2" data-type="nutrition">
+        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5v7a2.5 2.5 0 0 0 5 0v-7"/><line x1="8.5" y1="2.5" x2="8.5" y2="21.5"/><path d="M17 2.5c-1.5 1-2.3 3-2.3 5.3 0 2.6 1.3 4 2.3 4.7v9"/></svg></span>
+        <span class="ql-label">Nutrition</span>
+      </button>
+      <button class="quicklog-card weight" data-type="weight">
+        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c0-2.5 1.5-4 3.5-4s3.5 1.5 3.5 4"/><line x1="12" y1="7" x2="12" y2="8.5"/></svg></span>
+        <span class="ql-label">Weight</span>
+      </button>
+      <button class="quicklog-card photo" data-type="photo">
+        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.3"/></svg></span>
+        <span class="ql-label">Daily photo</span>
+      </button>
       <button class="quicklog-card padel" data-type="padel">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="10" height="13" rx="5"/><line x1="10" y1="15.5" x2="10" y2="20"/><line x1="7" y1="21.5" x2="13" y2="21.5"/><circle cx="18.5" cy="18.5" r="2"/></svg></span>
         <span class="ql-label">Padel</span>
       </button>
-      <button class="quicklog-card gym" data-type="gym">
-        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><line x1="5" y1="12" x2="19" y2="12"/><rect x="6.5" y="6.5" width="3" height="11" rx="1"/><rect x="14.5" y="6.5" width="3" height="11" rx="1"/></svg></span>
-        <span class="ql-label">Gym</span>
+      <button class="quicklog-card cardio" data-type="cardio">
+        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2.5-7 4 14 2.5-7H21"/></svg></span>
+        <span class="ql-label">Cardio</span>
       </button>
-      <button class="quicklog-card running" data-type="running">
-        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="15.5" cy="4.5" r="1.8" fill="currentColor" stroke="none"/><path d="M13 8l2 3 3 1.5"/><path d="M15 11l-2.5 2-4 .5-2 3.5"/><path d="M11.5 10.5L8 12l-3 4"/><path d="M15 14.5l1.5 3.5 3.5 1"/></svg></span>
-        <span class="ql-label">Running</span>
+      <button class="quicklog-card resistance" data-type="resistance">
+        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><line x1="5" y1="12" x2="19" y2="12"/><rect x="6.5" y="6.5" width="3" height="11" rx="1"/><rect x="14.5" y="6.5" width="3" height="11" rx="1"/></svg></span>
+        <span class="ql-label">Resistance training</span>
       </button>
       <button class="quicklog-card yoga" data-type="yoga">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.8" fill="currentColor" stroke="none"/><path d="M12 8v6"/><path d="M12 9c-2 2-3 3-6 3"/><path d="M12 9c2 2 3 3 6 3"/><path d="M12 14c-1.5 2-2 3-2 5.5"/><path d="M12 14c1.5 2 2 3 2 5.5"/></svg></span>
-        <span class="ql-label">Yoga / mobility</span>
+        <span class="ql-label">Mobility</span>
       </button>
     </div>
 
@@ -471,7 +520,27 @@
   var selectedDay = null;
   var editingId = null;
 
-  var TYPE_LABEL = { padel: 'Padel', gym: 'Gym', running: 'Running', yoga: 'Yoga / mobility' };
+  var TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance training', cardio: 'Cardio', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition' };
+  var DAY_RATING_LABEL = { good: 'On-track', neutral: 'Neutral', 'off-track': 'Off-track' };
+  var DEFAULT_CARDIO_TYPES = ['Running','Cycling','Swimming','Rowing','Walking'];
+  var DEFAULT_EXERCISES = [
+    {name:'Bench press', unit:'kg'}, {name:'Squat', unit:'kg'}, {name:'Deadlift', unit:'kg'},
+    {name:'Overhead press', unit:'kg'}, {name:'Pull-up', unit:'reps'}, {name:'Plank', unit:'sec'}
+  ];
+  var presets = { cardioTypes: DEFAULT_CARDIO_TYPES.slice(), exercises: DEFAULT_EXERCISES.slice() };
+
+  function normalizeSession(s){
+    // legacy: sessions logged before the Cardio rename used type 'running'
+    if (s.type === 'running'){
+      s.type = 'cardio';
+      if (!s.cardioType) s.cardioType = 'Running';
+    }
+    // legacy: sessions logged before the Resistance training rename used type 'gym'
+    if (s.type === 'gym'){
+      s.type = 'resistance';
+    }
+    return s;
+  }
 
   function todayStr(){ return fmtDate(new Date()); }
   function fmtDate(d){
@@ -504,7 +573,16 @@
   function localLoad(){
     try {
       var raw = localStorage.getItem('ledger_sessions_fallback');
-      if (raw) sessions = JSON.parse(raw);
+      if (raw) sessions = JSON.parse(raw).map(normalizeSession);
+    } catch(e){}
+  }
+  function localSavePresets(){
+    try { localStorage.setItem('ledger_presets_fallback', JSON.stringify(presets)); } catch(e){}
+  }
+  function localLoadPresets(){
+    try {
+      var raw = localStorage.getItem('ledger_presets_fallback');
+      if (raw) presets = JSON.parse(raw);
     } catch(e){}
   }
 
@@ -517,12 +595,21 @@
       document.getElementById('syncNote').textContent = '';
       dbRef.collection('ledger_sessions').orderBy('date','desc')
         .onSnapshot(function(snap){
-          sessions = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
+          sessions = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return normalizeSession(data); });
           renderAll();
         }, function(err){
           console.error('firestore snapshot error', err);
           fallbackMode();
         });
+      dbRef.collection('ledger_meta').doc('presets').onSnapshot(function(doc){
+        if (doc.exists){
+          var data = doc.data();
+          presets.cardioTypes = data.cardioTypes || DEFAULT_CARDIO_TYPES.slice();
+          presets.exercises = data.exercises || DEFAULT_EXERCISES.slice();
+        } else {
+          dbRef.collection('ledger_meta').doc('presets').set(presets).catch(function(){});
+        }
+      }, function(err){ console.error('presets snapshot error', err); });
     } catch(e){
       console.error(e);
       fallbackMode();
@@ -532,8 +619,17 @@
   function fallbackMode(){
     dbReady = false;
     localLoad();
+    localLoadPresets();
     document.getElementById('syncNote').textContent = 'Saving on this device only — add your Firebase config to sync';
     renderAll();
+  }
+
+  async function savePresets(){
+    if (dbReady && dbRef){
+      try { await dbRef.collection('ledger_meta').doc('presets').set(presets); return; }
+      catch(e){ console.error('presets save failed', e); }
+    }
+    localSavePresets();
   }
 
   async function saveSession(data){
@@ -599,16 +695,16 @@
       if (s.opponent) parts.push('vs ' + s.opponent);
       return parts.join(' · ') || 'Match logged';
     }
-    if (s.type === 'gym'){
+    if (s.type === 'resistance'){
       var n = (s.exercises||[]).length;
       return n ? n + ' exercise' + (n===1?'':'s') + (s.bodyweight ? ' · ' + s.bodyweight + 'kg' : '') : 'Session logged';
     }
-    if (s.type === 'running'){
+    if (s.type === 'cardio'){
       var bits = [];
-      if (s.distanceKm) bits.push(s.distanceKm + ' km');
+      if (s.cardioType) bits.push(s.cardioType);
+      if (s.distance) bits.push(s.distance + ' ' + (s.distanceUnit || 'km'));
       if (s.durationMin) bits.push(s.durationMin + ' min');
-      if (s.distanceKm && s.durationMin) bits.push(paceStr(s.distanceKm, s.durationMin) + '/km');
-      return bits.join(' · ') || 'Run logged';
+      return bits.join(' · ') || 'Session logged';
     }
     if (s.type === 'yoga'){
       var b2 = [];
@@ -616,20 +712,32 @@
       if (s.durationMin) b2.push(s.durationMin + ' min');
       return b2.join(' · ') || 'Session logged';
     }
+    if (s.type === 'weight'){
+      return s.weightKg ? s.weightKg + ' kg' : 'Weight logged';
+    }
+    if (s.type === 'photo'){
+      return s.notes || 'Photo added';
+    }
+    if (s.type === 'nutrition'){
+      var nb = [];
+      if (s.dayRating) nb.push(DAY_RATING_LABEL[s.dayRating] + ' day');
+      if (s.calories) nb.push(s.calories + ' kcal');
+      if (s.glutenFree) nb.push('GF');
+      if (s.minimalProcessed) nb.push('Minimal processed');
+      if (s.sufficientWater) nb.push('Hydrated');
+      return nb.join(' · ') || 'Day logged';
+    }
     return s.notes || '';
-  }
-  function paceStr(km, min){
-    if (!km) return '—';
-    var p = min / km;
-    var m = Math.floor(p), s = Math.round((p-m)*60);
-    return m + ':' + String(s).padStart(2,'0');
   }
 
   function renderSessionItem(s){
     var div = document.createElement('div');
     div.className = 'session-item';
+    var leadHtml = (s.type === 'photo' && s.photoDataUrl)
+      ? '<img class="si-thumb" src="' + s.photoDataUrl + '">'
+      : '<span class="dot ' + s.type + '"></span>';
     div.innerHTML =
-      '<span class="dot ' + s.type + '"></span>' +
+      leadHtml +
       '<div class="si-main">' +
         '<div class="si-type">' + TYPE_LABEL[s.type] + '</div>' +
         '<div class="si-detail">' + sessionDetailText(s) + '</div>' +
@@ -707,7 +815,7 @@
       daySessions.forEach(function(s){ if (typesPresent.indexOf(s.type) === -1) typesPresent.push(s.type); });
 
       var dotsHtml = typesPresent.slice(0,4).map(function(t){ return '<span class="dot ' + t + '"></span>'; }).join('');
-      cell.innerHTML = '<span>' + day + '</span><span class="cal-dots">' + dotsHtml + '</span>';
+      cell.innerHTML = '<span>' + day + '</span>' + (dotsHtml ? '<span class="cal-dots">' + dotsHtml + '</span>' : '');
       cell.addEventListener('click', function(ds){
         return function(){ selectedDay = ds; renderCalendar(); };
       }(dateStr));
@@ -780,22 +888,21 @@
     ]));
 
     // Gym
-    var gym = sessions.filter(function(s){ return s.type==='gym'; });
+    var gym = sessions.filter(function(s){ return s.type==='resistance'; });
     var gymWeek = gym.filter(function(s){ return withinDays(s,7); });
     var lastBw = gym.find(function(s){ return s.bodyweight; });
-    container.appendChild(statCard('gym', [
+    container.appendChild(statCard('resistance', [
       { val: gymWeek.length, lbl: 'Sessions this week' },
       { val: lastBw && lastBw.bodyweight ? lastBw.bodyweight + 'kg' : '—', lbl: 'Last logged bodyweight' }
     ]));
 
-    // Running
-    var running = sessions.filter(function(s){ return s.type==='running'; });
-    var runMonth = running.filter(withinThisMonth);
-    var totalKm = runMonth.reduce(function(a,s){ return a + (s.distanceKm||0); }, 0);
-    var totalMin = runMonth.reduce(function(a,s){ return a + (s.durationMin||0); }, 0);
-    container.appendChild(statCard('running', [
-      { val: totalKm ? totalKm.toFixed(1) : '0', lbl: 'km this month' },
-      { val: totalKm && totalMin ? paceStr(totalKm, totalMin)+'/km' : '—', lbl: 'Avg pace' }
+    // Cardio
+    var cardio = sessions.filter(function(s){ return s.type==='cardio'; });
+    var cardioMonth = cardio.filter(withinThisMonth);
+    var totalCardioMin = cardioMonth.reduce(function(a,s){ return a + (s.durationMin||0); }, 0);
+    container.appendChild(statCard('cardio', [
+      { val: cardioMonth.length, lbl: 'Sessions this month' },
+      { val: totalCardioMin || 0, lbl: 'Minutes this month' }
     ]));
 
     // Yoga
@@ -805,6 +912,59 @@
       { val: yogaWeek.length, lbl: 'Sessions this week' },
       { val: yoga.length, lbl: 'All-time sessions' }
     ]));
+
+    // Weight (merges dedicated weight logs + bodyweight noted in gym sessions)
+    var weightEntries = sessions
+      .filter(function(s){ return (s.type==='weight' && s.weightKg) || (s.type==='resistance' && s.bodyweight); })
+      .map(function(s){ return { date: s.date, val: s.type==='weight' ? s.weightKg : s.bodyweight }; })
+      .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+    var latestWeight = weightEntries.length ? weightEntries[weightEntries.length-1].val : null;
+    var weightCard = statCard('weight', [
+      { val: latestWeight != null ? latestWeight + 'kg' : '—', lbl: 'Latest weight' },
+      { val: weightEntries.length, lbl: 'Entries logged' }
+    ]);
+    if (weightEntries.length > 1){
+      var sparkWrap = document.createElement('div');
+      sparkWrap.innerHTML = sparklineSvg(weightEntries.slice(-14).map(function(e){ return e.val; }), getComputedStyle(document.documentElement).getPropertyValue('--weight').trim());
+      weightCard.appendChild(sparkWrap.firstChild);
+    }
+    container.appendChild(weightCard);
+
+    // Photos
+    var photos = sessions.filter(function(s){ return s.type==='photo'; });
+    var photosMonth = photos.filter(withinThisMonth);
+    container.appendChild(statCard('photo', [
+      { val: photosMonth.length, lbl: 'Photos this month' },
+      { val: photos.length, lbl: 'All-time photos' }
+    ]));
+
+    // Nutrition
+    var nutrition = sessions.filter(function(s){ return s.type==='nutrition'; });
+    var nutritionMonth = nutrition.filter(withinThisMonth);
+    var goodDays = nutritionMonth.filter(function(s){ return s.dayRating==='good'; }).length;
+    var gfDays = nutritionMonth.filter(function(s){ return s.glutenFree; }).length;
+    var hydratedDays = nutritionMonth.filter(function(s){ return s.sufficientWater; }).length;
+    container.appendChild(statCard('nutrition', [
+      { val: goodDays, lbl: 'On-track days this month' },
+      { val: gfDays, lbl: 'Gluten-free days' },
+      { val: hydratedDays, lbl: 'Hydrated days' }
+    ]));
+  }
+
+  function sparklineSvg(values, color){
+    if (!values.length) return '';
+    var w = 200, h = 36, pad = 3;
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    var range = (max - min) || 1;
+    var step = values.length > 1 ? (w - pad*2) / (values.length - 1) : 0;
+    var points = values.map(function(v, i){
+      var x = pad + i*step;
+      var y = h - pad - ((v - min) / range) * (h - pad*2);
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    return '<svg class="sparkline" viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="36" preserveAspectRatio="none">' +
+      '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '</svg>';
   }
 
   function statCard(type, nums){
@@ -894,9 +1054,22 @@
   function fieldDate(id, label, value){
     return '<div class="field"><label>'+label+'</label><input type="date" id="'+id+'" value="'+value+'"></div>';
   }
+  function fieldSelect(id, label, options, value){
+    var opts = options.map(function(o){
+      var v = typeof o === 'object' ? o.value : o;
+      var l = typeof o === 'object' ? o.label : o;
+      return '<option value="'+v+'"' + (v===value?' selected':'') + '>'+l+'</option>';
+    }).join('');
+    return '<div class="field"><label>'+label+'</label><select id="'+id+'">'+opts+'</select></div>';
+  }
   function fieldNotes(value){
     return '<div class="field"><label>Notes</label><textarea id="f_notes" placeholder="Anything worth remembering">'+(value||'')+'</textarea></div>';
   }
+  function fieldCheckbox(id, label, checked){
+    return '<div class="field checkbox-field"><label class="checkbox-label"><input type="checkbox" id="'+id+'"'+(checked?' checked':'')+'> '+label+'</label></div>';
+  }
+
+  var UNIT_OPTIONS = ['kg','lb','reps','sec','m'];
 
   function buildFormHtml(type, d){
     var html = '<div class="sheet-handle"></div>';
@@ -916,19 +1089,24 @@
       html += fieldNum('f_durationMin', 'Duration (min)', d.durationMin, '90');
     }
 
-    if (type === 'gym'){
+    if (type === 'resistance'){
       html += '<div class="field"><label>Exercises</label><div id="exerciseRows"></div>' +
         '<button type="button" class="add-exercise-btn" id="addExerciseBtn">+ Add exercise</button></div>';
       html += fieldNum('f_bodyweight', 'Bodyweight (kg, optional)', d.bodyweight, '104');
       html += fieldNum('f_durationMin', 'Duration (min)', d.durationMin, '60');
     }
 
-    if (type === 'running'){
+    if (type === 'cardio'){
+      var cardioTypeOpts = presets.cardioTypes.map(function(t){ return {value:t, label:t}; });
+      cardioTypeOpts.push({value:'__new__', label:'+ New type…'});
+      html += fieldSelect('f_cardioType', 'Type', cardioTypeOpts, d.cardioType || presets.cardioTypes[0]);
+      html += '<div class="field" id="cardioNewTypeField" style="display:none">' +
+        '<label>New type name</label><input type="text" id="f_cardioTypeNew" placeholder="e.g. Rowing machine"></div>';
       html += '<div class="field-row">' +
-        fieldNum('f_distanceKm','Distance (km)', d.distanceKm, '5') +
-        fieldNum('f_durationMin','Duration (min)', d.durationMin, '28') +
+        fieldNum('f_distance','Distance', d.distance, '5') +
+        fieldSelect('f_distanceUnit', 'Unit', ['km','mi','m'], d.distanceUnit || 'km') +
       '</div>';
-      html += fieldText('f_route', 'Route (optional)', d.route, 'e.g. river loop');
+      html += fieldNum('f_durationMin','Duration (min)', d.durationMin, '28');
     }
 
     if (type === 'yoga'){
@@ -936,16 +1114,63 @@
       html += fieldNum('f_durationMin', 'Duration (min)', d.durationMin, '30');
     }
 
-    html += fieldNotes(d.notes);
-    html += '<button class="save-btn" id="saveBtn">Save session</button>';
-    if (editingId) html += '<button class="delete-btn" id="deleteBtn">Delete session</button>';
+    if (type === 'weight'){
+      html += fieldNum('f_weightKg', 'Weight (kg)', d.weightKg, '104.0', '0.1');
+    }
+
+    if (type === 'photo'){
+      html += '<div class="photo-preview-wrap" id="photoPreviewWrap" style="' + (d.photoDataUrl ? '' : 'display:none') + '">' +
+        '<img id="photoPreviewImg" src="' + (d.photoDataUrl || '') + '"></div>';
+      html += '<div class="field"><label>' + (d.photoDataUrl ? 'Replace photo' : 'Photo') + '</label>' +
+        '<input type="file" id="f_photo" accept="image/*" capture="environment"></div>';
+    }
+
+    if (type === 'nutrition'){
+      html += '<div class="field"><label>How was the day?</label><div class="seg-toggle" id="dayRatingToggle">' +
+        '<button data-v="good" class="'+(d.dayRating==='good'?'sel':'')+'">On-track</button>' +
+        '<button data-v="neutral" class="'+(d.dayRating==='neutral'?'sel':'')+'">Neutral</button>' +
+        '<button data-v="off-track" class="'+(d.dayRating==='off-track'?'sel':'')+'">Off-track</button>' +
+        '</div></div>';
+      html += fieldCheckbox('f_glutenFree', 'Gluten-free', d.glutenFree);
+      html += fieldCheckbox('f_minimalProcessed', 'Minimal processed foods', d.minimalProcessed);
+      html += fieldCheckbox('f_sufficientWater', 'Sufficient water intake', d.sufficientWater);
+      html += '<div class="field"><label>Food diary (optional)</label><textarea id="f_foodDiary" placeholder="What did you eat today">'+(d.foodDiary||'')+'</textarea></div>';
+      html += fieldNum('f_calories', 'Calories (optional)', d.calories, '2200');
+    }
+
+    if (type !== 'nutrition') html += fieldNotes(d.notes);
+    html += '<button class="save-btn" id="saveBtn">Save</button>';
+    if (editingId) html += '<button class="delete-btn" id="deleteBtn">Delete</button>';
     return html;
+  }
+
+  function compressImage(file, maxDim, quality){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var img = new Image();
+        img.onload = function(){
+          var w = img.width, h = img.height;
+          if (w > h && w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; }
+          else if (h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; }
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   function wireForm(type, d){
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
 
-    var exerciseState = (d.exercises && d.exercises.length) ? d.exercises.slice() : (type==='gym' ? [{name:'',sets:'',reps:'',weight:''}] : []);
+    var exerciseState = (d.exercises && d.exercises.length) ? d.exercises.slice() : (type==='resistance' ? [{name:'',sets:'',reps:'',value:'',unit:'kg'}] : []);
+    var pendingPhotoDataUrl = d.photoDataUrl || null;
 
     if (type === 'padel'){
       var resultVal = d.result || null;
@@ -958,24 +1183,57 @@
       });
     }
 
-    if (type === 'gym'){
+    if (type === 'nutrition'){
+      var dayRatingVal = d.dayRating || null;
+      document.querySelectorAll('#dayRatingToggle button').forEach(function(b){
+        b.addEventListener('click', function(){
+          dayRatingVal = (dayRatingVal === b.dataset.v) ? null : b.dataset.v;
+          document.querySelectorAll('#dayRatingToggle button').forEach(function(x){ x.classList.remove('sel'); });
+          if (dayRatingVal) b.classList.add('sel');
+        });
+      });
+    }
+
+    if (type === 'cardio'){
+      var typeSelect = document.getElementById('f_cardioType');
+      var newTypeField = document.getElementById('cardioNewTypeField');
+      function syncNewTypeVisibility(){
+        newTypeField.style.display = (typeSelect.value === '__new__') ? '' : 'none';
+      }
+      typeSelect.addEventListener('change', syncNewTypeVisibility);
+      syncNewTypeVisibility();
+    }
+
+    if (type === 'resistance'){
       var rowsWrap = document.getElementById('exerciseRows');
+      var dlId = 'exerciseSuggestions';
+      if (!document.getElementById(dlId)){
+        var dl = document.createElement('datalist');
+        dl.id = dlId;
+        document.body.appendChild(dl);
+      }
+      var dlEl = document.getElementById(dlId);
+      dlEl.innerHTML = presets.exercises.map(function(e){ return '<option value="'+e.name.replace(/"/g,'&quot;')+'">'; }).join('');
+
       function renderRows(){
         rowsWrap.innerHTML = '';
         exerciseState.forEach(function(ex, i){
           var row = document.createElement('div');
           row.className = 'exercise-row';
+          var unitOptsHtml = UNIT_OPTIONS.map(function(u){ return '<option value="'+u+'"'+(ex.unit===u?' selected':'')+'>'+u+'</option>'; }).join('');
           row.innerHTML =
-            '<input class="ex-name" placeholder="Exercise" value="'+(ex.name||'').replace(/"/g,'&quot;')+'">' +
+            '<input class="ex-name" list="'+dlId+'" placeholder="Exercise name" value="'+(ex.name||'').replace(/"/g,'&quot;')+'">' +
             '<input placeholder="Sets" type="number" value="'+(ex.sets||'')+'" style="max-width:56px">' +
             '<input placeholder="Reps" type="number" value="'+(ex.reps||'')+'" style="max-width:56px">' +
-            '<input placeholder="kg" type="number" value="'+(ex.weight||'')+'" style="max-width:64px">' +
+            '<input placeholder="Value" type="number" value="'+(ex.value||'')+'" style="max-width:64px">' +
+            '<select class="ex-unit">'+unitOptsHtml+'</select>' +
             '<button type="button" class="ex-rm">✕</button>';
           var inputs = row.querySelectorAll('input');
           inputs[0].addEventListener('input', function(){ exerciseState[i].name = inputs[0].value; });
           inputs[1].addEventListener('input', function(){ exerciseState[i].sets = inputs[1].value; });
           inputs[2].addEventListener('input', function(){ exerciseState[i].reps = inputs[2].value; });
-          inputs[3].addEventListener('input', function(){ exerciseState[i].weight = inputs[3].value; });
+          inputs[3].addEventListener('input', function(){ exerciseState[i].value = inputs[3].value; });
+          row.querySelector('.ex-unit').addEventListener('change', function(e){ exerciseState[i].unit = e.target.value; });
           row.querySelector('.ex-rm').addEventListener('click', function(){
             exerciseState.splice(i,1); renderRows();
           });
@@ -984,8 +1242,21 @@
       }
       renderRows();
       document.getElementById('addExerciseBtn').addEventListener('click', function(){
-        exerciseState.push({name:'',sets:'',reps:'',weight:''});
+        exerciseState.push({name:'',sets:'',reps:'',value:'',unit:'kg'});
         renderRows();
+      });
+    }
+
+    if (type === 'photo'){
+      document.getElementById('f_photo').addEventListener('change', function(e){
+        var file = e.target.files[0];
+        if (!file) return;
+        compressImage(file, 900, 0.65).then(function(dataUrl){
+          pendingPhotoDataUrl = dataUrl;
+          var wrap = document.getElementById('photoPreviewWrap');
+          document.getElementById('photoPreviewImg').src = dataUrl;
+          wrap.style.display = '';
+        }).catch(function(err){ console.error('photo compress failed', err); });
       });
     }
 
@@ -1003,21 +1274,64 @@
         out.opponent = document.getElementById('f_opponent').value;
         out.durationMin = numOrNull('f_durationMin');
       }
-      if (type === 'gym'){
-        out.exercises = exerciseState.filter(function(e){ return e.name; }).map(function(e){
-          return { name: e.name, sets: e.sets ? Number(e.sets) : null, reps: e.reps ? Number(e.reps) : null, weight: e.weight ? Number(e.weight) : null };
+      if (type === 'resistance'){
+        var finalExercises = exerciseState.filter(function(e){ return e.name; }).map(function(e){
+          return { name: e.name, sets: e.sets ? Number(e.sets) : null, reps: e.reps ? Number(e.reps) : null,
+                   value: e.value ? Number(e.value) : null, unit: e.unit || 'kg' };
         });
+        out.exercises = finalExercises;
         out.bodyweight = numOrNull('f_bodyweight');
         out.durationMin = numOrNull('f_durationMin');
+
+        // Offer to save any new exercise names as presets
+        var knownNames = presets.exercises.map(function(e){ return e.name.toLowerCase(); });
+        var newOnes = finalExercises.filter(function(e){ return knownNames.indexOf(e.name.toLowerCase()) === -1; });
+        newOnes.forEach(function(e){
+          if (confirm('Save "' + e.name + '" (' + e.unit + ') as a new exercise for quick access next time?')){
+            presets.exercises.push({ name: e.name, unit: e.unit });
+            knownNames.push(e.name.toLowerCase());
+          }
+        });
+        if (newOnes.length) savePresets();
       }
-      if (type === 'running'){
-        out.distanceKm = numOrNull('f_distanceKm');
+      if (type === 'cardio'){
+        var typeSelectEl = document.getElementById('f_cardioType');
+        var chosenType = typeSelectEl.value;
+        if (chosenType === '__new__'){
+          var newName = document.getElementById('f_cardioTypeNew').value.trim();
+          if (newName){
+            chosenType = newName;
+            if (presets.cardioTypes.indexOf(newName) === -1 &&
+                confirm('Save "' + newName + '" as a new cardio type for quick access?')){
+              presets.cardioTypes.push(newName);
+              savePresets();
+            }
+          } else {
+            chosenType = presets.cardioTypes[0];
+          }
+        }
+        out.cardioType = chosenType;
+        out.distance = numOrNull('f_distance');
+        out.distanceUnit = document.getElementById('f_distanceUnit').value;
         out.durationMin = numOrNull('f_durationMin');
-        out.route = document.getElementById('f_route').value;
       }
       if (type === 'yoga'){
         out.focus = document.getElementById('f_focus').value;
         out.durationMin = numOrNull('f_durationMin');
+      }
+      if (type === 'weight'){
+        out.weightKg = numOrNull('f_weightKg');
+      }
+      if (type === 'photo'){
+        out.photoDataUrl = pendingPhotoDataUrl || d.photoDataUrl || null;
+      }
+      if (type === 'nutrition'){
+        out.dayRating = typeof dayRatingVal !== 'undefined' ? dayRatingVal : (d.dayRating || null);
+        out.glutenFree = document.getElementById('f_glutenFree').checked;
+        out.minimalProcessed = document.getElementById('f_minimalProcessed').checked;
+        out.sufficientWater = document.getElementById('f_sufficientWater').checked;
+        out.foodDiary = document.getElementById('f_foodDiary').value;
+        out.calories = numOrNull('f_calories');
       }
 
       saveSession(out);
