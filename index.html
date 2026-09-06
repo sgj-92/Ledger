@@ -34,6 +34,7 @@
     --weight: #7c93a8;
     --photo: #c97b84;
     --nutrition: #8fae5d;
+    --gluten: #b5563f;
     --day-good: #6fae5a;
     --day-neutral: #d9b23c;
     --day-bad: #8b9198;
@@ -128,6 +129,7 @@
   .quicklog-card.weight { background: var(--weight); color: #0d1a24; }
   .quicklog-card.photo { background: var(--photo); color: #2a1013; }
   .quicklog-card.nutrition { background: var(--nutrition); color: #131f0a; }
+  .quicklog-card.gluten { background: var(--gluten); color: #2a120c; }
   .quicklog-card.span-2 {
     grid-column: 1 / -1;
     flex-direction: row;
@@ -174,6 +176,7 @@
   .dot.weight { background: var(--weight); }
   .dot.photo { background: var(--photo); }
   .dot.nutrition { background: var(--nutrition); }
+  .dot.gluten { background: var(--gluten); }
   .session-item .si-main { flex: 1; min-width: 0; }
   .session-item .si-type { font-size: 13px; font-weight: 600; text-transform: capitalize; }
   .session-item .si-detail { font-size: 12.5px; color: var(--text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -692,6 +695,10 @@
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5v7a2.5 2.5 0 0 0 5 0v-7"/><line x1="8.5" y1="2.5" x2="8.5" y2="21.5"/><path d="M17 2.5c-1.5 1-2.3 3-2.3 5.3 0 2.6 1.3 4 2.3 4.7v9"/></svg></span>
         <span class="ql-label">Nutrition</span>
       </button>
+      <button class="quicklog-card gluten" data-type="gluten">
+        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 3c-2 1.5-3 3-3 5a3 3 0 0 0 6 0c0-2-1-3.5-3-5Z"/><path d="M9 10l-1.5 3M15 10l1.5 3"/><line x1="12" y1="9" x2="12" y2="21"/></svg></span>
+        <span class="ql-label">Gluten exposure</span>
+      </button>
       <button class="quicklog-card weight" data-type="weight">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c0-2.5 1.5-4 3.5-4s3.5 1.5 3.5 4"/><line x1="12" y1="7" x2="12" y2="8.5"/></svg></span>
         <span class="ql-label">Weight</span>
@@ -747,6 +754,10 @@
 
   <section class="view" id="view-focus">
     <div id="playerCard"></div>
+
+    <h2 class="section-title">Priorities</h2>
+    <div id="prioritiesList"></div>
+    <button class="custom-log-btn" id="addPriorityBtn">+ Add priority</button>
 
     <h2 class="section-title">Target weight</h2>
     <div id="targetWeightCard"></div>
@@ -815,19 +826,24 @@
   var selectedDay = null;
   var plans = [];
   var mealIdeas = [];
+  var priorities = [];
+  var presetsLoaded = false;
+  var prioritiesLoaded = false;
   var planWeekStart = new Date(); planWeekStart.setDate(planWeekStart.getDate() - planWeekStart.getDay());
   var PLAN_TRAINING_TYPES = ['padel','cardio','resistance','yoga'];
   var CARB_LEVEL_LABEL = { low: 'Low carb', normal: 'Normal', high: 'High carb' };
   var editingId = null;
 
-  var TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance training', cardio: 'Cardio', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition' };
+  var TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance training', cardio: 'Cardio', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition', gluten: 'Gluten exposure' };
+  var GLUTEN_SYMPTOMS = ['Brain fog', 'Headache', 'Itching', 'Low mood', 'Depressive symptoms'];
+  var SEVERITY_LABEL = { mild: 'Mild', moderate: 'Moderate', severe: 'Severe' };
   var DAY_RATING_LABEL = { good: 'On-track', neutral: 'Neutral', 'off-track': 'Off-track' };
   var DEFAULT_CARDIO_TYPES = ['Running','Cycling','Swimming','Rowing','Walking'];
   var DEFAULT_EXERCISES = [
     {name:'Bench press', unit:'kg'}, {name:'Squat', unit:'kg'}, {name:'Deadlift', unit:'kg'},
     {name:'Overhead press', unit:'kg'}, {name:'Pull-up', unit:'reps'}, {name:'Plank', unit:'sec'}
   ];
-  var presets = { cardioTypes: DEFAULT_CARDIO_TYPES.slice(), exercises: DEFAULT_EXERCISES.slice(), targetWeightKg: null };
+  var presets = { cardioTypes: DEFAULT_CARDIO_TYPES.slice(), exercises: DEFAULT_EXERCISES.slice(), targetWeightKg: null, prioritiesSeeded: false };
   var focusItems = [];
   var FOCUS_CATEGORY_LABEL = { technique: 'Technique', footwork: 'Footwork', physical: 'Physical', general: 'General' };
 
@@ -935,10 +951,13 @@
           presets.cardioTypes = data.cardioTypes || DEFAULT_CARDIO_TYPES.slice();
           presets.exercises = data.exercises || DEFAULT_EXERCISES.slice();
           presets.targetWeightKg = data.targetWeightKg != null ? data.targetWeightKg : null;
+          presets.prioritiesSeeded = !!data.prioritiesSeeded;
           if (currentView === 'focus') renderFocus();
         } else {
           dbRef.collection('ledger_meta').doc('presets').set(presets).catch(function(){});
         }
+        presetsLoaded = true;
+        seedPrioritiesIfNeeded();
       }, function(err){ console.error('presets snapshot error', err); });
       dbRef.collection('ledger_focus').orderBy('createdAt','desc')
         .onSnapshot(function(snap){
@@ -956,6 +975,13 @@
           mealIdeas = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
           if (currentView === 'plan') renderMealIdeas();
         }, function(err){ console.error('meal ideas snapshot error', err); });
+      dbRef.collection('ledger_priorities').orderBy('createdAt')
+        .onSnapshot(function(snap){
+          priorities = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
+          prioritiesLoaded = true;
+          seedPrioritiesIfNeeded();
+          if (currentView === 'focus') renderPriorities();
+        }, function(err){ console.error('priorities snapshot error', err); });
     } catch(e){
       console.error(e);
       fallbackMode();
@@ -969,6 +995,10 @@
     localLoadFocus();
     localLoadPlans();
     localLoadMealIdeas();
+    localLoadPriorities();
+    presetsLoaded = true;
+    prioritiesLoaded = true;
+    seedPrioritiesIfNeeded();
     document.getElementById('syncNote').textContent = 'Saving on this device only — add your Firebase config to sync';
     renderAll();
   }
@@ -1088,6 +1118,63 @@
     renderMealIdeas();
   }
 
+  function localSavePriorities(){
+    try { localStorage.setItem('ledger_priorities_fallback', JSON.stringify(priorities)); } catch(e){}
+  }
+  function localLoadPriorities(){
+    try {
+      var raw = localStorage.getItem('ledger_priorities_fallback');
+      if (raw) priorities = JSON.parse(raw);
+    } catch(e){}
+  }
+
+  async function savePriority(item){
+    if (dbReady && dbRef){
+      try {
+        if (item.id){
+          var id = item.id; var copy = Object.assign({}, item); delete copy.id;
+          await dbRef.collection('ledger_priorities').doc(id).set(copy);
+        } else {
+          await dbRef.collection('ledger_priorities').add(item);
+        }
+        return;
+      } catch(e){ console.error('priority save failed', e); }
+    }
+    if (item.id){
+      var idx = priorities.findIndex(function(p){ return p.id === item.id; });
+      if (idx > -1) priorities[idx] = item;
+    } else {
+      item.id = uid();
+      priorities.push(item);
+    }
+    localSavePriorities();
+    renderPriorities();
+  }
+
+  async function deletePriority(id){
+    if (dbReady && dbRef){
+      try { await dbRef.collection('ledger_priorities').doc(id).delete(); return; }
+      catch(e){ console.error(e); }
+    }
+    priorities = priorities.filter(function(p){ return p.id !== id; });
+    localSavePriorities();
+    renderPriorities();
+  }
+
+  function seedPrioritiesIfNeeded(){
+    if (!presetsLoaded || !prioritiesLoaded) return;
+    if (presets.prioritiesSeeded) return;
+    presets.prioritiesSeeded = true;
+    if (!priorities.length){
+      var seedItems = [
+        { title: 'Reduce weight to 90kg', note: 'Establish good eating habits along the way', createdAt: new Date().toISOString() },
+        { title: 'Generate money & clear S&J backlog', note: '', createdAt: new Date().toISOString() }
+      ];
+      seedItems.forEach(function(item){ savePriority(item); });
+    }
+    savePresets();
+  }
+
   async function saveSession(data){
     if (dbReady && dbRef){
       try {
@@ -1196,6 +1283,13 @@
       if (s.minimalProcessed) nb.push('Minimal processed');
       if (s.sufficientWater) nb.push('Hydrated' + (s.waterAmount ? ' (' + s.waterAmount + ')' : ''));
       return nb.join(' · ') || 'Day logged';
+    }
+    if (s.type === 'gluten'){
+      var gb = [];
+      if (s.source) gb.push(s.source);
+      if (s.severity) gb.push(SEVERITY_LABEL[s.severity]);
+      if (s.symptoms && s.symptoms.length) gb.push(s.symptoms.join(', '));
+      return gb.join(' · ') || 'Exposure logged';
     }
     return s.notes || '';
   }
@@ -1478,6 +1572,23 @@
       { val: goodDays, lbl: 'On-track days this month' },
       { val: gfDays, lbl: 'Gluten-free days' },
       { val: hydratedDays, lbl: 'Hydrated days' }
+    ]));
+
+    // Gluten exposure — factual tally only, no inferred causation
+    var glutenLogs = sessions.filter(function(s){ return s.type==='gluten'; });
+    var glutenMonth = glutenLogs.filter(withinThisMonth);
+    var symptomCounts = {};
+    glutenMonth.forEach(function(s){
+      (s.symptoms||[]).forEach(function(sym){ symptomCounts[sym] = (symptomCounts[sym]||0) + 1; });
+    });
+    var topSymptom = '—';
+    var topCount = 0;
+    Object.keys(symptomCounts).forEach(function(sym){
+      if (symptomCounts[sym] > topCount){ topCount = symptomCounts[sym]; topSymptom = sym; }
+    });
+    container.appendChild(statCard('gluten', [
+      { val: glutenMonth.length, lbl: 'Exposures logged this month' },
+      { val: topSymptom, lbl: 'Most common symptom' }
     ]));
   }
 
@@ -2179,8 +2290,66 @@
     });
   }
 
+  // ---------- priorities ----------
+  function renderPriorities(){
+    var list = document.getElementById('prioritiesList');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!priorities.length){
+      var e = document.createElement('div');
+      e.className = 'empty-state';
+      e.textContent = 'No priorities set — add what matters most right now';
+      list.appendChild(e);
+      return;
+    }
+    priorities.forEach(function(p){
+      var row = document.createElement('div');
+      row.className = 'focus-item';
+      row.innerHTML = '<div><div class="focus-text" style="font-weight:700">' + p.title + '</div>' +
+        (p.note ? '<div class="focus-text" style="font-size:12.5px;color:var(--text-muted);margin-top:3px">' + p.note + '</div>' : '') +
+        '</div>';
+      row.addEventListener('click', function(){ openPrioritySheet(p); });
+      list.appendChild(row);
+    });
+  }
+
+  function openPrioritySheet(existing){
+    editingId = null;
+    var isEditing = !!existing;
+    sheetEl.innerHTML =
+      '<div class="sheet-handle"></div>' +
+      '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit priority' : 'New priority') + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<div class="field"><label>Priority</label><input type="text" id="f_priorityTitle" placeholder="e.g. Reduce weight to 90kg" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
+      '<div class="field"><label>Note (optional)</label><textarea id="f_priorityNote" placeholder="…">' + (existing ? (existing.note||'') : '') + '</textarea></div>' +
+      '<button class="save-btn" id="savePriorityBtn">Save</button>' +
+      (isEditing ? '<button class="delete-btn" id="deletePriorityBtn">Delete</button>' : '');
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('savePriorityBtn').addEventListener('click', function(){
+      var title = document.getElementById('f_priorityTitle').value.trim();
+      if (!title) { closeSheet(); return; }
+      var out = {
+        title: title,
+        note: document.getElementById('f_priorityNote').value,
+        createdAt: existing ? existing.createdAt : new Date().toISOString()
+      };
+      if (isEditing) out.id = existing.id;
+      savePriority(out);
+      closeSheet();
+    });
+    if (isEditing){
+      document.getElementById('deletePriorityBtn').addEventListener('click', function(){
+        deletePriority(existing.id);
+        closeSheet();
+      });
+    }
+  }
+
+  document.getElementById('addPriorityBtn').addEventListener('click', function(){ openPrioritySheet(null); });
+
   function renderFocus(){
     renderPlayerCard();
+    renderPriorities();
     renderTargetWeightCard();
 
     var activeList = document.getElementById('focusList');
@@ -2409,6 +2578,24 @@
       html += fieldNum('f_calories', 'Calories (optional)', d.calories, '2200');
     }
 
+    if (type === 'gluten'){
+      html += fieldText('f_glutenSource', 'Suspected source', d.source, 'e.g. soy sauce at dinner');
+      html += '<div class="field"><label>Symptoms</label><div class="type-chip-grid" id="glutenSymptomGrid" style="grid-template-columns:repeat(2,1fr)">' +
+        GLUTEN_SYMPTOMS.map(function(s){
+          var isSel = d.symptoms && d.symptoms.indexOf(s) > -1;
+          var glutenColor = getComputedStyle(document.documentElement).getPropertyValue('--gluten').trim();
+          var style = isSel ? 'background:'+glutenColor+';border-color:'+glutenColor+';color:#2a120c;' : '';
+          return '<button type="button" class="type-chip-btn'+(isSel?' sel':'')+'" data-s="'+s+'" style="'+style+'">'+s+'</button>';
+        }).join('') +
+      '</div></div>';
+      html += '<div class="field"><label>Severity</label><div class="seg-toggle" id="glutenSeverityToggle">' +
+        '<button data-v="mild" class="'+(d.severity==='mild'?'sel':'')+'">Mild</button>' +
+        '<button data-v="moderate" class="'+(d.severity==='moderate'?'sel':'')+'">Moderate</button>' +
+        '<button data-v="severe" class="'+(d.severity==='severe'?'sel':'')+'">Severe</button>' +
+        '</div></div>';
+      html += fieldText('f_recovery', 'Recovery time (optional)', d.recovery, 'e.g. 1 day');
+    }
+
     if (type !== 'nutrition') html += fieldNotes(d.notes);
     html += '<button class="save-btn" id="saveBtn">Save</button>';
     if (editingId) html += '<button class="delete-btn" id="deleteBtn">Delete</button>';
@@ -2530,6 +2717,37 @@
       wireYesNo('f_glutenFree', function(v){ glutenFreeVal = v; });
       wireYesNo('f_minimalProcessed', function(v){ minimalProcessedVal = v; });
       wireYesNo('f_sufficientWater', function(v){ sufficientWaterVal = v; });
+    }
+
+    if (type === 'gluten'){
+      var symptomsState = (d.symptoms || []).slice();
+      var severityVal = d.severity || null;
+      var glutenColor = getComputedStyle(document.documentElement).getPropertyValue('--gluten').trim();
+      document.querySelectorAll('#glutenSymptomGrid .type-chip-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var s = btn.dataset.s;
+          var idx = symptomsState.indexOf(s);
+          var willBeSel = idx === -1;
+          if (idx > -1) symptomsState.splice(idx,1); else symptomsState.push(s);
+          btn.classList.toggle('sel');
+          if (willBeSel){
+            btn.style.background = glutenColor;
+            btn.style.borderColor = glutenColor;
+            btn.style.color = '#2a120c';
+          } else {
+            btn.style.background = '';
+            btn.style.borderColor = '';
+            btn.style.color = '';
+          }
+        });
+      });
+      document.querySelectorAll('#glutenSeverityToggle button').forEach(function(b){
+        b.addEventListener('click', function(){
+          severityVal = (severityVal === b.dataset.v) ? null : b.dataset.v;
+          document.querySelectorAll('#glutenSeverityToggle button').forEach(function(x){ x.classList.remove('sel'); });
+          if (severityVal) b.classList.add('sel');
+        });
+      });
     }
 
     if (type === 'cardio'){
@@ -2693,6 +2911,13 @@
         out.waterAmount = document.getElementById('f_waterAmount').value;
         out.foodDiary = document.getElementById('f_foodDiary').value;
         out.calories = numOrNull('f_calories');
+      }
+
+      if (type === 'gluten'){
+        out.source = document.getElementById('f_glutenSource').value;
+        out.symptoms = symptomsState.slice();
+        out.severity = typeof severityVal !== 'undefined' ? severityVal : (d.severity || null);
+        out.recovery = document.getElementById('f_recovery').value;
       }
 
       saveSession(out);
