@@ -230,10 +230,131 @@
   .cal-cell.empty { background: transparent; cursor: default; }
   .cal-cell.empty:active { transform: none; }
   .cal-cell.today { border-color: var(--amber); color: var(--amber); font-weight: 700; box-shadow: 0 0 0 1px var(--amber) inset; }
-  .cal-cell.selected { background: var(--panel-raised); border-color: var(--text-faint); }
+  .cal-cell.selected { border-color: var(--text-faint); box-shadow: 0 0 0 1px var(--text-faint) inset; }
   .cal-cell .cal-dots { display: flex; gap: 2px; height: 6px; }
   .cal-cell .cal-dots .dot { width: 5px; height: 5px; }
   .cal-day-detail { margin-top: 20px; }
+  .cal-summary {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    gap: 18px;
+  }
+  .cal-day-log-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .cal-day-log-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 4px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--panel);
+    cursor: pointer;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .cal-day-log-btn:active { transform: scale(0.95); }
+  .cal-day-log-btn .dot { width: 16px; height: 16px; border-radius: 5px; }
+
+  .plan-day-row {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-card);
+    cursor: pointer;
+  }
+  .plan-day-row.today { border-color: var(--amber); }
+  .plan-day-row-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .plan-day-row-head .day-label { font-size: 14px; font-weight: 700; color: var(--text); }
+  .plan-day-row-head .today-tag { font-size: 10.5px; font-weight: 700; color: var(--amber); text-transform: uppercase; letter-spacing: 0.03em; }
+  .plan-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .plan-chip {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 100px;
+    color: #14171a;
+  }
+  .plan-chip.outline {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .plan-roadblock {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .plan-meals-preview {
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .plan-empty-row { color: var(--text-faint); font-size: 13px; }
+  .rest-day-toggle {
+    width: 100%;
+    padding: 11px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 14px;
+  }
+  .rest-day-toggle.sel { border-color: var(--text-faint); color: var(--text); background: var(--border); }
+  .type-chip-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .type-chip-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    padding: 14px 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    box-shadow: var(--shadow-card);
+    cursor: pointer;
+    font-size: 11px; font-weight: 700; color: var(--text-muted);
+    transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+  .type-chip-btn:active { transform: scale(0.95); }
+  .type-chip-btn .dot { width: 20px; height: 20px; border-radius: 50%; }
+
+  .today-plan-widget {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow-card);
+  }
+  .today-plan-widget .label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+  .today-plan-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 100px;
+    color: #14171a;
+    margin: 0 6px 6px 0;
+    cursor: pointer;
+  }
+  .today-plan-chip .dot { background: #14171a; opacity: 0.55; }
 
   /* Stats */
   .stat-card {
@@ -347,7 +468,24 @@
     border-color: var(--amber);
   }
   .field textarea { resize: vertical; min-height: 60px; }
+  input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 0.6; }
+  .exercise-row input::placeholder { color: var(--text-faint); opacity: 0.6; }
   .field-row { display: flex; gap: 10px; }
+  .time-with-now { display: flex; gap: 6px; }
+  .time-with-now input { flex: 1; min-width: 0; }
+  .time-with-now button {
+    flex-shrink: 0;
+    padding: 0 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    color: var(--amber);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .time-with-now button:active { background: var(--border); }
   .field-row .field { flex: 1; }
 
   .seg-toggle { display: flex; gap: 8px; }
@@ -375,6 +513,9 @@
   .exercise-row input.ex-name { flex-basis: 100%; }
   .exercise-row select.ex-unit { flex: 0 0 72px; font-size: 13px; padding: 10px 6px; }
   .exercise-row .ex-rm { background: none; border: none; color: var(--text-faint); font-size: 18px; cursor: pointer; padding: 0 4px; }
+  .simple-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: nowrap; }
+  .simple-row input { flex: 1; min-width: 0; }
+  .simple-row .ex-rm { background: none; border: none; color: var(--text-faint); font-size: 18px; cursor: pointer; padding: 0 4px; flex-shrink: 0; }
   .add-exercise-btn {
     width: 100%; padding: 10px; border-radius: var(--radius-sm);
     border: 1px dashed var(--border); background: none; color: var(--text-muted);
@@ -544,6 +685,7 @@
 <main>
 
   <section class="view active" id="view-log">
+    <div id="todayPlanWidget"></div>
     <h2 class="section-title">Quick log</h2>
     <div class="quicklog-grid">
       <button class="quicklog-card nutrition span-2" data-type="nutrition">
@@ -579,7 +721,7 @@
     <h2 class="section-title">Today</h2>
     <div id="todayList"></div>
 
-    <h2 class="section-title">Recent</h2>
+    <h2 class="section-title" id="recentTitle">Last 7 days</h2>
     <div id="recentList"></div>
     <p class="sync-note" id="syncNote"></p>
   </section>
@@ -590,6 +732,7 @@
       <span class="cal-month-label" id="calMonthLabel">—</span>
       <button id="calNext">›</button>
     </div>
+    <div class="cal-summary" id="calSummary"></div>
     <div class="cal-grid" id="calGrid"></div>
     <div class="cal-day-detail" id="calDayDetail"></div>
   </section>
@@ -618,6 +761,19 @@
     </div>
   </section>
 
+  <section class="view" id="view-plan">
+    <div class="cal-nav">
+      <button id="planPrev">‹</button>
+      <span class="cal-month-label" id="planWeekLabel">—</span>
+      <button id="planNext">›</button>
+    </div>
+    <div id="planWeekList"></div>
+
+    <h2 class="section-title">Meal ideas</h2>
+    <div id="mealIdeasList"></div>
+    <button class="custom-log-btn" id="addMealIdeaBtn">+ Add meal idea</button>
+  </section>
+
 </main>
 
 <nav class="tabbar">
@@ -628,6 +784,10 @@
   <button class="tab-btn" data-view="calendar">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/></svg></span>
     Calendar
+  </button>
+  <button class="tab-btn" data-view="plan">
+    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="17" rx="2.5"/><line x1="8" y1="2.5" x2="8" y2="6"/><line x1="16" y1="2.5" x2="16" y2="6"/><line x1="7.5" y1="12" x2="12.5" y2="12"/><line x1="7.5" y1="16" x2="16.5" y2="16"/></svg></span>
+    Plan
   </button>
   <button class="tab-btn" data-view="stats">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="13"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="19" y1="20" x2="19" y2="15.5"/></svg></span>
@@ -653,6 +813,11 @@
   var currentView = 'log';
   var calMonth = new Date(); calMonth.setDate(1);
   var selectedDay = null;
+  var plans = [];
+  var mealIdeas = [];
+  var planWeekStart = new Date(); planWeekStart.setDate(planWeekStart.getDate() - planWeekStart.getDay());
+  var PLAN_TRAINING_TYPES = ['padel','cardio','resistance','yoga'];
+  var CARB_LEVEL_LABEL = { low: 'Low carb', normal: 'Normal', high: 'High carb' };
   var editingId = null;
 
   var TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance training', cardio: 'Cardio', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition' };
@@ -689,6 +854,14 @@
   }
   function niceTime(iso){
     try { return new Date(iso).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); } catch(e){ return ''; }
+  }
+  function niceActivityTime(hhmm){
+    if (!hhmm) return '';
+    try {
+      var parts = hhmm.split(':');
+      var d = new Date(); d.setHours(Number(parts[0]), Number(parts[1]), 0, 0);
+      return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+    } catch(e){ return ''; }
   }
   function uid(){ return 'l' + Math.random().toString(36).slice(2,10); }
 
@@ -731,6 +904,15 @@
       if (raw) focusItems = JSON.parse(raw);
     } catch(e){}
   }
+  function localSavePlans(){
+    try { localStorage.setItem('ledger_plans_fallback', JSON.stringify(plans)); } catch(e){}
+  }
+  function localLoadPlans(){
+    try {
+      var raw = localStorage.getItem('ledger_plans_fallback');
+      if (raw) plans = JSON.parse(raw);
+    } catch(e){}
+  }
 
   async function initDb(){
     try {
@@ -763,6 +945,17 @@
           focusItems = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
           if (currentView === 'focus') renderFocus();
         }, function(err){ console.error('focus snapshot error', err); });
+      dbRef.collection('ledger_plans')
+        .onSnapshot(function(snap){
+          plans = snap.docs.map(function(d){ var data = d.data() || {}; data.date = d.id; return data; });
+          if (currentView === 'plan') renderPlan();
+          renderLogView();
+        }, function(err){ console.error('plans snapshot error', err); });
+      dbRef.collection('ledger_meals').orderBy('createdAt','desc')
+        .onSnapshot(function(snap){
+          mealIdeas = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
+          if (currentView === 'plan') renderMealIdeas();
+        }, function(err){ console.error('meal ideas snapshot error', err); });
     } catch(e){
       console.error(e);
       fallbackMode();
@@ -774,6 +967,8 @@
     localLoad();
     localLoadPresets();
     localLoadFocus();
+    localLoadPlans();
+    localLoadMealIdeas();
     document.getElementById('syncNote').textContent = 'Saving on this device only — add your Firebase config to sync';
     renderAll();
   }
@@ -817,6 +1012,80 @@
     focusItems = focusItems.filter(function(f){ return f.id !== id; });
     localSaveFocus();
     renderFocus();
+  }
+
+  function getPlanForDate(dateStr){
+    return plans.find(function(p){ return p.date === dateStr; }) || null;
+  }
+
+  async function savePlanForDate(dateStr, data){
+    data.date = dateStr;
+    if (dbReady && dbRef){
+      try {
+        var copy = Object.assign({}, data); delete copy.date;
+        await dbRef.collection('ledger_plans').doc(dateStr).set(copy);
+        return;
+      } catch(e){ console.error('plan save failed', e); }
+    }
+    var idx = plans.findIndex(function(p){ return p.date === dateStr; });
+    if (idx > -1) plans[idx] = data; else plans.push(data);
+    localSavePlans();
+    renderPlan();
+    renderLogView();
+  }
+
+  async function deletePlanForDate(dateStr){
+    if (dbReady && dbRef){
+      try { await dbRef.collection('ledger_plans').doc(dateStr).delete(); return; }
+      catch(e){ console.error(e); }
+    }
+    plans = plans.filter(function(p){ return p.date !== dateStr; });
+    localSavePlans();
+    renderPlan();
+    renderLogView();
+  }
+
+  function localSaveMealIdeas(){
+    try { localStorage.setItem('ledger_meals_fallback', JSON.stringify(mealIdeas)); } catch(e){}
+  }
+  function localLoadMealIdeas(){
+    try {
+      var raw = localStorage.getItem('ledger_meals_fallback');
+      if (raw) mealIdeas = JSON.parse(raw);
+    } catch(e){}
+  }
+
+  async function saveMealIdea(item){
+    if (dbReady && dbRef){
+      try {
+        if (item.id){
+          var id = item.id; var copy = Object.assign({}, item); delete copy.id;
+          await dbRef.collection('ledger_meals').doc(id).set(copy);
+        } else {
+          await dbRef.collection('ledger_meals').add(item);
+        }
+        return;
+      } catch(e){ console.error('meal idea save failed', e); }
+    }
+    if (item.id){
+      var idx = mealIdeas.findIndex(function(m){ return m.id === item.id; });
+      if (idx > -1) mealIdeas[idx] = item;
+    } else {
+      item.id = uid();
+      mealIdeas.unshift(item);
+    }
+    localSaveMealIdeas();
+    renderMealIdeas();
+  }
+
+  async function deleteMealIdea(id){
+    if (dbReady && dbRef){
+      try { await dbRef.collection('ledger_meals').doc(id).delete(); return; }
+      catch(e){ console.error(e); }
+    }
+    mealIdeas = mealIdeas.filter(function(m){ return m.id !== id; });
+    localSaveMealIdeas();
+    renderMealIdeas();
   }
 
   async function saveSession(data){
@@ -864,6 +1133,7 @@
       if (currentView === 'calendar') renderCalendar();
       if (currentView === 'stats') renderStats();
       if (currentView === 'focus') renderFocus();
+      if (currentView === 'plan') renderPlan();
     });
   });
 
@@ -942,12 +1212,13 @@
         '<div class="si-type">' + TYPE_LABEL[s.type] + '</div>' +
         '<div class="si-detail">' + sessionDetailText(s) + '</div>' +
       '</div>' +
-      '<div class="si-time">' + (s.createdAt ? niceTime(s.createdAt) : '') + '</div>';
+      '<div class="si-time">' + niceActivityTime(s.activityTime) + '</div>';
     div.addEventListener('click', function(){ openSheet(s.type, s); });
     return div;
   }
 
   function renderLogView(){
+    renderTodayPlanWidget();
     var today = todayStr();
     var todayList = document.getElementById('todayList');
     var recentList = document.getElementById('recentList');
@@ -964,7 +1235,14 @@
       todaysSessions.forEach(function(s){ todayList.appendChild(renderSessionItem(s)); });
     }
 
-    var recent = sessions.filter(function(s){ return s.date !== today; }).slice(0, 8);
+    var sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7); sevenDaysAgo.setHours(0,0,0,0);
+    var recent = sessions.filter(function(s){
+      if (s.date === today) return false;
+      var d = new Date(s.date + 'T00:00:00');
+      return d >= sevenDaysAgo;
+    });
+    var recentTitle = document.getElementById('recentTitle');
+    if (recentTitle) recentTitle.textContent = 'Last 7 days';
     if (!recent.length){
       var e2 = document.createElement('div');
       e2.className = 'empty-state';
@@ -980,6 +1258,8 @@
   });
 
   // ---------- calendar view ----------
+  var CAL_TYPE_ORDER = ['padel','resistance','cardio','yoga','weight','nutrition','photo'];
+
   function renderCalendar(){
     var label = calMonth.toLocaleDateString(undefined, { month:'long', year:'numeric' });
     document.getElementById('calMonthLabel').textContent = label;
@@ -996,6 +1276,9 @@
     var firstDow = new Date(year, month, 1).getDay();
     var daysInMonth = new Date(year, month+1, 0).getDate();
     var today = todayStr();
+    var isCurrentMonth = (year === new Date().getFullYear() && month === new Date().getMonth());
+    var activeDayCount = 0;
+    var trainingDayCount = 0; // excludes passive log-only days like photo/nutrition-only
 
     for (var i=0; i<firstDow; i++){
       var pad = document.createElement('div');
@@ -1014,6 +1297,18 @@
       var typesPresent = [];
       daySessions.forEach(function(s){ if (typesPresent.indexOf(s.type) === -1) typesPresent.push(s.type); });
 
+      if (typesPresent.length && (!isCurrentMonth || dateObj <= new Date())){
+        activeDayCount++;
+        var trainingTypes = typesPresent.filter(function(t){ return t !== 'photo' && t !== 'nutrition'; });
+        if (trainingTypes.length) trainingDayCount++;
+      }
+
+      if (typesPresent.length){
+        var dominant = CAL_TYPE_ORDER.find(function(t){ return typesPresent.indexOf(t) !== -1; }) || typesPresent[0];
+        var color = getComputedStyle(document.documentElement).getPropertyValue('--' + dominant).trim();
+        cell.style.background = hexToRgba(color, 0.22);
+      }
+
       var dotsHtml = typesPresent.slice(0,4).map(function(t){ return '<span class="dot ' + t + '"></span>'; }).join('');
       cell.innerHTML = '<span>' + day + '</span>' + (dotsHtml ? '<span class="cal-dots">' + dotsHtml + '</span>' : '');
       cell.addEventListener('click', function(ds){
@@ -1022,7 +1317,24 @@
       grid.appendChild(cell);
     }
 
+    renderCalSummary(daysInMonth, activeDayCount, trainingDayCount, isCurrentMonth);
     renderDayDetail();
+  }
+
+  function hexToRgba(hex, alpha){
+    hex = hex.replace('#','');
+    if (hex.length === 3) hex = hex.split('').map(function(c){ return c+c; }).join('');
+    var r = parseInt(hex.substring(0,2),16), g = parseInt(hex.substring(2,4),16), b = parseInt(hex.substring(4,6),16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
+  function renderCalSummary(daysInMonth, activeDayCount, trainingDayCount, isCurrentMonth){
+    var wrap = document.getElementById('calSummary');
+    var daysSoFar = isCurrentMonth ? new Date().getDate() : daysInMonth;
+    var pct = daysSoFar ? Math.round((trainingDayCount / daysSoFar) * 100) : 0;
+    wrap.innerHTML =
+      '<div class="stat-num"><div class="val display">' + trainingDayCount + ' / ' + daysSoFar + '</div><div class="lbl">Training days this month</div></div>' +
+      '<div class="stat-num"><div class="val display">' + pct + '%</div><div class="lbl">Consistency</div></div>';
   }
 
   function renderDayDetail(){
@@ -1046,11 +1358,28 @@
       daySessions.forEach(function(s){ wrap.appendChild(renderSessionItem(s)); });
     }
 
-    var addBtn = document.createElement('button');
-    addBtn.className = 'custom-log-btn';
-    addBtn.textContent = 'Log a session for this day';
-    addBtn.addEventListener('click', function(){ openSheet('padel', null, selectedDay); });
-    wrap.appendChild(addBtn);
+    var addLabel = document.createElement('div');
+    addLabel.className = 'section-title';
+    addLabel.style.fontSize = '13px';
+    addLabel.style.marginTop = '16px';
+    addLabel.textContent = 'Log a session for this day';
+    wrap.appendChild(addLabel);
+
+    var logGrid = document.createElement('div');
+    logGrid.className = 'cal-day-log-grid';
+    var typeMeta = [
+      {type:'nutrition', label:'Nutrition'}, {type:'weight', label:'Weight'}, {type:'photo', label:'Photo'},
+      {type:'padel', label:'Padel'}, {type:'cardio', label:'Cardio'},
+      {type:'resistance', label:'Resistance'}, {type:'yoga', label:'Mobility'}
+    ];
+    typeMeta.forEach(function(m){
+      var btn = document.createElement('button');
+      btn.className = 'cal-day-log-btn';
+      btn.innerHTML = '<span class="dot ' + m.type + '"></span><span>' + m.label + '</span>';
+      btn.addEventListener('click', function(){ openSheet(m.type, null, selectedDay); });
+      logGrid.appendChild(btn);
+    });
+    wrap.appendChild(logGrid);
   }
 
   document.getElementById('calPrev').addEventListener('click', function(){
@@ -1529,6 +1858,274 @@
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
   }
 
+  // ---------- plan tab ----------
+  function renderTodayPlanWidget(){
+    var wrap = document.getElementById('todayPlanWidget');
+    if (!wrap) return;
+    var plan = getPlanForDate(todayStr());
+    if (!plan || ((!plan.trainingTypes || !plan.trainingTypes.length) && !plan.restDay && !plan.carbLevel && !plan.fasting && !plan.roadblocks && (!plan.meals || !plan.meals.length))){
+      wrap.innerHTML = '';
+      return;
+    }
+    var chipsHtml = '';
+    if (plan.restDay){
+      chipsHtml += '<span class="plan-chip outline">Rest day</span>';
+    } else if (plan.trainingTypes && plan.trainingTypes.length){
+      chipsHtml += plan.trainingTypes.map(function(t){
+        var color = getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim();
+        return '<span class="today-plan-chip" style="background:'+color+'" data-type="'+t+'"><span class="dot"></span>' + TYPE_LABEL[t] + '</span>';
+      }).join('');
+    }
+    if (plan.carbLevel) chipsHtml += '<span class="plan-chip outline">' + CARB_LEVEL_LABEL[plan.carbLevel] + '</span>';
+    if (plan.fasting) chipsHtml += '<span class="plan-chip outline">Fasting</span>';
+
+    var html = '<div class="today-plan-widget"><div class="label">Today\'s plan</div>' + chipsHtml;
+    if (plan.meals && plan.meals.length){
+      html += '<div class="plan-meals-preview">🍽 ' + plan.meals.join(' · ') + '</div>';
+    }
+    if (plan.roadblocks){
+      html += '<div class="plan-roadblock">⚠️ ' + plan.roadblocks + '</div>';
+    }
+    html += '</div>';
+    wrap.innerHTML = html;
+
+    wrap.querySelectorAll('.today-plan-chip').forEach(function(chip){
+      chip.addEventListener('click', function(){ openSheet(chip.dataset.type, null, todayStr()); });
+    });
+  }
+
+  function renderPlan(){
+    renderMealIdeas();
+    var label = planWeekStart.toLocaleDateString(undefined,{day:'numeric',month:'short'}) + ' – ' +
+      new Date(planWeekStart.getTime() + 6*86400000).toLocaleDateString(undefined,{day:'numeric',month:'short'});
+    document.getElementById('planWeekLabel').textContent = label;
+
+    var list = document.getElementById('planWeekList');
+    list.innerHTML = '';
+    var today = todayStr();
+
+    for (var i=0; i<7; i++){
+      var d = new Date(planWeekStart); d.setDate(d.getDate() + i);
+      var dateStr = fmtDate(d);
+      var plan = getPlanForDate(dateStr);
+      var row = document.createElement('div');
+      row.className = 'plan-day-row' + (dateStr === today ? ' today' : '');
+
+      var headHtml = '<div class="plan-day-row-head"><span class="day-label">' +
+        d.toLocaleDateString(undefined,{weekday:'short', day:'numeric', month:'short'}) + '</span>' +
+        (dateStr === today ? '<span class="today-tag">Today</span>' : '') + '</div>';
+
+      var bodyHtml = '';
+      if (!plan || ((!plan.trainingTypes || !plan.trainingTypes.length) && !plan.restDay && !plan.carbLevel && !plan.fasting && !plan.roadblocks && (!plan.meals || !plan.meals.length))){
+        bodyHtml = '<div class="plan-empty-row">No plan set — tap to add</div>';
+      } else {
+        bodyHtml = '<div class="plan-chips">';
+        if (plan.restDay){
+          bodyHtml += '<span class="plan-chip outline">Rest day</span>';
+        } else if (plan.trainingTypes && plan.trainingTypes.length){
+          bodyHtml += plan.trainingTypes.map(function(t){
+            var color = getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim();
+            return '<span class="plan-chip" style="background:'+color+'" data-type="'+t+'" data-date="'+dateStr+'">' + TYPE_LABEL[t] + '</span>';
+          }).join('');
+        }
+        if (plan.carbLevel) bodyHtml += '<span class="plan-chip outline">' + CARB_LEVEL_LABEL[plan.carbLevel] + '</span>';
+        if (plan.fasting) bodyHtml += '<span class="plan-chip outline">Fasting</span>';
+        bodyHtml += '</div>';
+        if (plan.meals && plan.meals.length) bodyHtml += '<div class="plan-meals-preview">🍽 ' + plan.meals.join(' · ') + '</div>';
+        if (plan.roadblocks) bodyHtml += '<div class="plan-roadblock">⚠️ ' + plan.roadblocks + '</div>';
+      }
+
+      row.innerHTML = headHtml + bodyHtml;
+      row.addEventListener('click', function(ds, p){
+        return function(e){
+          if (e.target.closest('.plan-chip[data-type]')){
+            openSheet(e.target.closest('.plan-chip').dataset.type, null, ds);
+            return;
+          }
+          openPlanSheet(ds, p);
+        };
+      }(dateStr, plan));
+      list.appendChild(row);
+    }
+  }
+
+  document.getElementById('planPrev').addEventListener('click', function(){
+    planWeekStart.setDate(planWeekStart.getDate() - 7); renderPlan();
+  });
+  document.getElementById('planNext').addEventListener('click', function(){
+    planWeekStart.setDate(planWeekStart.getDate() + 7); renderPlan();
+  });
+
+  function openPlanSheet(dateStr, existing){
+    editingId = null;
+    var p = existing || {};
+    var d = new Date(dateStr + 'T00:00:00');
+    var restDay = !!p.restDay;
+    var trainingTypes = (p.trainingTypes || []).slice();
+    var carbLevel = p.carbLevel || null;
+    var fasting = !!p.fasting;
+    var mealsState = (p.meals && p.meals.length) ? p.meals.slice() : [''];
+
+    function buildHtml(){
+      var html = '<div class="sheet-handle"></div>' +
+        '<div class="sheet-head"><div class="sheet-title">' + niceDate(d) + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+        '<button type="button" class="rest-day-toggle' + (restDay ? ' sel' : '') + '" id="restDayToggle">' + (restDay ? '✓ Rest day' : 'Mark as rest day') + '</button>' +
+        '<div id="trainingSection" style="' + (restDay ? 'display:none' : '') + '">' +
+          '<div class="field"><label>Training planned</label><div class="type-chip-grid" id="planTypeGrid">' +
+            PLAN_TRAINING_TYPES.map(function(t){
+              var color = getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim();
+              var isSel = trainingTypes.indexOf(t) > -1;
+              var style = isSel
+                ? 'background:'+color+';border-color:'+color+';color:#14171a;'
+                : 'background:'+hexToRgba(color,0.12)+';border-color:'+hexToRgba(color,0.3)+';';
+              return '<button type="button" class="type-chip-btn' + (isSel ? ' sel':'') + '" data-t="' + t + '" style="'+style+'">' +
+                '<span class="dot ' + t + '"></span>' + TYPE_LABEL[t] + '</button>';
+            }).join('') +
+          '</div></div>' +
+        '</div>' +
+        fieldSelect('f_carbLevel', 'Diet', [{value:'',label:'Not set'}].concat(Object.keys(CARB_LEVEL_LABEL).map(function(k){ return {value:k,label:CARB_LEVEL_LABEL[k]}; })), carbLevel || '') +
+        fieldYesNo('f_fasting', 'Fasting', fasting) +
+        '<div class="field"><label>Meals planned for this day</label><div id="planMealRows"></div>' +
+          '<button type="button" class="add-exercise-btn" id="addPlanMealBtn">+ Add meal</button></div>' +
+        '<div class="field"><label>Roadblocks / things that might derail this (optional)</label><textarea id="f_roadblocks" placeholder="e.g. work dinner, travel day">' + (p.roadblocks||'') + '</textarea></div>' +
+        '<button class="save-btn" id="savePlanBtn">Save plan</button>' +
+        (existing ? '<button class="delete-btn" id="deletePlanBtn">Clear plan</button>' : '');
+      return html;
+    }
+
+    sheetEl.innerHTML = buildHtml();
+    backdrop.classList.add('open');
+    wireSheet();
+
+    function renderMealRows(){
+      var wrap = document.getElementById('planMealRows');
+      wrap.innerHTML = '';
+      mealsState.forEach(function(text, i){
+        var row = document.createElement('div');
+        row.className = 'simple-row';
+        row.innerHTML =
+          '<input placeholder="…" value="'+(text||'').replace(/"/g,'&quot;')+'">' +
+          '<button type="button" class="ex-rm">✕</button>';
+        var input = row.querySelector('input');
+        input.addEventListener('input', function(){ mealsState[i] = input.value; });
+        row.querySelector('.ex-rm').addEventListener('click', function(){
+          mealsState.splice(i,1);
+          if (!mealsState.length) mealsState.push('');
+          renderMealRows();
+        });
+        wrap.appendChild(row);
+      });
+    }
+
+    function wireSheet(){
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      document.getElementById('restDayToggle').addEventListener('click', function(){
+        restDay = !restDay;
+        sheetEl.innerHTML = buildHtml();
+        wireSheet();
+      });
+      document.querySelectorAll('#planTypeGrid .type-chip-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var t = btn.dataset.t;
+          var idx = trainingTypes.indexOf(t);
+          var willBeSel = idx === -1;
+          if (idx > -1) trainingTypes.splice(idx,1); else trainingTypes.push(t);
+          btn.classList.toggle('sel');
+          var color = getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim();
+          if (willBeSel){
+            btn.style.background = color;
+            btn.style.borderColor = color;
+            btn.style.color = '#14171a';
+          } else {
+            btn.style.background = hexToRgba(color, 0.12);
+            btn.style.borderColor = hexToRgba(color, 0.3);
+            btn.style.color = '';
+          }
+        });
+      });
+      document.querySelectorAll('#f_fastingToggle button').forEach(function(b){
+        b.addEventListener('click', function(){
+          fasting = (b.dataset.v === 'yes');
+          document.querySelectorAll('#f_fastingToggle button').forEach(function(x){ x.classList.remove('sel'); });
+          b.classList.add('sel');
+        });
+      });
+      renderMealRows();
+      document.getElementById('addPlanMealBtn').addEventListener('click', function(){
+        mealsState.push('');
+        renderMealRows();
+      });
+      document.getElementById('savePlanBtn').addEventListener('click', function(){
+        var data = {
+          restDay: restDay,
+          trainingTypes: restDay ? [] : trainingTypes,
+          carbLevel: document.getElementById('f_carbLevel').value || null,
+          fasting: fasting,
+          meals: mealsState.map(function(t){ return t.trim(); }).filter(Boolean),
+          roadblocks: document.getElementById('f_roadblocks').value
+        };
+        savePlanForDate(dateStr, data);
+        closeSheet();
+      });
+      if (existing){
+        document.getElementById('deletePlanBtn').addEventListener('click', function(){
+          deletePlanForDate(dateStr);
+          closeSheet();
+        });
+      }
+    }
+  }
+
+  // ---------- meal ideas ----------
+  function renderMealIdeas(){
+    var list = document.getElementById('mealIdeasList');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!mealIdeas.length){
+      var e = document.createElement('div');
+      e.className = 'empty-state';
+      e.textContent = 'No meal ideas saved yet — add meals or foods you have available';
+      list.appendChild(e);
+      return;
+    }
+    mealIdeas.forEach(function(m){
+      var row = document.createElement('div');
+      row.className = 'focus-item';
+      row.innerHTML = '<span class="focus-text">' + m.text + '</span>';
+      row.addEventListener('click', function(){ openMealIdeaSheet(m); });
+      list.appendChild(row);
+    });
+  }
+
+  function openMealIdeaSheet(existing){
+    editingId = null;
+    var isEditing = !!existing;
+    sheetEl.innerHTML =
+      '<div class="sheet-handle"></div>' +
+      '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit meal idea' : 'New meal idea') + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<div class="field"><label>Meal or food</label><textarea id="f_mealText" placeholder="…">' + (existing ? existing.text : '') + '</textarea></div>' +
+      '<button class="save-btn" id="saveMealBtn">Save</button>' +
+      (isEditing ? '<button class="delete-btn" id="deleteMealBtn">Delete</button>' : '');
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('saveMealBtn').addEventListener('click', function(){
+      var text = document.getElementById('f_mealText').value.trim();
+      if (!text) { closeSheet(); return; }
+      var out = { text: text, createdAt: existing ? existing.createdAt : new Date().toISOString() };
+      if (isEditing) out.id = existing.id;
+      saveMealIdea(out);
+      closeSheet();
+    });
+    if (isEditing){
+      document.getElementById('deleteMealBtn').addEventListener('click', function(){
+        deleteMealIdea(existing.id);
+        closeSheet();
+      });
+    }
+  }
+
+  document.getElementById('addMealIdeaBtn').addEventListener('click', function(){ openMealIdeaSheet(null); });
+
   // ---------- focus tab ----------
   function getLatestWeight(){
     var entries = sessions
@@ -1717,7 +2314,13 @@
   function buildFormHtml(type, d){
     var html = '<div class="sheet-handle"></div>';
     html += '<div class="sheet-head"><div class="sheet-title">' + TYPE_LABEL[type] + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>';
-    html += fieldDate('f_date', 'Date', d.date || todayStr());
+    html += '<div class="field-row">' +
+      fieldDate('f_date', 'Date', d.date || todayStr()) +
+      '<div class="field"><label>Time (optional)</label><div class="time-with-now">' +
+        '<input type="time" id="f_activityTime" value="'+(d.activityTime||'')+'">' +
+        '<button type="button" id="setNowTimeBtn">Now</button>' +
+      '</div></div>' +
+    '</div>';
 
     if (type === 'padel'){
       html += fieldSelect('f_padelType', 'Session type',
@@ -1754,7 +2357,7 @@
     if (type === 'resistance'){
       html += '<div class="field"><label>Exercises</label><div id="exerciseRows"></div>' +
         '<button type="button" class="add-exercise-btn" id="addExerciseBtn">+ Add exercise</button></div>';
-      html += fieldNum('f_bodyweight', 'Bodyweight (kg, optional)', d.bodyweight, '104');
+      html += fieldNum('f_bodyweight', 'Bodyweight (kg, optional)', d.bodyweight, 'xx.x');
       html += fieldNum('f_durationMin', 'Duration (min)', d.durationMin, '60');
     }
 
@@ -1777,7 +2380,7 @@
     }
 
     if (type === 'weight'){
-      html += fieldNum('f_weightKg', 'Weight (kg)', d.weightKg, '104.0', '0.1');
+      html += fieldNum('f_weightKg', 'Weight (kg)', d.weightKg, 'xx.x', '0.1');
     }
 
     if (type === 'photo'){
@@ -1836,6 +2439,13 @@
 
   function wireForm(type, d){
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+
+    document.getElementById('setNowTimeBtn').addEventListener('click', function(){
+      var now = new Date();
+      var hh = String(now.getHours()).padStart(2,'0');
+      var mm = String(now.getMinutes()).padStart(2,'0');
+      document.getElementById('f_activityTime').value = hh + ':' + mm;
+    });
 
     var exerciseState = (d.exercises && d.exercises.length) ? d.exercises.slice() : (type==='resistance' ? [{name:'',sets:'',reps:'',value:'',unit:'kg'}] : []);
     var pendingPhotoDataUrl = d.photoDataUrl || null;
@@ -2002,6 +2612,7 @@
       out.createdAt = (d.createdAt) || new Date().toISOString();
       var notesEl = document.getElementById('f_notes');
       out.notes = notesEl ? notesEl.value : '';
+      out.activityTime = document.getElementById('f_activityTime').value;
 
       if (type === 'padel'){
         out.padelType = document.getElementById('f_padelType').value;
@@ -2109,6 +2720,7 @@
     if (currentView === 'calendar') renderCalendar();
     if (currentView === 'stats') renderStats();
     if (currentView === 'focus') renderFocus();
+    if (currentView === 'plan') renderPlan();
   }
 
   renderHeader();
