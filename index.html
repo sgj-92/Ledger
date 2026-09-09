@@ -129,7 +129,6 @@
   .quicklog-card.weight { background: var(--weight); color: #0d1a24; }
   .quicklog-card.photo { background: var(--photo); color: #2a1013; }
   .quicklog-card.nutrition { background: var(--nutrition); color: #131f0a; }
-  .quicklog-card.gluten { background: var(--gluten); color: #2a120c; }
   .quicklog-card.span-2 {
     grid-column: 1 / -1;
     flex-direction: row;
@@ -358,6 +357,87 @@
     cursor: pointer;
   }
   .today-plan-chip .dot { background: #14171a; opacity: 0.55; }
+
+  .commitment-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 13px 14px;
+    background: var(--panel);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    box-shadow: var(--shadow-card);
+  }
+  .commitment-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+  .commitment-status-dot.planned { background: var(--amber); }
+  .commitment-status-dot.completed { background: var(--day-good); }
+  .commitment-status-dot.partial { background: var(--day-neutral); }
+  .commitment-status-dot.disrupted { background: var(--text-faint); }
+  .commitment-status-dot.not_done { background: var(--text-faint); }
+  .commitment-title { font-size: 14px; color: var(--text); font-weight: 600; }
+  .commitment-title.completed { text-decoration: line-through; opacity: 0.7; }
+  .commitment-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .commitment-minver { font-size: 12px; color: var(--amber); margin-top: 3px; }
+
+  .status-btn-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 14px; }
+  .status-btn {
+    padding: 12px 4px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .status-btn.sel.completed { border-color: var(--day-good); color: var(--day-good); background: rgba(111,174,90,0.14); }
+  .status-btn.sel.partial { border-color: var(--day-neutral); color: var(--day-neutral); background: rgba(217,178,60,0.14); }
+  .status-btn.sel.disrupted { border-color: var(--text-faint); color: var(--text); background: var(--border); }
+  .status-btn.sel.not_done { border-color: var(--text-faint); color: var(--text); background: var(--border); }
+
+  .accountability-box {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin: -6px 0 18px;
+    padding: 0 2px;
+    line-height: 1.6;
+  }
+
+  .catchup-banner {
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin-bottom: 18px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .catchup-day-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+  .catchup-day-row:last-child { border-bottom: none; }
+  .catchup-day-label { font-size: 13.5px; font-weight: 600; flex-shrink: 0; }
+  .catchup-status-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .catchup-status-btn {
+    padding: 6px 10px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
 
   /* Stats */
   .stat-card {
@@ -688,16 +768,20 @@
 <main>
 
   <section class="view active" id="view-log">
+    <div id="catchUpBanner"></div>
+
+    <h2 class="section-title">Today's commitments</h2>
+    <div id="commitmentsList"></div>
+    <button class="custom-log-btn" id="addCommitmentBtn">+ Add commitment</button>
+
+    <div id="accountabilityMsg"></div>
+
     <div id="todayPlanWidget"></div>
     <h2 class="section-title">Quick log</h2>
     <div class="quicklog-grid">
       <button class="quicklog-card nutrition span-2" data-type="nutrition">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5v7a2.5 2.5 0 0 0 5 0v-7"/><line x1="8.5" y1="2.5" x2="8.5" y2="21.5"/><path d="M17 2.5c-1.5 1-2.3 3-2.3 5.3 0 2.6 1.3 4 2.3 4.7v9"/></svg></span>
         <span class="ql-label">Nutrition</span>
-      </button>
-      <button class="quicklog-card gluten" data-type="gluten">
-        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 3c-2 1.5-3 3-3 5a3 3 0 0 0 6 0c0-2-1-3.5-3-5Z"/><path d="M9 10l-1.5 3M15 10l1.5 3"/><line x1="12" y1="9" x2="12" y2="21"/></svg></span>
-        <span class="ql-label">Gluten exposure</span>
       </button>
       <button class="quicklog-card weight" data-type="weight">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c0-2.5 1.5-4 3.5-4s3.5 1.5 3.5 4"/><line x1="12" y1="7" x2="12" y2="8.5"/></svg></span>
@@ -790,7 +874,7 @@
 <nav class="tabbar">
   <button class="tab-btn active" data-view="log">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
-    Log
+    Today
   </button>
   <button class="tab-btn" data-view="calendar">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/></svg></span>
@@ -827,6 +911,11 @@
   var plans = [];
   var mealIdeas = [];
   var priorities = [];
+  var commitments = [];
+  var dayStatuses = [];
+  var COMMITMENT_STATUS_LABEL = { planned: 'Planned', completed: 'Completed', partial: 'Partially completed', disrupted: 'Disrupted', not_done: 'Not done' };
+  var DISRUPTION_REASONS = ['Family', 'Work', 'Health', 'Travel', 'Unexpected event', 'Other'];
+  var DAY_STATUS_LABEL = { completed: 'Completed', partial: 'Partially completed', disrupted: 'Disrupted', unknown: 'Unknown' };
   var presetsLoaded = false;
   var prioritiesLoaded = false;
   var planWeekStart = new Date(); planWeekStart.setDate(planWeekStart.getDate() - planWeekStart.getDay());
@@ -982,6 +1071,16 @@
           seedPrioritiesIfNeeded();
           if (currentView === 'focus') renderPriorities();
         }, function(err){ console.error('priorities snapshot error', err); });
+      dbRef.collection('ledger_commitments')
+        .onSnapshot(function(snap){
+          commitments = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
+          renderLogView();
+        }, function(err){ console.error('commitments snapshot error', err); });
+      dbRef.collection('ledger_day_status')
+        .onSnapshot(function(snap){
+          dayStatuses = snap.docs.map(function(d){ var data = d.data() || {}; data.date = d.id; return data; });
+          renderLogView();
+        }, function(err){ console.error('day status snapshot error', err); });
     } catch(e){
       console.error(e);
       fallbackMode();
@@ -996,6 +1095,8 @@
     localLoadPlans();
     localLoadMealIdeas();
     localLoadPriorities();
+    localLoadCommitments();
+    localLoadDayStatuses();
     presetsLoaded = true;
     prioritiesLoaded = true;
     seedPrioritiesIfNeeded();
@@ -1175,6 +1276,72 @@
     savePresets();
   }
 
+  function localSaveCommitments(){
+    try { localStorage.setItem('ledger_commitments_fallback', JSON.stringify(commitments)); } catch(e){}
+  }
+  function localLoadCommitments(){
+    try {
+      var raw = localStorage.getItem('ledger_commitments_fallback');
+      if (raw) commitments = JSON.parse(raw);
+    } catch(e){}
+  }
+
+  async function saveCommitment(item){
+    if (dbReady && dbRef){
+      try {
+        if (item.id){
+          var id = item.id; var copy = Object.assign({}, item); delete copy.id;
+          await dbRef.collection('ledger_commitments').doc(id).set(copy);
+        } else {
+          await dbRef.collection('ledger_commitments').add(item);
+        }
+        return;
+      } catch(e){ console.error('commitment save failed', e); }
+    }
+    if (item.id){
+      var idx = commitments.findIndex(function(c){ return c.id === item.id; });
+      if (idx > -1) commitments[idx] = item;
+    } else {
+      item.id = uid();
+      commitments.push(item);
+    }
+    localSaveCommitments();
+    renderLogView();
+  }
+
+  async function deleteCommitment(id){
+    if (dbReady && dbRef){
+      try { await dbRef.collection('ledger_commitments').doc(id).delete(); return; }
+      catch(e){ console.error(e); }
+    }
+    commitments = commitments.filter(function(c){ return c.id !== id; });
+    localSaveCommitments();
+    renderLogView();
+  }
+
+  function localSaveDayStatuses(){
+    try { localStorage.setItem('ledger_daystatus_fallback', JSON.stringify(dayStatuses)); } catch(e){}
+  }
+  function localLoadDayStatuses(){
+    try {
+      var raw = localStorage.getItem('ledger_daystatus_fallback');
+      if (raw) dayStatuses = JSON.parse(raw);
+    } catch(e){}
+  }
+
+  async function saveDayStatus(dateStr, status){
+    var data = { status: status, updatedAt: new Date().toISOString() };
+    if (dbReady && dbRef){
+      try { await dbRef.collection('ledger_day_status').doc(dateStr).set(data); return; }
+      catch(e){ console.error('day status save failed', e); }
+    }
+    var idx = dayStatuses.findIndex(function(d){ return d.date === dateStr; });
+    data.date = dateStr;
+    if (idx > -1) dayStatuses[idx] = data; else dayStatuses.push(data);
+    localSaveDayStatuses();
+    renderLogView();
+  }
+
   async function saveSession(data){
     if (dbReady && dbRef){
       try {
@@ -1282,14 +1449,21 @@
       if (s.glutenFree) nb.push('GF');
       if (s.minimalProcessed) nb.push('Minimal processed');
       if (s.sufficientWater) nb.push('Hydrated' + (s.waterAmount ? ' (' + s.waterAmount + ')' : ''));
+      if (s.glutenExposure){
+        var gb = ['Gluten exposure'];
+        if (s.glutenSeverity) gb.push(SEVERITY_LABEL[s.glutenSeverity]);
+        if (s.glutenSymptoms && s.glutenSymptoms.length) gb.push(s.glutenSymptoms.join(', '));
+        nb.push(gb.join(' — '));
+      }
       return nb.join(' · ') || 'Day logged';
     }
     if (s.type === 'gluten'){
-      var gb = [];
-      if (s.source) gb.push(s.source);
-      if (s.severity) gb.push(SEVERITY_LABEL[s.severity]);
-      if (s.symptoms && s.symptoms.length) gb.push(s.symptoms.join(', '));
-      return gb.join(' · ') || 'Exposure logged';
+      // legacy entries from before gluten tracking moved into Nutrition
+      var gb2 = [];
+      if (s.source) gb2.push(s.source);
+      if (s.severity) gb2.push(SEVERITY_LABEL[s.severity]);
+      if (s.symptoms && s.symptoms.length) gb2.push(s.symptoms.join(', '));
+      return gb2.join(' · ') || 'Exposure logged';
     }
     return s.notes || '';
   }
@@ -1311,7 +1485,218 @@
     return div;
   }
 
+  // ---------- today's commitments ----------
+  function renderCommitments(){
+    var list = document.getElementById('commitmentsList');
+    if (!list) return;
+    var today = todayStr();
+    var todays = commitments.filter(function(c){ return c.date === today; });
+    list.innerHTML = '';
+    if (!todays.length){
+      var e = document.createElement('div');
+      e.className = 'empty-state';
+      e.textContent = 'No commitments set for today';
+      list.appendChild(e);
+      return;
+    }
+    todays.forEach(function(c){
+      var row = document.createElement('div');
+      row.className = 'commitment-item';
+      var priority = c.priorityId ? priorities.find(function(p){ return p.id === c.priorityId; }) : null;
+      var metaParts = [];
+      if (priority) metaParts.push(priority.title);
+      if (c.status !== 'planned') metaParts.push(COMMITMENT_STATUS_LABEL[c.status]);
+      if (c.status === 'disrupted' && c.disruptionReason) metaParts.push(c.disruptionReason);
+      var showMinVer = c.minVersion && c.status !== 'completed';
+      row.innerHTML =
+        '<span class="commitment-status-dot ' + c.status + '"></span>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div class="commitment-title' + (c.status==='completed'?' completed':'') + '">' + c.title + '</div>' +
+          (metaParts.length ? '<div class="commitment-meta">' + metaParts.join(' · ') + '</div>' : '') +
+          (showMinVer ? '<div class="commitment-minver">Minimum: ' + c.minVersion + '</div>' : '') +
+        '</div>';
+      row.addEventListener('click', function(){ openCommitmentSheet(c); });
+      list.appendChild(row);
+    });
+  }
+
+  function openCommitmentSheet(existing){
+    editingId = null;
+    var isEditing = !!existing;
+    var statusVal = existing ? existing.status : 'planned';
+    var disruptionVal = existing ? (existing.disruptionReason || null) : null;
+
+    function buildHtml(){
+      var priorityOptions = [{value:'', label:'No linked priority'}].concat(
+        priorities.map(function(p){ return {value:p.id, label:p.title}; })
+      );
+      var html = '<div class="sheet-handle"></div>' +
+        '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit commitment' : 'New commitment') + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+        '<div class="field"><label>Commitment</label><input type="text" id="f_commitTitle" placeholder="e.g. Resistance training" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
+        fieldSelect('f_commitPriority', 'Linked priority (optional)', priorityOptions, existing ? (existing.priorityId||'') : '') +
+        '<div class="field"><label>Minimum version (optional)</label><input type="text" id="f_commitMinVer" placeholder="e.g. 20-minute home workout" value="' + (existing && existing.minVersion ? existing.minVersion.replace(/"/g,'&quot;') : '') + '"></div>';
+
+      if (isEditing){
+        html += '<div class="field"><label>Status</label><div class="status-btn-grid" id="commitStatusGrid">' +
+          ['completed','partial','disrupted','not_done'].map(function(s){
+            return '<button type="button" class="status-btn' + (statusVal===s?' sel '+s:'') + '" data-s="' + s + '">' + COMMITMENT_STATUS_LABEL[s] + '</button>';
+          }).join('') +
+        '</div></div>';
+        html += '<div id="disruptionReasonField" style="' + (statusVal==='disrupted' ? '' : 'display:none') + '">' +
+          fieldSelect('f_disruptionReason', 'Disruption reason (optional)', [{value:'',label:'Not specified'}].concat(DISRUPTION_REASONS.map(function(r){ return {value:r,label:r}; })), disruptionVal || '') +
+        '</div>';
+      }
+
+      html += '<button class="save-btn" id="saveCommitBtn">Save</button>' +
+        (isEditing ? '<button class="delete-btn" id="deleteCommitBtn">Delete</button>' : '');
+      return html;
+    }
+
+    sheetEl.innerHTML = buildHtml();
+    backdrop.classList.add('open');
+    wireSheet();
+
+    function wireSheet(){
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      if (isEditing){
+        document.querySelectorAll('#commitStatusGrid .status-btn').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            statusVal = btn.dataset.s;
+            sheetEl.innerHTML = buildHtml();
+            wireSheet();
+          });
+        });
+        document.getElementById('deleteCommitBtn').addEventListener('click', function(){
+          deleteCommitment(existing.id);
+          closeSheet();
+        });
+      }
+      document.getElementById('saveCommitBtn').addEventListener('click', function(){
+        var title = document.getElementById('f_commitTitle').value.trim();
+        if (!title) { closeSheet(); return; }
+        var out = {
+          date: existing ? existing.date : todayStr(),
+          title: title,
+          priorityId: document.getElementById('f_commitPriority').value || null,
+          minVersion: document.getElementById('f_commitMinVer').value || null,
+          status: isEditing ? statusVal : 'planned',
+          disruptionReason: (isEditing && statusVal === 'disrupted') ? (document.getElementById('f_disruptionReason').value || null) : null,
+          createdAt: existing ? existing.createdAt : new Date().toISOString()
+        };
+        if (isEditing) out.id = existing.id;
+        saveCommitment(out);
+        closeSheet();
+      });
+    }
+  }
+
+  document.getElementById('addCommitmentBtn').addEventListener('click', function(){ openCommitmentSheet(null); });
+
+  // ---------- accountability message (deterministic, no AI) ----------
+  function renderAccountabilityMessage(){
+    var wrap = document.getElementById('accountabilityMsg');
+    if (!wrap) return;
+    var today = todayStr();
+    var todaysCommitments = commitments.filter(function(c){ return c.date === today; });
+    var msgs = [];
+
+    if (todaysCommitments.length){
+      var completedCount = todaysCommitments.filter(function(c){ return c.status === 'completed'; }).length;
+      msgs.push(completedCount + ' of ' + todaysCommitments.length + ' commitment' + (todaysCommitments.length===1?'':'s') + ' completed today.');
+      var stillPlanned = todaysCommitments.filter(function(c){ return c.status === 'planned'; });
+      if (stillPlanned.length && stillPlanned.length <= 2){
+        stillPlanned.forEach(function(c){ msgs.push('"' + c.title + '" is still outstanding.'); });
+      }
+    }
+
+    var plan = getPlanForDate(today);
+    if (plan && !plan.restDay && plan.trainingTypes && plan.trainingTypes.length){
+      var loggedTypesToday = sessions.filter(function(s){ return s.date === today; }).map(function(s){ return s.type; });
+      plan.trainingTypes.forEach(function(t){
+        if (loggedTypesToday.indexOf(t) === -1){
+          msgs.push("Today's planned " + TYPE_LABEL[t].toLowerCase() + " hasn't been logged.");
+        }
+      });
+    }
+    if (plan && plan.roadblocks){
+      msgs.push('You flagged "' + plan.roadblocks + '" as today\'s roadblock.');
+    }
+
+    if (!msgs.length){ wrap.innerHTML = ''; return; }
+    wrap.innerHTML = '<div class="accountability-box">' + msgs.map(function(m){ return '<div>' + m + '</div>'; }).join('') + '</div>';
+  }
+
+  // ---------- catch-up flow (missing data \u2260 failure) ----------
+  function computeCatchUpDates(){
+    var results = [];
+    for (var i=1; i<=7; i++){
+      var d = new Date(); d.setDate(d.getDate() - i);
+      var dateStr = fmtDate(d);
+      var hasPlan = !!getPlanForDate(dateStr);
+      var hasCommitments = commitments.some(function(c){ return c.date === dateStr; });
+      var alreadyResolved = dayStatuses.some(function(ds){ return ds.date === dateStr; });
+      if ((hasPlan || hasCommitments) && !alreadyResolved){
+        results.push(dateStr);
+      }
+    }
+    return results.sort();
+  }
+
+  function renderCatchUpBanner(){
+    var wrap = document.getElementById('catchUpBanner');
+    if (!wrap) return;
+    var pending = computeCatchUpDates();
+    if (!pending.length){ wrap.innerHTML = ''; return; }
+    wrap.innerHTML = '<div class="catchup-banner" id="catchUpBannerBtn">' +
+      pending.length + ' day' + (pending.length===1?'':'s') + ' need' + (pending.length===1?'s':'') + ' a quick catch-up →</div>';
+    document.getElementById('catchUpBannerBtn').addEventListener('click', openCatchUpSheet);
+  }
+
+  function openCatchUpSheet(){
+    editingId = null;
+    function buildHtml(){
+      var pending = computeCatchUpDates();
+      if (!pending.length){
+        return '<div class="sheet-handle"></div>' +
+          '<div class="sheet-head"><div class="sheet-title">Catch-up</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+          '<div class="empty-state">All caught up</div>';
+      }
+      var rows = pending.map(function(dateStr){
+        var d = new Date(dateStr + 'T00:00:00');
+        var label = d.toLocaleDateString(undefined,{weekday:'short', day:'numeric', month:'short'});
+        return '<div class="catchup-day-row"><div class="catchup-day-label">' + label + '</div>' +
+          '<div class="catchup-status-row">' +
+            ['completed','partial','disrupted','unknown'].map(function(s){
+              return '<button type="button" class="catchup-status-btn" data-date="' + dateStr + '" data-status="' + s + '">' + DAY_STATUS_LABEL[s] + '</button>';
+            }).join('') +
+          '</div></div>';
+      }).join('');
+      return '<div class="sheet-handle"></div>' +
+        '<div class="sheet-head"><div class="sheet-title">Catch-up</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+        '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">Missing data isn\'t the same as failure — just mark roughly what happened.</div>' +
+        rows;
+    }
+
+    sheetEl.innerHTML = buildHtml();
+    backdrop.classList.add('open');
+    wireSheet();
+
+    function wireSheet(){
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      document.querySelectorAll('.catchup-status-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          saveDayStatus(btn.dataset.date, btn.dataset.status);
+          sheetEl.innerHTML = buildHtml();
+          wireSheet();
+        });
+      });
+    }
+  }
+
   function renderLogView(){
+    renderCommitments();
+    renderAccountabilityMessage();
+    renderCatchUpBanner();
     renderTodayPlanWidget();
     var today = todayStr();
     var todayList = document.getElementById('todayList');
@@ -1574,12 +1959,11 @@
       { val: hydratedDays, lbl: 'Hydrated days' }
     ]));
 
-    // Gluten exposure — factual tally only, no inferred causation
-    var glutenLogs = sessions.filter(function(s){ return s.type==='gluten'; });
-    var glutenMonth = glutenLogs.filter(withinThisMonth);
+    // Gluten exposure — now tracked within Nutrition; factual tally only, no inferred causation
+    var glutenMonth = nutritionMonth.filter(function(s){ return s.glutenExposure; });
     var symptomCounts = {};
     glutenMonth.forEach(function(s){
-      (s.symptoms||[]).forEach(function(sym){ symptomCounts[sym] = (symptomCounts[sym]||0) + 1; });
+      (s.glutenSymptoms||[]).forEach(function(sym){ symptomCounts[sym] = (symptomCounts[sym]||0) + 1; });
     });
     var topSymptom = '—';
     var topCount = 0;
@@ -1743,7 +2127,9 @@
     }
 
     // Generic detail: weekly frequency chart + full entry list, newest first
-    var entries = sessions.filter(function(s){ return s.type === type; });
+    var entries = (type === 'gluten')
+      ? sessions.filter(function(s){ return s.type === 'nutrition' && s.glutenExposure; })
+      : sessions.filter(function(s){ return s.type === type; });
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
       '<div class="sheet-head"><div class="sheet-title">' + title + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
       '<div id="statDetailChart"></div>' +
@@ -2574,26 +2960,26 @@
       html += fieldYesNo('f_minimalProcessed', 'Minimal processed foods', d.minimalProcessed);
       html += fieldYesNo('f_sufficientWater', 'Sufficient water intake', d.sufficientWater);
       html += fieldText('f_waterAmount', 'Approx. amount (optional)', d.waterAmount, 'e.g. 2L or 6 glasses');
+      html += fieldYesNo('f_glutenExposure', 'Suspected gluten exposure today', d.glutenExposure);
+      html += '<div id="glutenExposureFields" style="' + (d.glutenExposure ? '' : 'display:none') + '">' +
+        fieldText('f_glutenSource', 'Suspected source', d.glutenSource, 'e.g. soy sauce at dinner') +
+        '<div class="field"><label>Symptoms</label><div class="type-chip-grid" id="glutenSymptomGrid" style="grid-template-columns:repeat(2,1fr)">' +
+          GLUTEN_SYMPTOMS.map(function(s){
+            var isSel = d.glutenSymptoms && d.glutenSymptoms.indexOf(s) > -1;
+            var glutenColor = getComputedStyle(document.documentElement).getPropertyValue('--gluten').trim();
+            var style = isSel ? 'background:'+glutenColor+';border-color:'+glutenColor+';color:#2a120c;' : '';
+            return '<button type="button" class="type-chip-btn'+(isSel?' sel':'')+'" data-s="'+s+'" style="'+style+'">'+s+'</button>';
+          }).join('') +
+        '</div></div>' +
+        '<div class="field"><label>Severity</label><div class="seg-toggle" id="glutenSeverityToggle">' +
+          '<button data-v="mild" class="'+(d.glutenSeverity==='mild'?'sel':'')+'">Mild</button>' +
+          '<button data-v="moderate" class="'+(d.glutenSeverity==='moderate'?'sel':'')+'">Moderate</button>' +
+          '<button data-v="severe" class="'+(d.glutenSeverity==='severe'?'sel':'')+'">Severe</button>' +
+          '</div></div>' +
+        fieldText('f_glutenRecovery', 'Recovery time (optional)', d.glutenRecovery, 'e.g. 1 day') +
+      '</div>';
       html += '<div class="field"><label>Food diary (optional)</label><textarea id="f_foodDiary" placeholder="What did you eat today">'+(d.foodDiary||'')+'</textarea></div>';
       html += fieldNum('f_calories', 'Calories (optional)', d.calories, '2200');
-    }
-
-    if (type === 'gluten'){
-      html += fieldText('f_glutenSource', 'Suspected source', d.source, 'e.g. soy sauce at dinner');
-      html += '<div class="field"><label>Symptoms</label><div class="type-chip-grid" id="glutenSymptomGrid" style="grid-template-columns:repeat(2,1fr)">' +
-        GLUTEN_SYMPTOMS.map(function(s){
-          var isSel = d.symptoms && d.symptoms.indexOf(s) > -1;
-          var glutenColor = getComputedStyle(document.documentElement).getPropertyValue('--gluten').trim();
-          var style = isSel ? 'background:'+glutenColor+';border-color:'+glutenColor+';color:#2a120c;' : '';
-          return '<button type="button" class="type-chip-btn'+(isSel?' sel':'')+'" data-s="'+s+'" style="'+style+'">'+s+'</button>';
-        }).join('') +
-      '</div></div>';
-      html += '<div class="field"><label>Severity</label><div class="seg-toggle" id="glutenSeverityToggle">' +
-        '<button data-v="mild" class="'+(d.severity==='mild'?'sel':'')+'">Mild</button>' +
-        '<button data-v="moderate" class="'+(d.severity==='moderate'?'sel':'')+'">Moderate</button>' +
-        '<button data-v="severe" class="'+(d.severity==='severe'?'sel':'')+'">Severe</button>' +
-        '</div></div>';
-      html += fieldText('f_recovery', 'Recovery time (optional)', d.recovery, 'e.g. 1 day');
     }
 
     if (type !== 'nutrition') html += fieldNotes(d.notes);
@@ -2705,6 +3091,9 @@
       var glutenFreeVal = !!d.glutenFree;
       var minimalProcessedVal = !!d.minimalProcessed;
       var sufficientWaterVal = !!d.sufficientWater;
+      var glutenExposureVal = !!d.glutenExposure;
+      var glutenSymptomsState = (d.glutenSymptoms || []).slice();
+      var glutenSeverityVal = d.glutenSeverity || null;
       function wireYesNo(idPrefix, getSet){
         document.querySelectorAll('#' + idPrefix + 'Toggle button').forEach(function(b){
           b.addEventListener('click', function(){
@@ -2717,18 +3106,20 @@
       wireYesNo('f_glutenFree', function(v){ glutenFreeVal = v; });
       wireYesNo('f_minimalProcessed', function(v){ minimalProcessedVal = v; });
       wireYesNo('f_sufficientWater', function(v){ sufficientWaterVal = v; });
-    }
 
-    if (type === 'gluten'){
-      var symptomsState = (d.symptoms || []).slice();
-      var severityVal = d.severity || null;
+      var glutenExposureFieldsWrap = document.getElementById('glutenExposureFields');
+      wireYesNo('f_glutenExposure', function(v){
+        glutenExposureVal = v;
+        glutenExposureFieldsWrap.style.display = v ? '' : 'none';
+      });
+
       var glutenColor = getComputedStyle(document.documentElement).getPropertyValue('--gluten').trim();
       document.querySelectorAll('#glutenSymptomGrid .type-chip-btn').forEach(function(btn){
         btn.addEventListener('click', function(){
           var s = btn.dataset.s;
-          var idx = symptomsState.indexOf(s);
+          var idx = glutenSymptomsState.indexOf(s);
           var willBeSel = idx === -1;
-          if (idx > -1) symptomsState.splice(idx,1); else symptomsState.push(s);
+          if (idx > -1) glutenSymptomsState.splice(idx,1); else glutenSymptomsState.push(s);
           btn.classList.toggle('sel');
           if (willBeSel){
             btn.style.background = glutenColor;
@@ -2743,9 +3134,9 @@
       });
       document.querySelectorAll('#glutenSeverityToggle button').forEach(function(b){
         b.addEventListener('click', function(){
-          severityVal = (severityVal === b.dataset.v) ? null : b.dataset.v;
+          glutenSeverityVal = (glutenSeverityVal === b.dataset.v) ? null : b.dataset.v;
           document.querySelectorAll('#glutenSeverityToggle button').forEach(function(x){ x.classList.remove('sel'); });
-          if (severityVal) b.classList.add('sel');
+          if (glutenSeverityVal) b.classList.add('sel');
         });
       });
     }
@@ -2911,13 +3302,18 @@
         out.waterAmount = document.getElementById('f_waterAmount').value;
         out.foodDiary = document.getElementById('f_foodDiary').value;
         out.calories = numOrNull('f_calories');
-      }
-
-      if (type === 'gluten'){
-        out.source = document.getElementById('f_glutenSource').value;
-        out.symptoms = symptomsState.slice();
-        out.severity = typeof severityVal !== 'undefined' ? severityVal : (d.severity || null);
-        out.recovery = document.getElementById('f_recovery').value;
+        out.glutenExposure = glutenExposureVal;
+        if (glutenExposureVal){
+          out.glutenSource = document.getElementById('f_glutenSource').value;
+          out.glutenSymptoms = glutenSymptomsState.slice();
+          out.glutenSeverity = typeof glutenSeverityVal !== 'undefined' ? glutenSeverityVal : (d.glutenSeverity || null);
+          out.glutenRecovery = document.getElementById('f_glutenRecovery').value;
+        } else {
+          out.glutenSource = '';
+          out.glutenSymptoms = [];
+          out.glutenSeverity = null;
+          out.glutenRecovery = '';
+        }
       }
 
       saveSession(out);
