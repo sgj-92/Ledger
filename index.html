@@ -175,6 +175,104 @@
   }
   .custom-log-btn:active { background: var(--panel); }
 
+  .commitment-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .commitment-actions .custom-log-btn { margin-top: 0; flex: 1; }
+  .quick-capture-btn {
+    flex: 1.3;
+    padding: 13px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--amber);
+    color: #201404;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 20px -10px rgba(232,163,61,0.5);
+    transition: transform 0.1s ease;
+  }
+  .quick-capture-btn:active { transform: scale(0.98); opacity: 0.92; }
+
+  .qc-rows { margin-bottom: 4px; }
+  .qc-row { position: relative; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .qc-type-chip {
+    flex-shrink: 0;
+    min-width: 96px;
+    text-align: center;
+    padding: 12px 10px;
+    border-radius: 100px;
+    border: none;
+    background: var(--chip-color, var(--panel-raised));
+    color: #14171a;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .qc-type-chip:active { transform: scale(0.96); }
+  .qc-text-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 12px 12px;
+    font-family: inherit;
+    font-size: 14.5px;
+  }
+  .qc-text-input:focus { outline: none; border-color: var(--amber); }
+  .qc-row-delete {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: none;
+    color: var(--text-faint);
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .qc-row-delete:active { background: var(--border); }
+  .qc-type-popover {
+    position: fixed;
+    z-index: 60;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-raised);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 168px;
+    overflow-y: auto;
+  }
+  .qc-type-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-align: left;
+    padding: 10px 10px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .qc-type-option::before {
+    content: '';
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--chip-color);
+    flex-shrink: 0;
+  }
+  .qc-type-option:active { background: var(--border); }
+  .qc-add-row { margin-bottom: 10px; }
+
   .session-item {
     display: flex;
     align-items: center;
@@ -389,6 +487,7 @@
     padding: 0 2px;
   }
   .commitment-group-title:first-child { margin-top: 0; }
+  .commitment-group-title.roadblock { color: var(--danger); }
 
   .commitment-item {
     display: flex;
@@ -402,16 +501,32 @@
     cursor: pointer;
     box-shadow: var(--shadow-card);
   }
+  .commitment-item.roadblock { border-color: rgba(217,83,79,0.35); background: rgba(217,83,79,0.07); }
   .commitment-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
   .commitment-status-dot.planned { background: var(--amber); }
   .commitment-status-dot.completed { background: var(--day-good); }
   .commitment-status-dot.partial { background: var(--day-neutral); }
   .commitment-status-dot.disrupted { background: var(--text-faint); }
   .commitment-status-dot.not_done { background: var(--text-faint); }
+  .commitment-status-dot.roadblock { background: var(--danger); }
   .commitment-title { font-size: 14px; color: var(--text); font-weight: 600; }
   .commitment-title.completed { text-decoration: line-through; opacity: 0.7; }
   .commitment-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
   .commitment-minver { font-size: 12px; color: var(--amber); margin-top: 3px; }
+  .commitment-train-link {
+    flex-shrink: 0;
+    align-self: center;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 7px 11px;
+    border-radius: 100px;
+    cursor: pointer;
+  }
+  .commitment-train-link:active { background: var(--border); }
 
   .status-btn-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 14px; }
   .status-btn {
@@ -806,7 +921,10 @@
 
     <h2 class="section-title">Today's commitments</h2>
     <div id="commitmentsList"></div>
-    <button class="custom-log-btn" id="addCommitmentBtn">+ Add commitment</button>
+    <div class="commitment-actions">
+      <button class="quick-capture-btn" id="quickCaptureBtn">+ Quick add</button>
+      <button class="custom-log-btn" id="addCommitmentBtn">+ Add commitment</button>
+    </div>
 
     <div id="accountabilityMsg"></div>
 
@@ -1523,6 +1641,20 @@
   }
 
   // ---------- today's commitments ----------
+  // Fast capture lanes used by Quick Capture. Not a permanent taxonomy —
+  // just enough structure to classify a thought in one tap.
+  var QUICK_CAPTURE_CATEGORIES = [
+    { key: 'success', label: 'Success', color: 'var(--day-good)' },
+    { key: 'work', label: 'Work', color: 'var(--weight)' },
+    { key: 'communicate', label: 'Communicate', color: 'var(--cardio)' },
+    { key: 'family', label: 'Family', color: 'var(--yoga)' },
+    { key: 'personal', label: 'Personal', color: 'var(--photo)' },
+    { key: 'training', label: 'Training', color: 'var(--resistance)' },
+    { key: 'roadblock', label: 'Roadblock', color: 'var(--danger)' }
+  ];
+  var QUICK_CAPTURE_CATEGORY_MAP = {};
+  QUICK_CAPTURE_CATEGORIES.forEach(function(c){ QUICK_CAPTURE_CATEGORY_MAP[c.key] = c; });
+
   // Priorities don't (yet) carry a short display/group name, so derive a
   // compact label from the title rather than showing the full sentence.
   function priorityGroupLabel(p){
@@ -1544,20 +1676,38 @@
   }
 
   function buildCommitmentRow(c){
+    var isRoadblock = c.category === 'roadblock';
     var row = document.createElement('div');
-    row.className = 'commitment-item';
+    row.className = 'commitment-item' + (isRoadblock ? ' roadblock' : '');
     var metaParts = [];
     if (c.status !== 'planned') metaParts.push(COMMITMENT_STATUS_LABEL[c.status]);
     if (c.status === 'disrupted' && c.disruptionReason) metaParts.push(c.disruptionReason);
     var showMinVer = c.minVersion && c.status !== 'completed';
     row.innerHTML =
-      '<span class="commitment-status-dot ' + c.status + '"></span>' +
+      '<span class="commitment-status-dot ' + (isRoadblock ? 'roadblock' : c.status) + '"></span>' +
       '<div style="flex:1;min-width:0">' +
         '<div class="commitment-title' + (c.status==='completed'?' completed':'') + '">' + c.title + '</div>' +
         (metaParts.length ? '<div class="commitment-meta">' + metaParts.join(' · ') + '</div>' : '') +
         (showMinVer ? '<div class="commitment-minver">Minimum: ' + c.minVersion + '</div>' : '') +
       '</div>';
     row.addEventListener('click', function(){ openCommitmentSheet(c); });
+    if (c.category === 'training'){
+      var trainBtn = document.createElement('button');
+      trainBtn.type = 'button';
+      trainBtn.className = 'commitment-train-link';
+      trainBtn.textContent = 'Log';
+      trainBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var toggle = document.getElementById('quickLogToggle');
+        var grid = document.getElementById('quickLogGrid');
+        if (toggle && grid){
+          toggle.setAttribute('aria-expanded', 'true');
+          grid.hidden = false;
+          grid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+      row.appendChild(trainBtn);
+    }
     return row;
   }
 
@@ -1575,18 +1725,48 @@
       return;
     }
 
-    // Group by linked priority (in priority list order), unlinked/unmatched last under "Other".
+    // Roadblocks are risks/constraints, not tasks to complete — surface them
+    // separately, above the actionable groups.
+    var roadblocks = todays.filter(function(c){ return c.category === 'roadblock'; });
+    var actionable = todays.filter(function(c){ return c.category !== 'roadblock'; });
+
+    if (roadblocks.length){
+      var rbHeading = document.createElement('div');
+      rbHeading.className = 'commitment-group-title roadblock';
+      rbHeading.textContent = 'Roadblocks';
+      list.appendChild(rbHeading);
+      roadblocks.forEach(function(c){ list.appendChild(buildCommitmentRow(c)); });
+    }
+
+    // Group by linked priority first (in priority list order); anything left
+    // over is grouped by its Quick Capture category, or "Other" if neither applies.
     var groups = [];
     var grouped = {};
     priorities.forEach(function(p){
-      var items = todays.filter(function(c){ return c.priorityId === p.id; });
+      var items = actionable.filter(function(c){ return c.priorityId === p.id; });
       if (items.length){
         groups.push({ label: priorityGroupLabel(p), items: items });
         items.forEach(function(c){ grouped[c.id] = true; });
       }
     });
-    var otherItems = todays.filter(function(c){ return !grouped[c.id]; });
-    if (otherItems.length) groups.push({ label: 'Other', items: otherItems });
+    var remaining = actionable.filter(function(c){ return !grouped[c.id]; });
+    var catGroups = [];
+    var catIndex = {};
+    remaining.forEach(function(c){
+      var catKey = (c.category && QUICK_CAPTURE_CATEGORY_MAP[c.category]) ? c.category : '__other__';
+      if (!catIndex[catKey]){
+        var g = { label: catKey === '__other__' ? 'Other' : QUICK_CAPTURE_CATEGORY_MAP[catKey].label, items: [] };
+        catIndex[catKey] = g;
+        catGroups.push(g);
+      }
+      catIndex[catKey].items.push(c);
+    });
+    catGroups.sort(function(a, b){
+      if (a.label === 'Other') return 1;
+      if (b.label === 'Other') return -1;
+      return 0;
+    });
+    groups = groups.concat(catGroups);
 
     groups.forEach(function(g){
       var heading = document.createElement('div');
@@ -1669,12 +1849,173 @@
 
   document.getElementById('addCommitmentBtn').addEventListener('click', function(){ openCommitmentSheet(null); });
 
+  // ---------- quick capture (batch, low-friction) ----------
+  var qcRowSeq = 0;
+  var qcRows = []; // {id, category}
+  var qcLastCategory = 'work';
+
+  function openQuickCaptureSheet(){
+    editingId = null;
+    qcRows = [];
+    qcRowSeq = 0;
+    qcLastCategory = 'work';
+
+    sheetEl.innerHTML =
+      '<div class="sheet-handle"></div>' +
+      '<div class="sheet-head"><div class="sheet-title">Quick add</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<div class="qc-rows" id="qcRows"></div>' +
+      '<button type="button" class="add-exercise-btn qc-add-row" id="qcAddRowBtn">+ Add another</button>' +
+      '<button type="button" class="save-btn" id="qcSaveAllBtn">Save all</button>';
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('qcAddRowBtn').addEventListener('click', function(){ addQuickCaptureRow(true); });
+    document.getElementById('qcSaveAllBtn').addEventListener('click', saveQuickCaptureAll);
+    sheetEl.addEventListener('scroll', function(){
+      var pop = document.querySelector('.qc-type-popover');
+      if (pop) pop.remove();
+    });
+
+    addQuickCaptureRow(true);
+  }
+
+  function addQuickCaptureRow(focus){
+    qcRowSeq++;
+    var id = 'qc' + qcRowSeq;
+    var category = qcLastCategory;
+    qcRows.push({ id: id, category: category });
+
+    var rowsWrap = document.getElementById('qcRows');
+    var row = document.createElement('div');
+    row.className = 'qc-row';
+    row.dataset.id = id;
+    row.innerHTML =
+      '<button type="button" class="qc-type-chip" data-id="' + id + '" style="--chip-color:' + QUICK_CAPTURE_CATEGORY_MAP[category].color + '">' + QUICK_CAPTURE_CATEGORY_MAP[category].label + '</button>' +
+      '<input type="text" class="qc-text-input" data-id="' + id + '" placeholder="What’s on your mind?" autocomplete="off">' +
+      '<button type="button" class="qc-row-delete" data-id="' + id + '" aria-label="Remove row">✕</button>';
+    rowsWrap.appendChild(row);
+
+    var chip = row.querySelector('.qc-type-chip');
+    var input = row.querySelector('.qc-text-input');
+    var del = row.querySelector('.qc-row-delete');
+
+    chip.addEventListener('click', function(e){
+      e.stopPropagation();
+      toggleQcCategoryPopover(chip, id);
+    });
+
+    input.addEventListener('keydown', function(e){
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      var isLast = qcRows.length && qcRows[qcRows.length - 1].id === id;
+      if (isLast && input.value.trim()){
+        addQuickCaptureRow(true);
+      } else {
+        var idx = qcRows.findIndex(function(r){ return r.id === id; });
+        var next = qcRows[idx + 1];
+        if (next){
+          var nextInput = rowsWrap.querySelector('.qc-text-input[data-id="' + next.id + '"]');
+          if (nextInput) nextInput.focus();
+        }
+      }
+    });
+
+    del.addEventListener('click', function(){ removeQuickCaptureRow(id); });
+
+    if (focus){
+      setTimeout(function(){ input.focus(); }, 30);
+    }
+  }
+
+  function removeQuickCaptureRow(id){
+    qcRows = qcRows.filter(function(r){ return r.id !== id; });
+    var row = document.querySelector('.qc-row[data-id="' + id + '"]');
+    if (row) row.remove();
+    if (!qcRows.length) addQuickCaptureRow(true);
+  }
+
+  function toggleQcCategoryPopover(chipEl, rowId){
+    var existing = document.querySelector('.qc-type-popover');
+    if (existing){
+      var wasForThisRow = existing.dataset.forRow === rowId;
+      existing.remove();
+      if (wasForThisRow) return;
+    }
+    var pop = document.createElement('div');
+    pop.className = 'qc-type-popover';
+    pop.dataset.forRow = rowId;
+    pop.innerHTML = QUICK_CAPTURE_CATEGORIES.map(function(c){
+      return '<button type="button" class="qc-type-option" data-key="' + c.key + '" style="--chip-color:' + c.color + '">' + c.label + '</button>';
+    }).join('');
+    document.body.appendChild(pop);
+
+    var rect = chipEl.getBoundingClientRect();
+    var popHeight = pop.offsetHeight;
+    var spaceBelow = window.innerHeight - rect.bottom;
+    var top = (popHeight + 10 <= spaceBelow) ? (rect.bottom + 6) : Math.max(8, rect.top - popHeight - 6);
+    pop.style.top = top + 'px';
+    pop.style.left = rect.left + 'px';
+    pop.style.maxHeight = Math.min(popHeight, window.innerHeight - 16) + 'px';
+
+    pop.querySelectorAll('.qc-type-option').forEach(function(opt){
+      opt.addEventListener('click', function(e){
+        e.stopPropagation();
+        setQcRowCategory(rowId, opt.dataset.key);
+        pop.remove();
+      });
+    });
+  }
+
+  function setQcRowCategory(rowId, key){
+    var r = qcRows.find(function(r){ return r.id === rowId; });
+    if (!r) return;
+    r.category = key;
+    qcLastCategory = key;
+    var chip = document.querySelector('.qc-type-chip[data-id="' + rowId + '"]');
+    if (chip){
+      chip.textContent = QUICK_CAPTURE_CATEGORY_MAP[key].label;
+      chip.style.setProperty('--chip-color', QUICK_CAPTURE_CATEGORY_MAP[key].color);
+    }
+  }
+
+  function saveQuickCaptureAll(){
+    var toSave = [];
+    qcRows.forEach(function(r){
+      var input = document.querySelector('.qc-text-input[data-id="' + r.id + '"]');
+      var text = input ? input.value.trim() : '';
+      if (text){
+        toSave.push({
+          date: todayStr(),
+          title: text,
+          priorityId: null,
+          minVersion: null,
+          status: 'planned',
+          disruptionReason: null,
+          category: r.category,
+          createdAt: new Date().toISOString()
+        });
+      }
+    });
+    closeSheet();
+    toSave.forEach(function(item){ saveCommitment(item); });
+  }
+
+  document.getElementById('quickCaptureBtn').addEventListener('click', openQuickCaptureSheet);
+
+  // Close any open category popover on outside click (registered once).
+  document.addEventListener('click', function(e){
+    if (!e.target.closest) return;
+    if (e.target.closest('.qc-type-chip') || e.target.closest('.qc-type-popover')) return;
+    var pop = document.querySelector('.qc-type-popover');
+    if (pop) pop.remove();
+  });
+
   // ---------- accountability message (deterministic, no AI) ----------
   function renderAccountabilityMessage(){
     var wrap = document.getElementById('accountabilityMsg');
     if (!wrap) return;
     var today = todayStr();
-    var todaysCommitments = commitments.filter(function(c){ return c.date === today; });
+    // Roadblocks are risks, not tasks — leave them out of the completion count.
+    var todaysCommitments = commitments.filter(function(c){ return c.date === today && c.category !== 'roadblock'; });
     var msgs = [];
 
     if (todaysCommitments.length){
@@ -2907,6 +3248,8 @@
   function closeSheet(){
     backdrop.classList.remove('open');
     editingId = null;
+    var pop = document.querySelector('.qc-type-popover');
+    if (pop) pop.remove();
   }
   backdrop.addEventListener('click', function(e){ if (e.target === backdrop) closeSheet(); });
 
