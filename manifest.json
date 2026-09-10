@@ -1,7 +1,7 @@
 {
-  "name": "Ledger \u2014 Training Log",
+  "name": "Ledger",
   "short_name": "Ledger",
-  "description": "Track padel, gym, running, and yoga in one place.",
+  "description": "Shaun's personal operating system \u2014 plan, do, track and review your day.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

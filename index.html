@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Ledger — Training Log</title>
+<title>Ledger</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -68,15 +68,43 @@
     letter-spacing: 0.01em;
   }
   header.top {
-    padding: calc(20px + env(safe-area-inset-top)) 20px 18px;
+    padding: calc(14px + env(safe-area-inset-top)) 20px 12px;
     position: sticky;
     top: 0;
-    background: linear-gradient(var(--bg) 78%, transparent);
+    background: linear-gradient(var(--bg) 82%, transparent);
     z-index: 5;
   }
-  .top-date-label { font-size: 13px; color: var(--text-muted); margin: 0 0 2px; font-weight: 500; }
-  .top-date { font-size: 40px; line-height: 1; margin: 0; }
-  main { padding: 0 20px 24px; flex: 1 0 auto; }
+  .day-nav { display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .day-nav-arrow {
+    flex-shrink: 0;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text-muted);
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.12s ease, opacity 0.12s ease;
+  }
+  .day-nav-arrow:active { background: var(--panel-raised); }
+  .day-nav-arrow[hidden] { visibility: hidden; pointer-events: none; display: flex; }
+  .day-nav-center { flex: 1; min-width: 0; text-align: center; cursor: default; }
+  .top-date-label { font-size: 12.5px; color: var(--text-muted); margin: 0 0 2px; font-weight: 500; }
+  .top-date { font-size: 30px; line-height: 1.1; margin: 0; }
+  .day-nav-sub { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; min-height: 26px; }
+  .day-status-note { font-size: 12px; color: var(--text-muted); }
+  .day-today-btn, .day-review-btn, .day-view-btn {
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 5px 11px;
+    border-radius: 100px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .day-today-btn { color: var(--amber); background: rgba(232,163,61,0.12); border: 1px solid rgba(232,163,61,0.35); }
+  .day-review-btn { color: var(--text); background: var(--panel-raised); border: 1px solid var(--border); }
+  main { padding: 0 20px calc(96px + env(safe-area-inset-bottom)); flex: 1 0 auto; }
   section.view { display: none; animation: fadein 0.18s ease; }
   section.view.active { display: block; }
   @keyframes fadein { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
@@ -85,15 +113,96 @@
     font-size: 15px;
     font-weight: 600;
     color: var(--text);
-    margin: 28px 0 12px;
+    margin: 22px 0 10px;
   }
-  h2.section-title:first-child { margin-top: 4px; }
+  h2.section-title:first-child { margin-top: 2px; }
+  h2.section-title.tight { margin-top: 14px; margin-bottom: 8px; }
+  h2.section-title.loose { margin-top: 30px; }
+
+  .section-kicker {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin: 22px 0 8px;
+  }
+  .section-kicker:first-child { margin-top: 2px; }
+
+  /* ---------- shared action button system ---------- */
+  .btn-primary, .save-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--amber);
+    color: #201404;
+    font-family: inherit;
+    font-size: 14.5px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 20px -10px rgba(232,163,61,0.5);
+    transition: transform 0.12s ease, opacity 0.12s ease;
+  }
+  .btn-primary:active, .save-btn:active { transform: scale(0.98); opacity: 0.92; }
+  .btn-secondary, .custom-log-btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .btn-secondary:active, .custom-log-btn:active { background: var(--panel); }
+  .btn-link {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 0;
+  }
+  .btn-link:active { opacity: 0.7; }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row > * { flex: 1; margin-top: 0; }
 
   .quicklog-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+    overflow: hidden;
+    max-height: 800px;
+    opacity: 1;
+    transition: max-height 0.22s ease, opacity 0.18s ease;
   }
+  .quicklog-grid.collapsed { max-height: 0; opacity: 0; }
+
+  .section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 8px 2px;
+    margin: 22px 0 8px;
+    font-family: inherit;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .section-toggle:first-child { margin-top: 2px; }
+  .section-toggle:active { opacity: 0.75; }
+  .section-toggle-label { font-size: 15px; font-weight: 600; color: var(--text); }
+  .section-toggle-chevron { width: 18px; height: 18px; color: var(--text-muted); flex-shrink: 0; transition: transform 0.2s ease; }
+  .section-toggle-chevron svg { width: 100%; height: 100%; display: block; }
+  .section-toggle[aria-expanded="true"] .section-toggle-chevron { transform: rotate(180deg); }
   .quicklog-card {
     border: none;
     border-radius: var(--radius-md);
@@ -140,19 +249,7 @@
   }
   .quicklog-card.span-2 .ql-label { font-size: 16px; }
 
-  .custom-log-btn {
-    width: 100%;
-    margin-top: 10px;
-    padding: 13px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-muted);
-    font-family: inherit;
-    font-size: 14px;
-    cursor: pointer;
-  }
-  .custom-log-btn:active { background: var(--panel); }
+  .custom-log-btn { margin-top: 10px; }
 
   .session-item {
     display: flex;
@@ -182,13 +279,14 @@
   .session-item .si-time { font-size: 12px; color: var(--text-faint); flex-shrink: 0; }
 
   .empty-state {
-    padding: 30px 16px;
+    padding: 16px;
     text-align: center;
     color: var(--text-faint);
-    font-size: 13.5px;
+    font-size: 13px;
     border: 1px dashed var(--border);
     border-radius: var(--radius-md);
   }
+  .empty-state.compact { padding: 12px 14px; text-align: left; font-size: 12.5px; }
 
   /* Calendar */
   .cal-nav {
@@ -214,6 +312,7 @@
   }
   .cal-dow { text-align: center; font-size: 11px; color: var(--text-faint); padding-bottom: 6px; }
   .cal-cell {
+    position: relative;
     aspect-ratio: 1;
     border-radius: var(--radius-sm);
     display: flex;
@@ -233,9 +332,18 @@
   .cal-cell.empty:active { transform: none; }
   .cal-cell.today { border-color: var(--amber); color: var(--amber); font-weight: 700; box-shadow: 0 0 0 1px var(--amber) inset; }
   .cal-cell.selected { border-color: var(--text-faint); box-shadow: 0 0 0 1px var(--text-faint) inset; }
+  .cal-cell.status-completed { border-color: var(--day-good); box-shadow: 0 0 0 1px var(--day-good) inset; }
+  .cal-cell.status-partial { border-color: var(--day-neutral); box-shadow: 0 0 0 1px var(--day-neutral) inset; }
+  .cal-cell.status-disrupted { border-color: var(--day-bad); box-shadow: 0 0 0 1px var(--day-bad) inset; }
+  .cal-cell .cal-action-mark { position: absolute; top: 4px; right: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--amber); }
   .cal-cell .cal-dots { display: flex; gap: 2px; height: 6px; }
   .cal-cell .cal-dots .dot { width: 5px; height: 5px; }
   .cal-day-detail { margin-top: 20px; }
+  .cal-day-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); margin: 16px 0 6px; }
+  .cal-day-section-title:first-child { margin-top: 0; }
+  .cal-day-outcome { font-size: 12.5px; color: var(--text-muted); }
+  .cal-day-outcome strong { color: var(--text); }
+  .day-view-btn { color: var(--text); background: var(--panel-raised); border: 1px solid var(--border); display: inline-block; margin-top: 10px; }
   .cal-summary {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -301,7 +409,16 @@
     gap: 6px;
     margin-top: 8px;
     font-size: 12px;
-    color: var(--text-muted);
+    color: var(--danger);
+  }
+  .plan-day-actions-chip {
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 100px;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    color: var(--text);
   }
   .plan-meals-preview {
     margin-top: 8px;
@@ -358,28 +475,68 @@
   }
   .today-plan-chip .dot { background: #14171a; opacity: 0.55; }
 
+  .commitment-group-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-faint);
+    margin: 14px 0 6px;
+    padding: 0 2px;
+  }
+  .commitment-group-title:first-child { margin-top: 0; }
+  .commitment-group-title.roadblock { color: var(--danger); }
+
   .commitment-item {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 13px 14px;
+    gap: 11px;
+    padding: 12px 13px;
     background: var(--panel);
     border-radius: var(--radius-sm);
-    margin-bottom: 8px;
+    margin-bottom: 7px;
     border: 1px solid var(--border);
     cursor: pointer;
     box-shadow: var(--shadow-card);
+    transition: transform 0.1s ease, background 0.1s ease;
   }
-  .commitment-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
-  .commitment-status-dot.planned { background: var(--amber); }
-  .commitment-status-dot.completed { background: var(--day-good); }
-  .commitment-status-dot.partial { background: var(--day-neutral); }
-  .commitment-status-dot.disrupted { background: var(--text-faint); }
-  .commitment-status-dot.not_done { background: var(--text-faint); }
+  .commitment-item:active { transform: scale(0.99); background: var(--panel-raised); }
+  .commitment-item.roadblock { border-color: rgba(217,83,79,0.35); background: rgba(217,83,79,0.07); }
+  .commitment-status-dot {
+    width: 20px; height: 20px;
+    margin: -4px -5px -4px -3px;
+    padding: 5px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .commitment-status-dot::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--dot-color, var(--amber)); }
+  .commitment-status-dot:active { background: var(--border); }
+  .commitment-status-dot.planned { --dot-color: var(--amber); }
+  .commitment-status-dot.completed { --dot-color: var(--day-good); }
+  .commitment-status-dot.partial { --dot-color: var(--day-neutral); }
+  .commitment-status-dot.disrupted { --dot-color: var(--text-faint); }
+  .commitment-status-dot.not_done { --dot-color: var(--text-faint); }
+  .commitment-status-dot.roadblock { --dot-color: var(--danger); }
   .commitment-title { font-size: 14px; color: var(--text); font-weight: 600; }
   .commitment-title.completed { text-decoration: line-through; opacity: 0.7; }
   .commitment-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
   .commitment-minver { font-size: 12px; color: var(--amber); margin-top: 3px; }
+  .commitment-train-link {
+    flex-shrink: 0;
+    align-self: center;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 7px 11px;
+    border-radius: 100px;
+    cursor: pointer;
+  }
+  .commitment-train-link:active { background: var(--border); }
 
   .status-btn-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 14px; }
   .status-btn {
@@ -401,10 +558,12 @@
   .accountability-box {
     font-size: 12.5px;
     color: var(--text-muted);
-    margin: -6px 0 18px;
-    padding: 0 2px;
+    margin: 16px 0 18px;
+    padding: 14px 2px 0;
+    border-top: 1px solid var(--border);
     line-height: 1.6;
   }
+  .accountability-box > div + div { margin-top: 3px; }
 
   .catchup-banner {
     background: var(--panel-raised);
@@ -500,6 +659,120 @@
   nav.tabbar button.active { color: var(--amber); }
   nav.tabbar button.active .tab-icon { transform: translateY(-1px) scale(1.04); }
   nav.tabbar button:active .tab-icon { transform: scale(0.9); }
+
+  /* Global quick add */
+  .global-fab {
+    position: fixed;
+    right: 20px;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    border: none;
+    background: var(--amber);
+    color: #201404;
+    font-size: 25px;
+    line-height: 1;
+    font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 10px 24px -8px rgba(232,163,61,0.55), 0 2px 8px rgba(0,0,0,0.35);
+    z-index: 22;
+    transition: transform 0.14s cubic-bezier(.2,.8,.3,1);
+  }
+  .global-fab:active { transform: scale(0.92); }
+
+  /* ---------- chips (shared) ---------- */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 100px;
+    line-height: 1.3;
+  }
+  .chip .chip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--chip-color, var(--text-faint)); }
+  .chip.chip-neutral { background: var(--panel-raised); border: 1px solid var(--border); color: var(--text); }
+  .chip.chip-outline { background: none; border: 1px solid var(--border); color: var(--text-muted); }
+
+  /* ---------- quick capture ---------- */
+  .qc-rows { margin-bottom: 4px; }
+  .qc-row { position: relative; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .qc-type-chip {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 100px;
+    padding: 12px 12px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .qc-type-chip .chip-dot { width: 8px; height: 8px; }
+  .qc-type-chip:active { background: var(--border); }
+  .qc-text-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 12px 12px;
+    font-family: inherit;
+    font-size: 14.5px;
+  }
+  .qc-text-input:focus { outline: none; border-color: var(--amber); }
+  .qc-row-delete {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: none;
+    color: var(--text-faint);
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .qc-row-delete:active { background: var(--border); }
+  .qc-type-popover {
+    position: fixed;
+    z-index: 60;
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-raised);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 168px;
+    overflow-y: auto;
+  }
+  .qc-type-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-align: left;
+    padding: 10px 10px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .qc-type-option .chip-dot { width: 8px; height: 8px; }
+  .qc-type-option:active { background: var(--border); }
+  .qc-target-note { font-size: 12px; color: var(--text-muted); margin: -6px 0 14px; }
 
   /* Sheet / modal */
   .sheet-backdrop {
@@ -724,23 +997,8 @@
   }
   .checkbox-label input:checked + .cb-box::after { opacity: 1; }
 
-  .save-btn {
-    width: 100%;
-    padding: 15px;
-    border-radius: var(--radius-sm);
-    border: none;
-    background: var(--amber);
-    color: #201404;
-    font-family: inherit;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 8px;
-    box-shadow: 0 8px 20px -8px rgba(232,163,61,0.5);
-    transition: transform 0.1s ease;
-  }
-  .save-btn:active { transform: scale(0.98); opacity: 0.9; }
-  .delete-btn {
+  .save-btn { margin-top: 8px; }
+  .delete-btn, .btn-danger {
     width: 100%;
     padding: 13px;
     border-radius: var(--radius-sm);
@@ -749,11 +1007,12 @@
     color: var(--danger);
     font-family: inherit;
     font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
     margin-top: 10px;
     transition: background 0.1s ease;
   }
-  .delete-btn:active { background: rgba(217,83,79,0.1); }
+  .delete-btn:active, .btn-danger:active { background: rgba(217,83,79,0.1); }
 
   .sync-note { font-size: 11px; color: var(--text-faint); text-align: center; margin: 18px 0 4px; }
 </style>
@@ -761,8 +1020,15 @@
 <body>
 
 <header class="top">
-  <p class="top-date-label" id="topDateLabel">—</p>
-  <h1 class="top-date display" id="topDate">—</h1>
+  <div class="day-nav">
+    <button class="day-nav-arrow" id="dayPrevBtn" aria-label="Previous day">‹</button>
+    <div class="day-nav-center" id="dayNavCenter">
+      <p class="top-date-label" id="topDateLabel">—</p>
+      <h1 class="top-date display" id="topDate">—</h1>
+    </div>
+    <button class="day-nav-arrow" id="dayNextBtn" aria-label="Next day" hidden>›</button>
+  </div>
+  <div class="day-nav-sub" id="dayNavSub"></div>
 </header>
 
 <main>
@@ -770,15 +1036,20 @@
   <section class="view active" id="view-log">
     <div id="catchUpBanner"></div>
 
-    <h2 class="section-title">Today's commitments</h2>
+    <h2 class="section-title">Actions</h2>
     <div id="commitmentsList"></div>
-    <button class="custom-log-btn" id="addCommitmentBtn">+ Add commitment</button>
+    <button class="btn-primary" id="quickCaptureBtn">+ Quick add</button>
+    <button class="btn-link" id="addCommitmentBtn">+ Add with detail</button>
 
     <div id="accountabilityMsg"></div>
 
     <div id="todayPlanWidget"></div>
-    <h2 class="section-title">Quick log</h2>
-    <div class="quicklog-grid">
+
+    <button type="button" class="section-toggle" id="quickLogToggle" aria-expanded="false" aria-controls="quickLogGrid">
+      <span class="section-toggle-label">Quick log</span>
+      <span class="section-toggle-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </button>
+    <div class="quicklog-grid collapsed" id="quickLogGrid">
       <button class="quicklog-card nutrition span-2" data-type="nutrition">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5v7a2.5 2.5 0 0 0 5 0v-7"/><line x1="8.5" y1="2.5" x2="8.5" y2="21.5"/><path d="M17 2.5c-1.5 1-2.3 3-2.3 5.3 0 2.6 1.3 4 2.3 4.7v9"/></svg></span>
         <span class="ql-label">Nutrition</span>
@@ -809,11 +1080,9 @@
       </button>
     </div>
 
-    <h2 class="section-title">Today</h2>
+    <h2 class="section-title">Activity</h2>
     <div id="todayList"></div>
-
-    <h2 class="section-title" id="recentTitle">Last 7 days</h2>
-    <div id="recentList"></div>
+    <button class="btn-link" id="viewHistoryBtn">View history in Calendar →</button>
     <p class="sync-note" id="syncNote"></p>
   </section>
 
@@ -829,31 +1098,32 @@
   </section>
 
   <section class="view" id="view-stats">
-    <h2 class="section-title">Last 7 days</h2>
+    <h2 class="section-title">Recent progress</h2>
     <div class="weekbar" id="weekBar"></div>
 
-    <h2 class="section-title">By discipline</h2>
+    <h2 class="section-title">Health &amp; training</h2>
     <div id="statsCards"></div>
   </section>
 
   <section class="view" id="view-focus">
+    <div class="section-kicker">Progress identity</div>
     <div id="playerCard"></div>
 
     <h2 class="section-title">Priorities</h2>
     <div id="prioritiesList"></div>
     <button class="custom-log-btn" id="addPriorityBtn">+ Add priority</button>
 
-    <h2 class="section-title">Target weight</h2>
-    <div id="targetWeightCard"></div>
-
-    <h2 class="section-title">Current focus areas</h2>
+    <h2 class="section-title">Active focus</h2>
     <div id="focusList"></div>
     <button class="custom-log-btn" id="addFocusBtn">+ Add focus area</button>
 
     <div id="focusCompletedWrap" style="display:none">
-      <h2 class="section-title">Completed</h2>
+      <h2 class="section-title tight">Completed</h2>
       <div id="focusCompletedList"></div>
     </div>
+
+    <h2 class="section-title">Targets</h2>
+    <div id="targetWeightCard"></div>
   </section>
 
   <section class="view" id="view-plan">
@@ -876,23 +1146,25 @@
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
     Today
   </button>
-  <button class="tab-btn" data-view="calendar">
-    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/></svg></span>
-    Calendar
-  </button>
   <button class="tab-btn" data-view="plan">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="17" rx="2.5"/><line x1="8" y1="2.5" x2="8" y2="6"/><line x1="16" y1="2.5" x2="16" y2="6"/><line x1="7.5" y1="12" x2="12.5" y2="12"/><line x1="7.5" y1="16" x2="16.5" y2="16"/></svg></span>
     Plan
   </button>
+  <button class="tab-btn" data-view="calendar">
+    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/></svg></span>
+    Calendar
+  </button>
   <button class="tab-btn" data-view="stats">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="13"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="19" y1="20" x2="19" y2="15.5"/></svg></span>
-    Stats
+    Progress
   </button>
   <button class="tab-btn" data-view="focus">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/></svg></span>
     Focus
   </button>
 </nav>
+
+<button type="button" class="global-fab" id="globalFabBtn" aria-label="Quick add">+</button>
 
 <div class="sheet-backdrop" id="sheetBackdrop">
   <div class="sheet" id="sheet"></div>
@@ -922,6 +1194,8 @@
   var PLAN_TRAINING_TYPES = ['padel','cardio','resistance','yoga'];
   var CARB_LEVEL_LABEL = { low: 'Low carb', normal: 'Normal', high: 'High carb' };
   var editingId = null;
+  var viewedDate = todayStr(); // the date the Today view is currently showing
+  var planSelectedDate = null; // last day-row interacted with in Plan (for the global FAB's date target)
 
   var TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance training', cardio: 'Cardio', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition', gluten: 'Gluten exposure' };
   var GLUTEN_SYMPTOMS = ['Brain fog', 'Headache', 'Itching', 'Low mood', 'Depressive symptoms'];
@@ -1384,19 +1658,98 @@
       currentView = btn.dataset.view;
       document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
       document.getElementById('view-' + currentView).classList.add('active');
+      if (currentView === 'log') renderLogView();
       if (currentView === 'calendar') renderCalendar();
       if (currentView === 'stats') renderStats();
       if (currentView === 'focus') renderFocus();
       if (currentView === 'plan') renderPlan();
+      renderHeader();
     });
   });
 
-  // ---------- header ----------
-  function renderHeader(){
-    var now = new Date();
-    document.getElementById('topDateLabel').textContent = now.toLocaleDateString(undefined,{ weekday:'long' });
-    document.getElementById('topDate').textContent = now.toLocaleDateString(undefined,{ day:'numeric', month:'long' });
+  function jumpToToday(dateStr){
+    viewedDate = dateStr;
+    document.querySelector('.tab-btn[data-view="log"]').click();
   }
+
+  // ---------- header ----------
+  var TAB_INFO = {
+    calendar: { kicker: 'Calendar', title: 'History' },
+    plan: { kicker: 'Plan', title: 'This week' },
+    stats: { kicker: 'Progress', title: 'Change over time' },
+    focus: { kicker: 'Focus', title: 'Direction' }
+  };
+
+  function relativeDayLabel(dateStr){
+    var today = todayStr();
+    if (dateStr === today) return 'Today';
+    var d = new Date(dateStr + 'T00:00:00'), t = new Date(today + 'T00:00:00');
+    var diffDays = Math.round((d - t) / 86400000);
+    if (diffDays === -1) return 'Yesterday';
+    if (diffDays === 1) return 'Tomorrow';
+    return d.toLocaleDateString(undefined, { weekday: 'long' });
+  }
+
+  function setViewedDate(dateStr){
+    viewedDate = dateStr;
+    renderHeader();
+    renderLogView();
+  }
+
+  function renderHeader(){
+    var prevBtn = document.getElementById('dayPrevBtn');
+    var nextBtn = document.getElementById('dayNextBtn');
+    var sub = document.getElementById('dayNavSub');
+    var labelEl = document.getElementById('topDateLabel');
+    var titleEl = document.getElementById('topDate');
+    var today = todayStr();
+
+    if (currentView === 'log'){
+      prevBtn.hidden = false;
+      var d = new Date(viewedDate + 'T00:00:00');
+      labelEl.textContent = relativeDayLabel(viewedDate);
+      titleEl.textContent = d.toLocaleDateString(undefined, { day:'numeric', month:'long' });
+      nextBtn.hidden = (viewedDate >= today);
+
+      var parts = [];
+      var dayCommitments = commitments.filter(function(c){ return c.date === viewedDate && c.category !== 'roadblock'; });
+      if (dayCommitments.length){
+        var doneCount = dayCommitments.filter(function(c){ return c.status === 'completed'; }).length;
+        parts.push('<span class="day-status-note">' + dayCommitments.length + ' action' + (dayCommitments.length===1?'':'s') + ' · ' + doneCount + ' complete</span>');
+      }
+      if (viewedDate !== today){
+        parts.push('<button type="button" class="day-today-btn" id="dayJumpTodayBtn">Today</button>');
+      }
+      var hasUnresolved = commitments.some(function(c){ return c.date === viewedDate && c.status === 'planned'; });
+      var hasDayStatus = dayStatuses.some(function(ds){ return ds.date === viewedDate; });
+      var hasAnythingThatDay = commitments.some(function(c){ return c.date === viewedDate; }) || !!getPlanForDate(viewedDate);
+      if (viewedDate < today && (hasUnresolved || (!hasDayStatus && hasAnythingThatDay))){
+        parts.push('<button type="button" class="day-review-btn" id="dayReviewBtn">Review day</button>');
+      }
+      sub.innerHTML = parts.join('');
+      var jumpBtn = document.getElementById('dayJumpTodayBtn');
+      if (jumpBtn) jumpBtn.addEventListener('click', function(){ setViewedDate(todayStr()); });
+      var reviewBtn = document.getElementById('dayReviewBtn');
+      if (reviewBtn) reviewBtn.addEventListener('click', function(){ openReviewDaySheet(viewedDate); });
+    } else {
+      prevBtn.hidden = true;
+      nextBtn.hidden = true;
+      sub.innerHTML = '';
+      var info = TAB_INFO[currentView] || { kicker: 'Ledger', title: '' };
+      labelEl.textContent = info.kicker;
+      titleEl.textContent = info.title;
+    }
+  }
+
+  document.getElementById('dayPrevBtn').addEventListener('click', function(){
+    var d = new Date(viewedDate + 'T00:00:00'); d.setDate(d.getDate() - 1);
+    setViewedDate(fmtDate(d));
+  });
+  document.getElementById('dayNextBtn').addEventListener('click', function(){
+    var d = new Date(viewedDate + 'T00:00:00'); d.setDate(d.getDate() + 1);
+    var nd = fmtDate(d), t = todayStr();
+    setViewedDate(nd > t ? t : nd);
+  });
 
   // ---------- log view ----------
   function sessionDetailText(s){
@@ -1486,37 +1839,144 @@
   }
 
   // ---------- today's commitments ----------
+  // Fast capture lanes used by Quick Capture. Not a permanent taxonomy —
+  // just enough structure to classify a thought in one tap.
+  var QUICK_CAPTURE_CATEGORIES = [
+    { key: 'success', label: 'Success', color: 'var(--day-good)' },
+    { key: 'work', label: 'Work', color: 'var(--weight)' },
+    { key: 'communicate', label: 'Communicate', color: 'var(--cardio)' },
+    { key: 'family', label: 'Family', color: 'var(--yoga)' },
+    { key: 'personal', label: 'Personal', color: 'var(--photo)' },
+    { key: 'training', label: 'Training', color: 'var(--resistance)' },
+    { key: 'roadblock', label: 'Roadblock', color: 'var(--danger)' }
+  ];
+  var QUICK_CAPTURE_CATEGORY_MAP = {};
+  QUICK_CAPTURE_CATEGORIES.forEach(function(c){ QUICK_CAPTURE_CATEGORY_MAP[c.key] = c; });
+
+  // Priorities don't (yet) carry a short display/group name, so derive a
+  // compact label from the title rather than showing the full sentence.
+  function priorityGroupLabel(p){
+    var title = (p && p.title || '').trim();
+    if (!title) return 'Other';
+    if (p.groupName) return p.groupName;
+    var seg = title.split(/\s[-–—]\s|:\s*/)[0].trim();
+    if (seg.length > 24){
+      var words = seg.split(/\s+/);
+      var out = '';
+      for (var i=0;i<words.length;i++){
+        var next = out ? out + ' ' + words[i] : words[i];
+        if (next.length > 22) break;
+        out = next;
+      }
+      seg = (out || words[0].slice(0,22)) + '…';
+    }
+    return seg;
+  }
+
+  function toggleCommitmentQuickStatus(c){
+    var next = c.status === 'completed' ? 'planned' : 'completed';
+    saveCommitment(Object.assign({}, c, { status: next }));
+  }
+
+  function buildCommitmentRow(c){
+    var isRoadblock = c.category === 'roadblock';
+    var row = document.createElement('div');
+    row.className = 'commitment-item' + (isRoadblock ? ' roadblock' : '');
+    var metaParts = [];
+    if (c.status !== 'planned') metaParts.push(COMMITMENT_STATUS_LABEL[c.status]);
+    if (c.status === 'disrupted' && c.disruptionReason) metaParts.push(c.disruptionReason);
+    var showMinVer = c.minVersion && c.status !== 'completed';
+    row.innerHTML =
+      '<span class="commitment-status-dot ' + (isRoadblock ? 'roadblock' : c.status) + '"></span>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div class="commitment-title' + (c.status==='completed'?' completed':'') + '">' + c.title + '</div>' +
+        (metaParts.length ? '<div class="commitment-meta">' + metaParts.join(' · ') + '</div>' : '') +
+        (showMinVer ? '<div class="commitment-minver">Minimum: ' + c.minVersion + '</div>' : '') +
+      '</div>';
+    row.addEventListener('click', function(){ openCommitmentSheet(c); });
+    if (!isRoadblock){
+      row.querySelector('.commitment-status-dot').addEventListener('click', function(e){
+        e.stopPropagation();
+        toggleCommitmentQuickStatus(c);
+      });
+    }
+    if (c.category === 'training'){
+      var trainBtn = document.createElement('button');
+      trainBtn.type = 'button';
+      trainBtn.className = 'commitment-train-link';
+      trainBtn.textContent = 'Log';
+      trainBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        expandQuickLog();
+      });
+      row.appendChild(trainBtn);
+    }
+    return row;
+  }
+
   function renderCommitments(){
     var list = document.getElementById('commitmentsList');
     if (!list) return;
-    var today = todayStr();
-    var todays = commitments.filter(function(c){ return c.date === today; });
+    var dateStr = viewedDate;
+    var todays = commitments.filter(function(c){ return c.date === dateStr; });
     list.innerHTML = '';
     if (!todays.length){
       var e = document.createElement('div');
       e.className = 'empty-state';
-      e.textContent = 'No commitments set for today';
+      e.textContent = dateStr === todayStr() ? 'Nothing planned for today yet — tap Quick add' : 'No actions recorded for this day';
       list.appendChild(e);
       return;
     }
-    todays.forEach(function(c){
-      var row = document.createElement('div');
-      row.className = 'commitment-item';
-      var priority = c.priorityId ? priorities.find(function(p){ return p.id === c.priorityId; }) : null;
-      var metaParts = [];
-      if (priority) metaParts.push(priority.title);
-      if (c.status !== 'planned') metaParts.push(COMMITMENT_STATUS_LABEL[c.status]);
-      if (c.status === 'disrupted' && c.disruptionReason) metaParts.push(c.disruptionReason);
-      var showMinVer = c.minVersion && c.status !== 'completed';
-      row.innerHTML =
-        '<span class="commitment-status-dot ' + c.status + '"></span>' +
-        '<div style="flex:1;min-width:0">' +
-          '<div class="commitment-title' + (c.status==='completed'?' completed':'') + '">' + c.title + '</div>' +
-          (metaParts.length ? '<div class="commitment-meta">' + metaParts.join(' · ') + '</div>' : '') +
-          (showMinVer ? '<div class="commitment-minver">Minimum: ' + c.minVersion + '</div>' : '') +
-        '</div>';
-      row.addEventListener('click', function(){ openCommitmentSheet(c); });
-      list.appendChild(row);
+
+    // Roadblocks are risks/constraints, not tasks to complete — surface them
+    // separately, above the actionable groups.
+    var roadblocks = todays.filter(function(c){ return c.category === 'roadblock'; });
+    var actionable = todays.filter(function(c){ return c.category !== 'roadblock'; });
+
+    if (roadblocks.length){
+      var rbHeading = document.createElement('div');
+      rbHeading.className = 'commitment-group-title roadblock';
+      rbHeading.textContent = 'Roadblocks';
+      list.appendChild(rbHeading);
+      roadblocks.forEach(function(c){ list.appendChild(buildCommitmentRow(c)); });
+    }
+
+    // Group by linked priority first (in priority list order); anything left
+    // over is grouped by its Quick Capture category, or "Other" if neither applies.
+    var groups = [];
+    var grouped = {};
+    priorities.forEach(function(p){
+      var items = actionable.filter(function(c){ return c.priorityId === p.id; });
+      if (items.length){
+        groups.push({ label: priorityGroupLabel(p), items: items });
+        items.forEach(function(c){ grouped[c.id] = true; });
+      }
+    });
+    var remaining = actionable.filter(function(c){ return !grouped[c.id]; });
+    var catGroups = [];
+    var catIndex = {};
+    remaining.forEach(function(c){
+      var catKey = (c.category && QUICK_CAPTURE_CATEGORY_MAP[c.category]) ? c.category : '__other__';
+      if (!catIndex[catKey]){
+        var g = { label: catKey === '__other__' ? 'Other' : QUICK_CAPTURE_CATEGORY_MAP[catKey].label, items: [] };
+        catIndex[catKey] = g;
+        catGroups.push(g);
+      }
+      catIndex[catKey].items.push(c);
+    });
+    catGroups.sort(function(a, b){
+      if (a.label === 'Other') return 1;
+      if (b.label === 'Other') return -1;
+      return 0;
+    });
+    groups = groups.concat(catGroups);
+
+    groups.forEach(function(g){
+      var heading = document.createElement('div');
+      heading.className = 'commitment-group-title';
+      heading.textContent = g.label;
+      list.appendChild(heading);
+      g.items.forEach(function(c){ list.appendChild(buildCommitmentRow(c)); });
     });
   }
 
@@ -1531,8 +1991,8 @@
         priorities.map(function(p){ return {value:p.id, label:p.title}; })
       );
       var html = '<div class="sheet-handle"></div>' +
-        '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit commitment' : 'New commitment') + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
-        '<div class="field"><label>Commitment</label><input type="text" id="f_commitTitle" placeholder="e.g. Resistance training" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
+        '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit action' : 'New action') + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+        '<div class="field"><label>Action</label><input type="text" id="f_commitTitle" placeholder="e.g. Resistance training" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
         fieldSelect('f_commitPriority', 'Linked priority (optional)', priorityOptions, existing ? (existing.priorityId||'') : '') +
         '<div class="field"><label>Minimum version (optional)</label><input type="text" id="f_commitMinVer" placeholder="e.g. 20-minute home workout" value="' + (existing && existing.minVersion ? existing.minVersion.replace(/"/g,'&quot;') : '') + '"></div>';
 
@@ -1575,12 +2035,13 @@
         var title = document.getElementById('f_commitTitle').value.trim();
         if (!title) { closeSheet(); return; }
         var out = {
-          date: existing ? existing.date : todayStr(),
+          date: existing ? existing.date : viewedDate,
           title: title,
           priorityId: document.getElementById('f_commitPriority').value || null,
           minVersion: document.getElementById('f_commitMinVer').value || null,
           status: isEditing ? statusVal : 'planned',
           disruptionReason: (isEditing && statusVal === 'disrupted') ? (document.getElementById('f_disruptionReason').value || null) : null,
+          category: existing ? (existing.category || null) : null,
           createdAt: existing ? existing.createdAt : new Date().toISOString()
         };
         if (isEditing) out.id = existing.id;
@@ -1592,34 +2053,279 @@
 
   document.getElementById('addCommitmentBtn').addEventListener('click', function(){ openCommitmentSheet(null); });
 
+  // ---------- quick capture (batch, low-friction, date-aware) ----------
+  var qcRowSeq = 0;
+  var qcRows = []; // {id, category}
+  var qcLastCategory = 'work';
+  var qcTargetDate = null;
+
+  function dateNoteLabel(dateStr){
+    if (dateStr === todayStr()) return null;
+    var d = new Date(dateStr + 'T00:00:00');
+    return 'Adding to ' + d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+
+  function openQuickCaptureSheet(targetDate){
+    editingId = null;
+    qcTargetDate = targetDate || viewedDate || todayStr();
+    qcRows = [];
+    qcRowSeq = 0;
+    qcLastCategory = 'work';
+
+    var note = dateNoteLabel(qcTargetDate);
+    sheetEl.innerHTML =
+      '<div class="sheet-handle"></div>' +
+      '<div class="sheet-head"><div class="sheet-title">Quick add</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      (note ? '<div class="qc-target-note">' + note + '</div>' : '') +
+      '<div class="qc-rows" id="qcRows"></div>' +
+      '<button type="button" class="btn-secondary qc-add-row" id="qcAddRowBtn">+ Add another</button>' +
+      '<button type="button" class="btn-primary" id="qcSaveAllBtn">Save all</button>';
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('qcAddRowBtn').addEventListener('click', function(){ addQuickCaptureRow(true); });
+    document.getElementById('qcSaveAllBtn').addEventListener('click', saveQuickCaptureAll);
+    sheetEl.addEventListener('scroll', function(){
+      var pop = document.querySelector('.qc-type-popover');
+      if (pop) pop.remove();
+    });
+
+    addQuickCaptureRow(true);
+  }
+
+  function addQuickCaptureRow(focus){
+    qcRowSeq++;
+    var id = 'qc' + qcRowSeq;
+    var category = qcLastCategory;
+    qcRows.push({ id: id, category: category });
+
+    var rowsWrap = document.getElementById('qcRows');
+    var row = document.createElement('div');
+    row.className = 'qc-row';
+    row.dataset.id = id;
+    var cat = QUICK_CAPTURE_CATEGORY_MAP[category];
+    row.innerHTML =
+      '<button type="button" class="qc-type-chip" data-id="' + id + '"><span class="chip-dot" style="--chip-color:' + cat.color + '"></span>' + cat.label + '</button>' +
+      '<input type="text" class="qc-text-input" data-id="' + id + '" placeholder="What’s on your mind?" autocomplete="off">' +
+      '<button type="button" class="qc-row-delete" data-id="' + id + '" aria-label="Remove row">✕</button>';
+    rowsWrap.appendChild(row);
+
+    var chip = row.querySelector('.qc-type-chip');
+    var input = row.querySelector('.qc-text-input');
+    var del = row.querySelector('.qc-row-delete');
+
+    chip.addEventListener('click', function(e){
+      e.stopPropagation();
+      toggleQcCategoryPopover(chip, id);
+    });
+
+    input.addEventListener('keydown', function(e){
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      var isLast = qcRows.length && qcRows[qcRows.length - 1].id === id;
+      if (isLast && input.value.trim()){
+        addQuickCaptureRow(true);
+      } else {
+        var idx = qcRows.findIndex(function(r){ return r.id === id; });
+        var next = qcRows[idx + 1];
+        if (next){
+          var nextInput = rowsWrap.querySelector('.qc-text-input[data-id="' + next.id + '"]');
+          if (nextInput) nextInput.focus();
+        }
+      }
+    });
+
+    del.addEventListener('click', function(){ removeQuickCaptureRow(id); });
+
+    if (focus){
+      setTimeout(function(){ input.focus(); }, 30);
+    }
+  }
+
+  function removeQuickCaptureRow(id){
+    qcRows = qcRows.filter(function(r){ return r.id !== id; });
+    var row = document.querySelector('.qc-row[data-id="' + id + '"]');
+    if (row) row.remove();
+    if (!qcRows.length) addQuickCaptureRow(true);
+  }
+
+  function toggleQcCategoryPopover(chipEl, rowId){
+    var existing = document.querySelector('.qc-type-popover');
+    if (existing){
+      var wasForThisRow = existing.dataset.forRow === rowId;
+      existing.remove();
+      if (wasForThisRow) return;
+    }
+    var pop = document.createElement('div');
+    pop.className = 'qc-type-popover';
+    pop.dataset.forRow = rowId;
+    pop.innerHTML = QUICK_CAPTURE_CATEGORIES.map(function(c){
+      return '<button type="button" class="qc-type-option" data-key="' + c.key + '"><span class="chip-dot" style="--chip-color:' + c.color + '"></span>' + c.label + '</button>';
+    }).join('');
+    document.body.appendChild(pop);
+
+    var rect = chipEl.getBoundingClientRect();
+    var popHeight = pop.offsetHeight;
+    var spaceBelow = window.innerHeight - rect.bottom;
+    var top = (popHeight + 10 <= spaceBelow) ? (rect.bottom + 6) : Math.max(8, rect.top - popHeight - 6);
+    pop.style.top = top + 'px';
+    pop.style.left = rect.left + 'px';
+    pop.style.maxHeight = Math.min(popHeight, window.innerHeight - 16) + 'px';
+
+    pop.querySelectorAll('.qc-type-option').forEach(function(opt){
+      opt.addEventListener('click', function(e){
+        e.stopPropagation();
+        setQcRowCategory(rowId, opt.dataset.key);
+        pop.remove();
+      });
+    });
+  }
+
+  function setQcRowCategory(rowId, key){
+    var r = qcRows.find(function(r){ return r.id === rowId; });
+    if (!r) return;
+    r.category = key;
+    qcLastCategory = key;
+    var chip = document.querySelector('.qc-type-chip[data-id="' + rowId + '"]');
+    if (chip){
+      var cat = QUICK_CAPTURE_CATEGORY_MAP[key];
+      chip.innerHTML = '<span class="chip-dot" style="--chip-color:' + cat.color + '"></span>' + cat.label;
+    }
+  }
+
+  function saveQuickCaptureAll(){
+    var toSave = [];
+    qcRows.forEach(function(r){
+      var input = document.querySelector('.qc-text-input[data-id="' + r.id + '"]');
+      var text = input ? input.value.trim() : '';
+      if (text){
+        toSave.push({
+          date: qcTargetDate,
+          title: text,
+          priorityId: null,
+          minVersion: null,
+          status: 'planned',
+          disruptionReason: null,
+          category: r.category,
+          createdAt: new Date().toISOString()
+        });
+      }
+    });
+    closeSheet();
+    toSave.forEach(function(item){ saveCommitment(item); });
+  }
+
+  document.getElementById('quickCaptureBtn').addEventListener('click', function(){ openQuickCaptureSheet(viewedDate); });
+  document.getElementById('globalFabBtn').addEventListener('click', function(){ openQuickCaptureSheet(fabTargetDate()); });
+
+  function fabTargetDate(){
+    if (currentView === 'log') return viewedDate;
+    if (currentView === 'plan') return planSelectedDate || todayStr();
+    if (currentView === 'calendar') return selectedDay || todayStr();
+    return todayStr();
+  }
+
+  // Close any open category popover on outside click (registered once).
+  document.addEventListener('click', function(e){
+    if (!e.target.closest) return;
+    if (e.target.closest('.qc-type-chip') || e.target.closest('.qc-type-popover')) return;
+    var pop = document.querySelector('.qc-type-popover');
+    if (pop) pop.remove();
+  });
+
+  // ---------- review day (past-day resolution, one item at a time) ----------
+  function openReviewDaySheet(dateStr){
+    editingId = null;
+    var d = new Date(dateStr + 'T00:00:00');
+    var dayLabel = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+
+    function buildHtml(){
+      var unresolved = commitments.filter(function(c){ return c.date === dateStr && c.status === 'planned'; });
+      if (unresolved.length){
+        var c = unresolved[0];
+        return '<div class="sheet-handle"></div>' +
+          '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+          '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">' + dayLabel + ' · ' + unresolved.length + ' item' + (unresolved.length===1?'':'s') + ' left</div>' +
+          '<div style="font-size:15px;font-weight:700;margin-bottom:12px">' + c.title + '</div>' +
+          '<div class="status-btn-grid" id="reviewStatusGrid">' +
+            ['completed','partial','disrupted','not_done'].map(function(s){
+              return '<button type="button" class="status-btn" data-s="' + s + '">' + COMMITMENT_STATUS_LABEL[s] + '</button>';
+            }).join('') +
+          '</div>';
+      }
+      var hasDayStatus = dayStatuses.some(function(ds){ return ds.date === dateStr; });
+      if (!hasDayStatus){
+        return '<div class="sheet-handle"></div>' +
+          '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+          '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">' + dayLabel + ' — all actions resolved. How did the day go overall? Missing data isn\'t the same as failure.</div>' +
+          '<div class="status-btn-grid" id="reviewDayStatusGrid">' +
+            ['completed','partial','disrupted','unknown'].map(function(s){
+              return '<button type="button" class="status-btn" data-s="' + s + '">' + DAY_STATUS_LABEL[s] + '</button>';
+            }).join('') +
+          '</div>';
+      }
+      return '<div class="sheet-handle"></div>' +
+        '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+        '<div class="empty-state">' + dayLabel + ' is fully reviewed.</div>';
+    }
+
+    function render(){
+      sheetEl.innerHTML = buildHtml();
+      backdrop.classList.add('open');
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      var itemGrid = document.getElementById('reviewStatusGrid');
+      if (itemGrid){
+        var unresolved = commitments.filter(function(c){ return c.date === dateStr && c.status === 'planned'; });
+        var c = unresolved[0];
+        itemGrid.querySelectorAll('.status-btn').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            saveCommitment(Object.assign({}, c, { status: btn.dataset.s, disruptionReason: btn.dataset.s === 'disrupted' ? c.disruptionReason : null }));
+            render();
+          });
+        });
+      }
+      var dayGrid = document.getElementById('reviewDayStatusGrid');
+      if (dayGrid){
+        dayGrid.querySelectorAll('.status-btn').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            saveDayStatus(dateStr, btn.dataset.s);
+            render();
+          });
+        });
+      }
+    }
+
+    render();
+  }
+
   // ---------- accountability message (deterministic, no AI) ----------
   function renderAccountabilityMessage(){
     var wrap = document.getElementById('accountabilityMsg');
     if (!wrap) return;
-    var today = todayStr();
-    var todaysCommitments = commitments.filter(function(c){ return c.date === today; });
+    var dateStr = viewedDate;
+    var isToday = dateStr === todayStr();
+    var when = isToday ? 'today' : 'that day';
+    // Roadblocks are risks, not tasks — leave them out of the completion count
+    // (they already have their own group above).
+    var dayCommitments = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
     var msgs = [];
 
-    if (todaysCommitments.length){
-      var completedCount = todaysCommitments.filter(function(c){ return c.status === 'completed'; }).length;
-      msgs.push(completedCount + ' of ' + todaysCommitments.length + ' commitment' + (todaysCommitments.length===1?'':'s') + ' completed today.');
-      var stillPlanned = todaysCommitments.filter(function(c){ return c.status === 'planned'; });
+    if (dayCommitments.length){
+      var completedCount = dayCommitments.filter(function(c){ return c.status === 'completed'; }).length;
+      msgs.push(completedCount + ' of ' + dayCommitments.length + ' action' + (dayCommitments.length===1?'':'s') + ' complete.');
+      var stillPlanned = dayCommitments.filter(function(c){ return c.status === 'planned'; });
       if (stillPlanned.length && stillPlanned.length <= 2){
         stillPlanned.forEach(function(c){ msgs.push('"' + c.title + '" is still outstanding.'); });
       }
     }
 
-    var plan = getPlanForDate(today);
+    var plan = getPlanForDate(dateStr);
     if (plan && !plan.restDay && plan.trainingTypes && plan.trainingTypes.length){
-      var loggedTypesToday = sessions.filter(function(s){ return s.date === today; }).map(function(s){ return s.type; });
+      var loggedTypesThatDay = sessions.filter(function(s){ return s.date === dateStr; }).map(function(s){ return s.type; });
       plan.trainingTypes.forEach(function(t){
-        if (loggedTypesToday.indexOf(t) === -1){
-          msgs.push("Today's planned " + TYPE_LABEL[t].toLowerCase() + " hasn't been logged.");
+        if (loggedTypesThatDay.indexOf(t) === -1){
+          msgs.push(TYPE_LABEL[t] + ' was planned but hasn\'t been logged' + (isToday ? '' : ' for ' + when) + '.');
         }
       });
-    }
-    if (plan && plan.roadblocks){
-      msgs.push('You flagged "' + plan.roadblocks + '" as today\'s roadblock.');
     }
 
     if (!msgs.length){ wrap.innerHTML = ''; return; }
@@ -1698,42 +2404,43 @@
     renderAccountabilityMessage();
     renderCatchUpBanner();
     renderTodayPlanWidget();
-    var today = todayStr();
+    if (document.getElementById('dayNavSub')) renderHeader();
+    var dateStr = viewedDate;
+    var isToday = dateStr === todayStr();
     var todayList = document.getElementById('todayList');
-    var recentList = document.getElementById('recentList');
     todayList.innerHTML = '';
-    recentList.innerHTML = '';
 
-    var todaysSessions = sessions.filter(function(s){ return s.date === today; });
-    if (!todaysSessions.length){
+    var daysSessions = sessions.filter(function(s){ return s.date === dateStr; });
+    if (!daysSessions.length){
       var e = document.createElement('div');
       e.className = 'empty-state';
-      e.textContent = 'Nothing logged yet today — tap a card above to start';
+      e.textContent = isToday ? 'Nothing logged yet today — Quick Log below, or Quick add above' : 'Nothing logged for this day';
       todayList.appendChild(e);
     } else {
-      todaysSessions.forEach(function(s){ todayList.appendChild(renderSessionItem(s)); });
-    }
-
-    var sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7); sevenDaysAgo.setHours(0,0,0,0);
-    var recent = sessions.filter(function(s){
-      if (s.date === today) return false;
-      var d = new Date(s.date + 'T00:00:00');
-      return d >= sevenDaysAgo;
-    });
-    var recentTitle = document.getElementById('recentTitle');
-    if (recentTitle) recentTitle.textContent = 'Last 7 days';
-    if (!recent.length){
-      var e2 = document.createElement('div');
-      e2.className = 'empty-state';
-      e2.textContent = 'Your recent sessions will show up here';
-      recentList.appendChild(e2);
-    } else {
-      recent.forEach(function(s){ recentList.appendChild(renderSessionItem(s)); });
+      daysSessions.forEach(function(s){ todayList.appendChild(renderSessionItem(s)); });
     }
   }
 
+  document.getElementById('viewHistoryBtn').addEventListener('click', function(){
+    selectedDay = viewedDate;
+    document.querySelector('.tab-btn[data-view="calendar"]').click();
+  });
+
   document.querySelectorAll('.quicklog-card').forEach(function(card){
-    card.addEventListener('click', function(){ openSheet(card.dataset.type, null); });
+    card.addEventListener('click', function(){ openSheet(card.dataset.type, null, viewedDate); });
+  });
+
+  var quickLogToggle = document.getElementById('quickLogToggle');
+  var quickLogGrid = document.getElementById('quickLogGrid');
+  function expandQuickLog(){
+    quickLogToggle.setAttribute('aria-expanded', 'true');
+    quickLogGrid.classList.remove('collapsed');
+    quickLogGrid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  quickLogToggle.addEventListener('click', function(){
+    var expanded = quickLogToggle.getAttribute('aria-expanded') === 'true';
+    quickLogToggle.setAttribute('aria-expanded', String(!expanded));
+    quickLogGrid.classList.toggle('collapsed', expanded);
   });
 
   // ---------- calendar view ----------
@@ -1769,12 +2476,15 @@
       var dateStr = fmtDate(dateObj);
       var cell = document.createElement('div');
       cell.className = 'cal-cell';
+      var dayStatus = dayStatuses.find(function(ds){ return ds.date === dateStr; });
       if (dateStr === today) cell.classList.add('today');
-      if (dateStr === selectedDay) cell.classList.add('selected');
+      else if (dateStr === selectedDay) cell.classList.add('selected');
+      else if (dayStatus && dayStatus.status !== 'unknown') cell.classList.add('status-' + dayStatus.status);
 
       var daySessions = sessions.filter(function(s){ return s.date === dateStr; });
       var typesPresent = [];
       daySessions.forEach(function(s){ if (typesPresent.indexOf(s.type) === -1) typesPresent.push(s.type); });
+      var hasActions = commitments.some(function(c){ return c.date === dateStr; });
 
       if (typesPresent.length && (!isCurrentMonth || dateObj <= new Date())){
         activeDayCount++;
@@ -1789,7 +2499,8 @@
       }
 
       var dotsHtml = typesPresent.slice(0,4).map(function(t){ return '<span class="dot ' + t + '"></span>'; }).join('');
-      cell.innerHTML = '<span>' + day + '</span>' + (dotsHtml ? '<span class="cal-dots">' + dotsHtml + '</span>' : '');
+      cell.innerHTML = '<span>' + day + '</span>' + (dotsHtml ? '<span class="cal-dots">' + dotsHtml + '</span>' : '') +
+        (hasActions ? '<span class="cal-action-mark"></span>' : '');
       cell.addEventListener('click', function(ds){
         return function(){ selectedDay = ds; renderCalendar(); };
       }(dateStr));
@@ -1820,17 +2531,77 @@
     var wrap = document.getElementById('calDayDetail');
     wrap.innerHTML = '';
     if (!selectedDay) return;
-    var d = new Date(selectedDay + 'T00:00:00');
+    var dateStr = selectedDay;
+    var d = new Date(dateStr + 'T00:00:00');
     var head = document.createElement('h2');
     head.className = 'section-title';
     head.style.marginTop = '0';
     head.textContent = niceDate(d);
     wrap.appendChild(head);
 
-    var daySessions = sessions.filter(function(s){ return s.date === selectedDay; });
+    var actionsBtn = document.createElement('button');
+    actionsBtn.type = 'button';
+    actionsBtn.className = 'day-view-btn';
+    actionsBtn.textContent = 'View day →';
+    actionsBtn.addEventListener('click', function(){ jumpToToday(dateStr); });
+    wrap.appendChild(actionsBtn);
+
+    var dayCommitments = commitments.filter(function(c){ return c.date === dateStr; });
+    var roadblocks = dayCommitments.filter(function(c){ return c.category === 'roadblock'; });
+    var actions = dayCommitments.filter(function(c){ return c.category !== 'roadblock'; });
+    var plan = getPlanForDate(dateStr);
+    var dayStatus = dayStatuses.find(function(ds){ return ds.date === dateStr; });
+
+    if (actions.length){
+      var actHead = document.createElement('div'); actHead.className = 'cal-day-section-title'; actHead.textContent = 'Actions';
+      wrap.appendChild(actHead);
+      actions.forEach(function(c){ wrap.appendChild(buildCommitmentRow(c)); });
+    }
+    if (roadblocks.length){
+      var rbHead = document.createElement('div'); rbHead.className = 'cal-day-section-title'; rbHead.textContent = 'Roadblocks';
+      wrap.appendChild(rbHead);
+      roadblocks.forEach(function(c){ wrap.appendChild(buildCommitmentRow(c)); });
+    }
+    if (plan && (plan.roadblocks || plan.trainingTypes && plan.trainingTypes.length || plan.restDay)){
+      var planHead = document.createElement('div'); planHead.className = 'cal-day-section-title'; planHead.textContent = 'Plan';
+      wrap.appendChild(planHead);
+      var planWrap = document.createElement('div'); planWrap.className = 'plan-chips';
+      if (plan.restDay) planWrap.innerHTML += '<span class="plan-chip outline">Rest day</span>';
+      else if (plan.trainingTypes) planWrap.innerHTML += plan.trainingTypes.map(function(t){
+        var color = getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim();
+        return '<span class="plan-chip" style="background:'+color+'">' + TYPE_LABEL[t] + '</span>';
+      }).join('');
+      wrap.appendChild(planWrap);
+      if (plan.roadblocks){
+        var pr = document.createElement('div'); pr.className = 'plan-roadblock'; pr.textContent = '⚠️ ' + plan.roadblocks;
+        wrap.appendChild(pr);
+      }
+    }
+    if (dayStatus){
+      var outHead = document.createElement('div'); outHead.className = 'cal-day-section-title'; outHead.textContent = 'Outcome';
+      wrap.appendChild(outHead);
+      var out = document.createElement('div'); out.className = 'cal-day-outcome';
+      out.innerHTML = 'Marked <strong>' + DAY_STATUS_LABEL[dayStatus.status] + '</strong>';
+      wrap.appendChild(out);
+    }
+    var todayCutoff = dateStr < todayStr();
+    var hasUnresolved = dayCommitments.some(function(c){ return c.status === 'planned'; });
+    if (todayCutoff && (hasUnresolved || !dayStatus)){
+      var reviewBtn = document.createElement('button');
+      reviewBtn.type = 'button';
+      reviewBtn.className = 'day-review-btn';
+      reviewBtn.style.marginTop = '10px';
+      reviewBtn.textContent = 'Review day';
+      reviewBtn.addEventListener('click', function(){ openReviewDaySheet(dateStr); });
+      wrap.appendChild(reviewBtn);
+    }
+
+    var logsHead = document.createElement('div'); logsHead.className = 'cal-day-section-title'; logsHead.textContent = 'Logs';
+    wrap.appendChild(logsHead);
+    var daySessions = sessions.filter(function(s){ return s.date === dateStr; });
     if (!daySessions.length){
       var e = document.createElement('div');
-      e.className = 'empty-state';
+      e.className = 'empty-state compact';
       e.textContent = 'No sessions logged this day';
       wrap.appendChild(e);
     } else {
@@ -2359,7 +3130,8 @@
   function renderTodayPlanWidget(){
     var wrap = document.getElementById('todayPlanWidget');
     if (!wrap) return;
-    var plan = getPlanForDate(todayStr());
+    var dateStr = viewedDate;
+    var plan = getPlanForDate(dateStr);
     if (!plan || ((!plan.trainingTypes || !plan.trainingTypes.length) && !plan.restDay && !plan.carbLevel && !plan.fasting && !plan.roadblocks && (!plan.meals || !plan.meals.length))){
       wrap.innerHTML = '';
       return;
@@ -2376,7 +3148,8 @@
     if (plan.carbLevel) chipsHtml += '<span class="plan-chip outline">' + CARB_LEVEL_LABEL[plan.carbLevel] + '</span>';
     if (plan.fasting) chipsHtml += '<span class="plan-chip outline">Fasting</span>';
 
-    var html = '<div class="today-plan-widget"><div class="label">Today\'s plan</div>' + chipsHtml;
+    var label = dateStr === todayStr() ? "Today's plan" : "Day's plan";
+    var html = '<div class="today-plan-widget"><div class="label">' + label + '</div>' + chipsHtml;
     if (plan.meals && plan.meals.length){
       html += '<div class="plan-meals-preview">🍽 ' + plan.meals.join(' · ') + '</div>';
     }
@@ -2387,7 +3160,7 @@
     wrap.innerHTML = html;
 
     wrap.querySelectorAll('.today-plan-chip').forEach(function(chip){
-      chip.addEventListener('click', function(){ openSheet(chip.dataset.type, null, todayStr()); });
+      chip.addEventListener('click', function(){ openSheet(chip.dataset.type, null, dateStr); });
     });
   }
 
@@ -2412,29 +3185,41 @@
         d.toLocaleDateString(undefined,{weekday:'short', day:'numeric', month:'short'}) + '</span>' +
         (dateStr === today ? '<span class="today-tag">Today</span>' : '') + '</div>';
 
+      var dayCommitments = commitments.filter(function(c){ return c.date === dateStr; });
+      var hasPlanContent = plan && ((plan.trainingTypes && plan.trainingTypes.length) || plan.restDay || plan.carbLevel || plan.fasting || (plan.meals && plan.meals.length));
+
       var bodyHtml = '';
-      if (!plan || ((!plan.trainingTypes || !plan.trainingTypes.length) && !plan.restDay && !plan.carbLevel && !plan.fasting && !plan.roadblocks && (!plan.meals || !plan.meals.length))){
-        bodyHtml = '<div class="plan-empty-row">No plan set — tap to add</div>';
+      if (!dayCommitments.length && !hasPlanContent && !(plan && plan.roadblocks)){
+        bodyHtml = '<div class="plan-empty-row">Nothing planned — tap to add</div>';
       } else {
         bodyHtml = '<div class="plan-chips">';
-        if (plan.restDay){
+        if (dayCommitments.length){
+          var doneCount = dayCommitments.filter(function(c){ return c.status === 'completed'; }).length;
+          bodyHtml += '<span class="plan-day-actions-chip" data-jump="' + dateStr + '">' + dayCommitments.length + ' action' + (dayCommitments.length===1?'':'s') + (doneCount ? ' · ' + doneCount + ' done' : '') + '</span>';
+        }
+        if (plan && plan.restDay){
           bodyHtml += '<span class="plan-chip outline">Rest day</span>';
-        } else if (plan.trainingTypes && plan.trainingTypes.length){
+        } else if (plan && plan.trainingTypes && plan.trainingTypes.length){
           bodyHtml += plan.trainingTypes.map(function(t){
             var color = getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim();
             return '<span class="plan-chip" style="background:'+color+'" data-type="'+t+'" data-date="'+dateStr+'">' + TYPE_LABEL[t] + '</span>';
           }).join('');
         }
-        if (plan.carbLevel) bodyHtml += '<span class="plan-chip outline">' + CARB_LEVEL_LABEL[plan.carbLevel] + '</span>';
-        if (plan.fasting) bodyHtml += '<span class="plan-chip outline">Fasting</span>';
+        if (plan && plan.carbLevel) bodyHtml += '<span class="plan-chip outline">' + CARB_LEVEL_LABEL[plan.carbLevel] + '</span>';
+        if (plan && plan.fasting) bodyHtml += '<span class="plan-chip outline">Fasting</span>';
         bodyHtml += '</div>';
-        if (plan.meals && plan.meals.length) bodyHtml += '<div class="plan-meals-preview">🍽 ' + plan.meals.join(' · ') + '</div>';
-        if (plan.roadblocks) bodyHtml += '<div class="plan-roadblock">⚠️ ' + plan.roadblocks + '</div>';
+        if (plan && plan.meals && plan.meals.length) bodyHtml += '<div class="plan-meals-preview">🍽 ' + plan.meals.join(' · ') + '</div>';
+        if (plan && plan.roadblocks) bodyHtml += '<div class="plan-roadblock">⚠️ ' + plan.roadblocks + '</div>';
       }
 
       row.innerHTML = headHtml + bodyHtml;
       row.addEventListener('click', function(ds, p){
         return function(e){
+          planSelectedDate = ds;
+          if (e.target.closest('.plan-day-actions-chip')){
+            jumpToToday(ds);
+            return;
+          }
           if (e.target.closest('.plan-chip[data-type]')){
             openSheet(e.target.closest('.plan-chip').dataset.type, null, ds);
             return;
