@@ -205,6 +205,35 @@
   .btn-link:active { opacity: 0.7; }
   .btn-row { display: flex; gap: 8px; }
   .btn-row > * { flex: 1; margin-top: 0; }
+  .btn-row + .btn-row { margin-top: var(--sp-2); }
+
+  /* ---------- Pin now ---------- */
+  .pin-action-btn { display: flex; align-items: center; justify-content: center; gap: 7px; }
+  .pin-action-btn .pin-btn-icon svg, .pin-btn-icon svg { width: 15px; height: 15px; display: block; }
+  .pin-outcome-row.btn-row > .pin-action-btn { padding: 11px 4px; font-size: 12.5px; }
+  .pin-explainer { font-size: 13.5px; color: var(--text-muted); line-height: 1.5; margin: 0 0 18px; }
+  .pin-toast {
+    position: fixed;
+    left: 50%; bottom: 96px;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--panel-raised);
+    border: 1px solid var(--border-soft);
+    color: var(--text);
+    padding: 12px 18px;
+    border-radius: 100px;
+    font-size: 13px; font-weight: 600;
+    box-shadow: var(--shadow-raised);
+    z-index: 300;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    max-width: 84%;
+    text-align: center;
+    pointer-events: none;
+  }
+  .pin-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .pin-toast.error { border-color: rgba(var(--danger-rgb),0.4); color: var(--danger); }
+  .pin-toast-icon { color: var(--gold); margin-right: 4px; vertical-align: -2px; display: inline-block; }
+  .pin-toast-icon svg { width: 14px; height: 14px; display: block; }
 
   .quicklog-grid {
     display: grid;
@@ -852,6 +881,23 @@
     cursor: pointer;
   }
   .qc-row-delete:active { background: var(--panel-raised); }
+  .qc-pin-toggle {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    border: 1px solid var(--border-soft);
+    background: var(--panel-raised);
+    color: var(--text-faint);
+    cursor: pointer;
+  }
+  .qc-pin-toggle svg { width: 14px; height: 14px; display: block; }
+  .qc-pin-toggle.active { border-color: var(--gold); color: var(--gold); background: rgba(var(--gold-rgb),0.12); }
+  .qc-pin-link {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; margin-top: 4px;
+  }
+  .qc-pin-link .pin-btn-icon svg { width: 13px; height: 13px; }
   .qc-type-popover {
     position: fixed;
     z-index: 60;
@@ -1425,6 +1471,11 @@
     appId: "1:607695857530:web:5cd564760be8a755de58c3"
   };
 
+  // Web Push (Pin now). This is the VAPID *public* key — safe to ship client-side.
+  // The matching private key lives only in the deployed Cloud Function's config/secrets,
+  // never in this file. See functions/index.js for the sender.
+  var VAPID_PUBLIC_KEY = "BNZ7XOtPVCNeQFqkKnYVWgsYzg843uiUsYh0r28O7jHtIfzQsiPN7B9U_atNX4zHa7poJFH9HO3-6kMVsgBtC0U";
+
   function localSave(){
     try { localStorage.setItem('ledger_sessions_fallback', JSON.stringify(sessions)); } catch(e){}
   }
@@ -1518,6 +1569,7 @@
         .onSnapshot(function(snap){
           commitments = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
           renderLogView();
+          tryHandleDeepLink();
         }, function(err){ console.error('commitments snapshot error', err); });
       dbRef.collection('ledger_day_status')
         .onSnapshot(function(snap){
@@ -1545,6 +1597,7 @@
     seedPrioritiesIfNeeded();
     document.getElementById('syncNote').textContent = 'Saving on this device only — add your Firebase config to sync';
     renderAll();
+    tryHandleDeepLink();
   }
 
   async function savePresets(){
@@ -1928,6 +1981,181 @@
     renderLogView();
   }
 
+  // Best-effort: a completed action's pinned reminder has done its job. We don't (and per
+  // platform limits, generally can't) revoke an already-delivered notification, but there's no
+  // reason to leave its pending/sent record around once the action it pointed to is done.
+  async function cleanupPinsForCompletedAction(actionId){
+    if (!actionId || !dbReady || !dbRef) return;
+    try {
+      var snap = await dbRef.collection('ledger_pins').where('linkedActionId', '==', actionId).get();
+      var batch = dbRef.batch();
+      snap.forEach(function(doc){ batch.delete(doc.ref); });
+      if (!snap.empty) await batch.commit();
+    } catch(e){ console.warn('pin cleanup skipped', e); }
+  }
+
+  // ---------- Pin now (instant push reminder) ----------
+  // Architecture: the client never talks to a push service directly with secrets. It writes a
+  // small "send this" doc to ledger_pins; a Firestore-triggered Cloud Function (see functions/)
+  // does the actual delivery via the Web Push protocol using a VAPID private key that only it
+  // holds. This keeps the feature push-immediate without exposing any server secret here.
+  var PIN_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12.5a7 7 0 1 0-14 0C5 13.5 12 21 12 21z"/><circle cx="12" cy="8.5" r="2.3"/></svg>';
+
+  function isStandalonePwa(){
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  }
+  function isIOSDevice(){
+    var ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+  function pushSupported(){
+    return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  }
+  // iOS only allows Web Push once the app is installed to the Home Screen — everything else
+  // (desktop browsers, Android Chrome) works from a normal tab.
+  function pushBlockedReason(){
+    if (!pushSupported()) return 'Notifications aren’t supported in this browser.';
+    if (isIOSDevice() && !isStandalonePwa()) return 'Install Ledger to your Home Screen to use phone notifications.';
+    return null;
+  }
+
+  function urlBase64ToUint8Array(base64String){
+    var padding = '='.repeat((4 - base64String.length % 4) % 4);
+    var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    var rawData = atob(base64);
+    var out = new Uint8Array(rawData.length);
+    for (var i = 0; i < rawData.length; i++) out[i] = rawData.charCodeAt(i);
+    return out;
+  }
+  function hashCode(str){
+    var hash = 0;
+    for (var i = 0; i < str.length; i++){ hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
+    return Math.abs(hash).toString(36);
+  }
+
+  async function ensurePushSubscription(){
+    var reg = await navigator.serviceWorker.ready;
+    var existing = await reg.pushManager.getSubscription();
+    if (existing) return existing;
+    return reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+  }
+
+  async function savePushSubscription(sub){
+    if (!dbReady || !dbRef) return false;
+    var json = sub.toJSON();
+    var subId = 'sub_' + hashCode(json.endpoint);
+    try {
+      await dbRef.collection('ledger_push_subscriptions').doc(subId).set({
+        endpoint: json.endpoint,
+        keys: json.keys,
+        createdAt: new Date().toISOString()
+      });
+      return true;
+    } catch(e){ console.error('save push subscription failed', e); return false; }
+  }
+
+  function showPinToast(text, isError){
+    var existing = document.querySelector('.pin-toast');
+    if (existing) existing.remove();
+    var el = document.createElement('div');
+    el.className = 'pin-toast' + (isError ? ' error' : '');
+    el.innerHTML = (isError ? '' : '<span class="pin-toast-icon">' + PIN_ICON_SVG + '</span>') + text;
+    document.body.appendChild(el);
+    requestAnimationFrame(function(){ el.classList.add('show'); });
+    setTimeout(function(){
+      el.classList.remove('show');
+      setTimeout(function(){ el.remove(); }, 250);
+    }, 2600);
+  }
+
+  function openEnableNotificationsSheet(onGranted){
+    sheetEl.innerHTML =
+      '<div class="sheet-handle"></div>' +
+      '<div class="sheet-head"><div class="sheet-title">Enable notifications</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<p class="pin-explainer">Ledger needs permission to send reminders to your phone.</p>' +
+      '<button class="save-btn" id="enableNotifBtn">Enable notifications</button>';
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('enableNotifBtn').addEventListener('click', async function(){
+      try {
+        var perm = await Notification.requestPermission();
+        closeSheet();
+        if (perm === 'granted' && onGranted) onGranted();
+        else if (perm !== 'granted') showPinToast('Notifications need to be enabled in your device or browser settings.', true);
+      } catch(e){
+        closeSheet();
+        showPinToast('Couldn’t enable notifications on this device.', true);
+      }
+    });
+  }
+
+  // Central entry point for every "Pin now" action in the app. Handles permission state,
+  // installed-PWA limitations, and the actual Firestore write that triggers delivery.
+  async function pinNow(text, note, linkedActionId, linkedDate){
+    text = (text || '').trim();
+    if (!text) return;
+    var blocked = pushBlockedReason();
+    if (blocked){ showPinToast(blocked, true); return; }
+    if (Notification.permission === 'denied'){
+      showPinToast('Notifications are off for Ledger — enable them in Settings to use Pin now.', true);
+      return;
+    }
+    if (Notification.permission !== 'granted'){
+      openEnableNotificationsSheet(function(){ doPinNow(text, note, linkedActionId, linkedDate); });
+      return;
+    }
+    await doPinNow(text, note, linkedActionId, linkedDate);
+  }
+
+  async function doPinNow(text, note, linkedActionId, linkedDate){
+    try {
+      var sub = await ensurePushSubscription();
+      var subSaved = await savePushSubscription(sub);
+      if (!subSaved){
+        showPinToast('Pin now needs Ledger’s cloud sync connected on this device.', true);
+        return;
+      }
+      await dbRef.collection('ledger_pins').add({
+        text: text,
+        note: note || '',
+        linkedActionId: linkedActionId || null,
+        linkedDate: linkedDate || null,
+        createdAt: new Date().toISOString(),
+        status: 'pending',
+        sentAt: null
+      });
+      showPinToast('Pinned to your phone', false);
+    } catch(e){
+      console.error('pin now failed', e);
+      showPinToast('Couldn’t send that reminder — please try again.', true);
+    }
+  }
+
+  function openFreeformPinSheet(){
+    var blocked = pushBlockedReason();
+    sheetEl.innerHTML =
+      '<div class="sheet-handle"></div>' +
+      '<div class="sheet-head"><div class="sheet-title">Pin reminder</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      (blocked ? '<p class="pin-explainer">' + blocked + '</p>' : '') +
+      '<div class="field"><label>Reminder</label><input type="text" id="f_pinText" placeholder="e.g. Bring charger downstairs" autocomplete="off"></div>' +
+      '<div class="field"><label>Note (optional)</label><input type="text" id="f_pinNote" placeholder="Anything extra" autocomplete="off"></div>' +
+      '<button class="save-btn" id="pinNowFreeformBtn"><span class="pin-btn-icon">' + PIN_ICON_SVG + '</span>Pin now</button>';
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    var input = document.getElementById('f_pinText');
+    setTimeout(function(){ input.focus(); }, 30);
+    document.getElementById('pinNowFreeformBtn').addEventListener('click', function(){
+      var text = input.value.trim();
+      if (!text) return;
+      var note = document.getElementById('f_pinNote').value.trim();
+      closeSheet();
+      pinNow(text, note, null, null);
+    });
+  }
+
   function localSaveDayStatuses(){
     try { localStorage.setItem('ledger_daystatus_fallback', JSON.stringify(dayStatuses)); } catch(e){}
   }
@@ -2210,6 +2438,7 @@
 
   function toggleCommitmentQuickStatus(c){
     var next = c.status === 'completed' ? 'planned' : 'completed';
+    if (next === 'completed') cleanupPinsForCompletedAction(c.id);
     saveCommitment(Object.assign({}, c, { status: next }));
   }
 
@@ -2342,14 +2571,40 @@
         '</div>';
       }
 
-      html += '<button class="save-btn" id="saveCommitBtn">Save</button>' +
-        (isEditing ? '<button class="delete-btn" id="deleteCommitBtn">Delete</button>' : '');
+      if (isEditing){
+        html += '<button class="save-btn" id="saveCommitBtn">Save</button>' +
+          '<button type="button" class="btn-secondary pin-action-btn" id="pinExistingBtn"><span class="pin-btn-icon">' + PIN_ICON_SVG + '</span>Pin to Lock Screen</button>' +
+          '<button class="delete-btn" id="deleteCommitBtn">Delete</button>';
+      } else {
+        // Three lightweight outcomes for a freshly typed action, per the "Call dentist" example:
+        // save it as a Today action, push it to the phone right now, or both — no second form.
+        html += '<div class="btn-row"><button class="btn-primary" id="saveCommitBtn">Add to Today</button></div>' +
+          '<div class="btn-row pin-outcome-row">' +
+            '<button type="button" class="btn-secondary pin-action-btn" id="pinOnlyBtn"><span class="pin-btn-icon">' + PIN_ICON_SVG + '</span>Pin now</button>' +
+            '<button type="button" class="btn-secondary pin-action-btn" id="pinBothBtn"><span class="pin-btn-icon">' + PIN_ICON_SVG + '</span>Both</button>' +
+          '</div>';
+      }
       return html;
     }
 
     sheetEl.innerHTML = buildHtml();
     backdrop.classList.add('open');
     wireSheet();
+
+    function buildCommitOut(title){
+      var out = {
+        date: existing ? existing.date : viewedDate,
+        title: title,
+        priorityId: document.getElementById('f_commitPriority').value || null,
+        minVersion: document.getElementById('f_commitMinVer').value || null,
+        status: isEditing ? statusVal : 'planned',
+        disruptionReason: (isEditing && statusVal === 'disrupted') ? (document.getElementById('f_disruptionReason').value || null) : null,
+        category: existing ? (existing.category || null) : null,
+        createdAt: existing ? existing.createdAt : new Date().toISOString()
+      };
+      if (isEditing) out.id = existing.id;
+      return out;
+    }
 
     function wireSheet(){
       document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
@@ -2365,24 +2620,35 @@
           deleteCommitment(existing.id);
           closeSheet();
         });
+        document.getElementById('pinExistingBtn').addEventListener('click', function(){
+          pinNow(existing.title, '', existing.id, existing.date);
+        });
       }
       document.getElementById('saveCommitBtn').addEventListener('click', function(){
         var title = document.getElementById('f_commitTitle').value.trim();
         if (!title) { closeSheet(); return; }
-        var out = {
-          date: existing ? existing.date : viewedDate,
-          title: title,
-          priorityId: document.getElementById('f_commitPriority').value || null,
-          minVersion: document.getElementById('f_commitMinVer').value || null,
-          status: isEditing ? statusVal : 'planned',
-          disruptionReason: (isEditing && statusVal === 'disrupted') ? (document.getElementById('f_disruptionReason').value || null) : null,
-          category: existing ? (existing.category || null) : null,
-          createdAt: existing ? existing.createdAt : new Date().toISOString()
-        };
-        if (isEditing) out.id = existing.id;
+        var out = buildCommitOut(title);
+        if (isEditing && out.status === 'completed') cleanupPinsForCompletedAction(out.id);
         saveCommitment(out);
         closeSheet();
       });
+      if (!isEditing){
+        document.getElementById('pinOnlyBtn').addEventListener('click', function(){
+          var title = document.getElementById('f_commitTitle').value.trim();
+          if (!title) { closeSheet(); return; }
+          closeSheet();
+          pinNow(title, '', null, null);
+        });
+        document.getElementById('pinBothBtn').addEventListener('click', function(){
+          var title = document.getElementById('f_commitTitle').value.trim();
+          if (!title) { closeSheet(); return; }
+          var out = buildCommitOut(title);
+          out.id = uid(); // pre-assign so the push can link back to this action right away
+          saveCommitment(out);
+          closeSheet();
+          pinNow(title, '', out.id, out.date);
+        });
+      }
     }
   }
 
@@ -2414,11 +2680,13 @@
       (note ? '<div class="qc-target-note">' + note + '</div>' : '') +
       '<div class="qc-rows" id="qcRows"></div>' +
       '<button type="button" class="btn-secondary qc-add-row" id="qcAddRowBtn">+ Add another</button>' +
-      '<button type="button" class="btn-primary" id="qcSaveAllBtn">Save all</button>';
+      '<button type="button" class="btn-primary" id="qcSaveAllBtn">Save all</button>' +
+      '<button type="button" class="btn-link qc-pin-link" id="qcFreeformPinBtn"><span class="pin-btn-icon">' + PIN_ICON_SVG + '</span>Just pin something, no task</button>';
     backdrop.classList.add('open');
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
     document.getElementById('qcAddRowBtn').addEventListener('click', function(){ addQuickCaptureRow(true); });
     document.getElementById('qcSaveAllBtn').addEventListener('click', saveQuickCaptureAll);
+    document.getElementById('qcFreeformPinBtn').addEventListener('click', openFreeformPinSheet);
     sheetEl.addEventListener('scroll', function(){
       var pop = document.querySelector('.qc-type-popover');
       if (pop) pop.remove();
@@ -2431,7 +2699,7 @@
     qcRowSeq++;
     var id = 'qc' + qcRowSeq;
     var category = qcLastCategory;
-    qcRows.push({ id: id, category: category });
+    qcRows.push({ id: id, category: category, pin: false });
 
     var rowsWrap = document.getElementById('qcRows');
     var row = document.createElement('div');
@@ -2441,16 +2709,26 @@
     row.innerHTML =
       '<button type="button" class="qc-type-chip" data-id="' + id + '"><span class="chip-dot" style="--chip-color:' + cat.color + '"></span>' + cat.label + '</button>' +
       '<input type="text" class="qc-text-input" data-id="' + id + '" placeholder="What’s on your mind?" autocomplete="off">' +
+      '<button type="button" class="qc-pin-toggle" data-id="' + id + '" aria-label="Also pin to phone" title="Also pin to phone">' + PIN_ICON_SVG + '</button>' +
       '<button type="button" class="qc-row-delete" data-id="' + id + '" aria-label="Remove row">✕</button>';
     rowsWrap.appendChild(row);
 
     var chip = row.querySelector('.qc-type-chip');
     var input = row.querySelector('.qc-text-input');
+    var pinToggle = row.querySelector('.qc-pin-toggle');
     var del = row.querySelector('.qc-row-delete');
 
     chip.addEventListener('click', function(e){
       e.stopPropagation();
       toggleQcCategoryPopover(chip, id);
+    });
+
+    pinToggle.addEventListener('click', function(e){
+      e.stopPropagation();
+      var r = qcRows.find(function(r){ return r.id === id; });
+      if (!r) return;
+      r.pin = !r.pin;
+      pinToggle.classList.toggle('active', r.pin);
     });
 
     input.addEventListener('keydown', function(e){
@@ -2529,11 +2807,12 @@
 
   function saveQuickCaptureAll(){
     var toSave = [];
+    var toPin = [];
     qcRows.forEach(function(r){
       var input = document.querySelector('.qc-text-input[data-id="' + r.id + '"]');
       var text = input ? input.value.trim() : '';
       if (text){
-        toSave.push({
+        var item = {
           date: qcTargetDate,
           title: text,
           priorityId: null,
@@ -2542,11 +2821,15 @@
           disruptionReason: null,
           category: r.category,
           createdAt: new Date().toISOString()
-        });
+        };
+        if (r.pin) item.id = uid(); // pre-assign so the pinned push can link back to this action
+        toSave.push(item);
+        if (r.pin) toPin.push(item);
       }
     });
     closeSheet();
     toSave.forEach(function(item){ saveCommitment(item); });
+    toPin.forEach(function(item){ pinNow(item.title, '', item.id, item.date); });
   }
 
   document.getElementById('quickCaptureBtn').addEventListener('click', function(){ openQuickCaptureSheet(viewedDate); });
@@ -4657,8 +4940,34 @@
     if (currentView === 'plan') renderPlan();
   }
 
+  // ---------- deep link from a pinned reminder notification (?openAction=<commitmentId>) ----------
+  var deepLinkParams = new URLSearchParams(window.location.search);
+  var deepLinkHandled = false;
+  function tryHandleDeepLink(){
+    if (deepLinkHandled) return;
+    var actionId = deepLinkParams.get('openAction');
+    if (!actionId) { deepLinkHandled = true; return; }
+    var commitment = commitments.find(function(c){ return c.id === actionId; });
+    if (!commitment) return; // data may not have loaded yet — retried from the commitments snapshot
+    deepLinkHandled = true;
+    viewedDate = commitment.date;
+    currentView = 'log';
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.view === 'log'); });
+    document.querySelectorAll('.view').forEach(function(v){ v.classList.toggle('active', v.id === 'view-log'); });
+    renderAll();
+    openCommitmentSheet(commitment);
+    history.replaceState(null, '', window.location.pathname);
+  }
+  if (deepLinkParams.get('openAction')){
+    // give Firestore a few seconds to stream the data in before giving up and just landing on Today
+    setTimeout(function(){
+      if (!deepLinkHandled){ deepLinkHandled = true; history.replaceState(null, '', window.location.pathname); }
+    }, 4000);
+  }
+
   renderHeader();
   renderAll();
+  tryHandleDeepLink();
   initDb();
 
   if ('serviceWorker' in navigator) {
