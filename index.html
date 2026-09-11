@@ -76,7 +76,15 @@
     --shadow-raised: 0 10px 30px -16px rgba(0,0,0,0.6);
 
     /* spacing scale */
-    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --sp-7: 44px;
+
+    /* a second, quieter tonal step for layered surfaces — used sparingly so
+       "panel" doesn't become the default answer for every section */
+    --panel-2: #201c17;
+    --hairline: rgba(239,231,218,0.08);
+
+    /* editorial label treatment shared by section eyebrows and field labels */
+    --label-color: #8f8272;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -102,96 +110,109 @@
   }
   .display.light { font-weight: 480; }
   header.top {
-    padding: calc(14px + env(safe-area-inset-top)) 20px 12px;
+    padding: calc(20px + env(safe-area-inset-top)) 24px 18px;
     position: sticky;
     top: 0;
-    background: linear-gradient(var(--bg) 82%, transparent);
+    background: linear-gradient(var(--bg) 78%, transparent);
     z-index: 5;
   }
-  .day-nav { display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .day-nav { display: flex; align-items: center; justify-content: center; gap: 2px; }
   .day-nav-arrow {
     flex-shrink: 0;
-    width: 32px; height: 32px;
+    width: 30px; height: 30px;
     border-radius: 50%;
-    border: 1px solid var(--border-soft);
+    border: none;
     background: none;
-    color: var(--text-muted);
-    font-size: 15px;
+    color: var(--text-faint);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     transition: background 0.12s ease, opacity 0.12s ease, color 0.12s ease;
   }
-  .day-nav-arrow:active { background: var(--panel); color: var(--text); }
+  .day-nav-arrow svg { width: 16px; height: 16px; display: block; }
+  .day-nav-arrow:active { background: var(--panel); color: var(--gold); }
   .day-nav-arrow[hidden] { visibility: hidden; pointer-events: none; display: flex; }
   .day-nav-center { flex: 1; min-width: 0; text-align: center; cursor: default; }
-  .top-date-label { font-size: 12px; color: var(--text-muted); margin: 0 0 3px; font-weight: 500; letter-spacing: 0.02em; }
-  .top-date { font-size: 33px; line-height: 1.15; margin: 0; }
-  .day-nav-sub { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 9px; min-height: 26px; }
-  .day-status-note { font-size: 12px; color: var(--text-muted); }
+  .top-date-label {
+    font-size: 11px; color: var(--label-color); margin: 0 0 5px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em;
+  }
+  .top-date { font-size: 32px; line-height: 1.1; margin: 0; font-weight: 480; letter-spacing: -0.01em; }
+  .day-nav-sub { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; min-height: 26px; }
+  .day-status-note { font-size: 12px; color: var(--text-muted); letter-spacing: 0.01em; }
   .day-today-btn, .day-review-btn, .day-view-btn {
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 600;
-    padding: 5px 11px;
+    letter-spacing: 0.02em;
+    padding: 5px 12px;
     border-radius: 100px;
     cursor: pointer;
     font-family: inherit;
   }
-  .day-today-btn { color: var(--gold); background: rgba(var(--gold-rgb),0.12); border: 1px solid rgba(var(--gold-rgb),0.3); }
+  .day-today-btn { color: var(--gold); background: rgba(var(--gold-rgb),0.1); border: 1px solid rgba(var(--gold-rgb),0.28); }
   .day-review-btn { color: var(--text-muted); background: none; border: 1px solid var(--border-soft); }
-  main { padding: 0 20px calc(96px + env(safe-area-inset-bottom)); flex: 1 0 auto; }
+  main { padding: 4px 24px calc(100px + env(safe-area-inset-bottom)); flex: 1 0 auto; }
   section.view { display: none; animation: fadein 0.18s ease; }
   section.view.active { display: block; }
   @keyframes fadein { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
 
   h2.section-title {
-    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
     font-weight: 600;
-    color: var(--text);
-    margin: 22px 0 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--label-color);
+    margin: var(--sp-7) 0 16px;
   }
-  h2.section-title:first-child { margin-top: 2px; }
-  h2.section-title.tight { margin-top: 14px; margin-bottom: 8px; }
-  h2.section-title.loose { margin-top: 30px; }
+  h2.section-title::after { content: ''; flex: 1; height: 1px; background: var(--hairline); }
+  h2.section-title:first-child, #catchUpBanner + h2.section-title { margin-top: 6px; }
+  h2.section-title.tight { margin-top: 22px; margin-bottom: 12px; }
+  h2.section-title.loose { margin-top: var(--sp-7); }
 
   .section-kicker {
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-faint);
-    margin: 22px 0 8px;
+    letter-spacing: 0.14em;
+    color: var(--label-color);
+    margin: 22px 0 10px;
   }
   .section-kicker:first-child { margin-top: 2px; }
 
   /* ---------- shared action button system ---------- */
   .btn-primary, .save-btn {
     width: 100%;
-    padding: 14px;
-    border-radius: var(--radius-sm);
+    padding: 15px 18px;
+    border-radius: 14px;
     border: none;
     background: var(--gold);
     color: var(--ink);
     font-family: inherit;
-    font-size: 14.5px;
+    font-size: 14px;
     font-weight: 600;
+    letter-spacing: 0.01em;
     cursor: pointer;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset;
     transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease;
   }
   .btn-primary:active, .save-btn:active { transform: scale(0.98); background: var(--gold-soft); }
   .btn-secondary, .custom-log-btn {
     width: 100%;
-    padding: 13px;
-    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    border-radius: 14px;
     border: 1px solid var(--border-soft);
-    background: transparent;
-    color: var(--text-muted);
+    background: var(--panel-raised);
+    color: var(--text);
     font-family: inherit;
     font-size: 14px;
     font-weight: 600;
+    letter-spacing: 0.01em;
     cursor: pointer;
-    transition: background 0.12s ease;
+    transition: background 0.12s ease, border-color 0.12s ease;
   }
-  .btn-secondary:active, .custom-log-btn:active { background: var(--panel); }
+  .btn-secondary:active, .custom-log-btn:active { background: var(--panel); border-color: var(--border); }
   .btn-link {
     background: none;
     border: none;
@@ -200,10 +221,11 @@
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    padding: 6px 0;
+    padding: 8px 0;
+    letter-spacing: 0.01em;
   }
-  .btn-link:active { opacity: 0.7; }
-  .btn-row { display: flex; gap: 8px; }
+  .btn-link:active { opacity: 0.6; }
+  .btn-row { display: flex; gap: var(--sp-2); }
   .btn-row > * { flex: 1; margin-top: 0; }
   .btn-row + .btn-row { margin-top: var(--sp-2); }
 
@@ -251,33 +273,38 @@
   .section-toggle {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
     width: 100%;
     background: none;
     border: none;
-    padding: 8px 2px;
-    margin: 22px 0 8px;
+    padding: 12px 2px;
+    margin: var(--sp-7) 0 4px;
     font-family: inherit;
     cursor: pointer;
     color: var(--text);
   }
-  .section-toggle:first-child { margin-top: 2px; }
-  .section-toggle:active { opacity: 0.75; }
-  .section-toggle-label { font-size: 15px; font-weight: 600; color: var(--text); }
-  .section-toggle-chevron { width: 18px; height: 18px; color: var(--text-muted); flex-shrink: 0; transition: transform 0.2s ease; }
+  .section-toggle:first-child { margin-top: 6px; }
+  .section-toggle:active { opacity: 0.65; }
+  .section-toggle-label {
+    display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;
+    font-size: 11px; font-weight: 600; color: var(--label-color);
+    text-transform: uppercase; letter-spacing: 0.12em;
+  }
+  .section-toggle-label::after { content: ''; flex: 1; height: 1px; background: var(--hairline); }
+  .section-toggle-chevron { width: 15px; height: 15px; color: var(--text-faint); flex-shrink: 0; transition: transform 0.2s ease; }
   .section-toggle-chevron svg { width: 100%; height: 100%; display: block; }
   .section-toggle[aria-expanded="true"] .section-toggle-chevron { transform: rotate(180deg); }
   .quicklog-card {
-    border: 1px solid var(--border-soft);
-    border-radius: var(--radius-md);
-    padding: 11px 12px;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 13px;
     text-align: left;
     cursor: pointer;
-    background: var(--panel);
+    background: var(--panel-2);
     color: var(--text);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 11px;
     min-height: auto;
     transition: transform 0.12s ease, background 0.12s ease;
     font-family: inherit;
@@ -287,12 +314,12 @@
     width: 32px; height: 32px;
     flex-shrink: 0;
     border-radius: 50%;
-    padding: 7px;
+    padding: 8px;
     background: var(--tile-soft, var(--panel-raised));
     color: var(--tile-color, var(--text-muted));
   }
   .quicklog-card .ql-icon svg { width: 100%; height: 100%; display: block; }
-  .quicklog-card .ql-label { font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--text); }
+  .quicklog-card .ql-label { font-size: 12.5px; font-weight: 600; letter-spacing: 0.005em; color: var(--text); }
   .quicklog-card.padel { --tile-color: var(--padel); --tile-soft: var(--padel-soft); }
   .quicklog-card.resistance { --tile-color: var(--resistance); --tile-soft: var(--resistance-soft); }
   .quicklog-card.cardio { --tile-color: var(--cardio); --tile-soft: var(--cardio-soft); }
@@ -307,15 +334,16 @@
   .session-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 13px;
     padding: 13px 14px;
     background: var(--panel);
-    border-radius: var(--radius-sm);
-    margin-bottom: 8px;
-    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 7px;
+    border: none;
     cursor: pointer;
     transition: transform 0.1s ease, background 0.1s ease;
   }
+  .session-item:last-child { margin-bottom: 0; }
   .session-item:active { transform: scale(0.985); background: var(--panel-raised); }
   .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
   .dot.padel { background: var(--padel); }
@@ -326,18 +354,37 @@
   .dot.photo { background: var(--photo); }
   .dot.nutrition { background: var(--nutrition); }
   .dot.gluten { background: var(--gluten); }
+  .session-item .si-icon {
+    width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--tile-soft, var(--panel-raised));
+    color: var(--tile-color, var(--text-muted));
+  }
+  .session-item .si-icon svg { width: 17px; height: 17px; display: block; }
+  .session-item .si-icon.padel { --tile-color: var(--padel); --tile-soft: var(--padel-soft); }
+  .session-item .si-icon.resistance { --tile-color: var(--resistance); --tile-soft: var(--resistance-soft); }
+  .session-item .si-icon.cardio { --tile-color: var(--cardio); --tile-soft: var(--cardio-soft); }
+  .session-item .si-icon.yoga { --tile-color: var(--yoga); --tile-soft: var(--yoga-soft); }
+  .session-item .si-icon.weight { --tile-color: var(--weight); --tile-soft: var(--weight-soft); }
+  .session-item .si-icon.photo { --tile-color: var(--photo); --tile-soft: var(--photo-soft); }
+  .session-item .si-icon.nutrition { --tile-color: var(--nutrition); --tile-soft: var(--nutrition-soft); }
+  .session-item .si-icon.gluten { --tile-color: var(--gluten); --tile-soft: var(--gluten-soft); }
   .session-item .si-main { flex: 1; min-width: 0; }
-  .session-item .si-type { font-size: 13px; font-weight: 600; text-transform: capitalize; }
-  .session-item .si-detail { font-size: 12.5px; color: var(--text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .session-item .si-time { font-size: 12px; color: var(--text-faint); flex-shrink: 0; }
+  .session-item .si-type { font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em; }
+  .session-item .si-detail { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .session-item .si-time { font-size: 11.5px; color: var(--text-faint); flex-shrink: 0; font-variant-numeric: tabular-nums; }
 
   .empty-state {
-    padding: 10px 2px;
+    padding: 18px 2px 20px;
     text-align: left;
-    color: var(--text-faint);
-    font-size: 13px;
+    color: var(--text-muted);
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 480;
+    font-size: 15.5px;
+    line-height: 1.5;
   }
-  .empty-state.compact { padding: 6px 2px; font-size: 12.5px; }
+  .empty-state.compact { padding: 6px 2px; font-size: 13.5px; }
 
   /* Calendar */
   .cal-nav {
@@ -348,14 +395,17 @@
   }
   .cal-nav button {
     background: none;
-    border: 1px solid var(--border-soft);
-    color: var(--text-muted);
-    width: 32px; height: 32px;
+    border: none;
+    color: var(--text-faint);
+    width: 30px; height: 30px;
     border-radius: 50%;
-    font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
     cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
   }
-  .cal-month-label { font-size: 17px; font-weight: 600; font-family: 'Fraunces', Georgia, serif; }
+  .cal-nav button svg { width: 16px; height: 16px; display: block; }
+  .cal-nav button:active { background: var(--panel); color: var(--gold); }
+  .cal-month-label { font-size: 18px; font-weight: 500; font-family: 'Fraunces', Georgia, serif; letter-spacing: -0.01em; }
   .cal-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -397,10 +447,10 @@
   .cal-day-outcome strong { color: var(--text); }
   .day-view-btn { color: var(--text-muted); background: none; border: 1px solid var(--border-soft); display: inline-block; margin-top: 10px; }
   .cal-summary {
-    background: var(--panel);
-    border-radius: var(--radius-md);
-    padding: 14px 16px;
-    margin-bottom: 16px;
+    background: var(--panel-2);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
     display: flex;
     gap: 18px;
   }
@@ -428,13 +478,22 @@
   .cal-day-log-btn .dot { width: 16px; height: 16px; border-radius: 5px; }
 
   .plan-day-row {
-    background: var(--panel);
-    border-radius: var(--radius-md);
-    padding: 14px;
-    margin-bottom: 8px;
+    background: none;
+    border-radius: 14px;
+    padding: 14px 6px;
+    border-bottom: 1px solid var(--hairline);
     cursor: pointer;
+    transition: background 0.1s ease;
   }
-  .plan-day-row.today { background: var(--panel-raised); box-shadow: inset 3px 0 0 var(--gold); }
+  .plan-day-row:last-child { border-bottom: none; }
+  .plan-day-row:active { background: var(--panel); }
+  .plan-day-row.today {
+    background: var(--panel-2);
+    border-bottom-color: transparent;
+    box-shadow: inset 3px 0 0 var(--gold);
+    padding-left: 15px;
+    margin: 2px 0;
+  }
   .plan-day-row-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
   .plan-day-row-head .day-label { font-size: 14px; font-weight: 600; color: var(--text); }
   .plan-day-row-head .today-tag { font-size: 10.5px; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -480,7 +539,7 @@
     font-size: 12.5px;
     color: var(--text-muted);
   }
-  .plan-empty-row { color: var(--text-faint); font-size: 13px; }
+  .plan-empty-row { color: var(--text-muted); font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 480; font-size: 14px; }
   .rest-day-toggle {
     width: 100%;
     padding: 11px;
@@ -566,26 +625,28 @@
     margin-left: 6px;
   }
 
-  .today-plan-widget {
-    background: var(--panel);
-    border-radius: var(--radius-md);
-    padding: 14px;
-    margin-bottom: 18px;
+  .today-plan-widget { margin-bottom: var(--sp-6); }
+  .today-plan-widget .label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--label-color); margin-bottom: 0;
   }
-  .today-plan-widget .label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); margin-bottom: 0; }
-  .today-plan-widget-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .today-plan-widget-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
   .plan-today-btn {
-    font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--gold);
-    background: none; border: 1px solid rgba(var(--gold-rgb),0.35); border-radius: 100px;
-    padding: 6px 12px; cursor: pointer; flex-shrink: 0;
+    font-family: inherit; font-size: 12px; font-weight: 600; color: var(--gold);
+    background: none; border: none; letter-spacing: 0.01em;
+    padding: 2px 0; cursor: pointer; flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 5px;
   }
-  .plan-today-btn:active { background: rgba(var(--gold-rgb),0.12); }
+  .plan-today-btn svg { width: 11px; height: 11px; display: block; }
+  .plan-today-btn:active { opacity: 0.6; }
+  .plan-empty-prompt { margin: 0; }
+  .plan-panel { background: var(--panel-2); border-radius: 18px; padding: 16px 16px 14px; }
   .plan-chips-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
   .plan-training-list { margin: 4px 0 4px; }
   .plan-training-row {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 2px;
-    border-bottom: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--hairline);
     cursor: pointer;
   }
   .plan-training-row:last-child { border-bottom: none; }
@@ -635,16 +696,17 @@
   .commitment-item {
     display: flex;
     align-items: flex-start;
-    gap: 11px;
-    padding: 12px 13px;
-    background: var(--panel);
-    border-radius: var(--radius-sm);
-    margin-bottom: 6px;
+    gap: 12px;
+    padding: 13px 4px;
+    background: none;
+    border-radius: 10px;
+    border-bottom: 1px solid var(--hairline);
     cursor: pointer;
-    transition: transform 0.1s ease, background 0.1s ease;
+    transition: background 0.1s ease;
   }
-  .commitment-item:active { transform: scale(0.99); background: var(--panel-raised); }
-  .commitment-item.roadblock { box-shadow: inset 3px 0 0 rgba(var(--danger-rgb),0.6); background: rgba(var(--danger-rgb),0.07); }
+  .commitment-item:last-child { border-bottom: none; }
+  .commitment-item:active { background: var(--panel); }
+  .commitment-item.roadblock { background: rgba(var(--danger-rgb),0.06); box-shadow: inset 3px 0 0 rgba(var(--danger-rgb),0.55); border-bottom-color: transparent; padding-left: 12px; margin-bottom: 1px; }
   .commitment-status-dot {
     width: 20px; height: 20px;
     margin: -4px -5px -4px -3px;
@@ -662,10 +724,10 @@
   .commitment-status-dot.disrupted { --dot-color: var(--text-faint); }
   .commitment-status-dot.not_done { --dot-color: var(--text-faint); }
   .commitment-status-dot.roadblock { --dot-color: var(--danger); }
-  .commitment-title { font-size: 14px; color: var(--text); font-weight: 500; }
-  .commitment-title.completed { text-decoration: line-through; opacity: 0.6; }
-  .commitment-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
-  .commitment-minver { font-size: 12px; color: var(--gold); margin-top: 3px; }
+  .commitment-title { font-size: 14.5px; color: var(--text); font-weight: 500; line-height: 1.35; }
+  .commitment-title.completed { text-decoration: line-through; opacity: 0.55; }
+  .commitment-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .commitment-minver { font-size: 12px; color: var(--gold-soft); margin-top: 4px; }
   .commitment-train-link {
     flex-shrink: 0;
     align-self: center;
@@ -742,21 +804,21 @@
 
   /* Stats */
   .stat-card {
-    background: var(--panel);
-    border-radius: var(--radius-md);
-    padding: 18px;
+    background: var(--panel-2);
+    border-radius: 18px;
+    padding: 19px 18px;
     margin-bottom: 10px;
   }
-  .stat-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .stat-card-head { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; }
   .stat-card-head .dot { width: 7px; height: 7px; }
-  .stat-card-head .name { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+  .stat-card-head .name { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--label-color); }
   .stat-card-clickable { cursor: pointer; transition: transform 0.1s ease, background 0.1s ease; }
   .stat-card-clickable:active { transform: scale(0.99); background: var(--panel-raised); }
   .stat-card-chevron { margin-left: auto; color: var(--text-faint); font-size: 16px; }
   .stat-row { display: flex; gap: 20px; }
   .stat-num { flex: 1; }
-  .stat-num .val { font-size: 30px; line-height: 1; font-weight: 500; }
-  .stat-num .lbl { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
+  .stat-num .val { font-size: 29px; line-height: 1; font-weight: 480; font-family: 'Fraunces', Georgia, serif; }
+  .stat-num .lbl { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; }
 
   .weekbar { margin-bottom: 22px; }
   .weekbar-bars { display: flex; align-items: flex-end; gap: 6px; height: 90px; margin-top: 10px; }
@@ -769,12 +831,12 @@
   nav.tabbar {
     position: sticky;
     bottom: 0;
-    background: rgba(21, 19, 15, 0.92);
+    background: rgba(21, 19, 15, 0.86);
     backdrop-filter: blur(20px) saturate(1.1);
     -webkit-backdrop-filter: blur(20px) saturate(1.1);
-    border-top: 1px solid var(--border-soft);
+    border-top: 1px solid var(--hairline);
     display: flex;
-    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    padding: 11px 8px calc(8px + env(safe-area-inset-bottom));
     z-index: 20;
     flex-shrink: 0;
   }
@@ -784,41 +846,40 @@
     border: none;
     color: var(--text-faint);
     font-family: inherit;
-    font-size: 10.5px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 6px 0 4px;
+    gap: 5px;
+    padding: 3px 0;
     cursor: pointer;
     transition: color 0.15s ease;
   }
-  nav.tabbar button .tab-icon { width: 22px; height: 22px; transition: transform 0.15s cubic-bezier(.34,1.56,.64,1); }
+  nav.tabbar button .tab-icon { width: 21px; height: 21px; opacity: 0.7; transition: transform 0.15s cubic-bezier(.34,1.56,.64,1), opacity 0.15s ease; }
   nav.tabbar button .tab-icon svg { width: 100%; height: 100%; display: block; }
-  nav.tabbar button.active { color: var(--gold); }
-  nav.tabbar button.active .tab-icon { transform: translateY(-1px) scale(1.04); }
+  nav.tabbar button.active { color: var(--gold); font-weight: 600; }
+  nav.tabbar button.active .tab-icon { opacity: 1; transform: translateY(-1px) scale(1.04); }
   nav.tabbar button:active .tab-icon { transform: scale(0.9); }
 
   /* Global quick add */
   .global-fab {
     position: fixed;
-    right: 20px;
-    bottom: calc(72px + env(safe-area-inset-bottom));
-    width: 50px; height: 50px;
+    right: 22px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    width: 48px; height: 48px;
     border-radius: 50%;
     border: none;
     background: var(--gold);
     color: var(--ink);
-    font-size: 24px;
-    line-height: 1;
-    font-weight: 500;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    box-shadow: var(--shadow-raised);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.1) inset, 0 10px 24px -12px rgba(0,0,0,0.55);
     z-index: 22;
     transition: transform 0.14s cubic-bezier(.2,.8,.3,1);
   }
+  .global-fab svg { width: 19px; height: 19px; display: block; }
   .global-fab:active { transform: scale(0.92); }
 
   /* ---------- chips (shared) ---------- */
@@ -946,11 +1007,11 @@
     background: var(--panel);
     width: 100%;
     max-width: 560px;
-    border-radius: 22px 22px 0 0;
-    padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+    border-radius: 24px 24px 0 0;
+    padding: 14px 22px calc(26px + env(safe-area-inset-bottom));
     max-height: 88vh;
     overflow-y: auto;
-    border-top: 1px solid var(--border-soft);
+    border-top: 1px solid var(--hairline);
     box-shadow: var(--shadow-raised);
     animation: sheet-up 0.2s cubic-bezier(.2,.9,.3,1);
   }
@@ -958,27 +1019,37 @@
     from { transform: translateY(20px); opacity: 0.4; }
     to { transform: translateY(0); opacity: 1; }
   }
-  .sheet-handle { width: 34px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
-  .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-  .sheet-title { font-size: 19px; font-weight: 600; text-transform: capitalize; font-family: 'Fraunces', Georgia, serif; }
-  .sheet-close { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 4px; }
+  .sheet-handle { width: 34px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+  .sheet-title { font-size: 21px; font-weight: 500; text-transform: capitalize; font-family: 'Fraunces', Georgia, serif; letter-spacing: -0.01em; }
+  .sheet-close {
+    background: none; border: none; color: var(--text-faint); cursor: pointer;
+    width: 30px; height: 30px; flex-shrink: 0; margin-right: -6px;
+    display: flex; align-items: center; justify-content: center; border-radius: 50%;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .sheet-close svg { width: 15px; height: 15px; display: block; }
+  .sheet-close:active { background: var(--panel-raised); color: var(--text); }
 
-  .field { margin-bottom: 14px; }
-  .field label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px; }
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block; font-size: 10.5px; color: var(--label-color); margin-bottom: 8px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.09em;
+  }
   .field input, .field select, .field textarea {
     width: 100%;
     background: var(--panel-raised);
-    border: 1px solid var(--border-soft);
-    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    border-radius: 12px;
     color: var(--text);
-    padding: 11px 12px;
+    padding: 12px 13px;
     font-family: inherit;
     font-size: 14.5px;
     transition: border-color 0.12s ease;
   }
   .field input:focus, .field select:focus, .field textarea:focus {
     outline: none;
-    border-color: var(--gold);
+    border-color: rgba(var(--gold-rgb),0.55);
   }
   .field textarea { resize: vertical; min-height: 60px; }
   .field textarea.food-diary { min-height: 190px; line-height: 1.6; }
@@ -1005,18 +1076,18 @@
   .seg-toggle { display: flex; gap: var(--sp-2); }
   .seg-toggle button {
     flex: 1;
-    padding: 10px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-soft);
+    padding: 11px;
+    border-radius: 12px;
+    border: 1px solid transparent;
     background: var(--panel-raised);
     color: var(--text-muted);
     font-family: inherit;
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.12s ease;
   }
-  .seg-toggle button.sel { border-color: var(--gold); color: var(--gold); background: rgba(var(--gold-rgb),0.1); }
+  .seg-toggle button.sel { border-color: rgba(var(--gold-rgb),0.5); color: var(--gold); background: rgba(var(--gold-rgb),0.1); }
 
   #dayRatingToggle button[data-v="good"].sel { border-color: var(--day-good); color: var(--day-good); background: rgba(var(--day-good-rgb),0.14); }
   #dayRatingToggle button[data-v="neutral"].sel { border-color: var(--day-neutral); color: var(--day-neutral); background: rgba(var(--day-neutral-rgb),0.14); }
@@ -1069,7 +1140,7 @@
   .nutrition-summary-check .k { color: var(--text-muted); }
   .nutrition-summary-check .v { color: var(--text); font-weight: 600; }
   .nutrition-summary-check .v.no { color: var(--text-faint); font-weight: 500; }
-  .nutrition-summary-value { font-size: 30px; font-weight: 500; }
+  .nutrition-summary-value { font-size: 29px; font-weight: 480; font-family: 'Fraunces', Georgia, serif; }
 
   .exercise-row { display: flex; gap: var(--sp-2); align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
   .exercise-row input { flex: 1; min-width: 0; }
@@ -1096,13 +1167,14 @@
   .detail-trend strong { color: var(--text); }
 
   .player-card {
-    background: linear-gradient(150deg, var(--panel-raised), var(--panel));
+    background: linear-gradient(155deg, var(--panel-raised), var(--panel-2));
     border-radius: var(--radius-lg);
-    padding: 18px;
-    margin-bottom: 24px;
+    padding: 20px;
+    margin-bottom: var(--sp-6);
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 17px;
+    box-shadow: var(--shadow-card);
   }
   .avatar-ring-wrap { position: relative; width: 70px; height: 70px; flex-shrink: 0; cursor: pointer; transition: transform 0.12s ease; }
   .avatar-ring-wrap:active { transform: scale(0.94); }
@@ -1138,12 +1210,15 @@
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    padding: 13px 14px;
-    background: var(--panel);
-    border-radius: var(--radius-sm);
-    margin-bottom: 6px;
+    padding: 13px 4px;
+    background: none;
+    border-radius: 10px;
+    border-bottom: 1px solid var(--hairline);
     cursor: pointer;
+    transition: background 0.1s ease;
   }
+  .focus-item:last-child { border-bottom: none; }
+  .focus-item:active { background: var(--panel); }
   .focus-item.done { opacity: 0.5; }
   .focus-item.done .focus-text { text-decoration: line-through; }
   .focus-tag {
@@ -1168,15 +1243,15 @@
   .focus-text { font-size: 14px; color: var(--text); flex: 1; }
 
   .target-weight-card {
-    background: var(--panel);
-    border-radius: var(--radius-md);
-    padding: 16px;
+    background: var(--panel-2);
+    border-radius: 16px;
+    padding: 17px 18px;
     margin-bottom: 4px;
     cursor: pointer;
   }
   .target-weight-row { display: flex; gap: 18px; }
-  .target-weight-row .stat-num .val { font-size: 30px; line-height: 1; font-weight: 500; }
-  .target-weight-row .stat-num .lbl { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
+  .target-weight-row .stat-num .val { font-size: 29px; line-height: 1; font-weight: 480; font-family: 'Fraunces', Georgia, serif; }
+  .target-weight-row .stat-num .lbl { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; }
 
   .checkbox-field { display: flex; align-items: center; background: var(--panel-raised); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); padding: 12px; }
   .checkbox-label { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text); cursor: pointer; margin-bottom: 0 !important; }
@@ -1202,16 +1277,16 @@
   }
   .checkbox-label input:checked + .cb-box::after { opacity: 1; }
 
-  .save-btn { margin-top: 8px; }
+  .save-btn { margin-top: 10px; }
   .delete-btn, .btn-danger {
     width: 100%;
-    padding: 13px;
-    border-radius: var(--radius-sm);
-    border: 1px solid rgba(var(--danger-rgb),0.4);
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(var(--danger-rgb),0.3);
     background: none;
     color: var(--danger);
     font-family: inherit;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
     cursor: pointer;
     margin-top: 10px;
@@ -1219,19 +1294,19 @@
   }
   .delete-btn:active, .btn-danger:active { background: rgba(var(--danger-rgb),0.1); }
 
-  .sync-note { font-size: 11px; color: var(--text-faint); text-align: center; margin: 18px 0 4px; }
+  .sync-note { font-size: 11px; color: var(--text-faint); text-align: center; margin: 20px 0 4px; letter-spacing: 0.01em; }
 </style>
 </head>
 <body>
 
 <header class="top">
   <div class="day-nav">
-    <button class="day-nav-arrow" id="dayPrevBtn" aria-label="Previous day">‹</button>
+    <button class="day-nav-arrow" id="dayPrevBtn" aria-label="Previous day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg></button>
     <div class="day-nav-center" id="dayNavCenter">
       <p class="top-date-label" id="topDateLabel">—</p>
       <h1 class="top-date display" id="topDate">—</h1>
     </div>
-    <button class="day-nav-arrow" id="dayNextBtn" aria-label="Next day" hidden>›</button>
+    <button class="day-nav-arrow" id="dayNextBtn" aria-label="Next day" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button>
   </div>
   <div class="day-nav-sub" id="dayNavSub"></div>
 </header>
@@ -1250,7 +1325,7 @@
 
     <div id="accountabilityMsg"></div>
 
-    <div id="todayPlanWidget"></div>
+    <div id="todayPlanWidget" class="today-plan-widget"></div>
 
     <button type="button" class="section-toggle" id="quickLogToggle" aria-expanded="false" aria-controls="quickLogGrid">
       <span class="section-toggle-label">Quick log</span>
@@ -1295,9 +1370,9 @@
 
   <section class="view" id="view-calendar">
     <div class="cal-nav">
-      <button id="calPrev">‹</button>
+      <button id="calPrev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg></button>
       <span class="cal-month-label" id="calMonthLabel">—</span>
-      <button id="calNext">›</button>
+      <button id="calNext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button>
     </div>
     <div class="cal-summary" id="calSummary"></div>
     <div class="cal-grid" id="calGrid"></div>
@@ -1335,9 +1410,9 @@
 
   <section class="view" id="view-plan">
     <div class="cal-nav">
-      <button id="planPrev">‹</button>
+      <button id="planPrev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg></button>
       <span class="cal-month-label" id="planWeekLabel">—</span>
-      <button id="planNext">›</button>
+      <button id="planNext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button>
     </div>
     <div id="planWeekList"></div>
 
@@ -1371,7 +1446,7 @@
   </button>
 </nav>
 
-<button type="button" class="global-fab" id="globalFabBtn" aria-label="Quick add">+</button>
+<button type="button" class="global-fab" id="globalFabBtn" aria-label="Quick add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
 <div class="sheet-backdrop" id="sheetBackdrop">
   <div class="sheet" id="sheet"></div>
@@ -1413,6 +1488,14 @@
     yoga: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.8" fill="currentColor" stroke="none"/><path d="M12 8v6"/><path d="M12 9c-2 2-3 3-6 3"/><path d="M12 9c2 2 3 3 6 3"/><path d="M12 14c-1.5 2-2 3-2 5.5"/><path d="M12 14c1.5 2 2 3 2 5.5"/></svg>'
   };
   var CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  // Icons for the non-training session types, shown as the same icon-wrap treatment
+  // used for training types (Recorded Activity cards, Quick Log tiles).
+  var SESSION_ICON_SVG = Object.assign({}, TRAINING_ICON_SVG, {
+    nutrition: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5v7a2.5 2.5 0 0 0 5 0v-7"/><line x1="8.5" y1="2.5" x2="8.5" y2="21.5"/><path d="M17 2.5c-1.5 1-2.3 3-2.3 5.3 0 2.6 1.3 4 2.3 4.7v9"/></svg>',
+    weight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c0-2.5 1.5-4 3.5-4s3.5 1.5 3.5 4"/><line x1="12" y1="7" x2="12" y2="8.5"/></svg>',
+    photo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.3"/></svg>',
+    gluten: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l9 15.5H3z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="16.8" r="0.9" fill="currentColor" stroke="none"/></svg>'
+  });
   var GLUTEN_SYMPTOMS = ['Brain fog', 'Headache', 'Itching', 'Low mood', 'Depressive symptoms'];
   var SEVERITY_LABEL = { mild: 'Mild', moderate: 'Moderate', severe: 'Severe' };
   var DAY_RATING_LABEL = { good: 'On-track', neutral: 'Neutral', 'off-track': 'Off-track' };
@@ -2074,7 +2157,7 @@
   function openEnableNotificationsSheet(onGranted){
     sheetEl.innerHTML =
       '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">Enable notifications</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<div class="sheet-head"><div class="sheet-title">Enable notifications</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
       '<p class="pin-explainer">Ledger needs permission to send reminders to your phone.</p>' +
       '<button class="save-btn" id="enableNotifBtn">Enable notifications</button>';
     backdrop.classList.add('open');
@@ -2138,7 +2221,7 @@
     var blocked = pushBlockedReason();
     sheetEl.innerHTML =
       '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">Pin reminder</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<div class="sheet-head"><div class="sheet-title">Pin reminder</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
       (blocked ? '<p class="pin-explainer">' + blocked + '</p>' : '') +
       '<div class="field"><label>Reminder</label><input type="text" id="f_pinText" placeholder="e.g. Bring charger downstairs" autocomplete="off"></div>' +
       '<div class="field"><label>Note (optional)</label><input type="text" id="f_pinNote" placeholder="Anything extra" autocomplete="off"></div>' +
@@ -2389,7 +2472,7 @@
     div.className = 'session-item';
     var leadHtml = (s.type === 'photo' && s.photoDataUrl)
       ? '<img class="si-thumb" src="' + s.photoDataUrl + '">'
-      : '<span class="dot ' + s.type + '"></span>';
+      : '<span class="si-icon ' + s.type + '">' + (SESSION_ICON_SVG[s.type] || '') + '</span>';
     div.innerHTML =
       leadHtml +
       '<div class="si-main">' +
@@ -2555,7 +2638,7 @@
         priorities.map(function(p){ return {value:p.id, label:p.title}; })
       );
       var html = '<div class="sheet-handle"></div>' +
-        '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit action' : 'New action') + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+        '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit action' : 'New action') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
         '<div class="field"><label>Action</label><input type="text" id="f_commitTitle" placeholder="e.g. Resistance training" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
         fieldSelect('f_commitPriority', 'Linked priority (optional)', priorityOptions, existing ? (existing.priorityId||'') : '') +
         '<div class="field"><label>Minimum version (optional)</label><input type="text" id="f_commitMinVer" placeholder="e.g. 20-minute home workout" value="' + (existing && existing.minVersion ? existing.minVersion.replace(/"/g,'&quot;') : '') + '"></div>';
@@ -2676,7 +2759,7 @@
     var note = dateNoteLabel(qcTargetDate);
     sheetEl.innerHTML =
       '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">Quick add</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<div class="sheet-head"><div class="sheet-title">Quick add</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
       (note ? '<div class="qc-target-note">' + note + '</div>' : '') +
       '<div class="qc-rows" id="qcRows"></div>' +
       '<button type="button" class="btn-secondary qc-add-row" id="qcAddRowBtn">+ Add another</button>' +
@@ -2861,7 +2944,7 @@
       if (unresolved.length){
         var c = unresolved[0];
         return '<div class="sheet-handle"></div>' +
-          '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+          '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
           '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">' + dayLabel + ' · ' + unresolved.length + ' item' + (unresolved.length===1?'':'s') + ' left</div>' +
           '<div style="font-size:15px;font-weight:700;margin-bottom:12px">' + c.title + '</div>' +
           '<div class="status-btn-grid" id="reviewStatusGrid">' +
@@ -2873,7 +2956,7 @@
       var hasDayStatus = dayStatuses.some(function(ds){ return ds.date === dateStr; });
       if (!hasDayStatus){
         return '<div class="sheet-handle"></div>' +
-          '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+          '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
           '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">' + dayLabel + ' — all actions resolved. How did the day go overall? Missing data isn\'t the same as failure.</div>' +
           '<div class="status-btn-grid" id="reviewDayStatusGrid">' +
             ['completed','partial','disrupted','unknown'].map(function(s){
@@ -2882,7 +2965,7 @@
           '</div>';
       }
       return '<div class="sheet-handle"></div>' +
-        '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+        '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
         '<div class="empty-state">' + dayLabel + ' is fully reviewed.</div>';
     }
 
@@ -2982,7 +3065,7 @@
       var pending = computeCatchUpDates();
       if (!pending.length){
         return '<div class="sheet-handle"></div>' +
-          '<div class="sheet-head"><div class="sheet-title">Catch-up</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+          '<div class="sheet-head"><div class="sheet-title">Catch-up</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
           '<div class="empty-state">All caught up</div>';
       }
       var rows = pending.map(function(dateStr){
@@ -2996,7 +3079,7 @@
           '</div></div>';
       }).join('');
       return '<div class="sheet-handle"></div>' +
-        '<div class="sheet-head"><div class="sheet-title">Catch-up</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+        '<div class="sheet-head"><div class="sheet-title">Catch-up</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
         '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">Missing data isn\'t the same as failure — just mark roughly what happened.</div>' +
         rows;
     }
@@ -3489,7 +3572,7 @@
         .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
 
       sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
-        '<div class="sheet-head"><div class="sheet-title">' + title + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+        '<div class="sheet-head"><div class="sheet-title">' + title + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
         '<div id="statDetailChart"></div>' +
         '<div id="statDetailList"></div>';
       backdrop.classList.add('open');
@@ -3527,7 +3610,7 @@
       ? sessions.filter(function(s){ return s.type === 'nutrition' && s.glutenExposure; })
       : sessions.filter(function(s){ return s.type === type; });
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">' + title + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<div class="sheet-head"><div class="sheet-title">' + title + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
       '<div id="statDetailChart"></div>' +
       '<div id="statDetailList"></div>';
     backdrop.classList.add('open');
@@ -3743,7 +3826,7 @@
     var avatarFile = AVATAR_FILES[tierIdx];
     sheetEl.innerHTML =
       '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">' + tier.name + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<div class="sheet-head"><div class="sheet-title">' + tier.name + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
       '<div style="display:flex;justify-content:center;">' +
         '<img src="avatars/' + avatarFile + '_full.png" alt="" style="max-width:100%;border-radius:16px;" onerror="this.style.display=\'none\';">' +
       '</div>';
@@ -3788,18 +3871,11 @@
       }).join('');
     }
 
-    var label = isToday ? "Today's plan" : "Day's plan";
-    var planActionLabel = isToday
-      ? (hasAnyContent ? "Edit today's plan" : "+ Plan today")
-      : (hasAnyContent ? "Edit plan" : "+ Plan this day");
-
-    var html = '<div class="today-plan-widget">' +
-      '<div class="today-plan-widget-head"><div class="label">' + label + '</div>' +
-        '<button type="button" class="plan-today-btn" id="planTodayBtn">' + planActionLabel + '</button></div>';
-    if (chipsHtml) html += '<div class="plan-chips-row">' + chipsHtml + '</div>';
-    if (trainingHtml) html += '<div class="plan-training-list">' + trainingHtml + '</div>';
+    var innerHtml = '';
+    if (chipsHtml) innerHtml += '<div class="plan-chips-row">' + chipsHtml + '</div>';
+    if (trainingHtml) innerHtml += '<div class="plan-training-list">' + trainingHtml + '</div>';
     if (meals.length){
-      html += '<div class="meals-section"><div class="meals-section-label">Meals</div>' +
+      innerHtml += '<div class="meals-section"><div class="meals-section-label">Meals</div>' +
         meals.map(function(m){
           return '<div class="meal-row' + (m.completed ? ' completed' : '') + '" data-meal-id="' + m.id + '">' +
             '<span class="meal-check"></span><span class="meal-text">' + m.text + '</span></div>';
@@ -3807,12 +3883,25 @@
       '</div>';
     }
     if (plan && plan.roadblocks){
-      html += '<div class="plan-roadblock">⚠️ ' + plan.roadblocks + '</div>';
+      innerHtml += '<div class="plan-roadblock">⚠️ ' + plan.roadblocks + '</div>';
     }
     if (nutrition && nutrition.closed){
-      html += '<button type="button" class="nutrition-status-chip" id="nutritionStatusChip">Nutrition · Closed</button>';
+      innerHtml += '<button type="button" class="nutrition-status-chip" id="nutritionStatusChip">Nutrition · Closed</button>';
     }
-    html += '</div>';
+
+    var label = isToday ? "Today's plan" : "Day's plan";
+    var planActionLabel = isToday
+      ? (hasAnyContent ? "Edit today's plan" : "Plan today")
+      : (hasAnyContent ? "Edit plan" : "Plan this day");
+    var arrowSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>';
+
+    var html = '<div class="today-plan-widget-head"><div class="label">' + label + '</div>' +
+      '<button type="button" class="plan-today-btn" id="planTodayBtn">' + planActionLabel + arrowSvg + '</button></div>';
+    if (innerHtml){
+      html += '<div class="plan-panel">' + innerHtml + '</div>';
+    } else {
+      html += '<p class="empty-state plan-empty-prompt">' + (isToday ? 'Nothing planned for today yet.' : 'Nothing planned for this day yet.') + '</p>';
+    }
     wrap.innerHTML = html;
 
     document.getElementById('planTodayBtn').addEventListener('click', function(){
@@ -3921,7 +4010,7 @@
 
     function buildHtml(){
       var html = '<div class="sheet-handle"></div>' +
-        '<div class="sheet-head"><div class="sheet-title">' + niceDate(d) + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+        '<div class="sheet-head"><div class="sheet-title">' + niceDate(d) + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
         '<button type="button" class="rest-day-toggle' + (restDay ? ' sel' : '') + '" id="restDayToggle">' + (restDay ? '✓ Rest day' : 'Mark as rest day') + '</button>' +
         '<div id="trainingSection" style="' + (restDay ? 'display:none' : '') + '">' +
           '<div class="field"><label>Training planned</label><div class="plan-type-grid" id="planTypeGrid">' +
@@ -4057,7 +4146,7 @@
     var isEditing = !!existing;
     sheetEl.innerHTML =
       '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit meal idea' : 'New meal idea') + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit meal idea' : 'New meal idea') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
       '<div class="field"><label>Meal or food</label><textarea id="f_mealText" placeholder="…">' + (existing ? existing.text : '') + '</textarea></div>' +
       '<button class="save-btn" id="saveMealBtn">Save</button>' +
       (isEditing ? '<button class="delete-btn" id="deleteMealBtn">Delete</button>' : '');
@@ -4121,7 +4210,7 @@
     editingId = null;
     sheetEl.innerHTML =
       '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">Target weight</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<div class="sheet-head"><div class="sheet-title">Target weight</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
       fieldNum('f_targetWeight', 'Target weight (kg)', presets.targetWeightKg, '95') +
       '<button class="save-btn" id="saveTargetBtn">Save</button>';
     backdrop.classList.add('open');
@@ -4162,7 +4251,7 @@
     var isEditing = !!existing;
     sheetEl.innerHTML =
       '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit priority' : 'New priority') + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit priority' : 'New priority') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
       '<div class="field"><label>Priority</label><input type="text" id="f_priorityTitle" placeholder="e.g. Reduce weight to 90kg" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
       '<div class="field"><label>Note (optional)</label><textarea id="f_priorityNote" placeholder="…">' + (existing ? (existing.note||'') : '') + '</textarea></div>' +
       '<button class="save-btn" id="savePriorityBtn">Save</button>' +
@@ -4237,7 +4326,7 @@
     var isEditing = !!existing;
     sheetEl.innerHTML =
       '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit focus area' : 'New focus area') + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
+      '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit focus area' : 'New focus area') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
       fieldSelect('f_focusCategory', 'Category', [
         {value:'technique', label:'Technique'}, {value:'footwork', label:'Footwork'},
         {value:'physical', label:'Physical'}, {value:'general', label:'General'}
@@ -4340,7 +4429,7 @@
 
   function buildFormHtml(type, d, mode){
     var html = '<div class="sheet-handle"></div>';
-    html += '<div class="sheet-head"><div class="sheet-title">' + TYPE_LABEL[type] + (mode === 'plan' ? ' <span class="sheet-mode-badge">Planning</span>' : '') + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>';
+    html += '<div class="sheet-head"><div class="sheet-title">' + TYPE_LABEL[type] + (mode === 'plan' ? ' <span class="sheet-mode-badge">Planning</span>' : '') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>';
     html += '<div class="field-row">' +
       fieldDate('f_date', 'Date', d.date || todayStr()) +
       '<div class="field"><label>Time (optional)</label><div class="time-with-now">' +
@@ -4493,7 +4582,7 @@
     var diaryLines = (d.foodDiary || '').split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
     var ratingColor = d.dayRating === 'good' ? 'var(--day-good)' : d.dayRating === 'off-track' ? 'var(--day-bad)' : 'var(--day-neutral)';
     var html = '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">Nutrition</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>';
+      '<div class="sheet-head"><div class="sheet-title">Nutrition</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>';
     if (d.dayRating) html += '<div style="font-size:13px;font-weight:600;color:'+ratingColor+';margin:-8px 0 18px;">' + DAY_RATING_LABEL[d.dayRating] + '</div>';
     html += '<div class="nutrition-summary-section"><div class="nutrition-summary-label">Food diary</div>' +
       (diaryLines.length ? '<div class="nutrition-summary-diary">' + diaryLines.join('\n') + '</div>' : '<div class="empty-state">No food diary recorded</div>') +
