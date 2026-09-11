@@ -216,6 +216,8 @@
     transition: max-height 0.22s ease, opacity 0.18s ease;
   }
   .quicklog-grid.collapsed { max-height: 0; opacity: 0; }
+  .form-collapse { overflow: hidden; max-height: 900px; opacity: 1; transition: max-height 0.22s ease, opacity 0.18s ease; }
+  .form-collapse.collapsed { max-height: 0; opacity: 0; }
 
   .section-toggle {
     display: flex;
@@ -839,6 +841,7 @@
     border-color: var(--gold);
   }
   .field textarea { resize: vertical; min-height: 60px; }
+  .field textarea.food-diary { min-height: 190px; line-height: 1.6; }
   input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 0.8; }
   .exercise-row input::placeholder { color: var(--text-faint); opacity: 0.8; }
   .field-row { display: flex; gap: 10px; }
@@ -878,6 +881,55 @@
   #dayRatingToggle button[data-v="good"].sel { border-color: var(--day-good); color: var(--day-good); background: rgba(var(--day-good-rgb),0.14); }
   #dayRatingToggle button[data-v="neutral"].sel { border-color: var(--day-neutral); color: var(--day-neutral); background: rgba(var(--day-neutral-rgb),0.14); }
   #dayRatingToggle button[data-v="off-track"].sel { border-color: var(--day-bad); color: var(--day-bad); background: rgba(var(--day-bad-rgb),0.14); }
+
+  /* compact yes/no row, used for all binary checks */
+  .yn-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border-soft); }
+  .yn-row:last-child { border-bottom: none; }
+  .yn-row label { font-size: 13.5px; color: var(--text); margin: 0; flex: 1; }
+  .yn-toggle { display: flex; background: var(--panel-raised); border-radius: 100px; padding: 2px; flex-shrink: 0; }
+  .yn-toggle button {
+    border: none; background: none; color: var(--text-muted);
+    font-family: inherit; font-size: 12.5px; font-weight: 600;
+    padding: 7px 15px; border-radius: 100px; cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .yn-toggle button.sel { background: var(--gold); color: var(--ink); }
+
+  /* daily checks collapse (nutrition sheet) */
+  .checks-summary { font-size: 12.5px; color: var(--text-muted); margin: -4px 0 14px; }
+  .checks-summary .no { color: var(--text-faint); }
+
+  /* meals on Today */
+  .meals-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-soft); }
+  .meals-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); margin-bottom: 8px; }
+  .meal-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; cursor: pointer; }
+  .meal-check { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--text-faint); flex-shrink: 0; position: relative; transition: background 0.12s ease, border-color 0.12s ease; }
+  .meal-row.completed .meal-check { background: var(--gold); border-color: var(--gold); }
+  .meal-check::after {
+    content: ''; position: absolute; left: 50%; top: 42%;
+    width: 4px; height: 8px; border: solid var(--ink); border-width: 0 1.5px 1.5px 0;
+    transform: translate(-50%,-50%) rotate(45deg); opacity: 0;
+  }
+  .meal-row.completed .meal-check::after { opacity: 1; }
+  .meal-text { font-size: 13.5px; color: var(--text); flex: 1; }
+  .meal-row.completed .meal-text { color: var(--text-muted); }
+  .nutrition-status-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11.5px; font-weight: 600; color: var(--text-muted);
+    background: none; border: 1px solid var(--border-soft);
+    padding: 4px 11px; border-radius: 100px; margin-top: 12px;
+    cursor: pointer; font-family: inherit;
+  }
+
+  /* nutrition read-only (closed) summary */
+  .nutrition-summary-section { margin-bottom: 18px; }
+  .nutrition-summary-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); margin-bottom: 8px; }
+  .nutrition-summary-diary { font-size: 14px; color: var(--text); line-height: 1.7; white-space: pre-wrap; }
+  .nutrition-summary-check { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 13.5px; }
+  .nutrition-summary-check .k { color: var(--text-muted); }
+  .nutrition-summary-check .v { color: var(--text); font-weight: 600; }
+  .nutrition-summary-check .v.no { color: var(--text-faint); font-weight: 500; }
+  .nutrition-summary-value { font-size: 30px; font-weight: 500; }
 
   .exercise-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
   .exercise-row input { flex: 1; min-width: 0; }
@@ -1155,13 +1207,13 @@
 </main>
 
 <nav class="tabbar">
-  <button class="tab-btn active" data-view="log">
-    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
-    Today
-  </button>
   <button class="tab-btn" data-view="plan">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="17" rx="2.5"/><line x1="8" y1="2.5" x2="8" y2="6"/><line x1="16" y1="2.5" x2="16" y2="6"/><line x1="7.5" y1="12" x2="12.5" y2="12"/><line x1="7.5" y1="16" x2="16.5" y2="16"/></svg></span>
     Plan
+  </button>
+  <button class="tab-btn active" data-view="log">
+    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+    Today
   </button>
   <button class="tab-btn" data-view="calendar">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/></svg></span>
@@ -1436,6 +1488,96 @@
     return plans.find(function(p){ return p.date === dateStr; }) || null;
   }
 
+  // ---------- planned meals (plan.meals entries; string or object, for backwards compatibility) ----------
+  function normalizePlanMeal(m, idx, dateStr){
+    if (typeof m === 'string'){
+      return { id: dateStr + '_m' + idx, text: m, completed: false, completedAt: null, nutritionEntryId: null };
+    }
+    return {
+      id: m.id || (dateStr + '_m' + idx),
+      text: m.text || '',
+      completed: !!m.completed,
+      completedAt: m.completedAt || null,
+      nutritionEntryId: m.nutritionEntryId || null
+    };
+  }
+  function getPlanMeals(plan){
+    if (!plan || !plan.meals || !plan.meals.length) return [];
+    return plan.meals.map(function(m, i){ return normalizePlanMeal(m, i, plan.date); });
+  }
+  function planMealText(m){ return typeof m === 'string' ? m : ((m && m.text) || ''); }
+  function getNutritionForDate(dateStr){
+    return sessions.find(function(s){ return s.type === 'nutrition' && s.date === dateStr; }) || null;
+  }
+
+  // Tick/untick a planned meal: syncs it into (or out of) that day's Nutrition food diary.
+  // Plan = intention, Nutrition = evidence — ticking converts one into the other without duplicate typing.
+  async function togglePlannedMeal(plan, mealId){
+    var meals = getPlanMeals(plan);
+    var idx = meals.findIndex(function(m){ return m.id === mealId; });
+    if (idx === -1) return;
+    var meal = meals[idx];
+
+    if (!meal.completed){
+      var lineText = meal.text.trim();
+      if (!lineText) return;
+      var nutrition = getNutritionForDate(plan.date);
+      if (nutrition){
+        var already = (nutrition.planMealLines || []).some(function(l){ return l.mealId === meal.id; });
+        if (!already){
+          var updated = Object.assign({}, nutrition);
+          var existingDiary = (updated.foodDiary || '').replace(/\s+$/, '');
+          updated.foodDiary = existingDiary ? existingDiary + '\n' + lineText : lineText;
+          updated.planMealLines = (updated.planMealLines || []).concat([{ mealId: meal.id, text: lineText }]);
+          await saveSession(updated);
+          nutrition = updated;
+        }
+      } else {
+        nutrition = {
+          id: uid(),
+          type: 'nutrition',
+          date: plan.date,
+          foodDiary: lineText,
+          planMealLines: [{ mealId: meal.id, text: lineText }],
+          createdAt: new Date().toISOString()
+        };
+        await saveSession(nutrition);
+      }
+      meal.completed = true;
+      meal.completedAt = new Date().toISOString();
+      meal.nutritionEntryId = nutrition.id;
+    } else {
+      var nutrition2 = meal.nutritionEntryId
+        ? (sessions.find(function(s){ return s.id === meal.nutritionEntryId; }) || getNutritionForDate(plan.date))
+        : getNutritionForDate(plan.date);
+      if (nutrition2){
+        var lines = nutrition2.planMealLines || [];
+        var linkIdx = lines.findIndex(function(l){ return l.mealId === meal.id; });
+        if (linkIdx > -1){
+          var entryText = lines[linkIdx].text;
+          var updated2 = Object.assign({}, nutrition2);
+          var diaryLines = (updated2.foodDiary || '').split('\n');
+          var foundAt = diaryLines.findIndex(function(dl){ return dl.trim() === entryText.trim(); });
+          if (foundAt > -1){
+            diaryLines.splice(foundAt, 1);
+            updated2.foodDiary = diaryLines.join('\n').replace(/^\n+/, '').replace(/\n+$/, '');
+          }
+          updated2.planMealLines = lines.filter(function(_, i){ return i !== linkIdx; });
+          await saveSession(updated2);
+        }
+      }
+      meal.completed = false;
+      meal.completedAt = null;
+      meal.nutritionEntryId = null;
+    }
+
+    var newPlan = Object.assign({}, plan);
+    newPlan.meals = meals.map(function(m){
+      return { id: m.id, text: m.text, completed: m.completed, completedAt: m.completedAt, nutritionEntryId: m.nutritionEntryId };
+    });
+    await savePlanForDate(plan.date, newPlan);
+  }
+
   async function savePlanForDate(dateStr, data){
     data.date = dateStr;
     if (dbReady && dbRef){
@@ -1644,7 +1786,7 @@
     // local fallback
     if (data.id){
       var idx = sessions.findIndex(function(s){ return s.id === data.id; });
-      if (idx > -1) sessions[idx] = data;
+      if (idx > -1) sessions[idx] = data; else sessions.unshift(data);
     } else {
       data.id = uid();
       sessions.unshift(data);
@@ -2440,7 +2582,11 @@
   });
 
   document.querySelectorAll('.quicklog-card').forEach(function(card){
-    card.addEventListener('click', function(){ openSheet(card.dataset.type, null, viewedDate); });
+    card.addEventListener('click', function(){
+      var type = card.dataset.type;
+      var existing = type === 'nutrition' ? getNutritionForDate(viewedDate) : null;
+      openSheet(type, existing, viewedDate);
+    });
   });
 
   var quickLogToggle = document.getElementById('quickLogToggle');
@@ -2639,7 +2785,10 @@
       var btn = document.createElement('button');
       btn.className = 'cal-day-log-btn';
       btn.innerHTML = '<span class="dot ' + m.type + '"></span><span>' + m.label + '</span>';
-      btn.addEventListener('click', function(){ openSheet(m.type, null, selectedDay); });
+      btn.addEventListener('click', function(){
+        var existing = m.type === 'nutrition' ? getNutritionForDate(selectedDay) : null;
+        openSheet(m.type, existing, selectedDay);
+      });
       logGrid.appendChild(btn);
     });
     wrap.appendChild(logGrid);
@@ -3145,29 +3294,40 @@
     if (!wrap) return;
     var dateStr = viewedDate;
     var plan = getPlanForDate(dateStr);
-    if (!plan || ((!plan.trainingTypes || !plan.trainingTypes.length) && !plan.restDay && !plan.carbLevel && !plan.fasting && !plan.roadblocks && (!plan.meals || !plan.meals.length))){
+    var meals = getPlanMeals(plan);
+    var nutrition = getNutritionForDate(dateStr);
+    var hasPlanContent = plan && ((plan.trainingTypes && plan.trainingTypes.length) || plan.restDay || plan.carbLevel || plan.fasting || plan.roadblocks);
+    if (!hasPlanContent && !meals.length && !(nutrition && nutrition.closed)){
       wrap.innerHTML = '';
       return;
     }
     var chipsHtml = '';
-    if (plan.restDay){
+    if (plan && plan.restDay){
       chipsHtml += '<span class="plan-chip outline">Rest day</span>';
-    } else if (plan.trainingTypes && plan.trainingTypes.length){
+    } else if (plan && plan.trainingTypes && plan.trainingTypes.length){
       chipsHtml += plan.trainingTypes.map(function(t){
         var color = getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim();
         return '<span class="today-plan-chip" style="--chip-color:'+color+'" data-type="'+t+'"><span class="dot"></span>' + TYPE_LABEL[t] + '</span>';
       }).join('');
     }
-    if (plan.carbLevel) chipsHtml += '<span class="plan-chip outline">' + CARB_LEVEL_LABEL[plan.carbLevel] + '</span>';
-    if (plan.fasting) chipsHtml += '<span class="plan-chip outline">Fasting</span>';
+    if (plan && plan.carbLevel) chipsHtml += '<span class="plan-chip outline">' + CARB_LEVEL_LABEL[plan.carbLevel] + '</span>';
+    if (plan && plan.fasting) chipsHtml += '<span class="plan-chip outline">Fasting</span>';
 
     var label = dateStr === todayStr() ? "Today's plan" : "Day's plan";
     var html = '<div class="today-plan-widget"><div class="label">' + label + '</div>' + chipsHtml;
-    if (plan.meals && plan.meals.length){
-      html += '<div class="plan-meals-preview">🍽 ' + plan.meals.join(' · ') + '</div>';
+    if (meals.length){
+      html += '<div class="meals-section"><div class="meals-section-label">Meals</div>' +
+        meals.map(function(m){
+          return '<div class="meal-row' + (m.completed ? ' completed' : '') + '" data-meal-id="' + m.id + '">' +
+            '<span class="meal-check"></span><span class="meal-text">' + m.text + '</span></div>';
+        }).join('') +
+      '</div>';
     }
-    if (plan.roadblocks){
+    if (plan && plan.roadblocks){
       html += '<div class="plan-roadblock">⚠️ ' + plan.roadblocks + '</div>';
+    }
+    if (nutrition && nutrition.closed){
+      html += '<button type="button" class="nutrition-status-chip" id="nutritionStatusChip">Nutrition · Closed</button>';
     }
     html += '</div>';
     wrap.innerHTML = html;
@@ -3175,6 +3335,16 @@
     wrap.querySelectorAll('.today-plan-chip').forEach(function(chip){
       chip.addEventListener('click', function(){ openSheet(chip.dataset.type, null, dateStr); });
     });
+    wrap.querySelectorAll('.meal-row').forEach(function(row){
+      row.addEventListener('click', function(){
+        var freshPlan = getPlanForDate(dateStr);
+        if (freshPlan) togglePlannedMeal(freshPlan, row.dataset.mealId);
+      });
+    });
+    var statusChip = document.getElementById('nutritionStatusChip');
+    if (statusChip){
+      statusChip.addEventListener('click', function(){ openSheet('nutrition', nutrition, dateStr); });
+    }
   }
 
   function renderPlan(){
@@ -3221,7 +3391,7 @@
         if (plan && plan.carbLevel) bodyHtml += '<span class="plan-chip outline">' + CARB_LEVEL_LABEL[plan.carbLevel] + '</span>';
         if (plan && plan.fasting) bodyHtml += '<span class="plan-chip outline">Fasting</span>';
         bodyHtml += '</div>';
-        if (plan && plan.meals && plan.meals.length) bodyHtml += '<div class="plan-meals-preview">🍽 ' + plan.meals.join(' · ') + '</div>';
+        if (plan && plan.meals && plan.meals.length) bodyHtml += '<div class="plan-meals-preview">🍽 ' + plan.meals.map(planMealText).join(' · ') + '</div>';
         if (plan && plan.roadblocks) bodyHtml += '<div class="plan-roadblock">⚠️ ' + plan.roadblocks + '</div>';
       }
 
@@ -3259,7 +3429,8 @@
     var trainingTypes = (p.trainingTypes || []).slice();
     var carbLevel = p.carbLevel || null;
     var fasting = !!p.fasting;
-    var mealsState = (p.meals && p.meals.length) ? p.meals.slice() : [''];
+    var mealsState = getPlanMeals(existing);
+    if (!mealsState.length) mealsState = [{ id: uid(), text: '', completed: false, completedAt: null, nutritionEntryId: null }];
 
     function buildHtml(){
       var html = '<div class="sheet-handle"></div>' +
@@ -3295,17 +3466,17 @@
     function renderMealRows(){
       var wrap = document.getElementById('planMealRows');
       wrap.innerHTML = '';
-      mealsState.forEach(function(text, i){
+      mealsState.forEach(function(m, i){
         var row = document.createElement('div');
         row.className = 'simple-row';
         row.innerHTML =
-          '<input placeholder="…" value="'+(text||'').replace(/"/g,'&quot;')+'">' +
+          '<input placeholder="…" value="'+(m.text||'').replace(/"/g,'&quot;')+'">' +
           '<button type="button" class="ex-rm">✕</button>';
         var input = row.querySelector('input');
-        input.addEventListener('input', function(){ mealsState[i] = input.value; });
+        input.addEventListener('input', function(){ mealsState[i].text = input.value; });
         row.querySelector('.ex-rm').addEventListener('click', function(){
           mealsState.splice(i,1);
-          if (!mealsState.length) mealsState.push('');
+          if (!mealsState.length) mealsState.push({ id: uid(), text: '', completed: false, completedAt: null, nutritionEntryId: null });
           renderMealRows();
         });
         wrap.appendChild(row);
@@ -3347,7 +3518,7 @@
       });
       renderMealRows();
       document.getElementById('addPlanMealBtn').addEventListener('click', function(){
-        mealsState.push('');
+        mealsState.push({ id: uid(), text: '', completed: false, completedAt: null, nutritionEntryId: null });
         renderMealRows();
       });
       document.getElementById('savePlanBtn').addEventListener('click', function(){
@@ -3356,7 +3527,9 @@
           trainingTypes: restDay ? [] : trainingTypes,
           carbLevel: document.getElementById('f_carbLevel').value || null,
           fasting: fasting,
-          meals: mealsState.map(function(t){ return t.trim(); }).filter(Boolean),
+          meals: mealsState
+            .map(function(m){ return { id: m.id, text: (m.text||'').trim(), completed: m.completed, completedAt: m.completedAt, nutritionEntryId: m.nutritionEntryId }; })
+            .filter(function(m){ return m.text; }),
           roadblocks: document.getElementById('f_roadblocks').value
         };
         savePlanForDate(dateStr, data);
@@ -3624,6 +3797,10 @@
   function openSheet(type, existing, forcedDate){
     editingId = existing ? existing.id : null;
     var data = existing || { type: type, date: forcedDate || todayStr() };
+    if (type === 'nutrition' && data.closed){
+      renderNutritionReadOnly(data);
+      return;
+    }
     sheetEl.innerHTML = buildFormHtml(type, data);
     backdrop.classList.add('open');
     wireForm(type, data);
@@ -3656,7 +3833,7 @@
     return '<div class="field checkbox-field"><label class="checkbox-label"><input type="checkbox" id="'+id+'"'+(checked?' checked':'')+'><span class="cb-box"></span>'+label+'</label></div>';
   }
   function fieldYesNo(idPrefix, label, value){
-    return '<div class="field"><label>'+label+'</label><div class="seg-toggle" id="'+idPrefix+'Toggle">' +
+    return '<div class="yn-row"><label>'+label+'</label><div class="yn-toggle" id="'+idPrefix+'Toggle">' +
       '<button type="button" data-v="yes" class="'+(value?'sel':'')+'">Yes</button>' +
       '<button type="button" data-v="no" class="'+(!value?'sel':'')+'">No</button>' +
       '</div></div>';
@@ -3754,36 +3931,89 @@
         '<button data-v="neutral" class="'+(d.dayRating==='neutral'?'sel':'')+'">Neutral</button>' +
         '<button data-v="off-track" class="'+(d.dayRating==='off-track'?'sel':'')+'">Off-track</button>' +
         '</div></div>';
-      html += fieldYesNo('f_glutenFree', 'Gluten-free', d.glutenFree);
-      html += fieldYesNo('f_minimalProcessed', 'Minimal processed foods', d.minimalProcessed);
-      html += fieldYesNo('f_sufficientWater', 'Sufficient water intake', d.sufficientWater);
-      html += fieldText('f_waterAmount', 'Approx. amount (optional)', d.waterAmount, 'e.g. 2L or 6 glasses');
-      html += fieldYesNo('f_glutenExposure', 'Suspected gluten exposure today', d.glutenExposure);
-      html += '<div id="glutenExposureFields" style="' + (d.glutenExposure ? '' : 'display:none') + '">' +
-        fieldText('f_glutenSource', 'Suspected source', d.glutenSource, 'e.g. soy sauce at dinner') +
-        '<div class="field"><label>Symptoms</label><div class="type-chip-grid" id="glutenSymptomGrid" style="grid-template-columns:repeat(2,1fr)">' +
-          GLUTEN_SYMPTOMS.map(function(s){
-            var isSel = d.glutenSymptoms && d.glutenSymptoms.indexOf(s) > -1;
-            var glutenColor = getComputedStyle(document.documentElement).getPropertyValue('--gluten').trim();
-            var style = isSel ? 'background:'+glutenColor+';border-color:'+glutenColor+';color:#2a120c;' : '';
-            return '<button type="button" class="type-chip-btn'+(isSel?' sel':'')+'" data-s="'+s+'" style="'+style+'">'+s+'</button>';
-          }).join('') +
-        '</div></div>' +
-        '<div class="field"><label>Severity</label><div class="seg-toggle" id="glutenSeverityToggle">' +
-          '<button data-v="mild" class="'+(d.glutenSeverity==='mild'?'sel':'')+'">Mild</button>' +
-          '<button data-v="moderate" class="'+(d.glutenSeverity==='moderate'?'sel':'')+'">Moderate</button>' +
-          '<button data-v="severe" class="'+(d.glutenSeverity==='severe'?'sel':'')+'">Severe</button>' +
+      html += '<div class="field"><label>Food diary</label><textarea id="f_foodDiary" class="food-diary" placeholder="What did you eat today">'+(d.foodDiary||'')+'</textarea></div>';
+
+      var checksExpanded = !d.id;
+      html += '<button type="button" class="section-toggle" id="dailyChecksToggle" aria-expanded="'+(checksExpanded?'true':'false')+'" aria-controls="dailyChecksBody">' +
+        '<span class="section-toggle-label">Daily checks</span>' +
+        '<span class="section-toggle-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
+      '</button>';
+      html += '<div class="checks-summary" id="dailyChecksSummary" style="'+(checksExpanded?'display:none':'')+'"></div>';
+      html += '<div class="form-collapse'+(checksExpanded?'':' collapsed')+'" id="dailyChecksBody">' +
+        fieldYesNo('f_glutenFree', 'Gluten-free', d.glutenFree) +
+        fieldYesNo('f_minimalProcessed', 'Minimal processed foods', d.minimalProcessed) +
+        fieldYesNo('f_sufficientWater', 'Sufficient water intake', d.sufficientWater) +
+        fieldText('f_waterAmount', 'Approx. water amount (optional)', d.waterAmount, 'e.g. 2L or 6 glasses') +
+        fieldYesNo('f_glutenExposure', 'Suspected gluten exposure today', d.glutenExposure) +
+        '<div id="glutenExposureFields" style="' + (d.glutenExposure ? '' : 'display:none') + '">' +
+          fieldText('f_glutenSource', 'Suspected source', d.glutenSource, 'e.g. soy sauce at dinner') +
+          '<div class="field"><label>Symptoms</label><div class="type-chip-grid" id="glutenSymptomGrid" style="grid-template-columns:repeat(2,1fr)">' +
+            GLUTEN_SYMPTOMS.map(function(s){
+              var isSel = d.glutenSymptoms && d.glutenSymptoms.indexOf(s) > -1;
+              var glutenColor = getComputedStyle(document.documentElement).getPropertyValue('--gluten').trim();
+              var style = isSel ? 'background:'+glutenColor+';border-color:'+glutenColor+';color:var(--ink);' : '';
+              return '<button type="button" class="type-chip-btn'+(isSel?' sel':'')+'" data-s="'+s+'" style="'+style+'">'+s+'</button>';
+            }).join('') +
           '</div></div>' +
-        fieldText('f_glutenRecovery', 'Recovery time (optional)', d.glutenRecovery, 'e.g. 1 day') +
+          '<div class="field"><label>Severity</label><div class="seg-toggle" id="glutenSeverityToggle">' +
+            '<button data-v="mild" class="'+(d.glutenSeverity==='mild'?'sel':'')+'">Mild</button>' +
+            '<button data-v="moderate" class="'+(d.glutenSeverity==='moderate'?'sel':'')+'">Moderate</button>' +
+            '<button data-v="severe" class="'+(d.glutenSeverity==='severe'?'sel':'')+'">Severe</button>' +
+            '</div></div>' +
+          fieldText('f_glutenRecovery', 'Recovery time (optional)', d.glutenRecovery, 'e.g. 1 day') +
+        '</div>' +
       '</div>';
-      html += '<div class="field"><label>Food diary (optional)</label><textarea id="f_foodDiary" placeholder="What did you eat today">'+(d.foodDiary||'')+'</textarea></div>';
       html += fieldNum('f_calories', 'Calories (optional)', d.calories, '2200');
     }
 
     if (type !== 'nutrition') html += fieldNotes(d.notes);
     html += '<button class="save-btn" id="saveBtn">Save</button>';
+    if (type === 'nutrition') html += '<button type="button" class="btn-secondary" id="closeNutritionBtn">Close Nutrition for Today</button>';
     if (editingId) html += '<button class="delete-btn" id="deleteBtn">Delete</button>';
     return html;
+  }
+
+  function nutritionCheckRow(label, value, isText){
+    var display = isText ? value : (value ? 'Yes' : 'No');
+    var cls = (!isText && !value) ? ' no' : '';
+    return '<div class="nutrition-summary-check"><span class="k">' + label + '</span><span class="v'+cls+'">' + display + '</span></div>';
+  }
+
+  function dailyChecksSummaryText(vals){
+    function part(label, v){ return label + (v ? ' ✓' : ' ✕'); }
+    var parts = [part('Gluten-free', vals.glutenFree), part('Minimal processed', vals.minimalProcessed), part('Water', vals.sufficientWater)];
+    if (vals.glutenExposure) parts.push('Gluten exposure flagged');
+    return parts.join(' · ');
+  }
+
+  function renderNutritionReadOnly(d){
+    editingId = d.id || null;
+    var diaryLines = (d.foodDiary || '').split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+    var ratingColor = d.dayRating === 'good' ? 'var(--day-good)' : d.dayRating === 'off-track' ? 'var(--day-bad)' : 'var(--day-neutral)';
+    var html = '<div class="sheet-handle"></div>' +
+      '<div class="sheet-head"><div class="sheet-title">Nutrition</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>';
+    if (d.dayRating) html += '<div style="font-size:13px;font-weight:600;color:'+ratingColor+';margin:-8px 0 18px;">' + DAY_RATING_LABEL[d.dayRating] + '</div>';
+    html += '<div class="nutrition-summary-section"><div class="nutrition-summary-label">Food diary</div>' +
+      (diaryLines.length ? '<div class="nutrition-summary-diary">' + diaryLines.join('\n') + '</div>' : '<div class="empty-state">No food diary recorded</div>') +
+    '</div>';
+    html += '<div class="nutrition-summary-section"><div class="nutrition-summary-label">Daily checks</div>' +
+      nutritionCheckRow('Gluten-free', d.glutenFree) +
+      nutritionCheckRow('Minimal processed', d.minimalProcessed) +
+      nutritionCheckRow('Water', d.sufficientWater) +
+      (d.waterAmount ? nutritionCheckRow('Water amount', d.waterAmount, true) : '') +
+      nutritionCheckRow('Suspected gluten', d.glutenExposure) +
+    '</div>';
+    if (d.calories) html += '<div class="nutrition-summary-section"><div class="nutrition-summary-label">Calories</div><div class="nutrition-summary-value display">' + d.calories + '</div></div>';
+    html += '<button type="button" class="btn-secondary" id="reopenNutritionBtn">Reopen Nutrition</button>';
+
+    sheetEl.innerHTML = html;
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('reopenNutritionBtn').addEventListener('click', function(){
+      var reopened = Object.assign({}, d, { closed: false, closedAt: null });
+      saveSession(reopened);
+      openSheet('nutrition', reopened, reopened.date);
+    });
   }
 
   function compressImage(file, maxDim, quality){
@@ -3922,7 +4152,7 @@
           if (willBeSel){
             btn.style.background = glutenColor;
             btn.style.borderColor = glutenColor;
-            btn.style.color = '#2a120c';
+            btn.style.color = 'var(--ink)';
           } else {
             btn.style.background = '';
             btn.style.borderColor = '';
@@ -3937,6 +4167,32 @@
           if (glutenSeverityVal) b.classList.add('sel');
         });
       });
+
+      var foodDiaryEl = document.getElementById('f_foodDiary');
+      function autoGrowDiary(){
+        foodDiaryEl.style.height = 'auto';
+        foodDiaryEl.style.height = Math.max(foodDiaryEl.scrollHeight, 190) + 'px';
+      }
+      foodDiaryEl.addEventListener('input', autoGrowDiary);
+      autoGrowDiary();
+
+      var checksToggle = document.getElementById('dailyChecksToggle');
+      var checksBody = document.getElementById('dailyChecksBody');
+      var checksSummary = document.getElementById('dailyChecksSummary');
+      function refreshChecksSummary(){
+        checksSummary.textContent = dailyChecksSummaryText({ glutenFree: glutenFreeVal, minimalProcessed: minimalProcessedVal, sufficientWater: sufficientWaterVal, glutenExposure: glutenExposureVal });
+      }
+      function setChecksExpanded(expanded){
+        checksToggle.setAttribute('aria-expanded', String(expanded));
+        checksBody.classList.toggle('collapsed', !expanded);
+        checksSummary.style.display = expanded ? 'none' : '';
+        if (!expanded) refreshChecksSummary();
+      }
+      checksToggle.addEventListener('click', function(){
+        setChecksExpanded(checksToggle.getAttribute('aria-expanded') !== 'true');
+      });
+      setChecksExpanded(checksToggle.getAttribute('aria-expanded') === 'true');
+
     }
 
     if (type === 'cardio'){
@@ -4013,7 +4269,7 @@
       });
     }
 
-    document.getElementById('saveBtn').addEventListener('click', function(){
+    function collectFormData(){
       var out = { type: type, date: document.getElementById('f_date').value || todayStr() };
       if (editingId) out.id = editingId;
       out.createdAt = (d.createdAt) || new Date().toISOString();
@@ -4112,11 +4368,30 @@
           out.glutenSeverity = null;
           out.glutenRecovery = '';
         }
+        // plan-linked diary lines and closed state travel with the entry, not through the form fields
+        out.planMealLines = d.planMealLines || [];
+        out.closed = !!d.closed;
+        out.closedAt = d.closedAt || null;
       }
 
-      saveSession(out);
+      return out;
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', function(){
+      saveSession(collectFormData());
       closeSheet();
     });
+
+    if (type === 'nutrition'){
+      document.getElementById('closeNutritionBtn').addEventListener('click', function(){
+        var out = collectFormData();
+        if (!out.id) out.id = uid(); // assign synchronously so the read-only view below can reference it immediately
+        out.closed = true;
+        out.closedAt = new Date().toISOString();
+        saveSession(out);
+        renderNutritionReadOnly(out);
+      });
+    }
 
     if (editingId){
       document.getElementById('deleteBtn').addEventListener('click', function(){
