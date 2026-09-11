@@ -427,6 +427,8 @@
     padding: 3px 9px;
   }
   .plan-chip.outline::before { display: none; }
+  .plan-chip.done { background: rgba(var(--gold-rgb),0.14); color: var(--gold); }
+  .plan-chip.done::before { background: var(--gold); }
   .plan-roadblock {
     display: flex;
     align-items: flex-start;
@@ -464,7 +466,7 @@
     margin-bottom: 14px;
   }
   .rest-day-toggle.sel { border-color: var(--text-faint); color: var(--text); background: var(--border); }
-  .type-chip-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .type-chip-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-2); margin-bottom: 14px; }
   .type-chip-btn {
     display: flex; flex-direction: column; align-items: center; gap: 7px;
     padding: 14px 4px;
@@ -478,13 +480,105 @@
   .type-chip-btn:active { transform: scale(0.95); }
   .type-chip-btn .dot { width: 20px; height: 20px; border-radius: 50%; }
 
+  /* ---- premium training-planned selector: shared icon-wrap treatment, gold selected state ---- */
+  .plan-type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-2); margin-bottom: 14px; }
+  .plan-type-btn {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 14px 4px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-soft);
+    background: var(--panel-raised);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px; font-weight: 700; color: var(--text-muted);
+    transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+  .plan-type-btn:active { transform: scale(0.96); }
+  .plan-type-btn .chip-icon {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--tile-soft);
+    color: var(--tile-color);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .plan-type-btn .chip-icon svg { width: 18px; height: 18px; display: block; }
+  .plan-type-btn .chip-label { line-height: 1.2; }
+  .plan-type-btn.padel { --tile-color: var(--padel); --tile-soft: var(--padel-soft); }
+  .plan-type-btn.resistance { --tile-color: var(--resistance); --tile-soft: var(--resistance-soft); }
+  .plan-type-btn.cardio { --tile-color: var(--cardio); --tile-soft: var(--cardio-soft); }
+  .plan-type-btn.yoga { --tile-color: var(--yoga); --tile-soft: var(--yoga-soft); }
+  .plan-type-btn.sel { border-color: var(--gold); background: rgba(var(--gold-rgb),0.1); color: var(--text); }
+  .plan-type-btn.sel .chip-icon { background: rgba(var(--gold-rgb),0.18); color: var(--gold); }
+  .plan-type-btn .chip-check {
+    position: absolute; top: 6px; right: 6px;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transform: scale(0.6);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .plan-type-btn.sel .chip-check { opacity: 1; transform: scale(1); }
+  .plan-type-btn .chip-check svg { width: 9px; height: 9px; display: block; }
+  .plan-type-hint { font-size: 11.5px; color: var(--text-faint); text-align: center; margin: -6px 0 14px; }
+
+  .sheet-mode-badge {
+    display: inline-block;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--gold);
+    background: rgba(var(--gold-rgb),0.14);
+    border-radius: 100px;
+    padding: 3px 8px;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+
   .today-plan-widget {
     background: var(--panel);
     border-radius: var(--radius-md);
     padding: 14px;
     margin-bottom: 18px;
   }
-  .today-plan-widget .label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); margin-bottom: 10px; }
+  .today-plan-widget .label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); margin-bottom: 0; }
+  .today-plan-widget-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .plan-today-btn {
+    font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--gold);
+    background: none; border: 1px solid rgba(var(--gold-rgb),0.35); border-radius: 100px;
+    padding: 6px 12px; cursor: pointer; flex-shrink: 0;
+  }
+  .plan-today-btn:active { background: rgba(var(--gold-rgb),0.12); }
+  .plan-chips-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+  .plan-training-list { margin: 4px 0 4px; }
+  .plan-training-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 2px;
+    border-bottom: 1px solid var(--border-soft);
+    cursor: pointer;
+  }
+  .plan-training-row:last-child { border-bottom: none; }
+  .plan-training-row .pt-icon {
+    width: 30px; height: 30px; flex-shrink: 0;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--tile-soft);
+    color: var(--tile-color);
+  }
+  .plan-training-row .pt-icon svg { width: 16px; height: 16px; display: block; }
+  .plan-training-row .pt-icon.padel { --tile-color: var(--padel); --tile-soft: var(--padel-soft); }
+  .plan-training-row .pt-icon.resistance { --tile-color: var(--resistance); --tile-soft: var(--resistance-soft); }
+  .plan-training-row .pt-icon.cardio { --tile-color: var(--cardio); --tile-soft: var(--cardio-soft); }
+  .plan-training-row .pt-icon.yoga { --tile-color: var(--yoga); --tile-soft: var(--yoga-soft); }
+  .plan-training-row .pt-body { flex: 1; min-width: 0; }
+  .plan-training-row .pt-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .plan-training-row .pt-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  .plan-training-row.done .pt-title { color: var(--text-muted); }
+  .plan-training-row .pt-status { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-faint); }
+  .plan-training-row.done .pt-status { background: rgba(var(--gold-rgb),0.16); color: var(--gold); }
+  .plan-training-row .pt-status svg { width: 11px; height: 11px; display: block; }
   .today-plan-chip {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 12.5px; font-weight: 600;
@@ -844,8 +938,8 @@
   .field textarea.food-diary { min-height: 190px; line-height: 1.6; }
   input::placeholder, textarea::placeholder { color: var(--text-faint); opacity: 0.8; }
   .exercise-row input::placeholder { color: var(--text-faint); opacity: 0.8; }
-  .field-row { display: flex; gap: 10px; }
-  .time-with-now { display: flex; gap: 6px; }
+  .field-row { display: flex; gap: var(--sp-3); }
+  .time-with-now { display: flex; gap: var(--sp-3); }
   .time-with-now input { flex: 1; min-width: 0; }
   .time-with-now button {
     flex-shrink: 0;
@@ -862,7 +956,7 @@
   .time-with-now button:active { background: var(--border); }
   .field-row .field { flex: 1; }
 
-  .seg-toggle { display: flex; gap: 8px; }
+  .seg-toggle { display: flex; gap: var(--sp-2); }
   .seg-toggle button {
     flex: 1;
     padding: 10px;
@@ -931,12 +1025,12 @@
   .nutrition-summary-check .v.no { color: var(--text-faint); font-weight: 500; }
   .nutrition-summary-value { font-size: 30px; font-weight: 500; }
 
-  .exercise-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .exercise-row { display: flex; gap: var(--sp-2); align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
   .exercise-row input { flex: 1; min-width: 0; }
   .exercise-row input.ex-name { flex-basis: 100%; }
   .exercise-row select.ex-unit { flex: 0 0 72px; font-size: 13px; padding: 10px 6px; }
   .exercise-row .ex-rm { background: none; border: none; color: var(--text-faint); font-size: 18px; cursor: pointer; padding: 0 4px; }
-  .simple-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: nowrap; }
+  .simple-row { display: flex; gap: var(--sp-2); align-items: center; margin-bottom: 8px; flex-wrap: nowrap; }
   .simple-row input { flex: 1; min-width: 0; }
   .simple-row .ex-rm { background: none; border: none; color: var(--text-faint); font-size: 18px; cursor: pointer; padding: 0 4px; flex-shrink: 0; }
   .add-exercise-btn {
@@ -1103,8 +1197,10 @@
 
     <h2 class="section-title">Actions</h2>
     <div id="commitmentsList"></div>
-    <button class="btn-primary" id="quickCaptureBtn">+ Quick add</button>
-    <button class="btn-link" id="addCommitmentBtn">+ Add with detail</button>
+    <div class="btn-row">
+      <button class="btn-primary" id="quickCaptureBtn">Quick add</button>
+      <button class="btn-secondary" id="addCommitmentBtn">Add with detail</button>
+    </div>
 
     <div id="accountabilityMsg"></div>
 
@@ -1145,7 +1241,7 @@
       </button>
     </div>
 
-    <h2 class="section-title">Activity</h2>
+    <h2 class="section-title">Recorded Activity</h2>
     <div id="todayList"></div>
     <button class="btn-link" id="viewHistoryBtn">View history in Calendar →</button>
     <p class="sync-note" id="syncNote"></p>
@@ -1263,6 +1359,14 @@
   var planSelectedDate = null; // last day-row interacted with in Plan (for the global FAB's date target)
 
   var TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance training', cardio: 'Cardio', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition', gluten: 'Gluten exposure' };
+  // shared icon set for training types — reused by the Plan selector, Today's plan rows and Quick Log cards
+  var TRAINING_ICON_SVG = {
+    padel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="10" height="13" rx="5"/><line x1="10" y1="15.5" x2="10" y2="20"/><line x1="7" y1="21.5" x2="13" y2="21.5"/><circle cx="18.5" cy="18.5" r="2"/></svg>',
+    cardio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2.5-7 4 14 2.5-7H21"/></svg>',
+    resistance: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><line x1="5" y1="12" x2="19" y2="12"/><rect x="6.5" y="6.5" width="3" height="11" rx="1"/><rect x="14.5" y="6.5" width="3" height="11" rx="1"/></svg>',
+    yoga: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.8" fill="currentColor" stroke="none"/><path d="M12 8v6"/><path d="M12 9c-2 2-3 3-6 3"/><path d="M12 9c2 2 3 3 6 3"/><path d="M12 14c-1.5 2-2 3-2 5.5"/><path d="M12 14c1.5 2 2 3 2 5.5"/></svg>'
+  };
+  var CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   var GLUTEN_SYMPTOMS = ['Brain fog', 'Headache', 'Itching', 'Low mood', 'Depressive symptoms'];
   var SEVERITY_LABEL = { mild: 'Mild', moderate: 'Moderate', severe: 'Severe' };
   var DAY_RATING_LABEL = { good: 'On-track', neutral: 'Neutral', 'off-track': 'Off-track' };
@@ -1603,6 +1707,82 @@
     localSavePlans();
     renderPlan();
     renderLogView();
+  }
+
+  // ---------- planned training details (plan.trainingDetails[type]) ----------
+  // Plan and Quick Log reuse the same activity form (openSheet/buildFormHtml/wireForm, mode: 'plan' | 'log').
+  // Planning writes into plan.trainingDetails; only completing it creates/links an actual session,
+  // so intention (plan) and evidence (session) stay distinct records even though the form is shared.
+  function saveTrainingPlanDetails(type, dateStr, raw){
+    var plan = getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
+    var newPlan = Object.assign({}, plan);
+    newPlan.trainingTypes = (plan.trainingTypes || []).slice();
+    if (newPlan.trainingTypes.indexOf(type) === -1) newPlan.trainingTypes.push(type);
+    var details = Object.assign({}, (plan.trainingDetails && plan.trainingDetails[type]) || {});
+    details.venue = raw.venue || '';
+    details.notes = raw.notes || '';
+    details.durationMin = raw.durationMin != null ? raw.durationMin : null;
+    if (type === 'padel'){ details.padelType = raw.padelType; details.players = raw.players; }
+    if (type === 'cardio'){ details.cardioType = raw.cardioType; details.distance = raw.distance; details.distanceUnit = raw.distanceUnit; }
+    if (type === 'yoga'){ details.focus = raw.focus; }
+    if (type === 'resistance'){ details.exercises = raw.exercises; }
+    newPlan.trainingDetails = Object.assign({}, plan.trainingDetails || {});
+    newPlan.trainingDetails[type] = details;
+    savePlanForDate(dateStr, newPlan);
+  }
+
+  function removeTrainingFromPlan(type, dateStr){
+    var plan = getPlanForDate(dateStr);
+    if (!plan) return;
+    var newPlan = Object.assign({}, plan);
+    newPlan.trainingTypes = (plan.trainingTypes || []).filter(function(t){ return t !== type; });
+    if (plan.trainingDetails){
+      newPlan.trainingDetails = Object.assign({}, plan.trainingDetails);
+      delete newPlan.trainingDetails[type];
+    }
+    savePlanForDate(dateStr, newPlan);
+  }
+
+  // Called when a session is saved from a planned item — links the plan entry to the recorded
+  // activity so it shows as completed and never gets duplicated as a separate log.
+  function markPlanTrainingCompleted(dateStr, type, sessionId){
+    var plan = getPlanForDate(dateStr);
+    if (!plan) return;
+    var newPlan = Object.assign({}, plan);
+    newPlan.trainingDetails = Object.assign({}, plan.trainingDetails || {});
+    var details = Object.assign({}, newPlan.trainingDetails[type] || {});
+    details.completed = true;
+    details.completedAt = details.completedAt || new Date().toISOString();
+    details.sessionId = sessionId;
+    newPlan.trainingDetails[type] = details;
+    savePlanForDate(dateStr, newPlan);
+  }
+
+  // Opens the shared activity form in "plan" mode to add/edit optional planning detail for a training type.
+  function openTrainingDetailSheet(type, dateStr){
+    var plan = getPlanForDate(dateStr);
+    var details = (plan && plan.trainingDetails && plan.trainingDetails[type]) || {};
+    var seed = Object.assign({ type: type, date: dateStr }, details);
+    openSheet(type, seed, dateStr, {
+      mode: 'plan',
+      planDate: dateStr,
+      onDone: function(){ openPlanSheet(dateStr, getPlanForDate(dateStr)); }
+    });
+  }
+
+  // Opens the shared activity form in "log" mode to record what actually happened for a planned
+  // training item — pre-filled from the plan, or reopening the linked session if already completed.
+  function openPlanTrainingLogSheet(type, dateStr){
+    var plan = getPlanForDate(dateStr);
+    var details = (plan && plan.trainingDetails && plan.trainingDetails[type]) || {};
+    if (details.completed && details.sessionId){
+      var existingSession = sessions.find(function(s){ return s.id === details.sessionId; });
+      openSheet(type, existingSession || null, dateStr, { planDate: dateStr });
+    } else {
+      var seed = Object.assign({ type: type, date: dateStr }, details);
+      delete seed.completed; delete seed.completedAt; delete seed.sessionId;
+      openSheet(type, seed, dateStr, { planDate: dateStr });
+    }
   }
 
   function localSaveMealIdeas(){
@@ -3296,25 +3476,45 @@
     var plan = getPlanForDate(dateStr);
     var meals = getPlanMeals(plan);
     var nutrition = getNutritionForDate(dateStr);
-    var hasPlanContent = plan && ((plan.trainingTypes && plan.trainingTypes.length) || plan.restDay || plan.carbLevel || plan.fasting || plan.roadblocks);
-    if (!hasPlanContent && !meals.length && !(nutrition && nutrition.closed)){
-      wrap.innerHTML = '';
-      return;
-    }
+    var isToday = dateStr === todayStr();
+    var hasAnyContent = !!(plan && ((plan.trainingTypes && plan.trainingTypes.length) || plan.restDay || plan.carbLevel || plan.fasting || plan.roadblocks));
+
     var chipsHtml = '';
     if (plan && plan.restDay){
       chipsHtml += '<span class="plan-chip outline">Rest day</span>';
-    } else if (plan && plan.trainingTypes && plan.trainingTypes.length){
-      chipsHtml += plan.trainingTypes.map(function(t){
-        var color = getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim();
-        return '<span class="today-plan-chip" style="--chip-color:'+color+'" data-type="'+t+'"><span class="dot"></span>' + TYPE_LABEL[t] + '</span>';
-      }).join('');
     }
     if (plan && plan.carbLevel) chipsHtml += '<span class="plan-chip outline">' + CARB_LEVEL_LABEL[plan.carbLevel] + '</span>';
     if (plan && plan.fasting) chipsHtml += '<span class="plan-chip outline">Fasting</span>';
 
-    var label = dateStr === todayStr() ? "Today's plan" : "Day's plan";
-    var html = '<div class="today-plan-widget"><div class="label">' + label + '</div>' + chipsHtml;
+    var trainingHtml = '';
+    if (plan && !plan.restDay && plan.trainingTypes && plan.trainingTypes.length){
+      trainingHtml = plan.trainingTypes.map(function(t){
+        var details = (plan.trainingDetails && plan.trainingDetails[t]) || {};
+        var subParts = [];
+        if (details.venue) subParts.push(details.venue);
+        if (t === 'resistance' && details.exercises && details.exercises.length) subParts.push(details.exercises.length + ' exercise' + (details.exercises.length===1?'':'s'));
+        if (t === 'yoga' && details.focus) subParts.push(details.focus);
+        if (t === 'cardio' && details.cardioType) subParts.push(details.cardioType);
+        if (details.durationMin) subParts.push(details.durationMin + ' min');
+        var sub = subParts.join(' · ');
+        return '<div class="plan-training-row' + (details.completed ? ' done' : '') + '" data-type="' + t + '">' +
+          '<span class="pt-icon ' + t + '">' + TRAINING_ICON_SVG[t] + '</span>' +
+          '<div class="pt-body"><div class="pt-title">' + TYPE_LABEL[t] + '</div>' + (sub ? '<div class="pt-sub">' + sub + '</div>' : '') + '</div>' +
+          '<span class="pt-status">' + (details.completed ? CHECK_SVG : '') + '</span>' +
+        '</div>';
+      }).join('');
+    }
+
+    var label = isToday ? "Today's plan" : "Day's plan";
+    var planActionLabel = isToday
+      ? (hasAnyContent ? "Edit today's plan" : "+ Plan today")
+      : (hasAnyContent ? "Edit plan" : "+ Plan this day");
+
+    var html = '<div class="today-plan-widget">' +
+      '<div class="today-plan-widget-head"><div class="label">' + label + '</div>' +
+        '<button type="button" class="plan-today-btn" id="planTodayBtn">' + planActionLabel + '</button></div>';
+    if (chipsHtml) html += '<div class="plan-chips-row">' + chipsHtml + '</div>';
+    if (trainingHtml) html += '<div class="plan-training-list">' + trainingHtml + '</div>';
     if (meals.length){
       html += '<div class="meals-section"><div class="meals-section-label">Meals</div>' +
         meals.map(function(m){
@@ -3332,8 +3532,11 @@
     html += '</div>';
     wrap.innerHTML = html;
 
-    wrap.querySelectorAll('.today-plan-chip').forEach(function(chip){
-      chip.addEventListener('click', function(){ openSheet(chip.dataset.type, null, dateStr); });
+    document.getElementById('planTodayBtn').addEventListener('click', function(){
+      openPlanSheet(dateStr, getPlanForDate(dateStr));
+    });
+    wrap.querySelectorAll('.plan-training-row').forEach(function(row){
+      row.addEventListener('click', function(){ openPlanTrainingLogSheet(row.dataset.type, dateStr); });
     });
     wrap.querySelectorAll('.meal-row').forEach(function(row){
       row.addEventListener('click', function(){
@@ -3385,7 +3588,8 @@
         } else if (plan && plan.trainingTypes && plan.trainingTypes.length){
           bodyHtml += plan.trainingTypes.map(function(t){
             var color = getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim();
-            return '<span class="plan-chip" style="--chip-color:'+color+'" data-type="'+t+'" data-date="'+dateStr+'">' + TYPE_LABEL[t] + '</span>';
+            var isDone = !!(plan.trainingDetails && plan.trainingDetails[t] && plan.trainingDetails[t].completed);
+            return '<span class="plan-chip' + (isDone ? ' done' : '') + '" style="--chip-color:'+color+'" data-type="'+t+'" data-date="'+dateStr+'">' + TYPE_LABEL[t] + '</span>';
           }).join('');
         }
         if (plan && plan.carbLevel) bodyHtml += '<span class="plan-chip outline">' + CARB_LEVEL_LABEL[plan.carbLevel] + '</span>';
@@ -3404,7 +3608,7 @@
             return;
           }
           if (e.target.closest('.plan-chip[data-type]')){
-            openSheet(e.target.closest('.plan-chip').dataset.type, null, ds);
+            openPlanTrainingLogSheet(e.target.closest('.plan-chip').dataset.type, ds);
             return;
           }
           openPlanSheet(ds, p);
@@ -3437,17 +3641,16 @@
         '<div class="sheet-head"><div class="sheet-title">' + niceDate(d) + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>' +
         '<button type="button" class="rest-day-toggle' + (restDay ? ' sel' : '') + '" id="restDayToggle">' + (restDay ? '✓ Rest day' : 'Mark as rest day') + '</button>' +
         '<div id="trainingSection" style="' + (restDay ? 'display:none' : '') + '">' +
-          '<div class="field"><label>Training planned</label><div class="type-chip-grid" id="planTypeGrid">' +
+          '<div class="field"><label>Training planned</label><div class="plan-type-grid" id="planTypeGrid">' +
             PLAN_TRAINING_TYPES.map(function(t){
-              var color = getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim();
               var isSel = trainingTypes.indexOf(t) > -1;
-              var style = isSel
-                ? 'background:'+hexToRgba(color,0.16)+';border-color:'+color+';color:var(--text);'
-                : 'background:'+hexToRgba(color,0.08)+';border-color:'+hexToRgba(color,0.25)+';';
-              return '<button type="button" class="type-chip-btn' + (isSel ? ' sel':'') + '" data-t="' + t + '" style="'+style+'">' +
-                '<span class="dot ' + t + '"></span>' + TYPE_LABEL[t] + '</button>';
+              return '<button type="button" class="plan-type-btn ' + t + (isSel ? ' sel':'') + '" data-t="' + t + '">' +
+                '<span class="chip-icon">' + TRAINING_ICON_SVG[t] + '</span>' +
+                '<span class="chip-label">' + TYPE_LABEL[t] + '</span>' +
+                '<span class="chip-check">' + CHECK_SVG + '</span>' +
+              '</button>';
             }).join('') +
-          '</div></div>' +
+          '</div><div class="plan-type-hint">Tap a selected activity to add details</div></div>' +
         '</div>' +
         fieldSelect('f_carbLevel', 'Diet', [{value:'',label:'Not set'}].concat(Object.keys(CARB_LEVEL_LABEL).map(function(k){ return {value:k,label:CARB_LEVEL_LABEL[k]}; })), carbLevel || '') +
         fieldYesNo('f_fasting', 'Fasting', fasting) +
@@ -3462,6 +3665,20 @@
     sheetEl.innerHTML = buildHtml();
     backdrop.classList.add('open');
     wireSheet();
+
+    function collectPlanData(){
+      return {
+        restDay: restDay,
+        trainingTypes: restDay ? [] : trainingTypes,
+        trainingDetails: p.trainingDetails || {},
+        carbLevel: document.getElementById('f_carbLevel').value || null,
+        fasting: fasting,
+        meals: mealsState
+          .map(function(m){ return { id: m.id, text: (m.text||'').trim(), completed: m.completed, completedAt: m.completedAt, nutritionEntryId: m.nutritionEntryId }; })
+          .filter(function(m){ return m.text; }),
+        roadblocks: document.getElementById('f_roadblocks').value
+      };
+    }
 
     function renderMealRows(){
       var wrap = document.getElementById('planMealRows');
@@ -3490,22 +3707,19 @@
         sheetEl.innerHTML = buildHtml();
         wireSheet();
       });
-      document.querySelectorAll('#planTypeGrid .type-chip-btn').forEach(function(btn){
+      document.querySelectorAll('#planTypeGrid .plan-type-btn').forEach(function(btn){
         btn.addEventListener('click', function(){
           var t = btn.dataset.t;
-          var idx = trainingTypes.indexOf(t);
-          var willBeSel = idx === -1;
-          if (idx > -1) trainingTypes.splice(idx,1); else trainingTypes.push(t);
-          btn.classList.toggle('sel');
-          var color = getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim();
-          if (willBeSel){
-            btn.style.background = hexToRgba(color, 0.16);
-            btn.style.borderColor = color;
-            btn.style.color = '';
+          var isSel = trainingTypes.indexOf(t) > -1;
+          if (!isSel){
+            trainingTypes.push(t);
+            btn.classList.add('sel');
           } else {
-            btn.style.background = hexToRgba(color, 0.08);
-            btn.style.borderColor = hexToRgba(color, 0.25);
-            btn.style.color = '';
+            // already selected: preserve fast-planning by not deselecting on tap — instead
+            // open the shared activity form (in plan mode) to add optional detail.
+            // Deselecting happens from within that sheet via "Remove from plan".
+            savePlanForDate(dateStr, collectPlanData());
+            openTrainingDetailSheet(t, dateStr);
           }
         });
       });
@@ -3522,17 +3736,7 @@
         renderMealRows();
       });
       document.getElementById('savePlanBtn').addEventListener('click', function(){
-        var data = {
-          restDay: restDay,
-          trainingTypes: restDay ? [] : trainingTypes,
-          carbLevel: document.getElementById('f_carbLevel').value || null,
-          fasting: fasting,
-          meals: mealsState
-            .map(function(m){ return { id: m.id, text: (m.text||'').trim(), completed: m.completed, completedAt: m.completedAt, nutritionEntryId: m.nutritionEntryId }; })
-            .filter(function(m){ return m.text; }),
-          roadblocks: document.getElementById('f_roadblocks').value
-        };
-        savePlanForDate(dateStr, data);
+        savePlanForDate(dateStr, collectPlanData());
         closeSheet();
       });
       if (existing){
@@ -3794,16 +3998,18 @@
   }
   backdrop.addEventListener('click', function(e){ if (e.target === backdrop) closeSheet(); });
 
-  function openSheet(type, existing, forcedDate){
-    editingId = existing ? existing.id : null;
+  function openSheet(type, existing, forcedDate, opts){
+    opts = opts || {};
+    var mode = opts.mode || 'log';
+    editingId = (mode === 'plan') ? null : (existing ? existing.id : null);
     var data = existing || { type: type, date: forcedDate || todayStr() };
-    if (type === 'nutrition' && data.closed){
+    if (mode === 'log' && type === 'nutrition' && data.closed){
       renderNutritionReadOnly(data);
       return;
     }
-    sheetEl.innerHTML = buildFormHtml(type, data);
+    sheetEl.innerHTML = buildFormHtml(type, data, mode);
     backdrop.classList.add('open');
-    wireForm(type, data);
+    wireForm(type, data, Object.assign({}, opts, { mode: mode }));
   }
 
   function fieldNum(id, label, value, placeholder, step){
@@ -3841,9 +4047,17 @@
 
   var UNIT_OPTIONS = ['kg','lb','reps','sec','m'];
 
-  function buildFormHtml(type, d){
+  // Wraps HTML that only makes sense once an activity has actually happened (results, sets,
+  // bodyweight, etc) so it's present in the DOM (collectFormData still reads it) but hidden
+  // while planning. Log mode passes the HTML straight through.
+  function planHide(mode, html){
+    if (mode !== 'plan') return html;
+    return '<div style="display:none">' + html + '</div>';
+  }
+
+  function buildFormHtml(type, d, mode){
     var html = '<div class="sheet-handle"></div>';
-    html += '<div class="sheet-head"><div class="sheet-title">' + TYPE_LABEL[type] + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>';
+    html += '<div class="sheet-head"><div class="sheet-title">' + TYPE_LABEL[type] + (mode === 'plan' ? ' <span class="sheet-mode-badge">Planning</span>' : '') + '</div><button class="sheet-close" id="sheetCloseBtn">✕</button></div>';
     html += '<div class="field-row">' +
       fieldDate('f_date', 'Date', d.date || todayStr()) +
       '<div class="field"><label>Time (optional)</label><div class="time-with-now">' +
@@ -3857,14 +4071,15 @@
         [{value:'match',label:'Match'}, {value:'tournament',label:'Tournament'}, {value:'social',label:'Social'}, {value:'training',label:'Training'}],
         d.padelType || 'match');
 
-      html += '<div id="padelMatchFields" style="display:none">';
-      html += '<div class="field"><label>Result</label><div class="seg-toggle" id="resultToggle">' +
+      var padelMatchHtml = '<div id="padelMatchFields" style="display:none">';
+      padelMatchHtml += '<div class="field"><label>Result</label><div class="seg-toggle" id="resultToggle">' +
         '<button data-v="win" class="'+(d.result==='win'?'sel':'')+'">Win</button>' +
         '<button data-v="loss" class="'+(d.result==='loss'?'sel':'')+'">Loss</button>' +
         '</div></div>';
-      html += '<div class="field"><label>Sets</label><div id="setRows"></div>' +
+      padelMatchHtml += '<div class="field"><label>Sets</label><div id="setRows"></div>' +
         '<button type="button" class="add-exercise-btn" id="addSetBtn">+ Add set</button></div>';
-      html += '</div>';
+      padelMatchHtml += '</div>';
+      html += planHide(mode, padelMatchHtml);
 
       html += fieldText('f_venue', 'Venue / location', d.venue, 'e.g. PadelHub Epsom');
 
@@ -3887,7 +4102,8 @@
     if (type === 'resistance'){
       html += '<div class="field"><label>Exercises</label><div id="exerciseRows"></div>' +
         '<button type="button" class="add-exercise-btn" id="addExerciseBtn">+ Add exercise</button></div>';
-      html += fieldNum('f_bodyweight', 'Bodyweight (kg, optional)', d.bodyweight, 'xx.x');
+      html += fieldText('f_venue', 'Location (optional)', d.venue, 'e.g. Purley gym');
+      html += planHide(mode, fieldNum('f_bodyweight', 'Bodyweight (kg, optional)', d.bodyweight, 'xx.x'));
       html += fieldNum('f_durationMin', 'Duration (min)', d.durationMin, '60');
     }
 
@@ -3897,6 +4113,7 @@
       html += fieldSelect('f_cardioType', 'Type', cardioTypeOpts, d.cardioType || presets.cardioTypes[0]);
       html += '<div class="field" id="cardioNewTypeField" style="display:none">' +
         '<label>New type name</label><input type="text" id="f_cardioTypeNew" placeholder="e.g. Rowing machine"></div>';
+      html += fieldText('f_venue', 'Location (optional)', d.venue, 'e.g. local park, gym');
       html += '<div class="field-row">' +
         fieldNum('f_distance','Amount', d.distance, '5') +
         fieldSelect('f_distanceUnit', 'Unit', ['km','mi','m','reps','lengths'], d.distanceUnit || 'km') +
@@ -3906,6 +4123,7 @@
 
     if (type === 'yoga'){
       html += fieldText('f_focus', 'Focus', d.focus, 'e.g. hip mobility, full flow');
+      html += fieldText('f_venue', 'Location (optional)', d.venue, 'e.g. home, studio');
       html += fieldNum('f_durationMin', 'Duration (min)', d.durationMin, '30');
     }
 
@@ -3967,9 +4185,10 @@
     }
 
     if (type !== 'nutrition') html += fieldNotes(d.notes);
-    html += '<button class="save-btn" id="saveBtn">Save</button>';
+    html += '<button class="save-btn" id="saveBtn">' + (mode === 'plan' ? 'Save to plan' : 'Save') + '</button>';
     if (type === 'nutrition') html += '<button type="button" class="btn-secondary" id="closeNutritionBtn">Close Nutrition for Today</button>';
-    if (editingId) html += '<button class="delete-btn" id="deleteBtn">Delete</button>';
+    if (mode === 'plan') html += '<button type="button" class="delete-btn" id="removeFromPlanBtn">Remove from plan</button>';
+    else if (editingId) html += '<button class="delete-btn" id="deleteBtn">Delete</button>';
     return html;
   }
 
@@ -4038,7 +4257,8 @@
     });
   }
 
-  function wireForm(type, d){
+  function wireForm(type, d, opts){
+    opts = opts || {};
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
 
     document.getElementById('setNowTimeBtn').addEventListener('click', function(){
@@ -4298,6 +4518,7 @@
         out.durationMin = numOrNull('f_durationMin');
       }
       if (type === 'resistance'){
+        out.venue = document.getElementById('f_venue').value;
         var finalExercises = exerciseState.filter(function(e){ return e.name; }).map(function(e){
           return { name: e.name, sets: e.sets ? Number(e.sets) : null, reps: e.reps ? Number(e.reps) : null,
                    value: e.value ? Number(e.value) : null, unit: e.unit || 'kg' };
@@ -4334,12 +4555,14 @@
           }
         }
         out.cardioType = chosenType;
+        out.venue = document.getElementById('f_venue').value;
         out.distance = numOrNull('f_distance');
         out.distanceUnit = document.getElementById('f_distanceUnit').value;
         out.durationMin = numOrNull('f_durationMin');
       }
       if (type === 'yoga'){
         out.focus = document.getElementById('f_focus').value;
+        out.venue = document.getElementById('f_venue').value;
         out.durationMin = numOrNull('f_durationMin');
       }
       if (type === 'weight'){
@@ -4378,7 +4601,18 @@
     }
 
     document.getElementById('saveBtn').addEventListener('click', function(){
-      saveSession(collectFormData());
+      if (opts.mode === 'plan'){
+        saveTrainingPlanDetails(type, opts.planDate, collectFormData());
+        closeSheet();
+        if (opts.onDone) opts.onDone();
+        return;
+      }
+      var out = collectFormData();
+      // pre-assign the id synchronously (rather than relying on Firestore's auto-id) so a
+      // session created straight from a planned item can be linked back to the plan right away
+      if (opts.planDate && !out.id) out.id = uid();
+      saveSession(out);
+      if (opts.planDate) markPlanTrainingCompleted(opts.planDate, type, out.id);
       closeSheet();
     });
 
@@ -4393,7 +4627,13 @@
       });
     }
 
-    if (editingId){
+    if (opts.mode === 'plan'){
+      document.getElementById('removeFromPlanBtn').addEventListener('click', function(){
+        removeTrainingFromPlan(type, opts.planDate);
+        closeSheet();
+        if (opts.onDone) opts.onDone();
+      });
+    } else if (editingId){
       document.getElementById('deleteBtn').addEventListener('click', function(){
         deleteSession(editingId);
         closeSheet();
