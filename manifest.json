@@ -1,13 +1,13 @@
 {
   "name": "Ledger",
   "short_name": "Ledger",
-  "description": "Shaun's personal operating system \u2014 plan, do, track and review your day.",
+  "description": "Shaun's personal operating system — plan, do, track and review your day.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#14171a",
-  "theme_color": "#14171a",
+  "background_color": "#0e0b08",
+  "theme_color": "#0e0b08",
   "icons": [
     {
       "src": "icon-192.png",
