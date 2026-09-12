@@ -1147,7 +1147,8 @@
   .type-chip-btn.sel { border-color: rgba(var(--gold-rgb),0.5); color: var(--gold); background: rgba(var(--gold-rgb),0.1); }
   .type-chip-btn .dot { width: 16px; height: 16px; border-radius: 50%; }
 
-  .plan-type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+  .plan-type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; align-items: start; }
+  .plan-type-cell { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
   .plan-type-btn {
     position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px;
     padding: 15px 4px 13px; border-radius: var(--r-md);
@@ -1174,6 +1175,14 @@
   }
   .plan-type-btn.sel .chip-check { opacity: 1; transform: scale(1); }
   .plan-type-btn .chip-check svg { width: 8px; height: 8px; display: block; }
+  .plan-type-details {
+    display: flex; align-items: center; justify-content: center; gap: 2px;
+    width: 100%; padding: 6px 2px; border: none; background: none;
+    font-family: var(--sans); font-size: 10px; font-weight: 500; letter-spacing: 0.02em;
+    color: var(--gold); cursor: pointer; border-radius: 8px;
+  }
+  .plan-type-details svg { width: 10px; height: 10px; display: block; flex-shrink: 0; }
+  .plan-type-details:active { opacity: 0.6; }
   .plan-type-hint { font-size: 11.5px; color: var(--text-3); text-align: center; margin: 0 0 var(--sp-5); font-style: italic; font-family: var(--serif); }
 
   .status-btn-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: var(--sp-4); }
@@ -4073,6 +4082,7 @@
     var trainingTypes = (p.trainingTypes || []).slice();
     var carbLevel = p.carbLevel || null;
     var fasting = !!p.fasting;
+    var trainingDetailsState = Object.assign({}, p.trainingDetails || {});
     var mealsState = getPlanMeals(existing);
     if (!mealsState.length) mealsState = [{ id: uid(), text: '', completed: false, completedAt: null, nutritionEntryId: null }];
 
@@ -4082,15 +4092,8 @@
         '<button type="button" class="rest-day-toggle' + (restDay ? ' sel' : '') + '" id="restDayToggle">' + (restDay ? '✓ Rest day' : 'Mark as rest day') + '</button>' +
         '<div id="trainingSection" style="' + (restDay ? 'display:none' : '') + '">' +
           '<div class="field"><label>Training planned</label><div class="plan-type-grid" id="planTypeGrid">' +
-            PLAN_TRAINING_TYPES.map(function(t){
-              var isSel = trainingTypes.indexOf(t) > -1;
-              return '<button type="button" class="plan-type-btn ' + t + (isSel ? ' sel':'') + '" data-t="' + t + '">' +
-                '<span class="chip-icon">' + TRAINING_ICON_SVG[t] + '</span>' +
-                '<span class="chip-label">' + TYPE_LABEL[t] + '</span>' +
-                '<span class="chip-check">' + CHECK_SVG + '</span>' +
-              '</button>';
-            }).join('') +
-          '</div><div class="plan-type-hint">Tap a selected activity to add details</div></div>' +
+            planTypeGridHtml() +
+          '</div><div class="plan-type-hint">Tap to select. Use Details to add more.</div></div>' +
         '</div>' +
         fieldSelect('f_carbLevel', 'Diet', [{value:'',label:'Not set'}].concat(Object.keys(CARB_LEVEL_LABEL).map(function(k){ return {value:k,label:CARB_LEVEL_LABEL[k]}; })), carbLevel || '') +
         fieldYesNo('f_fasting', 'Fasting', fasting) +
@@ -4106,11 +4109,92 @@
     backdrop.classList.add('open');
     wireSheet();
 
+    // The card itself is the toggle; "Details" is a separate affordance so a
+    // selected activity can always be removed again.
+    function planTypeGridHtml(){
+      return PLAN_TRAINING_TYPES.map(function(t){
+        var isSel = trainingTypes.indexOf(t) > -1;
+        return '<div class="plan-type-cell">' +
+          '<button type="button" class="plan-type-btn ' + t + (isSel ? ' sel' : '') + '" data-t="' + t + '"' +
+            ' aria-pressed="' + (isSel ? 'true' : 'false') + '">' +
+            '<span class="chip-icon">' + TRAINING_ICON_SVG[t] + '</span>' +
+            '<span class="chip-label">' + TYPE_LABEL[t] + '</span>' +
+            '<span class="chip-check">' + CHECK_SVG + '</span>' +
+          '</button>' +
+          (isSel
+            ? '<button type="button" class="plan-type-details" data-details="' + t + '">Details' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9.5 6 15.5 12 9.5 18"/></svg>' +
+              '</button>'
+            : '') +
+        '</div>';
+      }).join('');
+    }
+
+    function refreshTypeGrid(){
+      var grid = document.getElementById('planTypeGrid');
+      if (!grid) return;
+      grid.innerHTML = planTypeGridHtml();
+      wireTypeGrid();
+    }
+
+    function plannedDetailSummary(t){
+      var det = trainingDetailsState[t];
+      if (!det) return '';
+      var bits = [];
+      if (det.venue) bits.push(det.venue);
+      if (det.focus) bits.push(det.focus);
+      if (det.cardioType) bits.push(det.cardioType);
+      if (det.distance) bits.push(det.distance + ' ' + (det.distanceUnit || 'km'));
+      if (det.exercises && det.exercises.length) bits.push(det.exercises.length + ' exercise' + (det.exercises.length===1?'':'s'));
+      if (det.durationMin) bits.push(det.durationMin + ' min');
+      if (det.notes) bits.push('notes');
+      return bits.join(', ');
+    }
+
+    function confirmRemoveTraining(t){
+      var det = trainingDetailsState[t];
+      if (!det) return true;
+      if (det.completed){
+        return confirm(TYPE_LABEL[t] + ' is already logged for this day.\n\nRemove it from the plan? The recorded activity itself is kept.');
+      }
+      var summary = plannedDetailSummary(t);
+      if (!summary) return true;
+      return confirm('Remove ' + TYPE_LABEL[t] + ' from the plan?\n\nIts planned details (' + summary + ') will be cleared.');
+    }
+
+    function wireTypeGrid(){
+      document.querySelectorAll('#planTypeGrid .plan-type-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var t = btn.dataset.t;
+          var idx = trainingTypes.indexOf(t);
+          if (idx === -1){
+            trainingTypes.push(t);
+          } else {
+            if (!confirmRemoveTraining(t)) return;
+            trainingTypes.splice(idx, 1);
+            delete trainingDetailsState[t];
+          }
+          refreshTypeGrid();
+        });
+      });
+      document.querySelectorAll('#planTypeGrid .plan-type-details').forEach(function(btn){
+        btn.addEventListener('click', function(e){
+          e.stopPropagation();
+          var t = btn.dataset.details;
+          savePlanForDate(dateStr, collectPlanData());
+          openTrainingDetailSheet(t, dateStr);
+        });
+      });
+    }
+
     function collectPlanData(){
+      var finalTypes = restDay ? [] : trainingTypes;
+      var prunedDetails = {};
+      finalTypes.forEach(function(t){ if (trainingDetailsState[t]) prunedDetails[t] = trainingDetailsState[t]; });
       return {
         restDay: restDay,
-        trainingTypes: restDay ? [] : trainingTypes,
-        trainingDetails: p.trainingDetails || {},
+        trainingTypes: finalTypes,
+        trainingDetails: prunedDetails,
         carbLevel: document.getElementById('f_carbLevel').value || null,
         fasting: fasting,
         meals: mealsState
@@ -4147,22 +4231,7 @@
         sheetEl.innerHTML = buildHtml();
         wireSheet();
       });
-      document.querySelectorAll('#planTypeGrid .plan-type-btn').forEach(function(btn){
-        btn.addEventListener('click', function(){
-          var t = btn.dataset.t;
-          var isSel = trainingTypes.indexOf(t) > -1;
-          if (!isSel){
-            trainingTypes.push(t);
-            btn.classList.add('sel');
-          } else {
-            // already selected: preserve fast-planning by not deselecting on tap — instead
-            // open the shared activity form (in plan mode) to add optional detail.
-            // Deselecting happens from within that sheet via "Remove from plan".
-            savePlanForDate(dateStr, collectPlanData());
-            openTrainingDetailSheet(t, dateStr);
-          }
-        });
-      });
+      wireTypeGrid();
       document.querySelectorAll('#f_fastingToggle button').forEach(function(b){
         b.addEventListener('click', function(){
           fasting = (b.dataset.v === 'yes');
