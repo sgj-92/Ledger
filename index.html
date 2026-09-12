@@ -127,6 +127,7 @@
 
   /* ---------- shared primitives ---------- */
   .chev { flex-shrink: 0; color: var(--text-3); display: flex; align-items: center; }
+  button.chev { background: none; border: none; padding: 0; cursor: pointer; }
   .chev svg { width: 15px; height: 15px; display: block; }
 
   /* circular icon holder — thin ring, never a colour fill */
@@ -193,13 +194,22 @@
     background: linear-gradient(var(--bg) 90%, rgba(14,11,8,0.82) 97%, rgba(14,11,8,0));
     overflow: hidden;
   }
+  /* Photographic hero. The image is pre-darkened and desaturated at build time,
+     then masked + scrimmed here so the serif date always wins over the sky glow. */
   .hdr-tex {
     position: absolute; left: 0; right: 0; top: 0;
-    height: calc(200px + env(safe-area-inset-top)); pointer-events: none; opacity: 0.5;
-    background-repeat: no-repeat; background-size: cover; background-position: center bottom;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200' preserveAspectRatio='xMidYMax slice'%3E%3Cdefs%3E%3ClinearGradient id='r1' x1='0' y1='0' x2='0.25' y2='1'%3E%3Cstop offset='0' stop-color='%237a5f39'/%3E%3Cstop offset='0.5' stop-color='%232b2115'/%3E%3Cstop offset='1' stop-color='%23191209'/%3E%3C/linearGradient%3E%3ClinearGradient id='r2' x1='0' y1='0' x2='0.2' y2='1'%3E%3Cstop offset='0' stop-color='%234a3922'/%3E%3Cstop offset='0.6' stop-color='%231a1309'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 150 L36 108 L58 128 L88 96 L120 134 L146 116 L182 152 L212 126 L248 158 L286 132 L330 162 L364 142 L400 166 L400 200 L0 200Z' fill='url(%23r1)' opacity='0.75'/%3E%3Cpath d='M0 172 L44 142 L82 166 L118 136 L158 168 L196 146 L238 174 L280 150 L326 178 L370 154 L400 172 L400 200 L0 200Z' fill='url(%23r2)' opacity='0.85'/%3E%3Cpath d='M0 190 L50 170 L96 186 L142 166 L190 188 L238 168 L288 190 L336 172 L400 192 L400 200 L0 200Z' fill='%23120d08'/%3E%3C/svg%3E");
-    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.9) 45%, rgba(0,0,0,0) 100%);
-    mask-image: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.9) 45%, rgba(0,0,0,0) 100%);
+    height: calc(212px + env(safe-area-inset-top)); pointer-events: none;
+    background-image: url("hero-mountain.webp");
+    background-repeat: no-repeat; background-size: cover; background-position: 50% 58%;
+    opacity: 0.62;
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,1) 38%, rgba(0,0,0,0.72) 76%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,1) 38%, rgba(0,0,0,0.72) 76%, rgba(0,0,0,0) 100%);
+  }
+  .hdr-tex::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(120% 80% at 50% 34%, rgba(14,11,8,0.72) 0%, rgba(14,11,8,0.28) 55%, rgba(14,11,8,0) 100%),
+      linear-gradient(180deg, rgba(14,11,8,0.5) 0%, rgba(14,11,8,0.1) 40%, rgba(14,11,8,0.55) 100%);
   }
   .hdr-bar { position: relative; display: flex; align-items: center; gap: 10px; }
   .circ-btn {
@@ -429,8 +439,8 @@
   .plan-empty-prompt { margin: 0; }
 
   /* ---- today's plan: two columns of contained cards ---- */
-  .plan-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
-  .plan-cards-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .plan-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; }
+  .plan-cards > * { min-width: 0; }
   .plan-card {
     display: flex; align-items: flex-start; gap: 12px; width: 100%;
     padding: 14px 13px; text-align: left;
@@ -440,7 +450,9 @@
   }
   .plan-card:active { background: var(--surface-2); }
   .plan-card.done { border-color: rgba(var(--gold-rgb),0.28); }
-  .roadblock-card { grid-column: 1 / -1; }
+  /* compact in the grid as the comp shows; tapping gives it the full width so the
+     note is always readable rather than clipped into a half-width column */
+  .roadblock-card.expanded { grid-column: 1 / -1; }
   .plan-card-ic { flex-shrink: 0; color: var(--text-2); display: flex; margin-top: 1px; }
   .plan-card-ic svg { width: 21px; height: 21px; display: block; }
   .plan-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -449,7 +461,7 @@
     line-height: 1.2; letter-spacing: -0.005em;
   }
   .plan-card-sub { font-size: 12.5px; color: var(--text-2); line-height: 1.5; overflow-wrap: anywhere; }
-  .plan-card-sub.clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .plan-card-sub.clamped { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .plan-card-sub .tick { display: inline-flex; width: 11px; height: 11px; color: var(--gold); margin-right: 5px; vertical-align: -1px; }
   .plan-card-sub .tick svg { width: 100%; height: 100%; display: block; }
   .plan-card .chev { align-self: flex-start; margin-top: 2px; }
@@ -954,6 +966,7 @@
     box-shadow: 0 12px 28px -14px rgba(0,0,0,0.8);
     z-index: 22; transition: transform 0.14s cubic-bezier(.2,.8,.3,1);
   }
+  .global-fab[hidden] { display: none; }
   .global-fab svg { width: 21px; height: 21px; display: block; }
   .global-fab:active { transform: scale(0.92); }
 
@@ -1338,6 +1351,215 @@
   .pin-toast.error { border-color: rgba(var(--danger-rgb),0.4); color: var(--danger); }
   .pin-toast-icon { color: var(--gold); margin-right: 5px; vertical-align: -2px; display: inline-block; }
   .pin-toast-icon svg { width: 14px; height: 14px; display: block; }
+
+  /* ============ Morning Prime ============
+     A daily setup ritual: useful before completion, quiet after it. */
+  .mp-card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-lg); overflow: hidden; margin-bottom: var(--sp-5);
+    transition: border-color 0.18s ease;
+  }
+  .mp-card.done { border-color: rgba(var(--gold-rgb),0.22); background: rgba(var(--gold-rgb),0.025); }
+  .mp-head {
+    display: flex; align-items: center; gap: 13px; width: 100%;
+    padding: 14px 15px; background: none; border: none; text-align: left;
+    font-family: var(--sans); color: var(--text); cursor: pointer;
+  }
+  .mp-head:active { background: var(--surface-2); }
+  .mp-head-body { flex: 1; min-width: 0; }
+  .mp-title {
+    display: block; font-family: var(--serif); font-size: 17px; font-weight: 400;
+    line-height: 1.25; color: var(--text); letter-spacing: -0.005em;
+  }
+  .mp-sub {
+    display: block; font-size: 12px; color: var(--text-3);
+    margin-top: 3px; letter-spacing: 0.01em;
+  }
+  .mp-card.done .mp-sub { color: rgba(var(--gold-rgb),0.7); }
+  .mp-chev {
+    width: 15px; height: 15px; flex-shrink: 0; color: var(--text-3);
+    transition: transform 0.24s ease;
+  }
+  .mp-chev svg { width: 100%; height: 100%; display: block; }
+  .mp-head[aria-expanded="true"] .mp-chev { transform: rotate(180deg); }
+  .mp-mark {
+    flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid rgba(var(--gold-rgb),0.4); color: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mp-mark svg { width: 16px; height: 16px; display: block; }
+  .mp-mark.filled { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+
+  .mp-body {
+    overflow: hidden; max-height: 820px; opacity: 1;
+    transition: max-height 0.26s ease, opacity 0.2s ease;
+  }
+  .mp-body.collapsed { max-height: 0; opacity: 0; visibility: hidden; }
+  .mp-body-inner { padding: 0 15px 15px; border-top: 1px solid var(--line); }
+
+  .mp-step {
+    display: flex; align-items: center; gap: 13px; width: 100%;
+    padding: 13px 0; background: none; border: none;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--sans); text-align: left; color: var(--text); cursor: pointer;
+  }
+  .mp-step:active { opacity: 0.6; }
+  .mp-step-ic { flex-shrink: 0; width: 19px; color: var(--text-2); display: flex; }
+  .mp-step-ic svg { width: 19px; height: 19px; display: block; }
+  .mp-step.done .mp-step-ic { color: var(--gold); }
+  .mp-step-label { flex: 1; min-width: 0; font-size: 14px; letter-spacing: 0.005em; }
+  .mp-step-num { color: var(--text-3); }
+  .mp-step-val {
+    font-size: 12px; color: var(--text-3); flex-shrink: 0;
+    font-variant-numeric: tabular-nums; letter-spacing: 0.01em;
+  }
+  .mp-step.done .mp-step-val { color: rgba(var(--gold-rgb),0.8); }
+  .mp-step .chev { flex-shrink: 0; }
+
+  .mp-intention-wrap { padding-top: 13px; }
+  .mp-intention-wrap textarea {
+    width: 100%; box-sizing: border-box; resize: none;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--r-md); padding: 12px 13px;
+    font-family: var(--serif); font-style: italic; font-size: 14.5px; line-height: 1.5;
+    color: var(--text); outline: none;
+  }
+  .mp-intention-wrap textarea::placeholder { color: var(--text-3); font-style: italic; }
+  .mp-intention-wrap textarea:focus { border-color: rgba(var(--gold-rgb),0.35); }
+  .mp-count {
+    display: block; text-align: right; font-size: 10.5px; color: var(--text-3);
+    margin-top: 6px; font-variant-numeric: tabular-nums;
+  }
+  .mp-save { margin-top: 14px; padding: 13px 14px; font-size: 14.5px; border-radius: var(--r-md); }
+  .mp-save[disabled] { opacity: 0.4; pointer-events: none; }
+  .mp-hint { font-size: 11.5px; color: var(--text-3); margin: 10px 0 0; text-align: center; }
+
+  /* ---- key-task picker ---- */
+  .kt-search {
+    display: flex; align-items: center; gap: 10px; margin-bottom: var(--sp-3);
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--r-md); padding: 11px 13px;
+  }
+  .kt-search svg { width: 15px; height: 15px; color: var(--text-3); flex-shrink: 0; }
+  .kt-search input {
+    flex: 1; min-width: 0; background: none; border: none; outline: none;
+    font-family: var(--sans); font-size: 14px; color: var(--text);
+  }
+  .kt-search input::placeholder { color: var(--text-3); }
+  .kt-list { margin-bottom: var(--sp-3); }
+  .kt-row {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 13px 0; background: none; border: none;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--sans); text-align: left; color: var(--text); cursor: pointer;
+  }
+  .kt-row:active { opacity: 0.6; }
+  .kt-check {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px solid var(--line-2); background: none;
+    display: flex; align-items: center; justify-content: center; color: transparent;
+    transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  }
+  .kt-check svg { width: 12px; height: 12px; display: block; }
+  .kt-row.sel .kt-check { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .kt-row-title {
+    flex: 1; min-width: 0; font-size: 14.5px; line-height: 1.35;
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-family: var(--sans); color: var(--text); text-align: left;
+  }
+  .kt-row.sel .kt-row-title { color: var(--text); }
+  .kt-chip {
+    flex-shrink: 0; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-3); border: 1px solid var(--line); border-radius: 20px;
+    padding: 3px 9px;
+  }
+  .kt-row[aria-disabled="true"] { opacity: 0.38; pointer-events: none; }
+  .kt-empty { font-size: 13px; color: var(--text-3); padding: 16px 0; text-align: center; }
+  /* the quiet escape hatches in these sheets sit centred under the primary action */
+  #pmNoneBtn, #pmDoneBtn, #ktDoneBtn { display: block; width: 100%; text-align: center; }
+  #pmNoneBtn { color: var(--text-3); font-size: 12.5px; padding-bottom: 4px; }
+
+  /* ---- planned meals sheet ---- */
+  .pm-list { margin-bottom: var(--sp-3); }
+  .pm-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 0; border-bottom: 1px solid var(--line);
+  }
+  .pm-check {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px solid var(--line-2); background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: transparent;
+    transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  }
+  .pm-check svg { width: 12px; height: 12px; display: block; }
+  .pm-check.done { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .pm-body {
+    flex: 1; min-width: 0; background: none; border: none; padding: 0;
+    font-family: var(--sans); font-size: 14.5px; line-height: 1.35;
+    color: var(--text); text-align: left; cursor: pointer;
+  }
+  .pm-row.done .pm-body { color: var(--text-2); }
+  .pm-row .chev { flex-shrink: 0; }
+
+  /* ============ Add action disclosure ============ */
+  .add-action {
+    border: 1px solid var(--line); border-radius: var(--r-lg);
+    background: var(--surface); overflow: hidden; margin-top: var(--sp-3);
+  }
+  .add-action-head {
+    display: flex; align-items: center; gap: 13px; width: 100%;
+    padding: 14px 15px; background: none; border: none;
+    font-family: var(--sans); font-size: 14.5px; font-weight: 500;
+    color: var(--text); text-align: left; cursor: pointer;
+  }
+  .add-action-head:active { background: var(--surface-2); }
+  .add-action-plus {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--gold); color: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .add-action-plus svg { width: 14px; height: 14px; display: block; }
+  .add-action-label { flex: 1; min-width: 0; }
+  .add-action-body {
+    overflow: hidden; max-height: 260px; opacity: 1;
+    transition: max-height 0.24s ease, opacity 0.2s ease;
+  }
+  .add-action-body.collapsed { max-height: 0; opacity: 0; visibility: hidden; }
+  .add-action-body-inner {
+    padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px;
+    border-top: 1px solid var(--line);
+  }
+  .add-option {
+    display: flex; align-items: center; gap: 13px; width: 100%;
+    padding: 13px 13px; margin-top: 12px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    font-family: var(--sans); text-align: left; color: var(--text); cursor: pointer;
+  }
+  .add-option:active { background: var(--surface-3); }
+  .add-action-body-inner > .add-option + .add-option { margin-top: 0; }
+  .add-option-ic { flex-shrink: 0; width: 20px; color: var(--text-2); display: flex; }
+  .add-option-ic svg { width: 20px; height: 20px; display: block; }
+  .add-option.gold .add-option-ic { color: var(--gold); }
+  .add-option-body { flex: 1; min-width: 0; }
+  .add-option-title { display: block; font-size: 14.5px; font-weight: 500; line-height: 1.25; }
+  .add-option-sub { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
+
+  /* key tasks read as the day's spine — a whisper of gold, not a badge */
+  .commitment-item.key-task { box-shadow: inset 2px 0 0 rgba(var(--gold-rgb),0.55); }
+
+  /* ---- recorded activity collapse ---- */
+  .recorded-body {
+    overflow: hidden; max-height: 3000px; opacity: 1; margin-top: var(--sp-3);
+    transition: max-height 0.26s ease, opacity 0.2s ease, margin 0.24s ease;
+  }
+  .recorded-body.collapsed { max-height: 0; opacity: 0; margin-top: 0; visibility: hidden; }
+  .section-toggle-value {
+    font-size: 12px; color: var(--text-3); flex-shrink: 0;
+    max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    letter-spacing: 0.01em; text-transform: none;
+  }
+  .section-toggle-label.has-value::after { min-width: 12px; }
 </style>
 </head>
 <body>
@@ -1365,15 +1587,32 @@
   <section class="view active" id="view-log">
     <div id="catchUpBanner"></div>
 
+    <div id="morningPrime"></div>
+
     <div class="sec-head">
       <span class="sec-label">Actions</span>
       <span class="sec-rule"></span>
       <span class="sec-value" id="actionsCount"></span>
     </div>
     <div id="commitmentsList"></div>
-    <div class="btn-row today-actions" id="addActionsRow">
-      <button class="btn-ghost gold" id="quickCaptureBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg>Quick add</button>
-      <button class="btn-ghost" id="addCommitmentBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2.2"/><line x1="8.5" y1="9" x2="15.5" y2="9"/><line x1="8.5" y1="13" x2="15.5" y2="13"/><line x1="8.5" y1="17" x2="12.5" y2="17"/></svg>Add with detail</button>
+    <div class="add-action" id="addActionWrap">
+      <button type="button" class="add-action-head" id="addActionToggle" aria-expanded="false" aria-controls="addActionBody">
+        <span class="add-action-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span>
+        <span class="add-action-label">Add action</span>
+        <span class="mp-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+      </button>
+      <div class="add-action-body collapsed" id="addActionBody">
+        <div class="add-action-body-inner">
+          <button type="button" class="add-option gold" id="quickCaptureBtn">
+            <span class="add-option-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 4.5 13.5 11 13.5 10 22 19 10 12.5 10"/></svg></span>
+            <span class="add-option-body"><span class="add-option-title">Quick add</span><span class="add-option-sub">Capture a thought quickly</span></span>
+          </button>
+          <button type="button" class="add-option" id="addCommitmentBtn">
+            <span class="add-option-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2.2"/><line x1="8.5" y1="9" x2="15.5" y2="9"/><line x1="8.5" y1="13" x2="15.5" y2="13"/><line x1="8.5" y1="17" x2="12.5" y2="17"/></svg></span>
+            <span class="add-option-body"><span class="add-option-title">Detailed add</span><span class="add-option-sub">Add with full options</span></span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <div id="accountabilityMsg"></div>
@@ -1415,12 +1654,15 @@
       </button>
     </div>
 
-    <div class="sec-head">
-      <span class="sec-label">Recorded activity</span>
-      <span class="sec-rule"></span>
+    <button type="button" class="section-toggle" id="recordedToggle" aria-expanded="false" aria-controls="recordedBody">
+      <span class="section-toggle-label has-value">Recorded activity</span>
+      <span class="section-toggle-value" id="recordedSummary"></span>
+      <span class="section-toggle-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </button>
+    <div class="recorded-body collapsed" id="recordedBody">
+      <div id="todayList"></div>
+      <button class="btn-link" id="viewHistoryBtn">View history in Calendar →</button>
     </div>
-    <div id="todayList"></div>
-    <button class="btn-link" id="viewHistoryBtn">View history in Calendar →</button>
     <p class="sync-note" id="syncNote"></p>
   </section>
 
@@ -1527,6 +1769,8 @@
   var PLAN_TRAINING_TYPES = ['padel','cardio','resistance','yoga'];
   var CARB_LEVEL_LABEL = { low: 'Low carb', normal: 'Normal', high: 'High carb' };
   var editingId = null;
+  // set by sheets that mirror live data, so a save elsewhere refreshes them in place
+  var activeSheetRefresh = null;
   var viewedDate = todayStr(); // the date the Today view is currently showing
   var planSelectedDate = null; // last day-row interacted with in Plan (for the global FAB's date target)
 
@@ -1559,6 +1803,9 @@
     droplet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2c3.4 4 5.4 6.7 5.4 9.3A5.4 5.4 0 0 1 6.6 12.5c0-2.6 2-5.3 5.4-9.3z"/></svg>',
     box: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.3l8 4.2v9L12 20.7 4 16.5v-9z"/><path d="M4 7.5l8 4.2 8-4.2"/><line x1="12" y1="11.7" x2="12" y2="20.7"/></svg>',
     alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6l9 15.8H3z"/><line x1="12" y1="9.6" x2="12" y2="14"/><circle cx="12" cy="16.8" r="0.85" fill="currentColor" stroke="none"/></svg>',
+    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6.5" x2="20" y2="6.5"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="17.5" x2="20" y2="17.5"/><circle cx="5" cy="6.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="17.5" r="1.3" fill="currentColor" stroke="none"/></svg>',
+    target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><line x1="15.8" y1="15.8" x2="20" y2="20"/></svg>',
     flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2c3.4 3.4 5.6 6.1 5.6 9.3a5.6 5.6 0 0 1-11.2 0c0-1.5.6-2.9 1.7-4.2.5 1.2 1.2 1.9 2 2.1-.3-2.6.3-5 1.9-7.2z"/></svg>',
     glass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 4.5h11l-1.3 15H7.8z"/><line x1="7.1" y1="11" x2="16.9" y2="11"/></svg>'
   };
@@ -2376,6 +2623,7 @@
       currentView = btn.dataset.view;
       document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
       document.getElementById('view-' + currentView).classList.add('active');
+      syncGlobalFab();
       if (currentView === 'log') renderLogView();
       if (currentView === 'calendar') renderCalendar();
       if (currentView === 'stats') renderStats();
@@ -2684,7 +2932,7 @@
   function buildCommitmentRow(c){
     var isRoadblock = c.category === 'roadblock';
     var row = document.createElement('div');
-    row.className = 'commitment-item' + (isRoadblock ? ' roadblock' : '');
+    row.className = 'commitment-item' + (isRoadblock ? ' roadblock' : '') + (c.isKeyTask ? ' key-task' : '');
     var metaParts = [];
     if (c.status !== 'planned' && c.status !== 'completed') metaParts.push(COMMITMENT_STATUS_LABEL[c.status]);
     if (c.status === 'disrupted' && c.disruptionReason) metaParts.push(c.disruptionReason);
@@ -2792,6 +3040,7 @@
 
   function openCommitmentSheet(existing){
     editingId = null;
+    activeSheetRefresh = null;
     var isEditing = !!existing;
     var statusVal = existing ? existing.status : 'planned';
     var disruptionVal = existing ? (existing.disruptionReason || null) : null;
@@ -2901,7 +3150,7 @@
     }
   }
 
-  document.getElementById('addCommitmentBtn').addEventListener('click', function(){ openCommitmentSheet(null); });
+  document.getElementById('addCommitmentBtn').addEventListener('click', function(){ setAddActionOpen(false); openCommitmentSheet(null); });
 
   // ---------- quick capture (batch, low-friction, date-aware) ----------
   var qcRowSeq = 0;
@@ -3081,8 +3330,14 @@
     toPin.forEach(function(item){ pinNow(item.title, '', item.id, item.date); });
   }
 
-  document.getElementById('quickCaptureBtn').addEventListener('click', function(){ openQuickCaptureSheet(viewedDate); });
+  document.getElementById('quickCaptureBtn').addEventListener('click', function(){ setAddActionOpen(false); openQuickCaptureSheet(viewedDate); });
   document.getElementById('globalFabBtn').addEventListener('click', function(){ openQuickCaptureSheet(fabTargetDate()); });
+  // Today has its own Add action control; a floating duplicate would only cover content
+  function syncGlobalFab(){
+    var fab = document.getElementById('globalFabBtn');
+    if (fab) fab.hidden = currentView === 'log';
+  }
+  syncGlobalFab();
 
   function fabTargetDate(){
     if (currentView === 'log') return viewedDate;
@@ -3162,6 +3417,382 @@
     }
 
     render();
+  }
+
+  // ============ Morning Prime ============
+  // A compact daily setup ritual: plan meals, pick three key tasks, set an intention.
+  // It leans on the systems already here — key tasks are ordinary actions flagged
+  // isKeyTask, meals are the day's plan.meals — so nothing here is a parallel record.
+  var MP_INTENTION_MAX = 200;
+  var mpExpanded = {};        // dateStr -> bool, session-only disclosure state
+  var mpIntentionDraft = {};  // dateStr -> string, uncommitted edit
+
+  function getMorningPrime(dateStr){
+    var plan = getPlanForDate(dateStr);
+    var mp = (plan && plan.morningPrime) || {};
+    return {
+      mealsAcknowledged: !!mp.mealsAcknowledged,
+      intention: mp.intention || '',
+      completedAt: mp.completedAt || null
+    };
+  }
+  function getKeyTasks(dateStr){
+    return commitments.filter(function(c){ return c.date === dateStr && c.isKeyTask && c.category !== 'roadblock'; });
+  }
+  function mpIntentionValue(dateStr){
+    return mpIntentionDraft[dateStr] != null ? mpIntentionDraft[dateStr] : getMorningPrime(dateStr).intention;
+  }
+  function mpState(dateStr){
+    var mp = getMorningPrime(dateStr);
+    var meals = getPlanMeals(getPlanForDate(dateStr));
+    var keys = getKeyTasks(dateStr);
+    var intention = (mpIntentionValue(dateStr) || '').trim();
+    var st = {
+      mealCount: meals.length,
+      mealsDone: meals.length > 0 || mp.mealsAcknowledged,
+      mealsAcknowledged: mp.mealsAcknowledged,
+      keyCount: keys.length,
+      keysDone: keys.length >= 3,
+      intention: intention,
+      intentionDone: !!intention,
+      completedAt: mp.completedAt
+    };
+    st.doneCount = (st.mealsDone?1:0) + (st.keysDone?1:0) + (st.intentionDone?1:0);
+    st.complete = st.doneCount === 3;
+    return st;
+  }
+
+  async function patchMorningPrime(dateStr, patch){
+    var plan = getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
+    var next = Object.assign({}, plan);
+    next.morningPrime = Object.assign({}, plan.morningPrime || {}, patch, { updatedAt: new Date().toISOString() });
+    await savePlanForDate(dateStr, next);
+  }
+
+  function mpTimeLabel(iso){
+    try {
+      var d = new Date(iso);
+      return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+    } catch(e){ return ''; }
+  }
+  function mpMissingLabel(st){
+    var missing = [];
+    if (!st.mealsDone) missing.push('plan your meals');
+    if (!st.keysDone) missing.push((3 - st.keyCount) + ' more key task' + ((3 - st.keyCount) === 1 ? '' : 's'));
+    if (!st.intentionDone) missing.push('an intention');
+    if (!missing.length) return '';
+    if (missing.length === 1) return 'Still to go: ' + missing[0] + '.';
+    return 'Still to go: ' + missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length-1] + '.';
+  }
+
+  function mpStepHtml(opts){
+    return '<button type="button" class="mp-step' + (opts.done ? ' done' : '') + '" data-mp-step="' + opts.step + '">' +
+      '<span class="mp-step-ic">' + opts.icon + '</span>' +
+      '<span class="mp-step-label"><span class="mp-step-num">' + opts.num + '. </span>' + opts.label + '</span>' +
+      (opts.value ? '<span class="mp-step-val">' + opts.value + '</span>' : '') +
+      '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
+    '</button>';
+  }
+
+  function renderMorningPrime(){
+    var wrap = document.getElementById('morningPrime');
+    if (!wrap) return;
+    var dateStr = viewedDate;
+    var isToday = dateStr === todayStr();
+    var st = mpState(dateStr);
+    // a today ritual; past days only keep it if it actually holds something
+    if (!isToday && !st.completedAt && !st.doneCount){ wrap.innerHTML = ''; return; }
+
+    var expanded = !!mpExpanded[dateStr];
+    var sub = st.completedAt
+      ? 'Completed at ' + mpTimeLabel(st.completedAt)
+      : (expanded ? 'Set yourself up for a focused day.' : 'Plan your day · ' + st.doneCount + ' of 3 complete');
+
+    var html = '<div class="mp-card' + (st.completedAt ? ' done' : '') + '">' +
+      '<button type="button" class="mp-head" id="mpHead" aria-expanded="' + (expanded ? 'true' : 'false') + '" aria-controls="mpBody">' +
+        '<span class="mp-mark' + (st.completedAt ? ' filled' : '') + '">' + (st.completedAt ? CHECK_SVG : UI_ICON.sun) + '</span>' +
+        '<span class="mp-head-body">' +
+          '<span class="mp-title">Morning Prime</span>' +
+          '<span class="mp-sub">' + sub + '</span>' +
+        '</span>' +
+        '<span class="mp-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
+      '</button>' +
+      '<div class="mp-body' + (expanded ? '' : ' collapsed') + '" id="mpBody"><div class="mp-body-inner">' +
+        mpStepHtml({ step:'meals', num:1, icon:UI_ICON.cutlery, label:'Plan your meals', done:st.mealsDone,
+                     value: st.mealCount ? st.mealCount + ' planned' : (st.mealsAcknowledged ? 'None today' : '') }) +
+        mpStepHtml({ step:'keys', num:2, icon:UI_ICON.list, label:'Set your three key tasks', done:st.keysDone,
+                     value: st.keyCount + ' of 3' }) +
+        mpStepHtml({ step:'intention', num:3, icon:UI_ICON.target, label:'Set your intention', done:st.intentionDone,
+                     value: '' }) +
+        '<div class="mp-intention-wrap">' +
+          '<textarea id="mpIntention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
+          '<span class="mp-count" id="mpCount"></span>' +
+        '</div>' +
+        '<button type="button" class="btn-primary mp-save" id="mpSaveBtn">' + (st.completedAt ? 'Update Morning Prime' : 'Save Morning Prime') + '</button>' +
+        (st.complete ? '' : '<p class="mp-hint" id="mpHint">' + mpMissingLabel(st) + '</p>') +
+      '</div></div>' +
+    '</div>';
+    wrap.innerHTML = html;
+
+    var ta = document.getElementById('mpIntention');
+    var count = document.getElementById('mpCount');
+    ta.value = mpIntentionValue(dateStr);           // set as value, never as markup
+    count.textContent = ta.value.length + '/' + MP_INTENTION_MAX;
+    ta.addEventListener('input', function(){
+      mpIntentionDraft[dateStr] = ta.value;
+      count.textContent = ta.value.length + '/' + MP_INTENTION_MAX;
+    });
+
+    document.getElementById('mpHead').addEventListener('click', function(){
+      mpExpanded[dateStr] = !mpExpanded[dateStr];
+      renderMorningPrime();
+    });
+
+    wrap.querySelectorAll('[data-mp-step]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var step = btn.dataset.mpStep;
+        if (step === 'meals') openPlanMealsSheet(dateStr);
+        else if (step === 'keys') openKeyTasksSheet(dateStr);
+        else openIntentionSheet(dateStr);
+      });
+    });
+
+    document.getElementById('mpSaveBtn').addEventListener('click', async function(){
+      var text = (document.getElementById('mpIntention').value || '').trim();
+      mpIntentionDraft[dateStr] = text;
+      var after = mpState(dateStr);
+      var patch = { intention: text, mealsAcknowledged: true };
+      // completion is earned, not asserted by tapping save
+      if (after.mealsDone && after.keysDone && text){
+        patch.completedAt = after.completedAt || new Date().toISOString();
+        mpExpanded[dateStr] = false;
+      }
+      delete mpIntentionDraft[dateStr];
+      await patchMorningPrime(dateStr, patch);
+      renderMorningPrime();
+    });
+  }
+
+  // ---- step 1: meals. Thin view over the day's plan.meals — same records, same sync. ----
+  function openPlanMealsSheet(dateStr){
+    editingId = null;
+    var adding = false;
+
+    function build(){
+      var meals = getPlanMeals(getPlanForDate(dateStr));
+      var eaten = meals.filter(function(m){ return m.completed; }).length;
+      var sub = meals.length
+        ? meals.length + ' planned' + (eaten ? ' · ' + eaten + ' eaten' : '')
+        : 'Nothing planned yet';
+      return '<div class="sheet-handle"></div>' +
+        sheetHead(UI_ICON.cutlery, 'Plan your meals', sub, '') +
+        '<div class="pm-list">' +
+          (meals.length
+            ? meals.map(function(m){
+                return '<div class="pm-row' + (m.completed ? ' done' : '') + '">' +
+                  '<button type="button" class="pm-check' + (m.completed ? ' done' : '') + '" data-pm-check="' + m.id + '"' +
+                    ' aria-label="' + (m.completed ? 'Mark not eaten' : 'Mark eaten') + '">' + CHECK_SVG + '</button>' +
+                  '<button type="button" class="pm-body" data-pm-open="' + m.id + '"></button>' +
+                  '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
+                '</div>';
+              }).join('')
+            : '<div class="kt-empty">No meals planned for this day yet.</div>') +
+        '</div>' +
+        (adding
+          ? '<div class="field"><label>New meal</label><input type="text" id="pmNewMeal" placeholder="e.g. Chicken and rice" autocomplete="off"></div>' +
+            '<button type="button" class="btn-primary" id="pmAddSaveBtn">Add meal</button>'
+          : '<button type="button" class="add-exercise-btn" id="pmAddBtn">+ Add meal</button>') +
+        '<button type="button" class="btn-quiet" id="pmDoneBtn">Done</button>' +
+        '<button type="button" class="btn-link" id="pmNoneBtn">No meals to plan today</button>';
+    }
+
+    function render(){
+      sheetEl.innerHTML = build();
+      // meal text is user content — always set as text, never interpolated as markup
+      getPlanMeals(getPlanForDate(dateStr)).forEach(function(m){
+        var el = sheetEl.querySelector('[data-pm-open="' + m.id + '"]');
+        if (el) el.textContent = m.text;
+      });
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      document.getElementById('pmDoneBtn').addEventListener('click', closeSheet);
+      document.getElementById('pmNoneBtn').addEventListener('click', async function(){
+        await patchMorningPrime(dateStr, { mealsAcknowledged: true });
+        closeSheet();
+      });
+      sheetEl.querySelectorAll('[data-pm-check]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var fresh = getPlanForDate(dateStr);
+          if (fresh) togglePlannedMeal(fresh, el.dataset.pmCheck);
+        });
+      });
+      sheetEl.querySelectorAll('[data-pm-open]').forEach(function(el){
+        el.addEventListener('click', function(){ openPlannedMealSheet(dateStr, el.dataset.pmOpen); });
+      });
+      if (adding){
+        var input = document.getElementById('pmNewMeal');
+        setTimeout(function(){ input.focus(); }, 30);
+        input.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); commitNewMeal(); } });
+        document.getElementById('pmAddSaveBtn').addEventListener('click', commitNewMeal);
+      } else {
+        document.getElementById('pmAddBtn').addEventListener('click', function(){ adding = true; render(); });
+      }
+    }
+
+    async function commitNewMeal(){
+      var input = document.getElementById('pmNewMeal');
+      var text = (input ? input.value : '').trim();
+      if (!text){ adding = false; render(); return; }
+      var fresh = getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
+      var next = Object.assign({}, fresh);
+      next.meals = getPlanMeals(fresh).concat([{ id: uid(), text: text, completed: false, completedAt: null, nutritionEntryId: null }]);
+      adding = false;
+      await savePlanForDate(dateStr, next);
+      render();
+    }
+
+    render();
+    backdrop.classList.add('open');
+    activeSheetRefresh = render;
+  }
+
+  // ---- step 2: key tasks. Ordinary actions flagged isKeyTask — no parallel task type. ----
+  function openKeyTasksSheet(dateStr){
+    editingId = null;
+    var query = '';
+
+    function build(){
+      var all = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
+      var q = query.trim().toLowerCase();
+      var shown = q ? all.filter(function(c){ return (c.title || '').toLowerCase().indexOf(q) > -1; }) : all;
+      var selected = all.filter(function(c){ return c.isKeyTask; }).length;
+      var atCap = selected >= 3;
+      var exact = all.some(function(c){ return (c.title || '').trim().toLowerCase() === q; });
+
+      return '<div class="sheet-handle"></div>' +
+        sheetHead(UI_ICON.list, 'Set your three key tasks', selected + ' of 3 selected', '') +
+        '<div class="kt-search">' + UI_ICON.search +
+          '<input type="text" id="ktSearch" placeholder="Search or add action…" autocomplete="off">' +
+        '</div>' +
+        '<div class="kt-list">' +
+          (shown.length
+            ? shown.map(function(c){
+                var sel = !!c.isKeyTask;
+                var cat = QUICK_CAPTURE_CATEGORY_MAP[c.category];
+                return '<div class="kt-row' + (sel ? ' sel' : '') + '"' + (!sel && atCap ? ' aria-disabled="true"' : '') + '>' +
+                  '<button type="button" class="kt-check" data-kt-toggle="' + c.id + '"' +
+                    ' aria-pressed="' + (sel ? 'true' : 'false') + '" aria-label="' + (sel ? 'Remove key task' : 'Make key task') + '">' + CHECK_SVG + '</button>' +
+                  '<button type="button" class="kt-row-title" data-kt-toggle="' + c.id + '"></button>' +
+                  (cat ? '<span class="kt-chip">' + cat.label + '</span>' : '') +
+                  '<button type="button" class="chev" data-kt-open="' + c.id + '" aria-label="Edit action">' + UI_ICON.chevronRight + '</button>' +
+                '</div>';
+              }).join('')
+            : '<div class="kt-empty">' + (q ? 'No matching action' : 'No actions for this day yet') + '</div>') +
+        '</div>' +
+        (q && !exact
+          ? '<button type="button" class="add-exercise-btn" id="ktAddBtn">+ Add new action</button>'
+          : '<button type="button" class="add-exercise-btn" id="ktAddBtn">+ Add new action</button>') +
+        (atCap ? '<p class="mp-hint">Three is the limit — deselect one to swap it out.</p>' : '') +
+        '<button type="button" class="btn-quiet" id="ktDoneBtn">Done</button>';
+    }
+
+    function render(){
+      var focusVal = query;
+      sheetEl.innerHTML = build();
+      // titles are user content — set as text
+      commitments.filter(function(c){ return c.date === dateStr; }).forEach(function(c){
+        sheetEl.querySelectorAll('.kt-row-title[data-kt-toggle="' + c.id + '"]').forEach(function(el){ el.textContent = c.title; });
+      });
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      document.getElementById('ktDoneBtn').addEventListener('click', closeSheet);
+
+      var search = document.getElementById('ktSearch');
+      search.value = focusVal;
+      search.addEventListener('input', function(){ query = search.value; render(); document.getElementById('ktSearch').focus(); });
+      search.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' && search.value.trim()){ e.preventDefault(); addNewKeyTask(); }
+      });
+
+      sheetEl.querySelectorAll('[data-kt-toggle]').forEach(function(el){
+        el.addEventListener('click', function(){ toggleKeyTask(el.dataset.ktToggle); });
+      });
+      sheetEl.querySelectorAll('[data-kt-open]').forEach(function(el){
+        el.addEventListener('click', function(e){
+          e.stopPropagation();
+          var c = commitments.find(function(x){ return x.id === el.dataset.ktOpen; });
+          if (c) openCommitmentSheet(c);
+        });
+      });
+      document.getElementById('ktAddBtn').addEventListener('click', function(){
+        if (query.trim()) addNewKeyTask();
+        else document.getElementById('ktSearch').focus();
+      });
+    }
+
+    function toggleKeyTask(id){
+      var c = commitments.find(function(x){ return x.id === id; });
+      if (!c) return;
+      var selected = commitments.filter(function(x){ return x.date === dateStr && x.isKeyTask && x.category !== 'roadblock'; }).length;
+      if (!c.isKeyTask && selected >= 3) return;
+      saveCommitment(Object.assign({}, c, { isKeyTask: !c.isKeyTask }));
+      render();
+    }
+
+    // creates a normal Ledger action for the day, then marks it as a key task
+    function addNewKeyTask(){
+      var text = query.trim();
+      if (!text) return;
+      var selected = commitments.filter(function(x){ return x.date === dateStr && x.isKeyTask && x.category !== 'roadblock'; }).length;
+      var item = {
+        id: uid(),
+        date: dateStr,
+        title: text,
+        priorityId: null,
+        minVersion: null,
+        status: 'planned',
+        disruptionReason: null,
+        category: qcLastCategory || 'work',
+        isKeyTask: selected < 3,
+        createdAt: new Date().toISOString()
+      };
+      commitments.push(item);           // optimistic, so the sheet reflects it immediately
+      saveCommitment(item);
+      query = '';
+      render();
+    }
+
+    render();
+    backdrop.classList.add('open');
+    activeSheetRefresh = render;
+  }
+
+  // ---- step 3: intention ----
+  function openIntentionSheet(dateStr){
+    editingId = null;
+    var value = mpIntentionValue(dateStr);
+    sheetEl.innerHTML =
+      '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.target, 'Set your intention', 'One line to set the tone.', '') +
+      '<div class="mp-intention-wrap">' +
+        '<textarea id="f_intention" rows="3" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
+        '<span class="mp-count" id="intentionCount"></span>' +
+      '</div>' +
+      '<button type="button" class="btn-primary" id="intentionSaveBtn">Save</button>';
+    backdrop.classList.add('open');
+    var ta = document.getElementById('f_intention');
+    var count = document.getElementById('intentionCount');
+    ta.value = value;
+    count.textContent = value.length + '/' + MP_INTENTION_MAX;
+    setTimeout(function(){ ta.focus(); }, 40);
+    ta.addEventListener('input', function(){ count.textContent = ta.value.length + '/' + MP_INTENTION_MAX; });
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('intentionSaveBtn').addEventListener('click', async function(){
+      var text = (ta.value || '').trim();
+      mpIntentionDraft[dateStr] = text;
+      closeSheet();
+      await patchMorningPrime(dateStr, { intention: text });
+      delete mpIntentionDraft[dateStr];
+      renderMorningPrime();
+    });
   }
 
   // ---------- accountability message (deterministic, no AI) ----------
@@ -3266,6 +3897,7 @@
   }
 
   function renderLogView(){
+    renderMorningPrime();
     renderCommitments();
     renderAccountabilityMessage();
     renderCatchUpBanner();
@@ -3298,6 +3930,15 @@
       daysSessions.forEach(function(s){ todayList.appendChild(renderSessionItem(s)); });
       if (historyBtn) historyBtn.hidden = false;
     }
+
+    var recSummary = document.getElementById('recordedSummary');
+    if (recSummary){
+      recSummary.textContent = daysSessions.length
+        ? daysSessions.map(function(s){ return SHORT_TYPE_LABEL[s.type] || TYPE_LABEL[s.type]; }).join(' · ')
+        : (isToday ? 'Nothing logged yet' : 'Nothing logged');
+    }
+
+    if (activeSheetRefresh) activeSheetRefresh();
   }
 
   document.getElementById('viewHistoryBtn').addEventListener('click', function(){
@@ -3311,6 +3952,25 @@
       var existing = type === 'nutrition' ? getNutritionForDate(viewedDate) : null;
       openSheet(type, existing, viewedDate);
     });
+  });
+
+  // Add action stays one tap away but out of the way, so the day itself leads.
+  var addActionToggle = document.getElementById('addActionToggle');
+  var addActionBody = document.getElementById('addActionBody');
+  function setAddActionOpen(open){
+    addActionToggle.setAttribute('aria-expanded', String(open));
+    addActionBody.classList.toggle('collapsed', !open);
+  }
+  addActionToggle.addEventListener('click', function(){
+    setAddActionOpen(addActionToggle.getAttribute('aria-expanded') !== 'true');
+  });
+
+  var recordedToggle = document.getElementById('recordedToggle');
+  var recordedBody = document.getElementById('recordedBody');
+  recordedToggle.addEventListener('click', function(){
+    var expanded = recordedToggle.getAttribute('aria-expanded') === 'true';
+    recordedToggle.setAttribute('aria-expanded', String(!expanded));
+    recordedBody.classList.toggle('collapsed', expanded);
   });
 
   var quickLogToggle = document.getElementById('quickLogToggle');
@@ -4050,10 +4710,10 @@
     var isToday = dateStr === todayStr();
     var hasAnyContent = !!(plan && ((plan.trainingTypes && plan.trainingTypes.length) || plan.restDay || plan.carbLevel || plan.fasting || plan.roadblocks || meals.length));
 
-    var leftCards = [];
+    var cards = [];
 
     if (plan && plan.restDay){
-      leftCards.push(planCardHtml({ tag: 'div', icon: UI_ICON.leaf, title: 'Rest day', sub: 'Recovery', noChev: true }));
+      cards.push(planCardHtml({ tag: 'div', icon: UI_ICON.leaf, title: 'Rest day', sub: 'Recovery', noChev: true }));
     } else if (plan && plan.trainingTypes && plan.trainingTypes.length){
       var single = plan.trainingTypes.length === 1;
       plan.trainingTypes.forEach(function(t){
@@ -4062,7 +4722,7 @@
         var sub = det.completed
           ? '<span class="tick">' + CHECK_SVG + '</span>' + (single ? name : 'Recorded' + (planTrainingSub(t, det).replace('Recorded', '').replace(/^ · /, '') ? ' · ' + planTrainingSub(t, det).replace(/^Recorded( · )?/, '') : ''))
           : (single ? name : planTrainingSub(t, det) || name);
-        leftCards.push(planCardHtml({
+        cards.push(planCardHtml({
           icon: TRAINING_ICON_SVG[t],
           title: single ? 'Training' : name,
           sub: sub,
@@ -4072,9 +4732,23 @@
       });
     }
 
-    var roadblockCard = '';
+    // Meals collapse to a count here and open the full named list, so the plan grid
+    // stays a scannable 2x2 without losing the meal rows themselves.
+    var mealsCard = '';
+    if (meals.length){
+      var eaten = meals.filter(function(m){ return m.completed; }).length;
+      cards.push(planCardHtml({
+        icon: UI_ICON.cutlery,
+        title: 'Meals',
+        sub: meals.length + ' planned' + (eaten ? ' · ' + eaten + ' eaten' : ''),
+        done: eaten > 0 && eaten === meals.length,
+        attr: ' data-meals-open="1"'
+      }));
+    }
+
+    // compact in the grid; tapping gives it the full row so the note is never clipped
     if (plan && plan.roadblocks){
-      roadblockCard = ('<button type="button" class="plan-card roadblock-card" id="planRoadblockCard">' +
+      cards.push('<button type="button" class="plan-card roadblock-card" id="planRoadblockCard">' +
         '<span class="plan-card-ic">' + UI_ICON.mountain + '</span>' +
         '<span class="plan-card-body">' +
           '<span class="plan-card-title">Roadblock</span>' +
@@ -4088,29 +4762,7 @@
     if (plan && plan.carbLevel) dietBits.push(CARB_LEVEL_LABEL[plan.carbLevel]);
     if (plan && plan.fasting) dietBits.push('Fasting');
     if (dietBits.length){
-      leftCards.push(planCardHtml({ icon: UI_ICON.leaf, title: 'Diet', sub: dietBits.join(' · '), attr: ' data-plan-edit="1"' }));
-    }
-
-    var mealsCard = '';
-    if (meals.length){
-      mealsCard =
-        '<div class="plan-card meals-card">' +
-          '<button type="button" class="meals-head" data-plan-edit="1">' +
-            '<span class="plan-card-ic">' + UI_ICON.cutlery + '</span>' +
-            '<span class="plan-card-title">Meals</span>' +
-            '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
-          '</button>' +
-          '<div class="meal-list">' +
-            meals.map(function(m){
-              return '<div class="meal-line' + (m.completed ? ' done' : '') + '">' +
-                '<button type="button" class="plan-check' + (m.completed ? ' done' : '') + '" data-meal-check="' + m.id + '"' +
-                  ' aria-label="' + (m.completed ? 'Mark not eaten' : 'Mark eaten') + '"></button>' +
-                '<button type="button" class="meal-line-body" data-meal-open="' + m.id + '">' + m.text + '</button>' +
-                '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
-              '</div>';
-            }).join('') +
-          '</div>' +
-        '</div>';
+      cards.push(planCardHtml({ icon: UI_ICON.leaf, title: 'Diet', sub: dietBits.join(' · '), attr: ' data-plan-edit="1"' }));
     }
 
     var label = isToday ? "Today's plan" : "Day's plan";
@@ -4122,12 +4774,8 @@
       '<button type="button" class="sec-link" id="planTodayBtn">' + planActionLabel + UI_ICON.arrowRight + '</button>' +
     '</div>';
 
-    if (leftCards.length || mealsCard || roadblockCard){
-      html += '<div class="plan-cards">' +
-        (leftCards.length ? '<div class="plan-cards-col">' + leftCards.join('') + '</div>' : '') +
-        (mealsCard ? '<div class="plan-cards-col">' + mealsCard + '</div>' : '') +
-        roadblockCard +
-      '</div>';
+    if (cards.length){
+      html += '<div class="plan-cards">' + cards.join('') + '</div>';
     } else {
       html += '<p class="empty-state plan-empty-prompt">' + (isToday ? 'Nothing planned for today yet.' : 'Nothing planned for this day yet.') + '</p>';
     }
@@ -4137,8 +4785,10 @@
     if (plan && plan.roadblocks){
       var rbEl = document.getElementById('planRoadblockText');
       rbEl.textContent = plan.roadblocks;
-      document.getElementById('planRoadblockCard').addEventListener('click', function(){
+      var rbCard = document.getElementById('planRoadblockCard');
+      rbCard.addEventListener('click', function(){
         var nowClamped = rbEl.classList.toggle('clamped');
+        rbCard.classList.toggle('expanded', !nowClamped);
         document.getElementById('planRoadblockChev').classList.toggle('flip', !nowClamped);
       });
     }
@@ -4158,6 +4808,9 @@
         e.stopPropagation();
         openPlanTrainingLogSheet(el.dataset.trainOpen, dateStr);
       });
+    });
+    wrap.querySelectorAll('[data-meals-open]').forEach(function(el){
+      el.addEventListener('click', function(e){ e.stopPropagation(); openPlanMealsSheet(dateStr); });
     });
     // meals: tick = eaten (syncs to Nutrition), row = inspect/edit that meal
     wrap.querySelectorAll('[data-meal-check]').forEach(function(el){
@@ -4490,6 +5143,7 @@
 
   // Identify exactly which planned meal you're looking at, and act on it.
   function openPlannedMealSheet(dateStr, mealId){
+    activeSheetRefresh = null;
     var plan = getPlanForDate(dateStr);
     var meals = getPlanMeals(plan);
     var meal = meals.find(function(m){ return m.id === mealId; });
@@ -4758,6 +5412,7 @@
   function closeSheet(){
     backdrop.classList.remove('open');
     editingId = null;
+    activeSheetRefresh = null;
   }
   backdrop.addEventListener('click', function(e){ if (e.target === backdrop) closeSheet(); });
 
