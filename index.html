@@ -194,12 +194,12 @@
     overflow: hidden;
   }
   .hdr-tex {
-    position: absolute; left: -10px; top: calc(16px + env(safe-area-inset-top));
-    width: 78%; height: 120px; pointer-events: none; opacity: 0.5;
-    background-repeat: no-repeat; background-size: 100% 100%;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 150' preserveAspectRatio='none'%3E%3Cpath d='M0 150 L58 58 L104 104 L168 34 L214 82 L268 40 L340 118 L400 72 L400 150Z' fill='%23a37844' opacity='0.30'/%3E%3Cpath d='M0 150 L86 76 L150 120 L206 62 L280 128 L332 90 L400 140 L400 150Z' fill='%23c9915a' opacity='0.16'/%3E%3C/svg%3E");
-    -webkit-mask-image: linear-gradient(170deg, rgba(0,0,0,0.9), rgba(0,0,0,0) 72%);
-    mask-image: linear-gradient(170deg, rgba(0,0,0,0.9), rgba(0,0,0,0) 72%);
+    position: absolute; left: 0; right: 0; top: 0;
+    height: calc(200px + env(safe-area-inset-top)); pointer-events: none; opacity: 0.5;
+    background-repeat: no-repeat; background-size: cover; background-position: center bottom;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200' preserveAspectRatio='xMidYMax slice'%3E%3Cdefs%3E%3ClinearGradient id='r1' x1='0' y1='0' x2='0.25' y2='1'%3E%3Cstop offset='0' stop-color='%237a5f39'/%3E%3Cstop offset='0.5' stop-color='%232b2115'/%3E%3Cstop offset='1' stop-color='%23191209'/%3E%3C/linearGradient%3E%3ClinearGradient id='r2' x1='0' y1='0' x2='0.2' y2='1'%3E%3Cstop offset='0' stop-color='%234a3922'/%3E%3Cstop offset='0.6' stop-color='%231a1309'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 150 L36 108 L58 128 L88 96 L120 134 L146 116 L182 152 L212 126 L248 158 L286 132 L330 162 L364 142 L400 166 L400 200 L0 200Z' fill='url(%23r1)' opacity='0.75'/%3E%3Cpath d='M0 172 L44 142 L82 166 L118 136 L158 168 L196 146 L238 174 L280 150 L326 178 L370 154 L400 172 L400 200 L0 200Z' fill='url(%23r2)' opacity='0.85'/%3E%3Cpath d='M0 190 L50 170 L96 186 L142 166 L190 188 L238 168 L288 190 L336 172 L400 192 L400 200 L0 200Z' fill='%23120d08'/%3E%3C/svg%3E");
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.9) 45%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.9) 45%, rgba(0,0,0,0) 100%);
   }
   .hdr-bar { position: relative; display: flex; align-items: center; gap: 10px; }
   .circ-btn {
@@ -297,31 +297,24 @@
   }
   .btn-quiet:active { color: var(--text-2); }
   .btn-row { display: flex; gap: 10px; }
-  .btn-row.today-actions {
-    margin-top: 10px; overflow: hidden; max-height: 80px; opacity: 1;
-    transition: max-height 0.22s ease, opacity 0.18s ease, margin-top 0.22s ease;
+  .btn-row.today-actions { margin-top: 10px; }
+  /* compact outlined pair — present but never shouting */
+  .btn-ghost {
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    width: 100%; padding: 15px 12px; border-radius: 13px;
+    border: 1px solid var(--line-2); background: var(--surface);
+    color: var(--text); font-family: var(--sans); font-size: 14px; font-weight: 500;
+    letter-spacing: 0.005em; cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease;
   }
-  .btn-row.today-actions.collapsed { max-height: 0; opacity: 0; margin-top: 0; visibility: hidden; }
-  .btn-compact { padding: 12px 14px; font-size: 13.5px; border-radius: 12px; }
-  .btn-compact svg { width: 15px; height: 15px; }
-  .add-toggle {
-    display: flex; align-items: center; gap: 14px; width: 100%;
-    background: none; border: none; padding: 14px 2px 10px; margin: 0;
-    font-family: var(--sans); cursor: pointer; color: var(--text-3);
+  .btn-ghost svg { width: 17px; height: 17px; display: block; flex-shrink: 0; color: var(--text-2); }
+  .btn-ghost:active { background: var(--surface-2); }
+  .btn-ghost.gold {
+    color: var(--gold); border-color: rgba(var(--gold-rgb),0.42);
+    background: rgba(var(--gold-rgb),0.05);
   }
-  .add-toggle:active { opacity: 0.65; }
-  .add-toggle-label {
-    font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.2em;
-  }
-  .add-toggle-rule { flex: 1; height: 1px; background: var(--line); }
-  .add-toggle-plus {
-    width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%;
-    border: 1px solid var(--line-2); color: var(--text-2);
-    display: flex; align-items: center; justify-content: center;
-    transition: transform 0.22s ease, color 0.16s ease, border-color 0.16s ease;
-  }
-  .add-toggle-plus svg { width: 13px; height: 13px; display: block; }
-  .add-toggle[aria-expanded="true"] .add-toggle-plus { transform: rotate(45deg); color: var(--gold); border-color: rgba(var(--gold-rgb),0.45); }
+  .btn-ghost.gold svg { color: var(--gold); }
+  .btn-ghost.gold:active { background: rgba(var(--gold-rgb),0.12); }
   .btn-row > * { flex: 1; margin-top: 0; }
   .btn-row + .btn-row { margin-top: 10px; }
   .save-btn { margin-top: var(--sp-3); }
@@ -336,7 +329,7 @@
   /* ---------- Today · actions ---------- */
   .act-group-label {
     font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.2em;
-    color: var(--text-3); margin: var(--sp-5) 0 var(--sp-1); padding: 0 2px;
+    color: var(--text-3); margin: var(--sp-5) 0 10px; padding: 0 2px;
   }
   .act-group-label:first-child { margin-top: 0; }
   .act-group-label.roadblock { color: rgba(var(--danger-rgb),0.85); }
@@ -349,13 +342,13 @@
 
   .commitment-item {
     display: flex; align-items: center; gap: 14px;
-    padding: 14px 2px; background: none;
-    border-bottom: 1px solid var(--line);
-    cursor: pointer; transition: opacity 0.12s ease;
+    padding: 15px 15px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 14px; margin-bottom: 8px;
+    cursor: pointer; transition: background 0.12s ease;
   }
-  .commitment-item:last-child { border-bottom: none; }
-  .commitment-item:active { opacity: 0.6; }
-  .commitment-item.roadblock { padding-left: 12px; box-shadow: inset 2px 0 0 rgba(var(--danger-rgb),0.5); }
+  .commitment-item:last-child { margin-bottom: 0; }
+  .commitment-item:active { background: var(--surface-2); }
+  .commitment-item.roadblock { box-shadow: inset 2px 0 0 rgba(var(--danger-rgb),0.5); }
   .commitment-status-dot {
     width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%;
     border: 1.5px solid var(--line-2); background: none;
@@ -435,57 +428,95 @@
   .meal-dot.done::after { opacity: 1; }
   .plan-empty-prompt { margin: 0; }
 
-  /* ---- today's plan as an execution surface ---- */
-  .plan-block + .plan-block { margin-top: var(--sp-5); }
-  .plan-block-label {
-    font-size: 9.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.2em;
-    color: var(--text-3); margin-bottom: 2px;
+  /* ---- today's plan: two columns of contained cards ---- */
+  .plan-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+  .plan-cards-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .plan-card {
+    display: flex; align-items: flex-start; gap: 12px; width: 100%;
+    padding: 14px 13px; text-align: left;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    font-family: var(--sans); cursor: pointer;
+    transition: background 0.12s ease;
   }
-  .plan-line {
-    display: flex; align-items: center; gap: 13px;
-    padding: 11px 0; border-bottom: 1px solid var(--line);
+  .plan-card:active { background: var(--surface-2); }
+  .plan-card.done { border-color: rgba(var(--gold-rgb),0.28); }
+  .roadblock-card { grid-column: 1 / -1; }
+  .plan-card-ic { flex-shrink: 0; color: var(--text-2); display: flex; margin-top: 1px; }
+  .plan-card-ic svg { width: 21px; height: 21px; display: block; }
+  .plan-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .plan-card-title {
+    font-family: var(--serif); font-size: 16.5px; font-weight: 400; color: var(--text);
+    line-height: 1.2; letter-spacing: -0.005em;
   }
-  .plan-line:last-child { border-bottom: none; }
+  .plan-card-sub { font-size: 12.5px; color: var(--text-2); line-height: 1.5; overflow-wrap: anywhere; }
+  .plan-card-sub.clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .plan-card-sub .tick { display: inline-flex; width: 11px; height: 11px; color: var(--gold); margin-right: 5px; vertical-align: -1px; }
+  .plan-card-sub .tick svg { width: 100%; height: 100%; display: block; }
+  .plan-card .chev { align-self: flex-start; margin-top: 2px; }
+  .plan-card .chev.flip { transform: rotate(90deg); }
+  .plan-card.done .plan-card-sub { color: var(--text-3); }
+
+  /* meals: one card, a head row and a divided list of named meals */
+  .meals-card { flex-direction: column; gap: 0; padding: 0; cursor: default; }
+  .meals-card:active { background: var(--surface); }
+  .meals-head {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 14px 13px; background: none; border: none; border-radius: 14px 14px 0 0;
+    font-family: var(--sans); cursor: pointer; text-align: left;
+  }
+  .meals-head:active { background: var(--surface-2); }
+  .meals-head .plan-card-title { flex: 1; min-width: 0; }
+  .meal-list { border-top: 1px solid var(--line); }
+  .meal-line {
+    display: flex; align-items: center; gap: 11px;
+    padding: 11px 13px; border-bottom: 1px solid var(--line);
+  }
+  .meal-line:last-child { border-bottom: none; }
+  .meal-line-body {
+    flex: 1; min-width: 0; background: none; border: none; padding: 0; text-align: left;
+    font-family: var(--serif); font-size: 14.5px; line-height: 1.3; color: var(--text);
+    cursor: pointer; overflow-wrap: anywhere;
+  }
+  .meal-line-body:active { opacity: 0.6; }
+  .meal-line.done .meal-line-body { color: var(--text-2); }
+  .meal-line .chev svg { width: 13px; height: 13px; }
   .plan-check {
-    width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; padding: 0;
+    width: 21px; height: 21px; flex-shrink: 0; border-radius: 50%; padding: 0;
     border: 1.5px solid var(--line-2); background: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: background 0.14s ease, border-color 0.14s ease;
   }
   .plan-check::after {
-    content: ''; width: 9px; height: 5px;
+    content: ''; width: 8px; height: 5px;
     border-left: 1.6px solid var(--ink); border-bottom: 1.6px solid var(--ink);
     transform: rotate(-45deg) translate(1px,-1px); opacity: 0;
   }
   .plan-check.done { background: var(--gold); border-color: var(--gold); }
   .plan-check.done::after { opacity: 1; }
-  .plan-line-icon { width: 22px; flex-shrink: 0; color: var(--text-2); display: flex; align-items: center; justify-content: center; }
-  .plan-line-icon svg { width: 17px; height: 17px; display: block; }
-  .plan-line-body {
-    flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;
-    background: none; border: none; padding: 0; text-align: left;
-    font-family: var(--sans); cursor: pointer;
+
+  /* narrow screens: keep the hierarchy, stop the columns crushing */
+  @media (max-width: 359px) {
+    .plan-cards { grid-template-columns: 1fr; }
   }
-  .plan-line-body.static { cursor: default; }
-  .plan-line-body:active { opacity: 0.6; }
-  .plan-line-title {
-    font-family: var(--serif); font-size: 16px; font-weight: 400; color: var(--text);
-    line-height: 1.3; letter-spacing: -0.005em;
+
+  /* recorded activity keeps a contained block even when empty */
+  .recorded-empty {
+    display: flex; align-items: center; gap: 15px;
+    padding: 18px 16px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 16px;
   }
-  .plan-line-sub { font-size: 12px; color: var(--text-2); letter-spacing: 0.01em; }
-  .plan-line.done .plan-line-title { color: var(--text-2); }
-  .plan-line.done .plan-line-sub { color: var(--text-3); }
-  .plan-line.static { padding-left: 0; }
-  .plan-roadblock-text { font-size: 13.5px; color: var(--text-2); line-height: 1.55; padding: 8px 0 0; white-space: pre-wrap; }
-  .plan-roadblock-text.clamped {
-    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  .recorded-empty-body { flex: 1; min-width: 0; }
+  .recorded-empty-title {
+    font-family: var(--serif); font-style: italic; font-size: 16.5px; color: var(--text-2);
   }
-  .plan-more {
-    background: none; border: none; padding: 6px 0 0; cursor: pointer;
-    font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--gold);
+  .recorded-empty-link {
+    display: inline-flex; align-items: center; gap: 7px; margin-top: 6px;
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--gold);
   }
-  .plan-more:active { opacity: 0.6; }
-  .plan-context { font-size: 13.5px; color: var(--text-2); padding: 8px 0 0; }
+  .recorded-empty-link svg { width: 12px; height: 12px; display: block; }
+  .recorded-empty-link:active { opacity: 0.6; }
+
   .meal-status-row {
     display: flex; align-items: flex-start; gap: 11px; padding: 14px 0 16px;
     border-top: 1px solid var(--line); margin-top: 4px;
@@ -1340,14 +1371,9 @@
       <span class="sec-value" id="actionsCount"></span>
     </div>
     <div id="commitmentsList"></div>
-    <button type="button" class="add-toggle" id="addActionsToggle" aria-expanded="false" aria-controls="addActionsRow">
-      <span class="add-toggle-label">Add action</span>
-      <span class="add-toggle-rule"></span>
-      <span class="add-toggle-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span>
-    </button>
-    <div class="btn-row today-actions collapsed" id="addActionsRow">
-      <button class="btn-primary btn-compact" id="quickCaptureBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg>Quick add</button>
-      <button class="btn-secondary btn-compact" id="addCommitmentBtn">Add with detail</button>
+    <div class="btn-row today-actions" id="addActionsRow">
+      <button class="btn-ghost gold" id="quickCaptureBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg>Quick add</button>
+      <button class="btn-ghost" id="addCommitmentBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2.2"/><line x1="8.5" y1="9" x2="15.5" y2="9"/><line x1="8.5" y1="13" x2="15.5" y2="13"/><line x1="8.5" y1="17" x2="12.5" y2="17"/></svg>Add with detail</button>
     </div>
 
     <div id="accountabilityMsg"></div>
@@ -3055,20 +3081,6 @@
     toPin.forEach(function(item){ pinNow(item.title, '', item.id, item.date); });
   }
 
-  var addActionsOpen = false;
-  (function(){
-    var toggle = document.getElementById('addActionsToggle');
-    var row = document.getElementById('addActionsRow');
-    function setAddOpen(open){
-      addActionsOpen = open;
-      toggle.setAttribute('aria-expanded', String(open));
-      row.classList.toggle('collapsed', !open);
-    }
-    toggle.addEventListener('click', function(){ setAddOpen(!addActionsOpen); });
-    // opening a capture sheet keeps the row revealed for the rest of the session
-    row.addEventListener('click', function(){ if (!addActionsOpen) setAddOpen(true); });
-  })();
-
   document.getElementById('quickCaptureBtn').addEventListener('click', function(){ openQuickCaptureSheet(viewedDate); });
   document.getElementById('globalFabBtn').addEventListener('click', function(){ openQuickCaptureSheet(fabTargetDate()); });
 
@@ -3265,13 +3277,26 @@
     todayList.innerHTML = '';
 
     var daysSessions = sessions.filter(function(s){ return s.date === dateStr && isRecordedSession(s); });
+    var historyBtn = document.getElementById('viewHistoryBtn');
     if (!daysSessions.length){
+      // keep a contained block rather than a bare line — the section still needs presence
       var e = document.createElement('div');
-      e.className = 'empty-state';
-      e.textContent = isToday ? 'Nothing logged yet' : 'Nothing logged';
+      e.className = 'recorded-empty';
+      e.innerHTML =
+        '<span class="iring sz-40">' + TRAINING_ICON_SVG.yoga + '</span>' +
+        '<div class="recorded-empty-body">' +
+          '<div class="recorded-empty-title">' + (isToday ? 'Nothing logged yet' : 'Nothing logged') + '</div>' +
+          '<button type="button" class="recorded-empty-link" id="recordedEmptyLink">View history in Calendar' + UI_ICON.arrowRight + '</button>' +
+        '</div>';
       todayList.appendChild(e);
+      document.getElementById('recordedEmptyLink').addEventListener('click', function(){
+        selectedDay = viewedDate;
+        document.querySelector('.tab-btn[data-view="calendar"]').click();
+      });
+      if (historyBtn) historyBtn.hidden = true;
     } else {
       daysSessions.forEach(function(s){ todayList.appendChild(renderSessionItem(s)); });
+      if (historyBtn) historyBtn.hidden = false;
     }
   }
 
@@ -3986,7 +4011,7 @@
 
   // ---------- plan tab ----------
   // Today's plan is an execution surface, not a read-only echo of Plan:
-  // training rows open the log sheet, meal rows tick into Nutrition, the
+  // training cards open the log sheet, meal rows tick into Nutrition, the
   // roadblock stays readable. "Edit plan" is the only route back to intent.
   function planTrainingSub(t, details){
     if (details.completed){
@@ -4004,16 +4029,16 @@
     return bits.join(' · ');
   }
 
-  function planLine(opts){
-    return '<div class="plan-line' + (opts.done ? ' done' : '') + '"' + (opts.attr || '') + '>' +
-      '<button type="button" class="plan-check' + (opts.done ? ' done' : '') + '"' + (opts.checkAttr || '') +
-        ' aria-label="' + (opts.done ? 'Mark not done' : 'Mark done') + '"></button>' +
-      '<button type="button" class="plan-line-body"' + (opts.bodyAttr || '') + '>' +
-        '<span class="plan-line-title">' + opts.title + '</span>' +
-        (opts.sub ? '<span class="plan-line-sub">' + opts.sub + '</span>' : '') +
-      '</button>' +
-      '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
-    '</div>';
+  function planCardHtml(opts){
+    return '<' + (opts.tag || 'button') + ' type="button" class="plan-card' + (opts.done ? ' done' : '') +
+        (opts.cls ? ' ' + opts.cls : '') + '"' + (opts.attr || '') + '>' +
+      '<span class="plan-card-ic">' + opts.icon + '</span>' +
+      '<span class="plan-card-body">' +
+        '<span class="plan-card-title">' + opts.title + '</span>' +
+        (opts.sub ? '<span class="plan-card-sub">' + opts.sub + '</span>' : '') +
+      '</span>' +
+      (opts.noChev ? '' : '<span class="chev">' + UI_ICON.chevronRight + '</span>') +
+    '</' + (opts.tag || 'button') + '>';
   }
 
   function renderTodayPlanWidget(){
@@ -4022,58 +4047,70 @@
     var dateStr = viewedDate;
     var plan = getPlanForDate(dateStr);
     var meals = getPlanMeals(plan);
-    var nutrition = getNutritionForDate(dateStr);
     var isToday = dateStr === todayStr();
     var hasAnyContent = !!(plan && ((plan.trainingTypes && plan.trainingTypes.length) || plan.restDay || plan.carbLevel || plan.fasting || plan.roadblocks || meals.length));
 
-    var blocks = '';
+    var leftCards = [];
 
     if (plan && plan.restDay){
-      blocks += '<div class="plan-block"><div class="plan-block-label">Training</div>' +
-        '<div class="plan-line static"><span class="plan-line-icon">' + UI_ICON.leaf + '</span>' +
-        '<span class="plan-line-body static"><span class="plan-line-title">Rest day</span>' +
-        '<span class="plan-line-sub">Recovery</span></span></div></div>';
+      leftCards.push(planCardHtml({ tag: 'div', icon: UI_ICON.leaf, title: 'Rest day', sub: 'Recovery', noChev: true }));
     } else if (plan && plan.trainingTypes && plan.trainingTypes.length){
-      blocks += '<div class="plan-block"><div class="plan-block-label">Training</div>' +
-        plan.trainingTypes.map(function(t){
-          var details = (plan.trainingDetails && plan.trainingDetails[t]) || {};
-          return planLine({
-            done: !!details.completed,
-            title: TYPE_LABEL[t],
-            sub: planTrainingSub(t, details),
-            attr: ' data-train="' + t + '"',
-            checkAttr: ' data-train-check="' + t + '"',
-            bodyAttr: ' data-train-open="' + t + '"'
-          });
-        }).join('') + '</div>';
+      var single = plan.trainingTypes.length === 1;
+      plan.trainingTypes.forEach(function(t){
+        var det = (plan.trainingDetails && plan.trainingDetails[t]) || {};
+        var name = TYPE_LABEL[t];
+        var sub = det.completed
+          ? '<span class="tick">' + CHECK_SVG + '</span>' + (single ? name : 'Recorded' + (planTrainingSub(t, det).replace('Recorded', '').replace(/^ · /, '') ? ' · ' + planTrainingSub(t, det).replace(/^Recorded( · )?/, '') : ''))
+          : (single ? name : planTrainingSub(t, det) || name);
+        leftCards.push(planCardHtml({
+          icon: TRAINING_ICON_SVG[t],
+          title: single ? 'Training' : name,
+          sub: sub,
+          done: !!det.completed,
+          attr: ' data-train-open="' + t + '"'
+        }));
+      });
     }
 
-    if (meals.length){
-      blocks += '<div class="plan-block"><div class="plan-block-label">Meals</div>' +
-        meals.map(function(m){
-          return planLine({
-            done: !!m.completed,
-            title: m.text,
-            sub: '',
-            attr: ' data-meal="' + m.id + '"',
-            checkAttr: ' data-meal-check="' + m.id + '"',
-            bodyAttr: ' data-meal-open="' + m.id + '"'
-          });
-        }).join('') + '</div>';
-    }
-
+    var roadblockCard = '';
     if (plan && plan.roadblocks){
-      blocks += '<div class="plan-block"><div class="plan-block-label">Roadblock</div>' +
-        '<div class="plan-roadblock-text clamped" id="planRoadblockText"></div>' +
-        '<button type="button" class="plan-more" id="planRoadblockMore" hidden>More</button></div>';
+      roadblockCard = ('<button type="button" class="plan-card roadblock-card" id="planRoadblockCard">' +
+        '<span class="plan-card-ic">' + UI_ICON.mountain + '</span>' +
+        '<span class="plan-card-body">' +
+          '<span class="plan-card-title">Roadblock</span>' +
+          '<span class="plan-card-sub clamped" id="planRoadblockText"></span>' +
+        '</span>' +
+        '<span class="chev" id="planRoadblockChev">' + UI_ICON.chevronRight + '</span>' +
+      '</button>');
     }
 
-    var contextBits = [];
-    if (plan && plan.carbLevel) contextBits.push(CARB_LEVEL_LABEL[plan.carbLevel]);
-    if (plan && plan.fasting) contextBits.push('Fasting');
-    if (contextBits.length){
-      blocks += '<div class="plan-block"><div class="plan-block-label">Diet</div>' +
-        '<div class="plan-context">' + contextBits.join(' · ') + '</div></div>';
+    var dietBits = [];
+    if (plan && plan.carbLevel) dietBits.push(CARB_LEVEL_LABEL[plan.carbLevel]);
+    if (plan && plan.fasting) dietBits.push('Fasting');
+    if (dietBits.length){
+      leftCards.push(planCardHtml({ icon: UI_ICON.leaf, title: 'Diet', sub: dietBits.join(' · '), attr: ' data-plan-edit="1"' }));
+    }
+
+    var mealsCard = '';
+    if (meals.length){
+      mealsCard =
+        '<div class="plan-card meals-card">' +
+          '<button type="button" class="meals-head" data-plan-edit="1">' +
+            '<span class="plan-card-ic">' + UI_ICON.cutlery + '</span>' +
+            '<span class="plan-card-title">Meals</span>' +
+            '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
+          '</button>' +
+          '<div class="meal-list">' +
+            meals.map(function(m){
+              return '<div class="meal-line' + (m.completed ? ' done' : '') + '">' +
+                '<button type="button" class="plan-check' + (m.completed ? ' done' : '') + '" data-meal-check="' + m.id + '"' +
+                  ' aria-label="' + (m.completed ? 'Mark not eaten' : 'Mark eaten') + '"></button>' +
+                '<button type="button" class="meal-line-body" data-meal-open="' + m.id + '">' + m.text + '</button>' +
+                '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
+              '</div>';
+            }).join('') +
+          '</div>' +
+        '</div>';
     }
 
     var label = isToday ? "Today's plan" : "Day's plan";
@@ -4084,34 +4121,42 @@
       '<span class="sec-rule"></span>' +
       '<button type="button" class="sec-link" id="planTodayBtn">' + planActionLabel + UI_ICON.arrowRight + '</button>' +
     '</div>';
-    html += blocks || ('<p class="empty-state plan-empty-prompt">' + (isToday ? 'Nothing planned for today yet.' : 'Nothing planned for this day yet.') + '</p>');
+
+    if (leftCards.length || mealsCard || roadblockCard){
+      html += '<div class="plan-cards">' +
+        (leftCards.length ? '<div class="plan-cards-col">' + leftCards.join('') + '</div>' : '') +
+        (mealsCard ? '<div class="plan-cards-col">' + mealsCard + '</div>' : '') +
+        roadblockCard +
+      '</div>';
+    } else {
+      html += '<p class="empty-state plan-empty-prompt">' + (isToday ? 'Nothing planned for today yet.' : 'Nothing planned for this day yet.') + '</p>';
+    }
     wrap.innerHTML = html;
 
-    // roadblock text is set as text (never markup) and only offers "More" when it actually overflows
+    // roadblock text is set as text (never markup); the card expands it in place
     if (plan && plan.roadblocks){
       var rbEl = document.getElementById('planRoadblockText');
-      var moreBtn = document.getElementById('planRoadblockMore');
       rbEl.textContent = plan.roadblocks;
-      requestAnimationFrame(function(){
-        if (rbEl.scrollHeight - rbEl.clientHeight > 2){
-          moreBtn.hidden = false;
-          moreBtn.addEventListener('click', function(){
-            var expanded = rbEl.classList.toggle('clamped');
-            moreBtn.textContent = expanded ? 'More' : 'Less';
-          });
-        }
+      document.getElementById('planRoadblockCard').addEventListener('click', function(){
+        var nowClamped = rbEl.classList.toggle('clamped');
+        document.getElementById('planRoadblockChev').classList.toggle('flip', !nowClamped);
       });
     }
 
     document.getElementById('planTodayBtn').addEventListener('click', function(){
       openPlanSheet(dateStr, getPlanForDate(dateStr));
     });
-
-    // training: both the tick and the row open the log sheet — completion must produce evidence
-    wrap.querySelectorAll('[data-train-check], [data-train-open]').forEach(function(el){
+    wrap.querySelectorAll('[data-plan-edit]').forEach(function(el){
       el.addEventListener('click', function(e){
         e.stopPropagation();
-        openPlanTrainingLogSheet(el.dataset.trainCheck || el.dataset.trainOpen, dateStr);
+        openPlanSheet(dateStr, getPlanForDate(dateStr));
+      });
+    });
+    // training: the card records what actually happened, pre-filled from the plan
+    wrap.querySelectorAll('[data-train-open]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.stopPropagation();
+        openPlanTrainingLogSheet(el.dataset.trainOpen, dateStr);
       });
     });
     // meals: tick = eaten (syncs to Nutrition), row = inspect/edit that meal
