@@ -1548,6 +1548,185 @@
   /* key tasks read as the day's spine — a whisper of gold, not a badge */
   .commitment-item.key-task { box-shadow: inset 2px 0 0 rgba(var(--gold-rgb),0.55); }
 
+  /* ============ Backlog ============
+     A recovery layer for unfinished history — never a second task list.
+     Nothing returns to an active day unless it is pulled forward by hand. */
+  .bk-panel {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-lg); overflow: hidden;
+  }
+  .bk-row {
+    display: flex; align-items: center; gap: 11px;
+    padding: 12px 13px; border-bottom: 1px solid var(--line);
+  }
+  .bk-row:last-of-type { border-bottom: none; }
+  .bk-ic { flex-shrink: 0; width: 20px; color: var(--text-2); display: flex; }
+  .bk-ic svg { width: 20px; height: 20px; display: block; }
+  .bk-body {
+    flex: 1; min-width: 0; background: none; border: none; padding: 0;
+    font-family: var(--sans); text-align: left; color: var(--text); cursor: pointer;
+  }
+  .bk-body:active { opacity: 0.6; }
+  .bk-kicker {
+    display: block; font-size: 9.5px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.18em; color: var(--text-3); margin-bottom: 3px;
+  }
+  .bk-title {
+    display: block; font-family: var(--serif); font-size: 15.5px; font-weight: 400;
+    line-height: 1.25; color: var(--text); letter-spacing: -0.005em;
+  }
+  .bk-meta { display: block; font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .bk-meta .bk-state { color: rgba(var(--gold-rgb),0.72); }
+  .bk-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .bk-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 9px 12px; border-radius: var(--r-md);
+    border: 1px solid var(--line-2); background: none;
+    font-family: var(--sans); font-size: 11.5px; font-weight: 500;
+    color: var(--text); white-space: nowrap; cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+  }
+  .bk-btn svg { width: 13px; height: 13px; display: block; flex-shrink: 0; color: var(--text-2); }
+  .bk-btn:active { background: var(--surface-2); }
+  .bk-btn.gold { color: var(--gold); border-color: rgba(var(--gold-rgb),0.42); }
+  .bk-btn.gold svg { color: var(--gold); }
+  .bk-btn.gold:active { background: rgba(var(--gold-rgb),0.1); }
+  .bk-btn.moved { color: var(--text-3); border-color: var(--line); pointer-events: none; }
+  .bk-btn.moved svg { color: rgba(var(--gold-rgb),0.6); }
+  .bk-more {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    width: 100%; padding: 12px 14px; border: none; border-top: 1px solid var(--line);
+    background: none; font-family: var(--sans); font-size: 13px; font-weight: 500;
+    color: var(--text-2); cursor: pointer;
+  }
+  .bk-more svg { width: 13px; height: 13px; display: block; }
+  .bk-more:active { opacity: 0.6; }
+  /* Measured: with both controls beside the title, a 393px screen leaves the title
+     83px and breaks it over three lines. On anything phone-sized the controls take
+     their own line so the title keeps one. Wide viewports get the inline arrangement. */
+  @media (max-width: 520px) {
+    .bk-row { flex-wrap: wrap; }
+    .bk-actions { width: 100%; justify-content: flex-end; margin-top: 9px; }
+  }
+
+  /* ---- backlog sheet ---- */
+  .bk-sheet-head {
+    display: flex; align-items: flex-start; gap: 10px; margin-bottom: var(--sp-5);
+  }
+  .bk-sheet-center { flex: 1; min-width: 0; text-align: center; padding: 0 2px; }
+  .bk-sheet-center .sheet-title { font-size: 29px; }
+  .bk-sheet-center .sheet-sub { margin-top: 6px; font-size: 12.5px; }
+  .bk-sheet-quote { flex-shrink: 0; max-width: 84px; text-align: right; padding-top: 6px; }
+  .bk-sheet-quote span {
+    display: block; font-family: var(--serif); font-style: italic;
+    font-size: 12px; line-height: 1.4; color: var(--text-2);
+  }
+  .bk-sheet-quote i { display: block; width: 34px; height: 1px; background: rgba(var(--gold-rgb),0.5); margin: 7px 0 0 auto; }
+
+  .bk-sortbar { display: flex; align-items: center; gap: 10px; margin-bottom: var(--sp-5); }
+  .bk-sort {
+    display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 22px; padding: 4px;
+  }
+  .bk-sort-label {
+    font-size: 11px; color: var(--text-3); padding: 0 8px 0 10px;
+    letter-spacing: 0.02em; white-space: nowrap;
+  }
+  .bk-sort button {
+    flex: 1; min-width: 0; padding: 8px 10px; border: none; border-radius: 18px;
+    background: none; font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+    color: var(--text-2); cursor: pointer; white-space: nowrap;
+    transition: background 0.14s ease, color 0.14s ease;
+  }
+  .bk-sort button.sel { background: var(--gold); color: var(--ink); }
+  .bk-filter {
+    display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+    padding: 10px 12px; border-radius: 22px;
+    border: 1px solid var(--line); background: var(--surface-2);
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+    color: var(--text-2); cursor: pointer;
+  }
+  .bk-filter svg { width: 14px; height: 14px; display: block; }
+  .bk-filter.on { color: var(--gold); border-color: rgba(var(--gold-rgb),0.4); }
+  .bk-filter-pop { margin: -6px 0 var(--sp-5); }
+  .bk-filter-chip {
+    display: inline-block; margin: 0 6px 6px 0; padding: 7px 12px;
+    border-radius: 20px; border: 1px solid var(--line);
+    background: none; font-family: var(--sans); font-size: 12px;
+    color: var(--text-2); cursor: pointer;
+  }
+  .bk-filter-chip.sel { color: var(--gold); border-color: rgba(var(--gold-rgb),0.45); background: rgba(var(--gold-rgb),0.07); }
+
+  .backlog-sec-note { font-family: var(--serif); font-style: italic; font-size: 12.5px; color: var(--text-3); }
+  .commit-origin-note { font-size: 11.5px; color: var(--text-3); margin: -8px 0 var(--sp-4); }
+  .pd-title { font-family: var(--serif); font-size: 17px; line-height: 1.3; color: var(--text); }
+  .bk-group { margin-bottom: var(--sp-6); }
+  .bk-group-head {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    background: none; border: none; padding: 0 0 var(--sp-3);
+    font-family: var(--sans); text-align: left; color: var(--text); cursor: pointer;
+  }
+  .bk-group-ic { flex-shrink: 0; width: 22px; color: var(--text-2); display: flex; }
+  .bk-group-ic svg { width: 22px; height: 22px; display: block; }
+  .bk-group-body { flex: 1; min-width: 0; }
+  .bk-group-label {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 10.5px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.2em; color: var(--text-2);
+  }
+  .bk-group-label::after { content: ''; flex: 1; height: 1px; background: var(--line); min-width: 10px; }
+  .bk-group-count { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 4px; }
+  .bk-group-when { font-size: 11.5px; color: var(--text-3); flex-shrink: 0; white-space: nowrap; }
+  .bk-group-chev { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-3); transition: transform 0.22s ease; }
+  .bk-group-chev svg { width: 100%; height: 100%; display: block; }
+  .bk-group-head[aria-expanded="false"] .bk-group-chev { transform: rotate(180deg); }
+  .bk-group-rows { display: flex; flex-direction: column; gap: 8px; }
+  .bk-group-rows.collapsed { display: none; }
+  .bk-group-rows .bk-row {
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    background: var(--surface-2);
+  }
+  .bk-group-rows .bk-row.moved { border-color: rgba(var(--gold-rgb),0.24); }
+  .bk-check {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px solid var(--line-2); background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: transparent;
+    transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  }
+  .bk-check svg { width: 12px; height: 12px; display: block; }
+  .bk-check.done { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+
+  .bk-foot {
+    display: flex; align-items: center; gap: 15px; margin-top: var(--sp-6);
+    padding: 17px 16px; background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: var(--r-lg);
+  }
+  .bk-foot-ic { flex-shrink: 0; color: var(--text-3); display: flex; }
+  .bk-foot-ic svg { width: 30px; height: 30px; display: block; }
+  .bk-foot-title {
+    font-family: var(--serif); font-style: italic; font-size: 16px;
+    color: var(--text); line-height: 1.25;
+  }
+  .bk-foot-sub { font-size: 12px; color: var(--text-3); margin-top: 4px; line-height: 1.45; }
+  .bk-empty { text-align: center; padding: var(--sp-7) 0; }
+  .bk-empty-title { font-family: var(--serif); font-style: italic; font-size: 17px; color: var(--text-2); }
+  .bk-empty-sub { font-size: 12.5px; color: var(--text-3); margin-top: 6px; }
+
+  /* Morning Prime's optional nudge — awareness, never a required step */
+  .mp-backlog {
+    display: flex; align-items: center; gap: 11px; width: 100%;
+    margin-top: 13px; padding: 11px 12px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    font-family: var(--sans); text-align: left; color: var(--text); cursor: pointer;
+  }
+  .mp-backlog:active { background: var(--surface-3); }
+  .mp-backlog-ic { flex-shrink: 0; width: 17px; color: var(--text-3); display: flex; }
+  .mp-backlog-ic svg { width: 17px; height: 17px; display: block; }
+  .mp-backlog-text { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text-2); }
+  .mp-backlog-link { flex-shrink: 0; font-size: 12.5px; font-weight: 500; color: var(--gold); }
+
   /* ---- recorded activity collapse ---- */
   .recorded-body {
     overflow: hidden; max-height: 3000px; opacity: 1; margin-top: var(--sp-3);
@@ -1616,6 +1795,8 @@
     </div>
 
     <div id="accountabilityMsg"></div>
+
+    <div id="backlogSection"></div>
 
     <div id="todayPlanWidget" class="today-plan-widget"></div>
 
@@ -1803,7 +1984,9 @@
     droplet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2c3.4 4 5.4 6.7 5.4 9.3A5.4 5.4 0 0 1 6.6 12.5c0-2.6 2-5.3 5.4-9.3z"/></svg>',
     box: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.3l8 4.2v9L12 20.7 4 16.5v-9z"/><path d="M4 7.5l8 4.2 8-4.2"/><line x1="12" y1="11.7" x2="12" y2="20.7"/></svg>',
     alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6l9 15.8H3z"/><line x1="12" y1="9.6" x2="12" y2="14"/><circle cx="12" cy="16.8" r="0.85" fill="currentColor" stroke="none"/></svg>',
-    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6.5" x2="20" y2="6.5"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="17.5" x2="20" y2="17.5"/><circle cx="5" cy="6.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="17.5" r="1.3" fill="currentColor" stroke="none"/></svg>',
+    briefcase: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.8" y="7.5" width="18.4" height="12.5" rx="2.2"/><path d="M8.8 7.5V6a1.8 1.8 0 0 1 1.8-1.8h2.8A1.8 1.8 0 0 1 15.2 6v1.5"/><line x1="2.8" y1="12.5" x2="21.2" y2="12.5"/></svg>',
+    chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 13.5a3 3 0 0 1-3 3H9l-4.5 3.5v-3.5a3 3 0 0 1-1-2.2V7a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3z"/></svg>',
+        list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6.5" x2="20" y2="6.5"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="17.5" x2="20" y2="17.5"/><circle cx="5" cy="6.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="17.5" r="1.3" fill="currentColor" stroke="none"/></svg>',
     target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><line x1="15.8" y1="15.8" x2="20" y2="20"/></svg>',
     flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2c3.4 3.4 5.6 6.1 5.6 9.3a5.6 5.6 0 0 1-11.2 0c0-1.5.6-2.9 1.7-4.2.5 1.2 1.2 1.9 2 2.1-.3-2.6.3-5 1.9-7.2z"/></svg>',
@@ -3059,6 +3242,11 @@
         '<div class="field"><label>Minimum version</label><input type="text" id="f_commitMinVer" placeholder="e.g. 20-minute home workout" value="' + (existing && existing.minVersion ? existing.minVersion.replace(/"/g,'&quot;') : '') + '"></div>';
 
       if (isEditing){
+        html += fieldDate('f_commitDate', 'Scheduled for', existing.date || todayStr());
+        var orig = actionOriginalDate(existing);
+        if (orig && orig !== existing.date){
+          html += '<p class="commit-origin-note">' + addedLabel(orig) + '</p>';
+        }
         html += '<div class="field"><label>Status</label><div class="status-btn-grid" id="commitStatusGrid">' +
           ['completed','partial','disrupted','not_done'].map(function(s){
             return '<button type="button" class="status-btn' + (statusVal===s?' sel '+s:'') + '" data-s="' + s + '">' + COMMITMENT_STATUS_LABEL[s] + '</button>';
@@ -3089,9 +3277,13 @@
     backdrop.classList.add('open');
     wireSheet();
 
+    // build ON TOP of the existing record: fields this form doesn't show
+    // (isKeyTask, originalDate, movedFromBacklogAt) must survive an edit
     function buildCommitOut(title){
-      var out = {
-        date: existing ? existing.date : viewedDate,
+      var dateEl = document.getElementById('f_commitDate');
+      var nextDate = dateEl && dateEl.value ? dateEl.value : (existing ? existing.date : viewedDate);
+      var out = Object.assign({}, existing || {}, {
+        date: nextDate,
         title: title,
         priorityId: document.getElementById('f_commitPriority').value || null,
         minVersion: document.getElementById('f_commitMinVer').value || null,
@@ -3099,7 +3291,8 @@
         disruptionReason: (isEditing && statusVal === 'disrupted') ? (document.getElementById('f_disruptionReason').value || null) : null,
         category: document.getElementById('f_commitCategory').value || null,
         createdAt: existing ? existing.createdAt : new Date().toISOString()
-      };
+      });
+      out.originalDate = existing ? actionOriginalDate(existing) : nextDate;
       if (isEditing) out.id = existing.id;
       return out;
     }
@@ -3312,6 +3505,7 @@
       if (text){
         var item = {
           date: qcTargetDate,
+          originalDate: qcTargetDate,
           title: text,
           priorityId: null,
           minVersion: null,
@@ -3419,6 +3613,366 @@
     render();
   }
 
+  // ============ Backlog ============
+  // Backlog is unresolved history; Today is consciously chosen work. Nothing is
+  // ever carried forward automatically — an item only rejoins an active day when
+  // it is deliberately pulled there via "Add to today" or "Pick a day".
+  var CATEGORY_ICON = {
+    success:     UI_ICON.flame,
+    work:        UI_ICON.briefcase,
+    communicate: UI_ICON.chat,
+    family:      UI_ICON.people,
+    personal:    UI_ICON.leaf,
+    training:    TRAINING_ICON_SVG.resistance
+  };
+  function categoryIcon(key){ return CATEGORY_ICON[key] || UI_ICON.box; }
+  function categoryOrder(key){
+    var i = QUICK_CAPTURE_CATEGORIES.findIndex(function(c){ return c.key === key; });
+    return i === -1 ? QUICK_CAPTURE_CATEGORIES.length : i;
+  }
+  function categoryLabel(key){
+    var c = QUICK_CAPTURE_CATEGORY_MAP[key];
+    return c ? c.label : 'Other';
+  }
+
+  // The date an action was first written down for. Stored explicitly from now on;
+  // older records fall back to their creation stamp, then to their scheduled date.
+  function actionOriginalDate(c){
+    if (c.originalDate) return c.originalDate;
+    if (c.createdAt && /^\d{4}-\d{2}-\d{2}/.test(c.createdAt)) return c.createdAt.slice(0, 10);
+    return c.date;
+  }
+  function addedLabel(dateStr){
+    if (!dateStr) return '';
+    var d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d)) return '';
+    return 'Added ' + d.getDate() + ' ' + d.toLocaleDateString(undefined, { month: 'short' });
+  }
+
+  // Unfinished, in the past, still real. Roadblocks are day-bound risks rather than
+  // work to recover, so they stay out.
+  function isBacklogAction(c){
+    if (!c || !c.date || !c.title) return false;
+    if (c.category === 'roadblock') return false;
+    if (c.status === 'completed') return false;
+    return c.date < todayStr();
+  }
+  function backlogActions(){
+    return commitments.filter(isBacklogAction).sort(function(a, b){
+      var da = actionOriginalDate(a), db = actionOriginalDate(b);
+      return da === db ? (a.title || '').localeCompare(b.title || '') : (da < db ? -1 : 1);
+    });
+  }
+  // A subtle state line — the data already knows more than "not started"
+  function backlogStateLabel(c){
+    if (c.status === 'partial') return 'Partially completed';
+    if (c.status === 'disrupted') return 'Disrupted' + (c.disruptionReason ? ' · ' + c.disruptionReason : '');
+    if (c.status === 'not_done') return 'Not done';
+    return '';
+  }
+
+  // Moving an item forward mutates the one record: no duplicate, and the history
+  // it was written with stays attached to it.
+  function moveActionToDate(c, dateStr){
+    saveCommitment(Object.assign({}, c, {
+      originalDate: actionOriginalDate(c),
+      date: dateStr,
+      movedFromBacklogAt: new Date().toISOString()
+    }));
+  }
+
+  function backlogRowHtml(c, opts){
+    opts = opts || {};
+    var state = backlogStateLabel(c);
+    var moved = !!opts.moved;
+    return '<div class="bk-row' + (moved ? ' moved' : '') + '" data-bk-row="' + c.id + '">' +
+      (opts.check
+        ? '<button type="button" class="bk-check' + (moved ? ' done' : '') + '" data-bk-open="' + c.id + '" aria-label="Open action">' + CHECK_SVG + '</button>'
+        : '<span class="bk-ic">' + categoryIcon(c.category) + '</span>') +
+      '<button type="button" class="bk-body" data-bk-open="' + c.id + '">' +
+        (opts.kicker ? '<span class="bk-kicker">' + categoryLabel(c.category) + '</span>' : '') +
+        '<span class="bk-title" data-bk-title="' + c.id + '"></span>' +
+        // the date is already the group heading when sorting by date
+        (opts.hideDate && !state ? '' :
+          '<span class="bk-meta">' + (opts.hideDate ? '' : addedLabel(actionOriginalDate(c))) +
+            (state ? (opts.hideDate ? '' : ' · ') + '<span class="bk-state">' + state + '</span>' : '') +
+          '</span>') +
+      '</button>' +
+      '<span class="bk-actions">' +
+        (moved
+          ? '<span class="bk-btn moved">' + CHECK_SVG + 'Added to today</span>'
+          : '<button type="button" class="bk-btn gold" data-bk-today="' + c.id + '">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>' +
+              (opts.longLabels ? 'Add to today' : 'Add today') +
+            '</button>') +
+        '<button type="button" class="bk-btn" data-bk-day="' + c.id + '">' + UI_ICON.calendar +
+          (opts.longLabels ? 'Pick a day' : 'Choose day') +
+        '</button>' +
+      '</span>' +
+    '</div>';
+  }
+
+  // titles are user content — always written as text, never interpolated as markup
+  function fillBacklogTitles(root, items){
+    items.forEach(function(c){
+      root.querySelectorAll('[data-bk-title="' + c.id + '"]').forEach(function(el){ el.textContent = c.title; });
+    });
+  }
+  function wireBacklogRows(root, onChange){
+    root.querySelectorAll('[data-bk-open]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.stopPropagation();
+        var c = commitments.find(function(x){ return x.id === el.dataset.bkOpen; });
+        if (c) openCommitmentSheet(c);
+      });
+    });
+    root.querySelectorAll('[data-bk-today]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.stopPropagation();
+        var c = commitments.find(function(x){ return x.id === el.dataset.bkToday; });
+        if (!c) return;
+        moveActionToDate(c, todayStr());
+        if (onChange) onChange(c.id);
+      });
+    });
+    root.querySelectorAll('[data-bk-day]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.stopPropagation();
+        var c = commitments.find(function(x){ return x.id === el.dataset.bkDay; });
+        if (c) openPickDaySheet(c);
+      });
+    });
+  }
+
+  // ---- Today: a bounded preview, never the whole list ----
+  var BACKLOG_PREVIEW_MAX = 3;
+  function renderBacklogSection(){
+    var wrap = document.getElementById('backlogSection');
+    if (!wrap) return;
+    // the recovery shelf belongs to today; other days just show their own record
+    if (viewedDate !== todayStr()){ wrap.innerHTML = ''; return; }
+    var items = backlogActions();
+    if (!items.length){ wrap.innerHTML = ''; return; }
+    var preview = items.slice(0, BACKLOG_PREVIEW_MAX);
+
+    wrap.innerHTML =
+      '<div class="sec-head">' +
+        '<span class="sec-label">Backlog</span>' +
+        '<span class="sec-rule"></span>' +
+        '<span class="sec-value backlog-sec-note">Unfinished from earlier days</span>' +
+        '<span class="sec-value">' + items.length + '</span>' +
+      '</div>' +
+      '<div class="bk-panel">' +
+        preview.map(function(c){ return backlogRowHtml(c, { kicker: true }); }).join('') +
+        '<button type="button" class="bk-more" id="backlogMoreBtn">View all backlog tasks (' + items.length + ')' + UI_ICON.chevronRight + '</button>' +
+      '</div>';
+
+    fillBacklogTitles(wrap, preview);
+    wireBacklogRows(wrap, null);
+    document.getElementById('backlogMoreBtn').addEventListener('click', openBacklogSheet);
+  }
+
+  // ---- the full Backlog view ----
+  var bkSort = 'group';       // 'group' | 'date'
+  var bkFilter = '';          // category key, '' = all
+  var bkFilterOpen = false;
+  var bkCollapsed = {};       // group key -> collapsed
+  var bkJustMoved = {};       // id -> true, so a moved row confirms itself before it leaves
+
+  function openBacklogSheet(){
+    editingId = null;
+    bkJustMoved = {};
+
+    function groupsFor(items){
+      var order = [], map = {};
+      items.forEach(function(c){
+        var key, label, icon;
+        if (bkSort === 'date'){
+          key = actionOriginalDate(c);
+          label = addedLabel(key);
+          icon = UI_ICON.calendar;
+        } else {
+          key = c.category || '__other__';
+          label = categoryLabel(c.category);
+          icon = categoryIcon(c.category);
+        }
+        if (!map[key]){ map[key] = { key: key, label: label, icon: icon, items: [] }; order.push(map[key]); }
+        map[key].items.push(c);
+      });
+      order.forEach(function(g){
+        g.oldest = g.items.reduce(function(min, c){
+          var d = actionOriginalDate(c);
+          return (!min || d < min) ? d : min;
+        }, null);
+      });
+      if (bkSort === 'date'){
+        order.sort(function(a, b){ return a.key === b.key ? 0 : (a.key < b.key ? -1 : 1); });
+      } else {
+        order.sort(function(a, b){ return categoryOrder(a.key) - categoryOrder(b.key); });
+      }
+      return order;
+    }
+
+    function build(){
+      var all = backlogActions();
+      // a row that was just moved stays put for one render so the confirmation is visible
+      var visible = all.concat(Object.keys(bkJustMoved)
+        .map(function(id){ return commitments.find(function(c){ return c.id === id; }); })
+        .filter(function(c){ return c && !all.some(function(a){ return a.id === c.id; }); }))
+        .sort(function(a, b){   // keep a just-moved row where it already sat
+          var da = actionOriginalDate(a), db = actionOriginalDate(b);
+          return da === db ? (a.title || '').localeCompare(b.title || '') : (da < db ? -1 : 1);
+        });
+      var items = bkFilter ? visible.filter(function(c){ return (c.category || '') === bkFilter; }) : visible;
+      var cats = [];
+      visible.forEach(function(c){ if (cats.indexOf(c.category || '') === -1) cats.push(c.category || ''); });
+
+      var html = '<div class="sheet-handle"></div>' +
+        '<div class="bk-sheet-head">' +
+          '<button class="circ-btn" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button>' +
+          '<div class="bk-sheet-center">' +
+            '<div class="sheet-title">Backlog</div>' +
+            '<div class="sheet-sub">Unfinished tasks from earlier days.</div>' +
+          '</div>' +
+          '<div class="bk-sheet-quote"><span>Nothing falls through.</span><i></i></div>' +
+        '</div>';
+
+      if (!visible.length){
+        return html + '<div class="bk-empty">' +
+          '<div class="bk-empty-title">Nothing waiting</div>' +
+          '<div class="bk-empty-sub">Everything from earlier days is resolved.</div>' +
+        '</div>';
+      }
+
+      html += '<div class="bk-sortbar">' +
+        '<div class="bk-sort">' +
+          '<span class="bk-sort-label">Sort by</span>' +
+          '<button type="button" class="' + (bkSort === 'group' ? 'sel' : '') + '" data-bk-sort="group">Group</button>' +
+          '<button type="button" class="' + (bkSort === 'date' ? 'sel' : '') + '" data-bk-sort="date">Date</button>' +
+        '</div>' +
+        '<button type="button" class="bk-filter' + (bkFilter ? ' on' : '') + '" id="bkFilterBtn" aria-expanded="' + (bkFilterOpen ? 'true' : 'false') + '">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="3.5" y1="7" x2="20.5" y2="7"/><line x1="6.5" y1="12" x2="17.5" y2="12"/><line x1="10" y1="17" x2="14" y2="17"/></svg>' +
+          'Filter' +
+        '</button>' +
+      '</div>';
+
+      if (bkFilterOpen){
+        html += '<div class="bk-filter-pop">' +
+          '<button type="button" class="bk-filter-chip' + (bkFilter ? '' : ' sel') + '" data-bk-filter="">All</button>' +
+          cats.map(function(k){
+            return '<button type="button" class="bk-filter-chip' + (bkFilter === k ? ' sel' : '') + '" data-bk-filter="' + k + '">' + categoryLabel(k) + '</button>';
+          }).join('') +
+        '</div>';
+      }
+
+      if (!items.length){
+        html += '<div class="bk-empty"><div class="bk-empty-title">Nothing in this group</div></div>';
+      } else {
+        html += groupsFor(items).map(function(g){
+          var collapsed = !!bkCollapsed[bkSort + ':' + g.key];
+          return '<div class="bk-group">' +
+            '<button type="button" class="bk-group-head" data-bk-group="' + bkSort + ':' + g.key + '" aria-expanded="' + (collapsed ? 'false' : 'true') + '">' +
+              '<span class="bk-group-ic">' + g.icon + '</span>' +
+              '<span class="bk-group-body">' +
+                '<span class="bk-group-label">' + g.label + '</span>' +
+                '<span class="bk-group-count">' + g.items.length + ' unfinished task' + (g.items.length === 1 ? '' : 's') + '</span>' +
+              '</span>' +
+              (bkSort === 'group' ? '<span class="bk-group-when">' + addedLabel(g.oldest) + '</span>' : '') +
+              '<span class="bk-group-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg></span>' +
+            '</button>' +
+            '<div class="bk-group-rows' + (collapsed ? ' collapsed' : '') + '">' +
+              g.items.map(function(c){
+                return backlogRowHtml(c, { check: true, longLabels: true, hideDate: bkSort === 'date', moved: !!bkJustMoved[c.id] });
+              }).join('') +
+            '</div>' +
+          '</div>';
+        }).join('');
+      }
+
+      html += '<div class="bk-foot">' +
+        '<span class="bk-foot-ic">' + UI_ICON.mountain + '</span>' +
+        '<div><div class="bk-foot-title">Clear today, brighter tomorrow.</div>' +
+        '<div class="bk-foot-sub">Move unfinished tasks forward and keep your momentum.</div></div>' +
+      '</div>';
+      return html;
+    }
+
+    function render(){
+      sheetEl.innerHTML = build();
+      fillBacklogTitles(sheetEl, commitments);
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      sheetEl.querySelectorAll('[data-bk-sort]').forEach(function(el){
+        el.addEventListener('click', function(){ bkSort = el.dataset.bkSort; render(); });
+      });
+      var filterBtn = document.getElementById('bkFilterBtn');
+      if (filterBtn) filterBtn.addEventListener('click', function(){ bkFilterOpen = !bkFilterOpen; render(); });
+      sheetEl.querySelectorAll('[data-bk-filter]').forEach(function(el){
+        el.addEventListener('click', function(){ bkFilter = el.dataset.bkFilter; render(); });
+      });
+      sheetEl.querySelectorAll('[data-bk-group]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var k = el.dataset.bkGroup;
+          bkCollapsed[k] = !bkCollapsed[k];
+          render();
+        });
+      });
+      wireBacklogRows(sheetEl, function(id){ bkJustMoved[id] = true; render(); });
+    }
+
+    render();
+    backdrop.classList.add('open');
+    activeSheetRefresh = render;
+  }
+
+  // ---- pick a future day ----
+  function openPickDaySheet(c){
+    activeSheetRefresh = null;
+    editingId = null;
+    var fromBacklog = isBacklogAction(c);
+
+    function offsetDate(days){
+      var d = new Date(todayStr() + 'T00:00:00');
+      d.setDate(d.getDate() + days);
+      return fmtDate(d);
+    }
+    var quick = [
+      { label: 'Today', date: todayStr() },
+      { label: 'Tomorrow', date: offsetDate(1) },
+      { label: 'In 3 days', date: offsetDate(3) },
+      { label: 'Next week', date: offsetDate(7) }
+    ];
+
+    sheetEl.innerHTML =
+      '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.calendar, 'Pick a day', addedLabel(actionOriginalDate(c)) + ' · still unfinished', '') +
+      '<div class="field"><label>Action</label><div class="pd-title" id="pdTitle"></div></div>' +
+      '<div class="field"><label>Move to</label><div class="bk-filter-pop" id="pdQuick">' +
+        quick.map(function(q){
+          return '<button type="button" class="bk-filter-chip" data-pd-quick="' + q.date + '">' + q.label + '</button>';
+        }).join('') +
+      '</div></div>' +
+      fieldDate('f_pickDay', 'Or choose a date', offsetDate(1)) +
+      '<button type="button" class="btn-primary" id="pdConfirmBtn">Move action</button>' +
+      '<button type="button" class="btn-quiet" id="pdCancelBtn">' + (fromBacklog ? 'Leave in backlog' : 'Cancel') + '</button>';
+    backdrop.classList.add('open');
+    document.getElementById('pdTitle').textContent = c.title;
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('pdCancelBtn').addEventListener('click', closeSheet);
+    sheetEl.querySelectorAll('[data-pd-quick]').forEach(function(el){
+      el.addEventListener('click', function(){
+        document.getElementById('f_pickDay').value = el.dataset.pdQuick;
+        sheetEl.querySelectorAll('[data-pd-quick]').forEach(function(x){ x.classList.remove('sel'); });
+        el.classList.add('sel');
+      });
+    });
+    document.getElementById('pdConfirmBtn').addEventListener('click', function(){
+      var dateStr = document.getElementById('f_pickDay').value;
+      if (!dateStr){ closeSheet(); return; }
+      moveActionToDate(c, dateStr);
+      closeSheet();
+    });
+  }
+
   // ============ Morning Prime ============
   // A compact daily setup ritual: plan meals, pick three key tasks, set an intention.
   // It leans on the systems already here — key tasks are ordinary actions flagged
@@ -3504,6 +4058,7 @@
     if (!isToday && !st.completedAt && !st.doneCount){ wrap.innerHTML = ''; return; }
 
     var expanded = !!mpExpanded[dateStr];
+    var backlogCount = backlogActions().length;
     var sub = st.completedAt
       ? 'Completed at ' + mpTimeLabel(st.completedAt)
       : (expanded ? 'Set yourself up for a focused day.' : 'Plan your day · ' + st.doneCount + ' of 3 complete');
@@ -3528,6 +4083,12 @@
           '<textarea id="mpIntention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
           '<span class="mp-count" id="mpCount"></span>' +
         '</div>' +
+        (isToday && backlogCount ?
+          '<button type="button" class="mp-backlog" id="mpBacklogBtn">' +
+            '<span class="mp-backlog-ic">' + UI_ICON.box + '</span>' +
+            '<span class="mp-backlog-text">' + backlogCount + ' unfinished item' + (backlogCount === 1 ? '' : 's') + ' from earlier days</span>' +
+            '<span class="mp-backlog-link">Review backlog</span>' +
+          '</button>' : '') +
         '<button type="button" class="btn-primary mp-save" id="mpSaveBtn">' + (st.completedAt ? 'Update Morning Prime' : 'Save Morning Prime') + '</button>' +
         (st.complete ? '' : '<p class="mp-hint" id="mpHint">' + mpMissingLabel(st) + '</p>') +
       '</div></div>' +
@@ -3556,6 +4117,9 @@
         else openIntentionSheet(dateStr);
       });
     });
+
+    var mpBacklogBtn = document.getElementById('mpBacklogBtn');
+    if (mpBacklogBtn) mpBacklogBtn.addEventListener('click', openBacklogSheet);
 
     document.getElementById('mpSaveBtn').addEventListener('click', async function(){
       var text = (document.getElementById('mpIntention').value || '').trim();
@@ -3745,6 +4309,7 @@
       var item = {
         id: uid(),
         date: dateStr,
+        originalDate: dateStr,
         title: text,
         priorityId: null,
         minVersion: null,
@@ -3900,6 +4465,7 @@
     renderMorningPrime();
     renderCommitments();
     renderAccountabilityMessage();
+    renderBacklogSection();
     renderCatchUpBanner();
     renderTodayPlanWidget();
     if (document.getElementById('dayNavSub')) renderHeader();
