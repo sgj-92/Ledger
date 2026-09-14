@@ -152,7 +152,7 @@
   /* section header: label ─────────── trailing value/link */
   .sec-head {
     display: flex; align-items: center; gap: 14px;
-    margin: var(--sp-7) 0 var(--sp-4);
+    margin: var(--sp-6) 0 var(--sp-3);
   }
   .sec-head:first-child { margin-top: var(--sp-2); }
   .sec-label {
@@ -345,29 +345,29 @@
   .act-group-label.roadblock { color: rgba(var(--danger-rgb),0.85); }
   .commitment-group-title { /* legacy alias */
     font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.2em;
-    color: var(--text-3); margin: var(--sp-5) 0 var(--sp-1); padding: 0 2px;
+    color: var(--text-3); margin: 14px 0 5px; padding: 0 2px;
   }
   .commitment-group-title:first-child { margin-top: 0; }
   .commitment-group-title.roadblock { color: rgba(var(--danger-rgb),0.85); }
 
   .commitment-item {
-    display: flex; align-items: center; gap: 14px;
-    padding: 15px 15px; background: var(--surface);
-    border: 1px solid var(--line); border-radius: 14px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 13px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 13px; margin-bottom: 6px;
     cursor: pointer; transition: background 0.12s ease;
   }
   .commitment-item:last-child { margin-bottom: 0; }
   .commitment-item:active { background: var(--surface-2); }
   .commitment-item.roadblock { box-shadow: inset 2px 0 0 rgba(var(--danger-rgb),0.5); }
   .commitment-status-dot {
-    width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%;
+    width: 21px; height: 21px; flex-shrink: 0; border-radius: 50%;
     border: 1.5px solid var(--line-2); background: none;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: background 0.14s ease, border-color 0.14s ease;
     position: relative;
   }
   .commitment-status-dot::after {
-    content: ''; width: 10px; height: 6px; border-left: 1.7px solid var(--ink);
+    content: ''; width: 9px; height: 5.5px; border-left: 1.7px solid var(--ink);
     border-bottom: 1.7px solid var(--ink); transform: rotate(-45deg) translate(1px,-1px);
     opacity: 0; transition: opacity 0.12s ease;
   }
@@ -378,13 +378,13 @@
   .commitment-status-dot.roadblock { border-color: rgba(var(--danger-rgb),0.6); }
   .commitment-body { flex: 1; min-width: 0; }
   .commitment-title {
-    font-family: var(--serif); font-size: 17px; font-weight: 400; line-height: 1.3;
+    font-family: var(--serif); font-size: 15.5px; font-weight: 400; line-height: 1.25;
     color: var(--text); letter-spacing: -0.005em;
   }
   .commitment-title.completed { color: var(--text-2); }
-  .commitment-meta { font-size: 12px; color: var(--text-3); margin-top: 4px; letter-spacing: 0.01em; }
-  .commitment-minver { font-size: 12px; color: rgba(var(--gold-rgb),0.75); margin-top: 4px; }
-  .commitment-when { font-size: 12.5px; color: var(--text-3); flex-shrink: 0; letter-spacing: 0.01em; }
+  .commitment-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; letter-spacing: 0.01em; }
+  .commitment-minver { font-size: 11px; color: rgba(var(--gold-rgb),0.75); margin-top: 2px; }
+  .commitment-when { font-size: 11.5px; color: var(--text-3); flex-shrink: 0; letter-spacing: 0.01em; }
   .commitment-train-link {
     flex-shrink: 0; background: none; border: 1px solid var(--line); color: var(--text-3);
     font-family: var(--sans); font-size: 10.5px; font-weight: 400; letter-spacing: 0.06em;
@@ -587,9 +587,9 @@
   /* ---------- Quick log ---------- */
   .section-toggle {
     display: flex; align-items: center; gap: 14px; width: 100%;
-    background: none; border: none; padding: 0; margin: var(--sp-7) 0 0;
+    background: none; border: none; padding: 0; margin: var(--sp-5) 0 0;
     font-family: var(--sans); cursor: pointer; color: var(--text);
-    min-height: 40px;
+    min-height: 34px;
   }
   .section-toggle:first-child { margin-top: var(--sp-2); }
   .section-toggle:active { opacity: 0.65; }
@@ -912,8 +912,8 @@
 
   /* ---------- misc blocks ---------- */
   .accountability-box {
-    font-size: 12.5px; color: var(--text-3); margin: var(--sp-6) 0 0;
-    padding: var(--sp-4) 2px 0; border-top: 1px solid var(--line); line-height: 1.6;
+    font-size: 12px; color: var(--text-3); margin: var(--sp-4) 0 0;
+    padding: var(--sp-3) 2px 0; border-top: 1px solid var(--line); line-height: 1.5;
   }
   .accountability-box:empty { display: none; }
   .accountability-box > div + div { margin-top: 4px; }
@@ -1356,25 +1356,37 @@
      A daily setup ritual: useful before completion, quiet after it. */
   .mp-card {
     background: var(--surface); border: 1px solid var(--line);
-    border-radius: var(--r-lg); overflow: hidden; margin-bottom: var(--sp-5);
+    border-radius: var(--r-lg); overflow: hidden; margin-bottom: var(--sp-2);
     transition: border-color 0.18s ease;
   }
   .mp-card.done { border-color: rgba(var(--gold-rgb),0.22); background: rgba(var(--gold-rgb),0.025); }
   .mp-head {
-    display: flex; align-items: center; gap: 13px; width: 100%;
-    padding: 14px 15px; background: none; border: none; text-align: left;
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 11px 13px; background: none; border: none; text-align: left;
     font-family: var(--sans); color: var(--text); cursor: pointer;
   }
   .mp-head:active { background: var(--surface-2); }
   .mp-head-body { flex: 1; min-width: 0; }
   .mp-title {
-    display: block; font-family: var(--serif); font-size: 17px; font-weight: 400;
+    display: block; font-family: var(--serif); font-size: 16px; font-weight: 400;
     line-height: 1.25; color: var(--text); letter-spacing: -0.005em;
   }
   .mp-sub {
-    display: block; font-size: 12px; color: var(--text-3);
-    margin-top: 3px; letter-spacing: 0.01em;
+    display: block; font-size: 11.5px; color: var(--text-3);
+    margin-top: 2px; letter-spacing: 0.01em;
   }
+  /* Completed: title and time share one line, so the card collapses to a single row */
+  .mp-card.done .mp-head-body { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .mp-card.done .mp-title { font-size: 15.5px; white-space: nowrap; flex-shrink: 0; }
+  .mp-card.done .mp-sub {
+    margin-top: 0; padding-left: 10px; border-left: 1px solid var(--line-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  }
+  .mp-reopen {
+    flex-shrink: 0; font-size: 12px; font-weight: 500; color: var(--gold);
+    letter-spacing: 0.01em;
+  }
+  @media (max-width: 404px) { .mp-reopen { display: none; } }
   .mp-card.done .mp-sub { color: rgba(var(--gold-rgb),0.7); }
   .mp-chev {
     width: 15px; height: 15px; flex-shrink: 0; color: var(--text-3);
@@ -1383,11 +1395,11 @@
   .mp-chev svg { width: 100%; height: 100%; display: block; }
   .mp-head[aria-expanded="true"] .mp-chev { transform: rotate(180deg); }
   .mp-mark {
-    flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
     border: 1px solid rgba(var(--gold-rgb),0.4); color: var(--gold);
     display: flex; align-items: center; justify-content: center;
   }
-  .mp-mark svg { width: 16px; height: 16px; display: block; }
+  .mp-mark svg { width: 15px; height: 15px; display: block; }
   .mp-mark.filled { background: var(--gold); border-color: var(--gold); color: var(--ink); }
 
   .mp-body {
@@ -1504,17 +1516,17 @@
   /* ============ Add action disclosure ============ */
   .add-action {
     border: 1px solid var(--line); border-radius: var(--r-lg);
-    background: var(--surface); overflow: hidden; margin-top: var(--sp-3);
+    background: var(--surface); overflow: hidden; margin-top: 10px;
   }
   .add-action-head {
-    display: flex; align-items: center; gap: 13px; width: 100%;
-    padding: 14px 15px; background: none; border: none;
-    font-family: var(--sans); font-size: 14.5px; font-weight: 500;
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 11px 13px; background: none; border: none;
+    font-family: var(--sans); font-size: 14px; font-weight: 500;
     color: var(--text); text-align: left; cursor: pointer;
   }
   .add-action-head:active { background: var(--surface-2); }
   .add-action-plus {
-    flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+    flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
     background: var(--gold); color: var(--ink);
     display: flex; align-items: center; justify-content: center;
   }
@@ -3112,7 +3124,9 @@
     saveCommitment(Object.assign({}, c, { status: next }));
   }
 
-  function buildCommitmentRow(c){
+  // contextDate: the day this list is already headed by. The row's own day label is
+  // only shown when it differs, so a single-day list doesn't repeat itself on every row.
+  function buildCommitmentRow(c, contextDate){
     var isRoadblock = c.category === 'roadblock';
     var row = document.createElement('div');
     row.className = 'commitment-item' + (isRoadblock ? ' roadblock' : '') + (c.isKeyTask ? ' key-task' : '');
@@ -3127,7 +3141,9 @@
         (metaParts.length ? '<div class="commitment-meta">' + metaParts.join(' · ') + '</div>' : '') +
         (showMinVer ? '<div class="commitment-minver">Minimum: ' + c.minVersion + '</div>' : '') +
       '</div>' +
-      '<span class="commitment-when">' + relativeDayLabel(c.date) + '</span>' +
+      // the day label only earns its place when it isn't the day you're looking at —
+      // on Today every row would otherwise read "Today" and steal width from the title
+      (c.date === (contextDate || viewedDate) ? '' : '<span class="commitment-when">' + relativeDayLabel(c.date) + '</span>') +
       '<span class="chev">' + UI_ICON.chevronRight + '</span>';
     row.addEventListener('click', function(){ openCommitmentSheet(c); });
     if (!isRoadblock){
@@ -4070,6 +4086,7 @@
           '<span class="mp-title">Morning Prime</span>' +
           '<span class="mp-sub">' + sub + '</span>' +
         '</span>' +
+        (st.completedAt && !expanded ? '<span class="mp-reopen">Reopen</span>' : '') +
         '<span class="mp-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
       '</button>' +
       '<div class="mp-body' + (expanded ? '' : ' collapsed') + '" id="mpBody"><div class="mp-body-inner">' +
@@ -4665,12 +4682,12 @@
     if (actions.length){
       var actHead = document.createElement('div'); actHead.className = 'cal-day-section-title'; actHead.textContent = 'Actions';
       wrap.appendChild(actHead);
-      actions.forEach(function(c){ wrap.appendChild(buildCommitmentRow(c)); });
+      actions.forEach(function(c){ wrap.appendChild(buildCommitmentRow(c, dateStr)); });
     }
     if (roadblocks.length){
       var rbHead = document.createElement('div'); rbHead.className = 'cal-day-section-title'; rbHead.textContent = 'Roadblocks';
       wrap.appendChild(rbHead);
-      roadblocks.forEach(function(c){ wrap.appendChild(buildCommitmentRow(c)); });
+      roadblocks.forEach(function(c){ wrap.appendChild(buildCommitmentRow(c, dateStr)); });
     }
     if (plan && (plan.roadblocks || plan.trainingTypes && plan.trainingTypes.length || plan.restDay)){
       var planHead = document.createElement('div'); planHead.className = 'cal-day-section-title'; planHead.textContent = 'Plan';
