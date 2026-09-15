@@ -1080,6 +1080,43 @@
   .field-pair { display: flex; gap: 10px; }
   .field-pair > .field { flex: 1; min-width: 0; }
 
+  .icon-btn {
+    flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 1px solid var(--line); background: none; color: var(--text-3); cursor: pointer;
+    transition: color 0.14s ease, border-color 0.14s ease;
+  }
+  .icon-btn svg { width: 15px; height: 15px; display: block; }
+  .icon-btn:active { color: var(--gold); border-color: rgba(var(--gold-rgb),0.4); }
+  .day-share-link { display: block; width: 100%; text-align: center; color: var(--text-3); font-size: 12.5px; }
+
+  .handoff-preview {
+    margin: 0 0 var(--sp-4); padding: 14px 14px; max-height: 40vh; overflow: auto;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px; line-height: 1.55; color: var(--text-2);
+    white-space: pre-wrap; word-break: break-word;
+    overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  }
+  .handoff-toggle {
+    display: flex; gap: 12px; align-items: flex-start; width: 100%;
+    padding: 12px 13px; background: none; cursor: pointer;
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    font-family: var(--sans); text-align: left; color: var(--text);
+  }
+  .handoff-toggle.on { border-color: rgba(var(--gold-rgb),0.35); background: rgba(var(--gold-rgb),0.04); }
+  .handoff-toggle-box {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: 6px; margin-top: 1px;
+    border: 1.5px solid var(--line-2); display: flex; align-items: center;
+    justify-content: center; color: transparent;
+    transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  }
+  .handoff-toggle-box svg { width: 12px; height: 12px; display: block; }
+  .handoff-toggle.on .handoff-toggle-box { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .handoff-toggle-body { flex: 1; min-width: 0; }
+  .handoff-toggle-title { display: block; font-size: 13.5px; font-weight: 500; }
+  .handoff-toggle-sub { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 3px; line-height: 1.45; }
+
   /* ---- catch-up: one block per thing the day already knows ---- */
   .cu-daylabel {
     display: flex; align-items: baseline; gap: 12px;
@@ -1530,6 +1567,7 @@
   .mp-step-val {
     font-size: 12px; color: var(--text-3); flex-shrink: 0;
     font-variant-numeric: tabular-nums; letter-spacing: 0.01em;
+    max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .mp-step.done .mp-step-val { color: rgba(var(--gold-rgb),0.8); }
   .mp-step .chev { flex-shrink: 0; }
@@ -1966,6 +2004,7 @@
       <div id="todayList"></div>
       <button class="btn-link" id="viewHistoryBtn">View history in Calendar →</button>
     </div>
+    <button type="button" class="btn-link day-share-link" id="shareDayFootBtn">Share day for Claude →</button>
     <p class="sync-note" id="syncNote"></p>
   </section>
 
@@ -2108,7 +2147,8 @@
     alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6l9 15.8H3z"/><line x1="12" y1="9.6" x2="12" y2="14"/><circle cx="12" cy="16.8" r="0.85" fill="currentColor" stroke="none"/></svg>',
     briefcase: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.8" y="7.5" width="18.4" height="12.5" rx="2.2"/><path d="M8.8 7.5V6a1.8 1.8 0 0 1 1.8-1.8h2.8A1.8 1.8 0 0 1 15.2 6v1.5"/><line x1="2.8" y1="12.5" x2="21.2" y2="12.5"/></svg>',
     chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 13.5a3 3 0 0 1-3 3H9l-4.5 3.5v-3.5a3 3 0 0 1-1-2.2V7a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3z"/></svg>',
-        chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="6" y1="19" x2="6" y2="12"/><line x1="12" y1="19" x2="12" y2="6.5"/><line x1="18" y1="19" x2="18" y2="15"/></svg>',
+        share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.5V4.2"/><polyline points="8.2 7.8 12 4 15.8 7.8"/><path d="M6.5 12.5H5.2a1.7 1.7 0 0 0-1.7 1.7v5.1a1.7 1.7 0 0 0 1.7 1.7h13.6a1.7 1.7 0 0 0 1.7-1.7v-5.1a1.7 1.7 0 0 0-1.7-1.7H17.5"/></svg>',
+    chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="6" y1="19" x2="6" y2="12"/><line x1="12" y1="19" x2="12" y2="6.5"/><line x1="18" y1="19" x2="18" y2="15"/></svg>',
     note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8.5L19 8v12.5H6z"/><polyline points="14 3.5 14 8.2 18.8 8.2"/><line x1="9" y1="12.5" x2="15" y2="12.5"/><line x1="9" y1="16" x2="13" y2="16"/></svg>',
     list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6.5" x2="20" y2="6.5"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="17.5" x2="20" y2="17.5"/><circle cx="5" cy="6.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="17.5" r="1.3" fill="currentColor" stroke="none"/></svg>',
     target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none"/></svg>',
@@ -2817,12 +2857,14 @@
     } catch(e){ console.error('save push subscription failed', e); return false; }
   }
 
-  function showPinToast(text, isError){
+  function showPinToast(text, isError, iconSvg){
     var existing = document.querySelector('.pin-toast');
     if (existing) existing.remove();
     var el = document.createElement('div');
     el.className = 'pin-toast' + (isError ? ' error' : '');
-    el.innerHTML = (isError ? '' : '<span class="pin-toast-icon">' + PIN_ICON_SVG + '</span>') + text;
+    var mark = isError ? '' : '<span class="pin-toast-icon">' + (iconSvg || PIN_ICON_SVG) + '</span>';
+    el.textContent = text;
+    el.insertAdjacentHTML('afterbegin', mark);
     document.body.appendChild(el);
     requestAnimationFrame(function(){ el.classList.add('show'); });
     setTimeout(function(){
@@ -4165,6 +4207,233 @@
     });
   }
 
+  // ============ Daily Handoff ============
+  // A deterministic, machine-first rendering of a day so it can be pasted into Claude and
+  // carried into connected tools. Section order never varies; nothing internal (ids,
+  // Firestore fields) is emitted, and nothing is invented — a time that isn't recorded
+  // simply isn't written.
+  var HANDOFF_INSTRUCTIONS = [
+    'Use this as today\'s source of truth.',
+    'Create or update tasks/calendar items in my connected tools where appropriate.',
+    'Do not duplicate items that already exist.',
+    'Preserve categories and times where specified.'
+  ].join('\n');
+
+  function handoffWantsInstructions(){
+    try { return localStorage.getItem('ledger_handoff_instructions') !== '0'; }
+    catch(e){ return true; }
+  }
+  function setHandoffInstructions(on){
+    try { localStorage.setItem('ledger_handoff_instructions', on ? '1' : '0'); } catch(e){}
+  }
+
+  function handoffCategory(c){
+    var cat = QUICK_CAPTURE_CATEGORY_MAP[c.category];
+    return cat ? ' [' + cat.label + ']' : '';
+  }
+  // Everything an action carries that a downstream tool could act on. Anything absent
+  // is omitted rather than guessed at.
+  function handoffActionLine(c){
+    var line = c.title + handoffCategory(c);
+    var extras = [];
+    if (c.minVersion) extras.push('minimum: ' + c.minVersion);
+    if (c.priorityId){
+      var p = priorities.find(function(x){ return x.id === c.priorityId; });
+      if (p) extras.push('priority: ' + p.title);
+    }
+    if (c.time) extras.push('time: ' + c.time);
+    if (c.status && c.status !== 'planned' && c.status !== 'completed'){
+      extras.push(COMMITMENT_STATUS_LABEL[c.status].toLowerCase());
+    }
+    if (c.status === 'completed') extras.push('done');
+    if (extras.length) line += ' (' + extras.join('; ') + ')';
+    return line;
+  }
+
+  function buildDailyHandoff(dateStr, includeInstructions){
+    var d = new Date(dateStr + 'T00:00:00');
+    var plan = getPlanForDate(dateStr);
+    var mp = getMorningPrime(dateStr);
+    var st = mpState(dateStr);
+    var meals = getPlanMeals(plan);
+    var dayActions = commitments.filter(function(c){ return c.date === dateStr; });
+    var roadblockActions = dayActions.filter(function(c){ return c.category === 'roadblock'; });
+    var actionable = dayActions.filter(function(c){ return c.category !== 'roadblock'; });
+    var keyTasks = actionable.filter(function(c){ return c.isKeyTask; });
+    var others = actionable.filter(function(c){ return !c.isKeyTask; });
+    var nutrition = getNutritionForDate(dateStr);
+    var rec = getDayRecord(dateStr);
+    var L = [];
+
+    // 1. Date
+    L.push('LEDGER DAILY HANDOFF');
+    L.push('Date: ' + d.getDate() + ' ' + d.toLocaleDateString(undefined, { month: 'long' }) + ' ' + d.getFullYear());
+
+    // 2. Intention
+    var intention = (mp.intention || '').trim();
+    if (intention) L.push('Intention: ' + intention);
+    L.push('');
+
+    // 3. Key tasks
+    L.push('KEY TASKS');
+    if (keyTasks.length) keyTasks.forEach(function(c, i){ L.push((i+1) + '. ' + handoffActionLine(c)); });
+    else L.push('- none set');
+    L.push('');
+
+    // 4. Other actions
+    L.push('OTHER ACTIONS');
+    if (others.length) others.forEach(function(c){ L.push('- ' + handoffActionLine(c)); });
+    else L.push('- none');
+    L.push('');
+
+    // 5. Today's plan
+    L.push("TODAY'S PLAN");
+    if (plan && plan.restDay){
+      L.push('Rest day');
+    } else if (plan && plan.trainingTypes && plan.trainingTypes.length){
+      L.push('Training:');
+      plan.trainingTypes.forEach(function(t){
+        var det = (plan.trainingDetails && plan.trainingDetails[t]) || {};
+        L.push('- ' + TYPE_LABEL[t] + (det.completed ? ' (logged)' : ''));
+        if (det.venue) L.push('  - Location: ' + det.venue);
+        if (det.focus) L.push('  - Focus: ' + det.focus);
+        if (det.cardioType) L.push('  - Type: ' + det.cardioType);
+        if (det.distance) L.push('  - Distance: ' + det.distance + ' ' + (det.distanceUnit || 'km'));
+        if (det.exercises && det.exercises.length) L.push('  - Exercises: ' + det.exercises.map(function(e){ return e.name; }).join(', '));
+        if (det.durationMin) L.push('  - Planned duration: ' + det.durationMin + ' min');
+        if (det.notes) L.push('  - Notes: ' + det.notes);
+      });
+    } else {
+      L.push('Training:');
+      L.push('- none planned');
+    }
+    if (meals.length){
+      L.push('Meals:');
+      meals.forEach(function(m){ L.push('- ' + m.text + (m.completed ? ' (eaten)' : '')); });
+    }
+    var dietBits = [];
+    if (plan && plan.carbLevel) dietBits.push(CARB_LEVEL_LABEL[plan.carbLevel]);
+    if (plan && plan.fasting) dietBits.push('Fasting');
+    if (dietBits.length){
+      L.push('Diet:');
+      dietBits.forEach(function(b){ L.push('- ' + b); });
+    }
+    L.push('');
+
+    // 6. Roadblocks
+    L.push('ROADBLOCKS');
+    var anyRoadblock = false;
+    if (plan && plan.roadblocks){ L.push('- ' + plan.roadblocks); anyRoadblock = true; }
+    roadblockActions.forEach(function(c){ L.push('- ' + c.title); anyRoadblock = true; });
+    if (!anyRoadblock) L.push('- none');
+    L.push('');
+
+    // 7. Status / notes
+    L.push('STATUS / NOTES');
+    L.push('- Morning Prime ' + (st.completedAt
+      ? 'completed at ' + mpTimeLabel(st.completedAt)
+      : st.doneCount + ' of ' + MP_STEP_COUNT + ' steps complete'));
+    L.push("- Today's Plan " + (st.planDone ? 'reviewed' : 'not yet reviewed'));
+    if (actionable.length){
+      var doneCount = actionable.filter(function(c){ return c.status === 'completed'; }).length;
+      L.push('- Actions ' + doneCount + ' of ' + actionable.length + ' complete');
+    }
+    L.push('- Nutrition ' + (nutrition && nutrition.closed ? 'closed for the day'
+      : (nutrition && hasNutritionEvidence(nutrition) ? 'in progress' : 'not started')));
+    if (nutrition && nutrition.glutenExposure){
+      L.push('- Suspected gluten exposure: ' + (exposureLabel(nutrition) || 'recorded'));
+    }
+    if (rec && rec.status) L.push('- Day marked ' + DAY_STATUS_LABEL[rec.status].toLowerCase());
+    if (rec && rec.notes) L.push('- Note: ' + rec.notes);
+    // context only: these are deliberately NOT today's work
+    var backlog = backlogActions().length;
+    if (dateStr === todayStr() && backlog){
+      L.push('- ' + backlog + ' unfinished action' + (backlog === 1 ? '' : 's') +
+        ' sit in backlog from earlier days; they are not scheduled for today — do not create tasks for them.');
+    }
+
+    if (includeInstructions){
+      L.push('');
+      L.push('--- FOR CLAUDE ---');
+      L.push(HANDOFF_INSTRUCTIONS);
+    }
+    return L.join('\n');
+  }
+
+  // Clipboard first, with a selection fallback for contexts where the async API is
+  // unavailable (older iOS Safari, non-secure origins).
+  function copyTextToClipboard(text){
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext){
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function(resolve, reject){
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, text.length);
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('copy rejected'));
+      } catch(e){ reject(e); }
+    });
+  }
+
+  function openShareDaySheet(dateStr){
+    activeSheetRefresh = null;
+    editingId = null;
+    var withInstructions = handoffWantsInstructions();
+    var canShare = !!(navigator.share);
+
+    function text(){ return buildDailyHandoff(dateStr, withInstructions); }
+
+    function render(){
+      sheetEl.innerHTML =
+        '<div class="sheet-handle"></div>' +
+        sheetHead(UI_ICON.arrowRight, 'Share day', shortDayLabel(dateStr) + ' · structured for Claude', '') +
+        '<pre class="handoff-preview" id="handoffPreview"></pre>' +
+        '<button type="button" class="handoff-toggle' + (withInstructions ? ' on' : '') + '" id="handoffInstrBtn" aria-pressed="' + (withInstructions ? 'true' : 'false') + '">' +
+          '<span class="handoff-toggle-box">' + CHECK_SVG + '</span>' +
+          '<span class="handoff-toggle-body">' +
+            '<span class="handoff-toggle-title">Include Claude instructions</span>' +
+            '<span class="handoff-toggle-sub">Appends how to treat the data. Turn off to use the export elsewhere.</span>' +
+          '</span>' +
+        '</button>' +
+        '<div class="sheet-actionbar">' +
+          '<button type="button" class="btn-primary" id="handoffCopyBtn">Copy for Claude</button>' +
+          (canShare ? '<button type="button" class="btn-secondary" id="handoffShareBtn">Share…</button>' : '') +
+        '</div>';
+      // the export is text, never markup
+      document.getElementById('handoffPreview').textContent = text();
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      document.getElementById('handoffInstrBtn').addEventListener('click', function(){
+        withInstructions = !withInstructions;
+        setHandoffInstructions(withInstructions);
+        render();
+      });
+      document.getElementById('handoffCopyBtn').addEventListener('click', function(){
+        copyTextToClipboard(text()).then(function(){
+          closeSheet();
+          showPinToast('Day copied', false, CHECK_SVG);
+        }).catch(function(){
+          showPinToast('Couldn\'t copy — select the text above', true);
+        });
+      });
+      var shareBtn = document.getElementById('handoffShareBtn');
+      if (shareBtn) shareBtn.addEventListener('click', function(){
+        navigator.share({ title: 'Ledger — ' + shortDayLabel(dateStr), text: text() })
+          .then(function(){ closeSheet(); })
+          .catch(function(){ /* dismissed */ });
+      });
+    }
+
+    render();
+    backdrop.classList.add('open');
+  }
+
   // ============ Morning Prime ============
   // A compact daily setup ritual: plan meals, pick three key tasks, set an intention.
   // It leans on the systems already here — key tasks are ordinary actions flagged
@@ -4188,9 +4457,11 @@
   function mpIntentionValue(dateStr){
     return mpIntentionDraft[dateStr] != null ? mpIntentionDraft[dateStr] : getMorningPrime(dateStr).intention;
   }
+  var MP_STEP_COUNT = 4;
   function mpState(dateStr){
     var mp = getMorningPrime(dateStr);
-    var meals = getPlanMeals(getPlanForDate(dateStr));
+    var plan = getPlanForDate(dateStr);
+    var meals = getPlanMeals(plan);
     var keys = getKeyTasks(dateStr);
     var intention = (mpIntentionValue(dateStr) || '').trim();
     var st = {
@@ -4199,15 +4470,23 @@
       mealsAcknowledged: mp.mealsAcknowledged,
       keyCount: keys.length,
       keysDone: keys.length >= 3,
+      // the plan step is satisfied by reviewing and saving the day's plan, not by
+      // filling every field — Morning Prime guides the plan, it doesn't duplicate it
+      planReviewedAt: (plan && plan.planReviewedAt) || null,
+      planDone: !!(plan && plan.planReviewedAt),
       intention: intention,
       intentionDone: !!intention,
       completedAt: mp.completedAt
     };
-    st.doneCount = (st.mealsDone?1:0) + (st.keysDone?1:0) + (st.intentionDone?1:0);
-    st.complete = st.doneCount === 3;
+    st.doneCount = (st.mealsDone?1:0) + (st.keysDone?1:0) + (st.planDone?1:0) + (st.intentionDone?1:0);
+    st.complete = st.doneCount === MP_STEP_COUNT;
     return st;
   }
-
+  // Morning Prime only asks for attention on a day it belongs to, and only while unfinished
+  function mpNeedsAttention(dateStr){
+    if (dateStr !== todayStr()) return false;
+    return !mpState(dateStr).completedAt;
+  }
   async function patchMorningPrime(dateStr, patch){
     var plan = getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
     var next = Object.assign({}, plan);
@@ -4225,6 +4504,7 @@
     var missing = [];
     if (!st.mealsDone) missing.push('plan your meals');
     if (!st.keysDone) missing.push((3 - st.keyCount) + ' more key task' + ((3 - st.keyCount) === 1 ? '' : 's'));
+    if (!st.planDone) missing.push("today's plan");
     if (!st.intentionDone) missing.push('an intention');
     if (!missing.length) return '';
     if (missing.length === 1) return 'Still to go: ' + missing[0] + '.';
@@ -4253,7 +4533,7 @@
     var backlogCount = backlogActions().length;
     var sub = st.completedAt
       ? 'Completed at ' + mpTimeLabel(st.completedAt)
-      : (expanded ? 'Set yourself up for a focused day.' : 'Plan your day · ' + st.doneCount + ' of 3 complete');
+      : (expanded ? 'Set yourself up for a focused day.' : 'Plan your day · ' + st.doneCount + ' of ' + MP_STEP_COUNT + ' complete');
 
     var html = '<div class="mp-card' + (st.completedAt ? ' done' : '') + '">' +
       '<button type="button" class="mp-head" id="mpHead" aria-expanded="' + (expanded ? 'true' : 'false') + '" aria-controls="mpBody">' +
@@ -4270,7 +4550,9 @@
                      value: st.mealCount ? st.mealCount + ' planned' : (st.mealsAcknowledged ? 'None today' : '') }) +
         mpStepHtml({ step:'keys', num:2, icon:UI_ICON.list, label:'Set your three key tasks', done:st.keysDone,
                      value: st.keyCount + ' of 3' }) +
-        mpStepHtml({ step:'intention', num:3, icon:UI_ICON.target, label:'Set your intention', done:st.intentionDone,
+        mpStepHtml({ step:'plan', num:3, icon:UI_ICON.sun, label:"Finish Today's Plan", done:st.planDone,
+                     value: st.planDone ? 'Complete' : 'Needs review' }) +
+        mpStepHtml({ step:'intention', num:4, icon:UI_ICON.target, label:'Set your intention', done:st.intentionDone,
                      value: '' }) +
         '<div class="mp-intention-wrap">' +
           '<textarea id="mpIntention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
@@ -4307,6 +4589,7 @@
         var step = btn.dataset.mpStep;
         if (step === 'meals') openPlanMealsSheet(dateStr);
         else if (step === 'keys') openKeyTasksSheet(dateStr);
+        else if (step === 'plan') openPlanSheet(dateStr, getPlanForDate(dateStr), { returnToMorningPrime: true });
         else openIntentionSheet(dateStr);
       });
     });
@@ -4320,7 +4603,7 @@
       var after = mpState(dateStr);
       var patch = { intention: text, mealsAcknowledged: true };
       // completion is earned, not asserted by tapping save
-      if (after.mealsDone && after.keysDone && text){
+      if (after.mealsDone && after.keysDone && after.planDone && text){
         patch.completedAt = after.completedAt || new Date().toISOString();
         mpExpanded[dateStr] = false;
       }
@@ -5110,6 +5393,8 @@
 
     if (activeSheetRefresh) activeSheetRefresh();
   }
+
+  document.getElementById('shareDayFootBtn').addEventListener('click', function(){ openShareDaySheet(viewedDate); });
 
   document.getElementById('viewHistoryBtn').addEventListener('click', function(){
     selectedDay = viewedDate;
@@ -5948,6 +6233,7 @@
     var html = '<div class="today-plan-widget-head">' +
       '<span class="sec-label">' + label + '</span>' +
       '<span class="sec-rule"></span>' +
+      '<button type="button" class="icon-btn" id="shareDayBtn" aria-label="Share day">' + UI_ICON.share + '</button>' +
       '<button type="button" class="sec-link" id="planTodayBtn">' + planActionLabel + UI_ICON.arrowRight + '</button>' +
     '</div>';
 
@@ -5973,6 +6259,7 @@
     document.getElementById('planTodayBtn').addEventListener('click', function(){
       openPlanSheet(dateStr, getPlanForDate(dateStr));
     });
+    document.getElementById('shareDayBtn').addEventListener('click', function(){ openShareDaySheet(dateStr); });
     wrap.querySelectorAll('[data-plan-edit]').forEach(function(el){
       el.addEventListener('click', function(e){
         e.stopPropagation();
@@ -6108,7 +6395,8 @@
     }
   }
 
-  function openPlanSheet(dateStr, existing){
+  function openPlanSheet(dateStr, existing, opts){
+    opts = opts || {};
     editingId = null;
     var p = existing || {};
     var d = new Date(dateStr + 'T00:00:00');
@@ -6135,6 +6423,9 @@
           '<button type="button" class="add-exercise-btn" id="addPlanMealBtn">+ Add meal</button></div>' +
         '<div class="field"><label>Roadblocks</label><textarea id="f_roadblocks" placeholder="e.g. work dinner, travel day">' + (p.roadblocks||'') + '</textarea></div>' +
         '<button class="save-btn" id="savePlanBtn">Save plan</button>' +
+        (mpNeedsAttention(dateStr)
+          ? '<button type="button" class="btn-quiet" id="planToMpBtn">Return to Morning Prime</button>'
+          : '') +
         (existing ? '<button class="delete-btn" id="deletePlanBtn">Clear plan</button>' : '');
       return html;
     }
@@ -6225,7 +6516,9 @@
       var finalTypes = restDay ? [] : trainingTypes;
       var prunedDetails = {};
       finalTypes.forEach(function(t){ if (trainingDetailsState[t]) prunedDetails[t] = trainingDetailsState[t]; });
-      return {
+      // Morning Prime and anything else already on this date's plan travel with it —
+      // this form owns only the fields it actually shows.
+      return Object.assign({}, getPlanForDate(dateStr) || {}, {
         restDay: restDay,
         trainingTypes: finalTypes,
         trainingDetails: prunedDetails,
@@ -6235,7 +6528,7 @@
           .map(function(m){ return { id: m.id, text: (m.text||'').trim(), completed: m.completed, completedAt: m.completedAt, nutritionEntryId: m.nutritionEntryId }; })
           .filter(function(m){ return m.text; }),
         roadblocks: document.getElementById('f_roadblocks').value
-      };
+      });
     }
 
     function renderMealRows(){
@@ -6279,8 +6572,28 @@
         renderMealRows();
       });
       document.getElementById('savePlanBtn').addEventListener('click', function(){
+        // reviewing and saving the plan is the completion signal — it doesn't demand
+        // that every field be filled, only that the day has been thought about
+        var out = collectPlanData();
+        out.planReviewedAt = new Date().toISOString();
+        savePlanForDate(dateStr, out);
+        closeSheet();
+        if (opts.returnToMorningPrime){
+          mpExpanded[dateStr] = true;
+          renderMorningPrime();
+          var card = document.querySelector('.mp-card');
+          if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+      var planToMp = document.getElementById('planToMpBtn');
+      if (planToMp) planToMp.addEventListener('click', function(){
         savePlanForDate(dateStr, collectPlanData());
         closeSheet();
+        if (viewedDate !== dateStr) jumpToToday(dateStr);
+        mpExpanded[dateStr] = true;
+        renderMorningPrime();
+        var card = document.querySelector('.mp-card');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
       if (existing){
         document.getElementById('deletePlanBtn').addEventListener('click', function(){
