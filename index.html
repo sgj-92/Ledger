@@ -1042,7 +1042,113 @@
     padding: 12px 22px calc(24px + env(safe-area-inset-bottom));
     max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-raised);
     animation: sheet-up 0.24s cubic-bezier(.2,.9,.3,1);
+    /* dvh tracks the iOS toolbar, so the sheet never extends under browser chrome */
+    max-height: 90dvh;
+    /* momentum stays inside the sheet instead of chaining to the page behind it */
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-bottom: 96px;
   }
+  /* A long form must never leave its own actions out of reach: the bar rides the bottom
+     of the visible sheet while the content scrolls behind it. */
+  .sheet-actionbar {
+    position: sticky; z-index: 3;
+    bottom: calc(-24px - env(safe-area-inset-bottom));
+    display: flex; gap: 10px; align-items: stretch;
+    margin: var(--sp-5) -22px calc(-24px - env(safe-area-inset-bottom));
+    padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
+    background: var(--surface); border-top: 1px solid var(--line);
+  }
+  .sheet-actionbar > * { flex: 1; margin: 0; min-width: 0; }
+  .sheet-actionbar .btn-primary, .sheet-actionbar .btn-secondary {
+    padding: 13px 10px; font-size: 13.5px; border-radius: var(--r-md);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  @media (max-width: 359px) { .sheet-actionbar { flex-direction: column; } }
+  /* the diary grows rather than scrolling internally — a nested scroller inside a
+     sheet is exactly what traps a touch drag near the bottom */
+  .food-diary { overscroll-behavior: contain; }
+  .exposure-note {
+    display: flex; gap: 10px; align-items: flex-start;
+    margin: var(--sp-2) 0 var(--sp-4); padding: 11px 12px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--r-md); font-size: 11.5px; line-height: 1.5; color: var(--text-3);
+  }
+  .exposure-note-ic { flex-shrink: 0; color: rgba(var(--gold-rgb),0.6); display: flex; }
+  .exposure-note-ic svg { width: 15px; height: 15px; display: block; }
+  .link-note { font-size: 11.5px; color: var(--text-3); margin: -8px 0 var(--sp-4); line-height: 1.5; }
+  .field-pair { display: flex; gap: 10px; }
+  .field-pair > .field { flex: 1; min-width: 0; }
+
+  /* ---- catch-up: one block per thing the day already knows ---- */
+  .cu-daylabel {
+    display: flex; align-items: baseline; gap: 12px;
+    font-family: var(--serif); font-size: 19px; color: var(--text);
+    margin: calc(-1 * var(--sp-3)) 0 var(--sp-4);
+  }
+  .cu-daymore { font-family: var(--sans); font-size: 11.5px; color: var(--text-3); margin-left: auto; }
+  .cu-block {
+    display: flex; gap: 13px; align-items: flex-start;
+    padding: 14px 14px; margin-bottom: 10px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-lg);
+  }
+  .cu-ic { flex-shrink: 0; }
+  .cu-body { flex: 1; min-width: 0; }
+  .cu-head { display: flex; align-items: center; gap: 12px; }
+  .cu-title {
+    flex: 1; min-width: 0; font-family: var(--serif); font-size: 16px;
+    font-weight: 400; color: var(--text); letter-spacing: -0.005em;
+  }
+  .cu-optional { font-family: var(--sans); font-size: 11.5px; color: var(--text-3); }
+  .cu-sub { font-size: 12px; color: var(--text-2); margin-top: 3px; line-height: 1.45; }
+  .cu-sub-quiet { color: var(--text-3); }
+  .cu-link {
+    flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--gold);
+  }
+  .cu-link svg { width: 12px; height: 12px; display: block; }
+  .cu-link:active { opacity: 0.6; }
+  .cu-link-block { margin-top: 10px; }
+  .cu-seg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .cu-seg-btn {
+    flex: 1 1 0; min-width: 68px; padding: 10px 6px; border-radius: var(--r-md);
+    border: 1px solid var(--line-2); background: none;
+    font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text-2);
+    cursor: pointer; transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+  }
+  .cu-seg-btn:active { background: var(--surface-3); }
+  .cu-seg-btn.sel { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  /* four-option groups read better as a 2x2 than 3-then-1 */
+  .cu-seg.two-up .cu-seg-btn { flex: 1 1 calc(50% - 3px); }
+  .cu-evidence { margin-top: 10px; display: flex; flex-direction: column; gap: 7px; }
+  .cu-evidence-row {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 10px 11px; border-radius: var(--r-md);
+    border: 1px solid rgba(var(--gold-rgb),0.24); background: rgba(var(--gold-rgb),0.05);
+    font-family: var(--sans); text-align: left; color: var(--text); cursor: pointer;
+  }
+  .cu-evidence-row:active { background: rgba(var(--gold-rgb),0.1); }
+  .cu-ev-tick { flex-shrink: 0; width: 15px; height: 15px; color: var(--gold); display: flex; }
+  .cu-ev-tick svg { width: 100%; height: 100%; display: block; }
+  .cu-ev-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .cu-ev-text strong { font-weight: 500; font-size: 12.5px; }
+  .cu-ev-text span { font-size: 11.5px; color: var(--text-3); }
+  .cu-notes {
+    width: 100%; box-sizing: border-box; resize: none; margin-top: 10px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: 11px 12px; font-family: var(--sans); font-size: 13px; line-height: 1.5;
+    color: var(--text); outline: none;
+  }
+  .cu-notes:focus { border-color: rgba(var(--gold-rgb),0.35); }
+  .cu-foot {
+    display: flex; gap: 10px; align-items: flex-start;
+    margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--line);
+    font-size: 11.5px; line-height: 1.5; color: var(--text-3);
+  }
+  .cu-foot-ic { flex-shrink: 0; color: var(--text-3); display: flex; }
+  .cu-foot-ic svg { width: 15px; height: 15px; display: block; }
+
   @keyframes sheet-up { from { transform: translateY(24px); opacity: 0.5; } to { transform: translateY(0); opacity: 1; } }
   .sheet-handle { width: 38px; height: 4px; background: var(--line-2); border-radius: 2px; margin: 0 auto 18px; }
   .sheet-head { display: flex; align-items: center; gap: 14px; margin-bottom: var(--sp-6); }
@@ -1177,9 +1283,9 @@
   .yn-inline-field { display: flex; align-items: center; gap: 12px; padding: 13px 0; }
   .yn-inline-field .yn-icon { flex-shrink: 0; color: var(--text-2); display: flex; }
   .yn-inline-field .yn-icon svg { width: 18px; height: 18px; display: block; }
-  .yn-inline-field .yn-inline-label { flex: 1; font-size: 14.5px; color: var(--text); }
+  .yn-inline-field .yn-inline-label { flex: 1; min-width: 0; font-size: 14.5px; color: var(--text); }
   .yn-inline-field input {
-    flex: 0 0 116px; background: var(--surface-2); border: 1px solid var(--line);
+    flex: 0 1 104px; min-width: 0; background: var(--surface-2); border: 1px solid var(--line);
     border-radius: 9px; color: var(--text); padding: 9px 12px;
     font-family: var(--sans); font-size: 13.5px; text-align: right;
   }
@@ -1841,6 +1947,10 @@
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><line x1="5" y1="12" x2="19" y2="12"/><rect x="6.5" y="6.5" width="3" height="11" rx="1"/><rect x="14.5" y="6.5" width="3" height="11" rx="1"/></svg></span>
         <span class="ql-label">Resistance training</span>
       </button>
+      <button class="quicklog-card symptom" data-type="symptom">
+        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.6 14.6c.9-.9 1.9-1.3 3.4-1.3s2.5.4 3.4 1.3"/><line x1="9" y1="9.2" x2="9.6" y2="9.2"/><line x1="14.4" y1="9.2" x2="15" y2="9.2"/></svg></span>
+        <span class="ql-label">Symptoms</span>
+      </button>
       <button class="quicklog-card yoga" data-type="yoga">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.8" fill="currentColor" stroke="none"/><path d="M12 8v6"/><path d="M12 9c-2 2-3 3-6 3"/><path d="M12 9c2 2 3 3 6 3"/><path d="M12 14c-1.5 2-2 3-2 5.5"/><path d="M12 14c1.5 2 2 3 2 5.5"/></svg></span>
         <span class="ql-label">Mobility</span>
@@ -1967,7 +2077,7 @@
   var viewedDate = todayStr(); // the date the Today view is currently showing
   var planSelectedDate = null; // last day-row interacted with in Plan (for the global FAB's date target)
 
-  var TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance training', cardio: 'Cardio', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition', gluten: 'Gluten exposure' };
+  var TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance training', cardio: 'Cardio', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition', gluten: 'Gluten exposure', symptom: 'Symptoms' };
   // shared icon set for training types — reused by the Plan selector, Today's plan rows and Quick Log cards
   var TRAINING_ICON_SVG = {
     padel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="10" height="13" rx="5"/><line x1="10" y1="15.5" x2="10" y2="20"/><line x1="7" y1="21.5" x2="13" y2="21.5"/><circle cx="18.5" cy="18.5" r="2"/></svg>',
@@ -1998,13 +2108,17 @@
     alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6l9 15.8H3z"/><line x1="12" y1="9.6" x2="12" y2="14"/><circle cx="12" cy="16.8" r="0.85" fill="currentColor" stroke="none"/></svg>',
     briefcase: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.8" y="7.5" width="18.4" height="12.5" rx="2.2"/><path d="M8.8 7.5V6a1.8 1.8 0 0 1 1.8-1.8h2.8A1.8 1.8 0 0 1 15.2 6v1.5"/><line x1="2.8" y1="12.5" x2="21.2" y2="12.5"/></svg>',
     chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 13.5a3 3 0 0 1-3 3H9l-4.5 3.5v-3.5a3 3 0 0 1-1-2.2V7a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3z"/></svg>',
-        list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6.5" x2="20" y2="6.5"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="17.5" x2="20" y2="17.5"/><circle cx="5" cy="6.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="17.5" r="1.3" fill="currentColor" stroke="none"/></svg>',
+        chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="6" y1="19" x2="6" y2="12"/><line x1="12" y1="19" x2="12" y2="6.5"/><line x1="18" y1="19" x2="18" y2="15"/></svg>',
+    note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8.5L19 8v12.5H6z"/><polyline points="14 3.5 14 8.2 18.8 8.2"/><line x1="9" y1="12.5" x2="15" y2="12.5"/><line x1="9" y1="16" x2="13" y2="16"/></svg>',
+    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6.5" x2="20" y2="6.5"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="17.5" x2="20" y2="17.5"/><circle cx="5" cy="6.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="17.5" r="1.3" fill="currentColor" stroke="none"/></svg>',
     target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><line x1="15.8" y1="15.8" x2="20" y2="20"/></svg>',
     flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2c3.4 3.4 5.6 6.1 5.6 9.3a5.6 5.6 0 0 1-11.2 0c0-1.5.6-2.9 1.7-4.2.5 1.2 1.2 1.9 2 2.1-.3-2.6.3-5 1.9-7.2z"/></svg>',
     glass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 4.5h11l-1.3 15H7.8z"/><line x1="7.1" y1="11" x2="16.9" y2="11"/></svg>'
   };
+  var SYMPTOM_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.6 14.6c.9-.9 1.9-1.3 3.4-1.3s2.5.4 3.4 1.3"/><line x1="9" y1="9.2" x2="9.6" y2="9.2"/><line x1="14.4" y1="9.2" x2="15" y2="9.2"/></svg>';
   var SESSION_ICON_SVG = Object.assign({}, TRAINING_ICON_SVG, {
+    symptom: SYMPTOM_ICON_SVG,
     nutrition: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 4.2c0 7.8-4.9 12.3-11.2 12.3H5.8C5.8 8.7 10.7 4.2 17 4.2h2.5z"/><path d="M5 20c2.2-4.8 5.4-7.7 9.6-9.6"/></svg>',
     weight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c0-2.5 1.5-4 3.5-4s3.5 1.5 3.5 4"/><line x1="12" y1="7" x2="12" y2="8.5"/></svg>',
     photo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.3"/></svg>',
@@ -2012,6 +2126,55 @@
   });
   var GLUTEN_SYMPTOMS = ['Brain fog', 'Headache', 'Itching', 'Low mood', 'Depressive symptoms'];
   var SEVERITY_LABEL = { mild: 'Mild', moderate: 'Moderate', severe: 'Severe' };
+  var EXPOSURE_CONFIDENCE_LABEL = { suspected: 'Suspected', likely: 'Likely', confirmed: 'Confirmed' };
+
+  // Gluten tracking keeps two separate facts apart on purpose:
+  //   exposure       — belongs to the date/time the food was CONSUMED (a nutrition record)
+  //   symptomEpisode — belongs to the date/time symptoms were NOTICED (its own session)
+  // They may be linked, but the link is always a possible relationship, never a proven one:
+  // symptoms often appear the morning after, and collapsing them onto one date would
+  // make any later pattern analysis dishonest.
+  function exposureSessions(){
+    return sessions.filter(function(s){ return s.type === 'nutrition' && s.glutenExposure; });
+  }
+  function exposureForDate(dateStr){
+    return sessions.find(function(s){ return s.type === 'nutrition' && s.date === dateStr && s.glutenExposure; }) || null;
+  }
+  function exposureLabel(s){
+    if (!s) return '';
+    var bits = [];
+    if (s.glutenSource) bits.push(s.glutenSource);
+    if (s.glutenTime) bits.push(s.glutenTime);
+    return bits.join(' · ') || 'Suspected exposure';
+  }
+  function symptomEpisodes(){
+    return sessions.filter(function(s){ return s.type === 'symptom'; });
+  }
+  function symptomEpisodesForDate(dateStr){
+    return sessions.filter(function(s){ return s.type === 'symptom' && s.date === dateStr; });
+  }
+  // Recent exposures a symptom episode could plausibly relate to, most recent first.
+  // Capped at the preceding few days — beyond that any suggestion is noise.
+  function candidateExposures(onsetDate){
+    if (!onsetDate) return [];
+    var from = new Date(onsetDate + 'T00:00:00');
+    from.setDate(from.getDate() - 3);
+    var fromStr = fmtDate(from);
+    return exposureSessions()
+      .filter(function(s){ return s.date <= onsetDate && s.date >= fromStr; })
+      .sort(function(a,b){ return a.date < b.date ? 1 : -1; });
+  }
+  function symptomDetailText(s){
+    var bits = [];
+    if (s.symptoms && s.symptoms.length) bits.push(s.symptoms.join(', '));
+    if (s.severity) bits.push(SEVERITY_LABEL[s.severity]);
+    if (s.recoveryTime) bits.push('recovery ' + s.recoveryTime);
+    if (s.possibleExposureId){
+      var ex = sessions.find(function(x){ return x.id === s.possibleExposureId; });
+      if (ex) bits.push('possible link: ' + shortDayLabel(ex.date));
+    }
+    return bits.join(' · ') || 'Symptoms noted';
+  }
   var DAY_RATING_LABEL = { good: 'On-track', neutral: 'Neutral', 'off-track': 'Off-track' };
   var DEFAULT_CARDIO_TYPES = ['Running','Cycling','Swimming','Rowing','Walking'];
   var DEFAULT_EXERCISES = [
@@ -2763,8 +2926,16 @@
     } catch(e){}
   }
 
-  async function saveDayStatus(dateStr, status){
-    var data = { status: status, updatedAt: new Date().toISOString() };
+  function getDayRecord(dateStr){
+    return dayStatuses.find(function(d){ return d.date === dateStr; }) || null;
+  }
+  // The day record IS the daily record — catch-up merges into it rather than writing a
+  // parallel copy of the day. A bare string keeps the old single-status call sites working.
+  async function saveDayStatus(dateStr, patch){
+    if (typeof patch === 'string') patch = { status: patch };
+    var existing = getDayRecord(dateStr) || {};
+    var data = Object.assign({}, existing, patch, { updatedAt: new Date().toISOString() });
+    delete data.date;
     if (dbReady && dbRef){
       try { await dbRef.collection('ledger_day_status').doc(dateStr).set(data); return; }
       catch(e){ console.error('day status save failed', e); }
@@ -3043,6 +3214,9 @@
       }
       return nb.join(' · ');
     }
+    if (s.type === 'symptom'){
+      return symptomDetailText(s);
+    }
     if (s.type === 'gluten'){
       // legacy entries from before gluten tracking moved into Nutrition
       var gb2 = [];
@@ -3079,7 +3253,9 @@
       '</div>' +
       '<div class="si-time">' + niceActivityTime(s.activityTime) + '</div>' +
       '<span class="chev">' + UI_ICON.chevronRight + '</span>';
-    div.addEventListener('click', function(){ openSheet(s.type, s); });
+    div.addEventListener('click', function(){
+      if (s.type === 'symptom') openSymptomSheet(s); else openSheet(s.type, s);
+    });
     return div;
   }
 
@@ -4411,7 +4587,165 @@
     wrap.innerHTML = '<div class="accountability-box">' + msgs.join(' · ') + '</div>';
   }
 
-  // ---------- catch-up flow (missing data \u2260 failure) ----------
+  // ---------- symptom episode ----------
+  // Dated by when symptoms were NOTICED, never by when the food was eaten. The optional
+  // link to an exposure is stored as "possible" and phrased that way everywhere.
+  function openSymptomSheet(existing, opts){
+    opts = opts || {};
+    activeSheetRefresh = null;
+    editingId = existing ? existing.id : null;
+    var isEditing = !!existing;
+
+    var onsetDate = existing ? existing.date : (opts.date || todayStr());
+    var symptomsState = existing ? (existing.symptoms || []).slice() : [];
+    var severityVal = existing ? (existing.severity || null) : null;
+    var linkedId = existing ? (existing.possibleExposureId || '') : (opts.exposureId || '');
+
+    function nowTime(){
+      var n = new Date();
+      return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+    }
+    var onsetTime = existing ? (existing.onsetTime || '') : nowTime();
+
+    function build(){
+      var cands = candidateExposures(onsetDate);
+      var linkOptions = [{ value: '', label: 'Not linked to an exposure' }].concat(cands.map(function(ex){
+        return { value: ex.id, label: shortDayLabel(ex.date) + ' · ' + exposureLabel(ex) };
+      }));
+      return '<div class="sheet-handle"></div>' +
+        sheetHead(SYMPTOM_ICON_SVG, 'Symptoms', 'Recorded for when you noticed them.', '') +
+        '<div class="field-pair">' +
+          fieldDate('f_symptomDate', 'Noticed on', onsetDate) +
+          '<div class="field"><label>Time</label><input type="time" id="f_symptomTime" value="' + onsetTime + '"></div>' +
+        '</div>' +
+        '<div class="field"><label>Symptoms</label><div class="type-chip-grid" id="symptomGrid">' +
+          GLUTEN_SYMPTOMS.map(function(sym){
+            return '<button type="button" class="type-chip-btn'+(symptomsState.indexOf(sym)>-1?' sel':'')+'" data-s="'+sym+'">'+sym+'</button>';
+          }).join('') +
+        '</div></div>' +
+        '<div class="field"><label>Severity</label><div class="seg-toggle" id="symptomSeverityToggle">' +
+          Object.keys(SEVERITY_LABEL).map(function(k){
+            return '<button data-v="'+k+'" class="'+(severityVal===k?'sel':'')+'">'+SEVERITY_LABEL[k]+'</button>';
+          }).join('') +
+        '</div></div>' +
+        fieldText('f_symptomRecovery', 'Recovery time', existing ? existing.recoveryTime : '', 'e.g. 1 day') +
+        fieldSelect('f_symptomExposure', 'Possible related exposure', linkOptions, linkedId) +
+        (cands.length
+          ? '<p class="link-note">Recorded as a possible relationship only — Ledger keeps both dates and never claims a cause.</p>'
+          : '<p class="link-note">No suspected exposure recorded in the previous few days.</p>') +
+        '<div class="field"><label>Notes</label><textarea id="f_symptomNotes" rows="2" placeholder="Anything worth remembering">' + (existing && existing.notes ? existing.notes : '') + '</textarea></div>' +
+        '<button type="button" class="save-btn" id="saveSymptomBtn">Save</button>' +
+        (isEditing ? '<button type="button" class="delete-btn" id="deleteSymptomBtn">Delete</button>' : '');
+    }
+
+    function render(){
+      sheetEl.innerHTML = build();
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      sheetEl.querySelectorAll('#symptomGrid .type-chip-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var idx = symptomsState.indexOf(btn.dataset.s);
+          if (idx > -1) symptomsState.splice(idx,1); else symptomsState.push(btn.dataset.s);
+          btn.classList.toggle('sel');
+        });
+      });
+      sheetEl.querySelectorAll('#symptomSeverityToggle button').forEach(function(b){
+        b.addEventListener('click', function(){
+          severityVal = (severityVal === b.dataset.v) ? null : b.dataset.v;
+          sheetEl.querySelectorAll('#symptomSeverityToggle button').forEach(function(x){ x.classList.remove('sel'); });
+          if (severityVal) b.classList.add('sel');
+        });
+      });
+      // changing the onset date changes which exposures are even plausible
+      document.getElementById('f_symptomDate').addEventListener('change', function(e){
+        onsetDate = e.target.value || todayStr();
+        onsetTime = document.getElementById('f_symptomTime').value;
+        linkedId = document.getElementById('f_symptomExposure').value;
+        render();
+      });
+      document.getElementById('saveSymptomBtn').addEventListener('click', function(){
+        var out = {
+          type: 'symptom',
+          date: document.getElementById('f_symptomDate').value || todayStr(),
+          onsetTime: document.getElementById('f_symptomTime').value || null,
+          symptoms: symptomsState.slice(),
+          severity: severityVal,
+          recoveryTime: document.getElementById('f_symptomRecovery').value,
+          notes: document.getElementById('f_symptomNotes').value,
+          possibleExposureId: document.getElementById('f_symptomExposure').value || null,
+          createdAt: existing ? (existing.createdAt || new Date().toISOString()) : new Date().toISOString()
+        };
+        if (existing && existing.id) out.id = existing.id;
+        saveSession(out);
+        closeSheet();
+      });
+      if (isEditing){
+        document.getElementById('deleteSymptomBtn').addEventListener('click', function(){
+          deleteSession(existing.id);
+          closeSheet();
+        });
+      }
+    }
+
+    render();
+    backdrop.classList.add('open');
+  }
+
+  // ---------- catch-up flow (missing data ≠ failure) ----------
+  // Catch-up is a close-out layer over a past day, not a second copy of it. Every block
+  // below is derived from what Ledger already holds for that date; the sheet only adds
+  // the judgements no record can infer (overall status, notes) and links into the real
+  // records for anything it can't answer itself.
+  function catchUpSnapshot(dateStr){
+    var rec = getDayRecord(dateStr) || {};
+    var dayActions = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
+    var done = dayActions.filter(function(c){ return c.status === 'completed'; });
+    var trainingSessions = sessions.filter(function(s){ return s.date === dateStr && PLAN_TRAINING_TYPES.indexOf(s.type) > -1; });
+    var plan = getPlanForDate(dateStr);
+    var nutrition = getNutritionForDate(dateStr);
+
+    var nutritionState = rec.nutritionState;
+    if (nutrition && nutrition.closed) nutritionState = 'closed';
+    else if (nutrition && hasNutritionEvidence(nutrition)) nutritionState = 'in_progress';
+    else if (!nutritionState) nutritionState = 'unknown';
+
+    var trainingState = rec.trainingState;
+    if (trainingSessions.length) trainingState = 'logged';
+    else if (!trainingState) trainingState = plan && plan.restDay ? 'none' : null;
+
+    return {
+      date: dateStr,
+      rec: rec,
+      actions: dayActions,
+      actionsTotal: dayActions.length,
+      actionsCompleted: done.length,
+      trainingSessions: trainingSessions,
+      trainingLogged: trainingSessions.length > 0,
+      trainingState: trainingState,
+      plannedTypes: (plan && plan.trainingTypes) || [],
+      nutrition: nutrition,
+      nutritionState: nutritionState,
+      exposure: exposureForDate(dateStr),
+      symptomsNextDay: symptomEpisodesForDate(nextDateStr(dateStr)),
+      status: rec.status || null,
+      notes: rec.notes || ''
+    };
+  }
+  // day-first, as everywhere else in Ledger
+  function shortDayLabel(dateStr){
+    var d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString(undefined, { weekday: 'short' }) + ' ' +
+      d.getDate() + ' ' + d.toLocaleDateString(undefined, { month: 'short' });
+  }
+  function yesterdayStr(){
+    var d = new Date(); d.setDate(d.getDate() - 1);
+    return fmtDate(d);
+  }
+  function nextDateStr(dateStr){
+    var d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    return fmtDate(d);
+  }
+
   function computeCatchUpDates(){
     var results = [];
     for (var i=1; i<=7; i++){
@@ -4419,10 +4753,10 @@
       var dateStr = fmtDate(d);
       var hasPlan = !!getPlanForDate(dateStr);
       var hasCommitments = commitments.some(function(c){ return c.date === dateStr; });
-      var alreadyResolved = dayStatuses.some(function(ds){ return ds.date === dateStr; });
-      if ((hasPlan || hasCommitments) && !alreadyResolved){
-        results.push(dateStr);
-      }
+      var rec = getDayRecord(dateStr);
+      // a day is closed once catch-up finished it; a "finish later" draft stays pending
+      var resolved = !!rec && (!!rec.caughtUpAt || (!!rec.status && !rec.draft));
+      if ((hasPlan || hasCommitments) && !resolved) results.push(dateStr);
     }
     return results.sort();
   }
@@ -4434,49 +4768,302 @@
     if (!pending.length){ wrap.innerHTML = ''; return; }
     wrap.innerHTML = '<div class="catchup-banner" id="catchUpBannerBtn">' +
       pending.length + ' day' + (pending.length===1?'':'s') + ' need' + (pending.length===1?'s':'') + ' a quick catch-up →</div>';
-    document.getElementById('catchUpBannerBtn').addEventListener('click', openCatchUpSheet);
+    document.getElementById('catchUpBannerBtn').addEventListener('click', function(){ openCatchUpSheet(); });
   }
 
-  function openCatchUpSheet(){
+  function cuBlock(icon, title, bodyHtml, headExtraHtml){
+    return '<div class="cu-block">' +
+      '<span class="iring sz-40 cu-ic">' + icon + '</span>' +
+      '<div class="cu-body">' +
+        '<div class="cu-head"><span class="cu-title">' + title + '</span>' + (headExtraHtml || '') + '</div>' +
+        bodyHtml +
+      '</div>' +
+    '</div>';
+  }
+  function cuSeg(name, options, current, twoUp){
+    return '<div class="cu-seg' + (twoUp ? ' two-up' : '') + '">' + options.map(function(o){
+      return '<button type="button" class="cu-seg-btn' + (current === o.value ? ' sel' : '') + '"' +
+        ' data-cu-seg="' + name + '" data-v="' + o.value + '">' + o.label + '</button>';
+    }).join('') + '</div>';
+  }
+
+  function openCatchUpSheet(forcedDate){
     editingId = null;
-    function buildHtml(){
-      var pending = computeCatchUpDates();
-      if (!pending.length){
-        return '<div class="sheet-handle"></div>' +
-          '<div class="sheet-head"><div class="sheet-title">Catch-up</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
-          '<div class="empty-state">All caught up</div>';
-      }
-      var rows = pending.map(function(dateStr){
-        var d = new Date(dateStr + 'T00:00:00');
-        var label = d.toLocaleDateString(undefined,{weekday:'short', day:'numeric', month:'short'});
-        return '<div class="catchup-day-row"><div class="catchup-day-label">' + label + '</div>' +
-          '<div class="catchup-status-row">' +
-            ['completed','partial','disrupted','unknown'].map(function(s){
-              return '<button type="button" class="catchup-status-btn" data-date="' + dateStr + '" data-status="' + s + '">' + DAY_STATUS_LABEL[s] + '</button>';
-            }).join('') +
-          '</div></div>';
-      }).join('');
-      return '<div class="sheet-handle"></div>' +
-        '<div class="sheet-head"><div class="sheet-title">Catch-up</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
-        '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">Missing data isn\'t the same as failure — just mark roughly what happened.</div>' +
-        rows;
+    var pending = computeCatchUpDates();
+    var dateStr = forcedDate || pending[0];
+    if (!dateStr){
+      sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+        sheetHead(UI_ICON.calendar, 'Catch-up', 'Nothing left to close.', '') +
+        '<div class="empty-state">All caught up</div>';
+      backdrop.classList.add('open');
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      return;
     }
 
-    sheetEl.innerHTML = buildHtml();
-    backdrop.classList.add('open');
-    wireSheet();
+    // local edits, committed on save
+    var snap = catchUpSnapshot(dateStr);
+    var statusVal = snap.status;
+    var trainingVal = snap.trainingState;
+    var nutritionVal = snap.nutritionState;
+    var notesVal = snap.notes;
 
-    function wireSheet(){
+    function build(){
+      snap = catchUpSnapshot(dateStr);
+      // live evidence always wins over a stored judgement
+      if (snap.trainingLogged) trainingVal = 'logged';
+      if (snap.nutrition && snap.nutrition.closed) nutritionVal = 'closed';
+      else if (snap.nutrition && hasNutritionEvidence(snap.nutrition) && nutritionVal !== 'closed') nutritionVal = 'in_progress';
+
+      var d = new Date(dateStr + 'T00:00:00');
+      var label = shortDayLabel(dateStr);
+      var otherPending = computeCatchUpDates().filter(function(x){ return x !== dateStr; });
+
+      var html = '<div class="sheet-handle"></div>' +
+        sheetHead('', 'Catch-up', 'Missing data isn\'t the same as failure — close the day by marking what actually happened.', '') +
+        '<div class="cu-daylabel">' + label +
+          (otherPending.length ? '<span class="cu-daymore">' + otherPending.length + ' more to close</span>' : '') +
+        '</div>';
+
+      // --- actions: read straight from that day's commitments ---
+      html += cuBlock(UI_ICON.list, 'Actions',
+        '<div class="cu-sub">' + (snap.actionsTotal
+          ? snap.actionsCompleted + ' of ' + snap.actionsTotal + ' completed'
+          : 'No actions recorded for this day') + '</div>',
+        '<button type="button" class="cu-link" id="cuReviewActions">Review actions' + UI_ICON.chevronRight + '</button>');
+
+      // --- training: an existing log is the answer, not a question ---
+      var trainingBody;
+      if (snap.trainingLogged){
+        trainingBody = '<div class="cu-evidence">' +
+          snap.trainingSessions.map(function(t){
+            return '<button type="button" class="cu-evidence-row" data-cu-session="' + t.id + '">' +
+              '<span class="cu-ev-tick">' + CHECK_SVG + '</span>' +
+              '<span class="cu-ev-text"><strong>' + TYPE_LABEL[t.type] + '</strong>' +
+                '<span>' + sessionDetailText(t) + '</span></span>' +
+              '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
+            '</button>';
+          }).join('') +
+        '</div>' +
+        cuSeg('training', [
+          { value: 'logged', label: 'Logged' },
+          { value: 'none', label: 'Didn\'t train' },
+          { value: 'unknown', label: 'Unknown' }
+        ], trainingVal);
+      } else {
+        trainingBody = cuSeg('training', [
+          { value: 'logged', label: 'Logged' },
+          { value: 'none', label: 'Didn\'t train' },
+          { value: 'unknown', label: 'Unknown' }
+        ], trainingVal) +
+        (trainingVal === 'logged'
+          ? '<button type="button" class="cu-link cu-link-block" id="cuAddTraining">Add the session' + UI_ICON.chevronRight + '</button>'
+          : (snap.plannedTypes.length
+              ? '<div class="cu-sub cu-sub-quiet">Planned: ' + snap.plannedTypes.map(function(t){ return SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]; }).join(', ') + '</div>'
+              : ''));
+      }
+      html += cuBlock(TRAINING_ICON_SVG.resistance, 'Training', trainingBody);
+
+      // --- nutrition: real lifecycle state, and a way straight into that day's record ---
+      html += cuBlock(UI_ICON.cutlery, 'Nutrition',
+        cuSeg('nutrition', [
+          { value: 'in_progress', label: 'In progress' },
+          { value: 'closed', label: 'Closed' },
+          { value: 'unknown', label: 'Unknown' }
+        ], nutritionVal) +
+        '<button type="button" class="cu-link cu-link-block" id="cuOpenNutrition">' +
+          (snap.nutrition ? 'Open nutrition' : 'Start nutrition') + UI_ICON.chevronRight +
+        '</button>');
+
+      // --- possible exposure: ask, never assume, and date the answer to the next day ---
+      if (snap.exposure){
+        var alreadyAnswered = snap.symptomsNextDay.length > 0 || snap.rec.symptomsChecked;
+        html += cuBlock(UI_ICON.alert, 'Possible gluten exposure',
+          '<div class="cu-sub">' + exposureLabel(snap.exposure) + '</div>' +
+          (snap.symptomsNextDay.length
+            ? '<div class="cu-evidence">' + snap.symptomsNextDay.map(function(ep){
+                return '<button type="button" class="cu-evidence-row" data-cu-symptom="' + ep.id + '">' +
+                  '<span class="cu-ev-tick">' + CHECK_SVG + '</span>' +
+                  '<span class="cu-ev-text"><strong>Symptoms on ' + shortDayLabel(ep.date) + '</strong>' +
+                    '<span>' + symptomDetailText(ep) + '</span></span>' +
+                  '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
+                '</button>';
+              }).join('') + '</div>'
+            : (alreadyAnswered
+                ? '<div class="cu-sub cu-sub-quiet">No symptoms recorded.</div>'
+                : '<div class="cu-sub cu-sub-quiet">How did you feel afterwards?</div>' +
+                  '<div class="cu-seg">' +
+                    '<button type="button" class="cu-seg-btn" id="cuNoSymptoms">No symptoms</button>' +
+                    '<button type="button" class="cu-seg-btn" id="cuLogSymptoms">Log symptoms</button>' +
+                  '</div>')));
+      }
+
+      // --- the one judgement no record can make for you ---
+      html += cuBlock(UI_ICON.chart, 'Overall day',
+        cuSeg('status', [
+          { value: 'completed', label: 'Completed' },
+          { value: 'partial', label: 'Partially completed' },
+          { value: 'disrupted', label: 'Disrupted' },
+          { value: 'unknown', label: 'Unknown' }
+        ], statusVal, true));
+
+      html += cuBlock(UI_ICON.note, 'Notes <span class="cu-optional">(optional)</span>',
+        '<textarea id="cuNotes" class="cu-notes" rows="2" placeholder="Anything worth remembering about this day…"></textarea>');
+
+      html += '<div class="cu-foot"><span class="cu-foot-ic">' + UI_ICON.alert + '</span>' +
+        '<span>Saves onto this day\'s record: action tally, training and nutrition state, overall status and notes.</span></div>';
+
+      html += '<div class="sheet-actionbar">' +
+        '<button type="button" class="btn-primary" id="cuCloseDayBtn">Close ' + (dateStr === yesterdayStr() ? 'previous day' : 'this day') + '</button>' +
+        '<button type="button" class="btn-secondary" id="cuLaterBtn">Save and finish later</button>' +
+      '</div>';
+      return html;
+    }
+
+    function currentPatch(){
+      return {
+        status: statusVal,
+        notes: notesVal,
+        trainingState: trainingVal,
+        nutritionState: nutritionVal,
+        actionsCompleted: snap.actionsCompleted,
+        actionsTotal: snap.actionsTotal,
+        trainingSessionIds: snap.trainingSessions.map(function(t){ return t.id; }),
+        nutritionSessionId: snap.nutrition ? snap.nutrition.id : null
+      };
+    }
+    function readNotes(){
+      var el = document.getElementById('cuNotes');
+      if (el) notesVal = el.value;
+    }
+
+    function render(){
+      sheetEl.innerHTML = build();
+      document.getElementById('cuNotes').value = notesVal;   // user content, set as value
       document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
-      document.querySelectorAll('.catchup-status-btn').forEach(function(btn){
+
+      // keep the draft live so an external re-render never drops typing
+      document.getElementById('cuNotes').addEventListener('input', function(e){ notesVal = e.target.value; });
+
+      sheetEl.querySelectorAll('[data-cu-seg]').forEach(function(btn){
         btn.addEventListener('click', function(){
-          saveDayStatus(btn.dataset.date, btn.dataset.status);
-          sheetEl.innerHTML = buildHtml();
-          wireSheet();
+          readNotes();
+          var group = btn.dataset.cuSeg, v = btn.dataset.v;
+          if (group === 'status') statusVal = (statusVal === v) ? null : v;
+          if (group === 'training') trainingVal = (trainingVal === v) ? null : v;
+          if (group === 'nutrition') nutritionVal = (nutritionVal === v) ? null : v;
+          render();
         });
       });
+
+      document.getElementById('cuReviewActions').addEventListener('click', function(){
+        readNotes(); saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
+        closeSheet();
+        jumpToToday(dateStr);
+      });
+
+      var addTraining = document.getElementById('cuAddTraining');
+      if (addTraining) addTraining.addEventListener('click', function(){
+        readNotes(); saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
+        closeSheet();
+        openCatchUpTrainingPicker(dateStr);
+      });
+
+      document.getElementById('cuOpenNutrition').addEventListener('click', function(){
+        readNotes(); saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
+        closeSheet();
+        // that date's real record, with everything already saved preloaded
+        openSheet('nutrition', getNutritionForDate(dateStr), dateStr);
+      });
+
+      sheetEl.querySelectorAll('[data-cu-session]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var t = sessions.find(function(x){ return x.id === el.dataset.cuSession; });
+          if (!t) return;
+          readNotes(); saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
+          closeSheet();
+          openSheet(t.type, t);
+        });
+      });
+      sheetEl.querySelectorAll('[data-cu-symptom]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var ep = sessions.find(function(x){ return x.id === el.dataset.cuSymptom; });
+          if (!ep) return;
+          readNotes(); saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
+          closeSheet();
+          openSymptomSheet(ep);
+        });
+      });
+
+      var noSym = document.getElementById('cuNoSymptoms');
+      if (noSym) noSym.addEventListener('click', function(){
+        readNotes();
+        saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true, symptomsChecked: true }));
+        render();
+      });
+      var logSym = document.getElementById('cuLogSymptoms');
+      if (logSym) logSym.addEventListener('click', function(){
+        readNotes();
+        saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true, symptomsChecked: true }));
+        closeSheet();
+        // symptoms after an exposure are usually noticed the following morning
+        openSymptomSheet(null, { date: nextDateStr(dateStr), exposureId: snap.exposure.id });
+      });
+
+      document.getElementById('cuLaterBtn').addEventListener('click', function(){
+        readNotes();
+        saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
+        closeSheet();
+      });
+      document.getElementById('cuCloseDayBtn').addEventListener('click', function(){
+        readNotes();
+        saveDayStatus(dateStr, Object.assign(currentPatch(), {
+          status: statusVal || 'unknown',
+          draft: false,
+          caughtUpAt: new Date().toISOString()
+        }));
+        var remaining = computeCatchUpDates().filter(function(x){ return x !== dateStr; });
+        if (remaining.length){ dateStr = remaining[0]; resetForDate(); render(); }
+        else closeSheet();
+      });
     }
+
+    function resetForDate(){
+      snap = catchUpSnapshot(dateStr);
+      statusVal = snap.status;
+      trainingVal = snap.trainingState;
+      nutritionVal = snap.nutritionState;
+      notesVal = snap.notes;
+    }
+
+    render();
+    backdrop.classList.add('open');
+    activeSheetRefresh = render;
   }
+
+  // Catch-up never logs training itself — it hands over to the real activity form for that date.
+  function openCatchUpTrainingPicker(dateStr){
+    editingId = null;
+    var d = new Date(dateStr + 'T00:00:00');
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(TRAINING_ICON_SVG.resistance, 'Log training', 'For ' + shortDayLabel(dateStr), '') +
+      '<div class="quicklog-grid">' +
+        PLAN_TRAINING_TYPES.map(function(t){
+          return '<button class="quicklog-card ' + t + '" data-cu-type="' + t + '">' +
+            '<span class="ql-icon">' + TRAINING_ICON_SVG[t] + '</span>' +
+            '<span class="ql-label">' + TYPE_LABEL[t] + '</span></button>';
+        }).join('') +
+      '</div>' +
+      '<button type="button" class="btn-quiet" id="cuBackBtn">Back to catch-up</button>';
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('cuBackBtn').addEventListener('click', function(){ openCatchUpSheet(dateStr); });
+    sheetEl.querySelectorAll('[data-cu-type]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        openSheet(btn.dataset.cuType, null, dateStr);
+      });
+    });
+  }
+
 
   function renderLogView(){
     renderMorningPrime();
@@ -4532,6 +5119,7 @@
   document.querySelectorAll('.quicklog-card').forEach(function(card){
     card.addEventListener('click', function(){
       var type = card.dataset.type;
+      if (type === 'symptom'){ openSymptomSheet(null, { date: viewedDate }); return; }
       var existing = type === 'nutrition' ? getNutritionForDate(viewedDate) : null;
       openSheet(type, existing, viewedDate);
     });
@@ -4856,20 +5444,26 @@
       { val: hydratedDays, lbl: 'Hydrated days' }
     ]));
 
-    // Gluten exposure — now tracked within Nutrition; factual tally only, no inferred causation
+    // Exposure and symptoms are counted as the separate, separately-dated facts they are.
+    // The only relationship stated is the one actually recorded: a symptom episode the
+    // user linked to an earlier exposure. Nothing here infers a cause.
     var glutenMonth = nutritionMonth.filter(function(s){ return s.glutenExposure; });
+    var episodesMonth = symptomEpisodes().filter(withinThisMonth);
     var symptomCounts = {};
-    glutenMonth.forEach(function(s){
-      (s.glutenSymptoms||[]).forEach(function(sym){ symptomCounts[sym] = (symptomCounts[sym]||0) + 1; });
+    episodesMonth.forEach(function(ep){
+      (ep.symptoms||[]).forEach(function(sym){ symptomCounts[sym] = (symptomCounts[sym]||0) + 1; });
     });
     var topSymptom = '—';
     var topCount = 0;
     Object.keys(symptomCounts).forEach(function(sym){
       if (symptomCounts[sym] > topCount){ topCount = symptomCounts[sym]; topSymptom = sym; }
     });
+    var linkedEpisodes = episodesMonth.filter(function(ep){ return !!ep.possibleExposureId; }).length;
     container.appendChild(statCard('gluten', [
-      { val: glutenMonth.length, lbl: 'Exposures logged this month' },
-      { val: topSymptom, lbl: 'Most common symptom' }
+      { val: glutenMonth.length, lbl: 'Suspected exposures this month' },
+      { val: episodesMonth.length, lbl: 'Symptom episodes' },
+      { val: topSymptom, lbl: 'Most common symptom' },
+      { val: linkedEpisodes, lbl: 'Episodes linked to an earlier exposure' }
     ]));
   }
 
@@ -6187,24 +6781,28 @@
           fieldYesNo('f_glutenFree', 'Gluten-free', d.glutenFree, UI_ICON.leaf) +
           fieldYesNo('f_minimalProcessed', 'Minimal processed foods', d.minimalProcessed, UI_ICON.box) +
           fieldYesNo('f_sufficientWater', 'Sufficient water intake', d.sufficientWater, UI_ICON.droplet) +
-          fieldYesNo('f_glutenExposure', 'Suspected gluten exposure', d.glutenExposure, UI_ICON.alert) +
           '<div class="yn-inline-field"><span class="yn-icon">' + UI_ICON.glass + '</span>' +
             '<span class="yn-inline-label">Approx. water amount</span>' +
             '<input type="text" id="f_waterAmount" value="' + (d.waterAmount ? d.waterAmount.replace(/"/g,'&quot;') : '') + '" placeholder="e.g. 2L"></div>' +
+          fieldYesNo('f_glutenExposure', 'Suspected gluten exposure', d.glutenExposure, UI_ICON.alert) +
+          // Exposure records only what was eaten and when. Symptoms are a separate,
+          // separately-dated record — they usually appear the following morning.
           '<div id="glutenExposureFields" style="' + (d.glutenExposure ? '' : 'display:none') + '">' +
-            fieldText('f_glutenSource', 'Suspected source', d.glutenSource, 'e.g. soy sauce at dinner') +
-            '<div class="field"><label>Symptoms</label><div class="type-chip-grid" id="glutenSymptomGrid">' +
-              GLUTEN_SYMPTOMS.map(function(sym){
-                var isSel = d.glutenSymptoms && d.glutenSymptoms.indexOf(sym) > -1;
-                return '<button type="button" class="type-chip-btn'+(isSel?' sel':'')+'" data-s="'+sym+'">'+sym+'</button>';
+            fieldText('f_glutenSource', 'Possible source', d.glutenSource, 'e.g. soy sauce at dinner') +
+            fieldText('f_glutenTime', 'Approx. meal / time', d.glutenTime, 'e.g. dinner, 19:30') +
+            '<div class="field"><label>Confidence</label><div class="seg-toggle" id="glutenConfidenceToggle">' +
+              Object.keys(EXPOSURE_CONFIDENCE_LABEL).map(function(k){
+                var cur = d.glutenConfidence || 'suspected';
+                return '<button data-v="'+k+'" class="'+(cur===k?'sel':'')+'">'+EXPOSURE_CONFIDENCE_LABEL[k]+'</button>';
               }).join('') +
             '</div></div>' +
-            '<div class="field"><label>Severity</label><div class="seg-toggle" id="glutenSeverityToggle">' +
-              '<button data-v="mild" class="'+(d.glutenSeverity==='mild'?'sel':'')+'">Mild</button>' +
-              '<button data-v="moderate" class="'+(d.glutenSeverity==='moderate'?'sel':'')+'">Moderate</button>' +
-              '<button data-v="severe" class="'+(d.glutenSeverity==='severe'?'sel':'')+'">Severe</button>' +
-              '</div></div>' +
-            fieldText('f_glutenRecovery', 'Recovery time', d.glutenRecovery, 'e.g. 1 day') +
+            fieldText('f_glutenNote', 'Note (optional)', d.glutenNote, 'anything worth remembering') +
+            '<div class="exposure-note">' +
+              '<span class="exposure-note-ic">' + UI_ICON.alert + '</span>' +
+              '<span>Symptoms are recorded separately, on the day you actually notice them — ' +
+              'often the next morning. Ledger keeps the two dates apart so a pattern can be seen honestly.</span>' +
+            '</div>' +
+            '<button type="button" class="btn-secondary" id="logSymptomsFromNutritionBtn">Log symptoms now</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -6213,8 +6811,10 @@
 
     if (type !== 'nutrition') html += fieldNotes(d.notes);
     if (type === 'nutrition'){
-      html += '<button type="button" class="btn-primary" id="closeNutritionBtn">Close nutrition for today</button>';
-      html += '<button type="button" class="btn-quiet" id="saveBtn">Save and finish later</button>';
+      html += '<div class="sheet-actionbar">' +
+        '<button type="button" class="btn-primary" id="closeNutritionBtn">Close nutrition' + (d.date === todayStr() ? ' for today' : '') + '</button>' +
+        '<button type="button" class="btn-secondary" id="saveBtn">Save and finish later</button>' +
+      '</div>';
     } else {
       html += '<button class="save-btn" id="saveBtn">' +
         (mode === 'plan' ? 'Save to plan' : (fromPlan ? 'Log activity' : 'Save')) + '</button>';
@@ -6374,8 +6974,7 @@
       var minimalProcessedVal = !!d.minimalProcessed;
       var sufficientWaterVal = !!d.sufficientWater;
       var glutenExposureVal = !!d.glutenExposure;
-      var glutenSymptomsState = (d.glutenSymptoms || []).slice();
-      var glutenSeverityVal = d.glutenSeverity || null;
+      var glutenConfidenceVal = d.glutenConfidence || 'suspected';
       function wireYesNo(idPrefix, getSet){
         document.querySelectorAll('#' + idPrefix + 'Toggle button').forEach(function(b){
           b.addEventListener('click', function(){
@@ -6395,31 +6994,21 @@
         glutenExposureFieldsWrap.style.display = v ? '' : 'none';
       });
 
-      var glutenColor = getComputedStyle(document.documentElement).getPropertyValue('--gluten').trim();
-      document.querySelectorAll('#glutenSymptomGrid .type-chip-btn').forEach(function(btn){
-        btn.addEventListener('click', function(){
-          var s = btn.dataset.s;
-          var idx = glutenSymptomsState.indexOf(s);
-          var willBeSel = idx === -1;
-          if (idx > -1) glutenSymptomsState.splice(idx,1); else glutenSymptomsState.push(s);
-          btn.classList.toggle('sel');
-          if (willBeSel){
-            btn.style.background = glutenColor;
-            btn.style.borderColor = glutenColor;
-            btn.style.color = 'var(--ink)';
-          } else {
-            btn.style.background = '';
-            btn.style.borderColor = '';
-            btn.style.color = '';
-          }
+      document.querySelectorAll('#glutenConfidenceToggle button').forEach(function(b){
+        b.addEventListener('click', function(){
+          glutenConfidenceVal = b.dataset.v;
+          document.querySelectorAll('#glutenConfidenceToggle button').forEach(function(x){ x.classList.remove('sel'); });
+          b.classList.add('sel');
         });
       });
-      document.querySelectorAll('#glutenSeverityToggle button').forEach(function(b){
-        b.addEventListener('click', function(){
-          glutenSeverityVal = (glutenSeverityVal === b.dataset.v) ? null : b.dataset.v;
-          document.querySelectorAll('#glutenSeverityToggle button').forEach(function(x){ x.classList.remove('sel'); });
-          if (glutenSeverityVal) b.classList.add('sel');
-        });
+      // Symptoms get their own dated record; save the exposure first so it can be linked to.
+      var logSymptomsBtn = document.getElementById('logSymptomsFromNutritionBtn');
+      if (logSymptomsBtn) logSymptomsBtn.addEventListener('click', function(){
+        var out = collectFormData();
+        if (!out.id) out.id = uid();
+        saveSession(out);
+        closeSheet();
+        openSymptomSheet(null, { exposureId: out.id });
       });
 
       var foodDiaryEl = document.getElementById('f_foodDiary');
@@ -6618,17 +7207,19 @@
         out.waterAmount = document.getElementById('f_waterAmount').value;
         out.foodDiary = document.getElementById('f_foodDiary').value;
         out.calories = numOrNull('f_calories');
+        // Exposure = what was consumed and when. Nothing about how it felt: that is a
+        // symptom episode with its own onset date (see openSymptomSheet).
         out.glutenExposure = glutenExposureVal;
         if (glutenExposureVal){
           out.glutenSource = document.getElementById('f_glutenSource').value;
-          out.glutenSymptoms = glutenSymptomsState.slice();
-          out.glutenSeverity = typeof glutenSeverityVal !== 'undefined' ? glutenSeverityVal : (d.glutenSeverity || null);
-          out.glutenRecovery = document.getElementById('f_glutenRecovery').value;
+          out.glutenTime = document.getElementById('f_glutenTime').value;
+          out.glutenConfidence = glutenConfidenceVal;
+          out.glutenNote = document.getElementById('f_glutenNote').value;
         } else {
           out.glutenSource = '';
-          out.glutenSymptoms = [];
-          out.glutenSeverity = null;
-          out.glutenRecovery = '';
+          out.glutenTime = '';
+          out.glutenConfidence = null;
+          out.glutenNote = '';
         }
         // plan-linked diary lines and closed state travel with the entry, not through the form fields
         out.planMealLines = d.planMealLines || [];
