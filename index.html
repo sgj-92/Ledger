@@ -393,6 +393,96 @@
   }
   .commitment-train-link:active { background: var(--surface-2); }
 
+  /* ---------- Today · Actions: collapse, two views, reordering ---------- */
+  .sec-head-toggle {
+    width: 100%; background: none; border: none; padding: 0; cursor: pointer;
+    font-family: var(--sans); text-align: left;
+  }
+  .sec-head-toggle:active { opacity: 0.7; }
+  .sec-head-chev {
+    width: 13px; height: 13px; flex-shrink: 0; color: var(--text-3);
+    margin-left: -7px; transition: transform 0.22s ease;
+  }
+  .sec-head-chev svg { width: 100%; height: 100%; display: block; }
+  .sec-head-toggle[aria-expanded="false"] .sec-head-chev { transform: rotate(180deg); }
+  .actions-summary { font-size: 12px; color: var(--text-3); margin: -6px 0 var(--sp-3); }
+  .actions-toolbar {
+    display: flex; align-items: center; gap: 12px; margin: -4px 0 var(--sp-3);
+  }
+  .actions-toolbar[hidden] { display: none; }
+  .actions-hint {
+    flex: 1; min-width: 0; font-size: 11.5px; color: var(--text-3);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .view-switch {
+    flex-shrink: 0; display: flex; gap: 3px; padding: 3px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 100px;
+  }
+  .view-switch button {
+    padding: 6px 13px; border: none; border-radius: 100px; background: none;
+    font-family: var(--sans); font-size: 11.5px; font-weight: 500; color: var(--text-3);
+    cursor: pointer; transition: background 0.16s ease, color 0.16s ease;
+  }
+  .view-switch button.sel { background: var(--gold); color: var(--ink); }
+
+  .ord-num {
+    flex-shrink: 0; width: 21px; height: 21px; border-radius: 50%;
+    border: 1px solid var(--line-2); color: var(--text-3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-variant-numeric: tabular-nums; letter-spacing: 0;
+  }
+  .key-task .ord-num { border-color: rgba(var(--gold-rgb),0.4); color: rgba(var(--gold-rgb),0.85); }
+  .commitment-cat .commitment-train-link { margin-left: auto; }
+  .commitment-cat {
+    display: flex; align-items: center; gap: 6px; margin-top: 5px;
+    font-size: 9.5px; font-weight: 500; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--text-3);
+  }
+  .commitment-cat-ic { display: flex; color: var(--text-3); }
+  .commitment-cat-ic svg { width: 12px; height: 12px; display: block; }
+
+  .drag-handle {
+    flex-shrink: 0; width: 28px; height: 30px; padding: 0; border: none; background: none;
+    color: var(--text-3); cursor: grab; touch-action: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .drag-handle svg { width: 15px; height: 15px; display: block; }
+  .drag-handle:active { cursor: grabbing; color: var(--gold); }
+
+  .sort-list { position: relative; }
+  .commitment-item.sortable { touch-action: pan-y; }
+  .commitment-item.dragging {
+    position: relative; z-index: 4;
+    border-color: rgba(var(--gold-rgb),0.45);
+    box-shadow: 0 14px 30px -12px rgba(0,0,0,0.85), inset 3px 0 0 var(--gold);
+    transition: none;
+  }
+  .sort-list.sorting .commitment-item:not(.dragging) { transition: transform 0.18s ease; }
+
+  .action-group { margin-bottom: var(--sp-4); }
+  .action-group-head {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    background: none; border: none; padding: 0 2px var(--sp-2); cursor: pointer;
+    font-family: var(--sans); text-align: left; color: var(--text);
+  }
+  .action-group-head:active { opacity: 0.65; }
+  .action-group-ic { flex-shrink: 0; width: 17px; color: var(--text-3); display: flex; }
+  .action-group-ic svg { width: 17px; height: 17px; display: block; }
+  .action-group-body { flex: 1; min-width: 0; }
+  .action-group-label {
+    display: block; font-size: 10px; font-weight: 500; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--text-2);
+  }
+  .action-group-count { display: block; font-size: 11px; color: var(--text-3); margin-top: 3px; }
+  .action-group-chev {
+    width: 13px; height: 13px; flex-shrink: 0; color: var(--text-3);
+    transition: transform 0.22s ease;
+  }
+  .action-group-chev svg { width: 100%; height: 100%; display: block; }
+  .action-group-head[aria-expanded="false"] .action-group-chev { transform: rotate(180deg); }
+  /* a collapsed section keeps a hairline so the stack still reads as sections */
+  .action-group.collapsed .action-group-head { padding-bottom: var(--sp-3); border-bottom: 1px solid var(--line); }
+
   /* ---------- Today · plan grid ---------- */
   .today-plan-widget { margin: var(--sp-7) 0; }
   .plan-grid {
@@ -1948,12 +2038,23 @@
 
     <div id="morningPrime"></div>
 
-    <div class="sec-head">
+    <button type="button" class="sec-head sec-head-toggle" id="actionsToggle" aria-expanded="true" aria-controls="actionsBody">
       <span class="sec-label">Actions</span>
+      <span class="sec-head-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg></span>
       <span class="sec-rule"></span>
       <span class="sec-value" id="actionsCount"></span>
+    </button>
+    <div class="actions-summary" id="actionsSummary" hidden></div>
+    <div id="actionsBody">
+      <div class="actions-toolbar" id="actionsToolbar">
+        <span class="actions-hint" id="actionsHint"></span>
+        <div class="view-switch" id="actionsViewSwitch">
+          <button type="button" data-view="order">Order</button>
+          <button type="button" data-view="groups">Groups</button>
+        </div>
+      </div>
+      <div id="commitmentsList"></div>
     </div>
-    <div id="commitmentsList"></div>
     <div class="add-action" id="addActionWrap">
       <button type="button" class="add-action-head" id="addActionToggle" aria-expanded="false" aria-controls="addActionBody">
         <span class="add-action-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span>
@@ -2173,6 +2274,7 @@
     briefcase: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.8" y="7.5" width="18.4" height="12.5" rx="2.2"/><path d="M8.8 7.5V6a1.8 1.8 0 0 1 1.8-1.8h2.8A1.8 1.8 0 0 1 15.2 6v1.5"/><line x1="2.8" y1="12.5" x2="21.2" y2="12.5"/></svg>',
     chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 13.5a3 3 0 0 1-3 3H9l-4.5 3.5v-3.5a3 3 0 0 1-1-2.2V7a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3z"/></svg>',
         share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.5V4.2"/><polyline points="8.2 7.8 12 4 15.8 7.8"/><path d="M6.5 12.5H5.2a1.7 1.7 0 0 0-1.7 1.7v5.1a1.7 1.7 0 0 0 1.7 1.7h13.6a1.7 1.7 0 0 0 1.7-1.7v-5.1a1.7 1.7 0 0 0-1.7-1.7H17.5"/></svg>',
+    grip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/></svg>',
     chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="6" y1="19" x2="6" y2="12"/><line x1="12" y1="19" x2="12" y2="6.5"/><line x1="18" y1="19" x2="18" y2="15"/></svg>',
     note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8.5L19 8v12.5H6z"/><polyline points="14 3.5 14 8.2 18.8 8.2"/><line x1="9" y1="12.5" x2="15" y2="12.5"/><line x1="9" y1="16" x2="13" y2="16"/></svg>',
     list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6.5" x2="20" y2="6.5"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="17.5" x2="20" y2="17.5"/><circle cx="5" cy="6.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="5" cy="17.5" r="1.3" fill="currentColor" stroke="none"/></svg>',
@@ -3369,10 +3471,155 @@
 
   // contextDate: the day this list is already headed by. The row's own day label is
   // only shown when it differs, so a single-day list doesn't repeat itself on every row.
-  function buildCommitmentRow(c, contextDate){
+  // ============ Action ordering ============
+  // Two independent orderings over one set of actions, both stored per date on that
+  // day's plan record:
+  //   plan.actionOrder  — the global execution sequence (Order view)
+  //   plan.groupOrder   — { <category>: [ids] }, the order inside each section (Groups view)
+  // Neither is derived from the other, so dragging in one view never rewrites the other.
+  // Both are sparse hints: an id that isn't listed simply sorts after the ones that are,
+  // by creation order. That means no migration for existing days, and a newly created
+  // action lands at the bottom of both systems without anything being written.
+  var ACTION_VIEW_KEY = 'ledger_actions_view';
+  var ACTIONS_COLLAPSED_KEY = 'ledger_actions_collapsed';
+  var ACTION_GROUPS_KEY = 'ledger_action_groups_collapsed';
+
+  function lsGet(k, fallback){
+    try { var v = localStorage.getItem(k); return v == null ? fallback : v; } catch(e){ return fallback; }
+  }
+  function lsSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+
+  var actionsViewMode = lsGet(ACTION_VIEW_KEY, 'order') === 'groups' ? 'groups' : 'order';
+  var actionsCollapsed = lsGet(ACTIONS_COLLAPSED_KEY, '0') === '1';
+  var actionGroupCollapsed = (function(){
+    try { return JSON.parse(lsGet(ACTION_GROUPS_KEY, '{}')) || {}; } catch(e){ return {}; }
+  })();
+
+  function actionCategoryKey(c){
+    return (c.category && QUICK_CAPTURE_CATEGORY_MAP[c.category]) ? c.category : '__other__';
+  }
+  function actionCategoryLabel(key){
+    return key === '__other__' ? 'Other' : QUICK_CAPTURE_CATEGORY_MAP[key].label;
+  }
+  function dayActionOrder(dateStr){
+    var p = getPlanForDate(dateStr);
+    return (p && p.actionOrder) || [];
+  }
+  function dayGroupOrder(dateStr, key){
+    var p = getPlanForDate(dateStr);
+    return (p && p.groupOrder && p.groupOrder[key]) || [];
+  }
+  function sortByOrderHint(items, orderIds){
+    var idx = {};
+    (orderIds || []).forEach(function(id, i){ idx[id] = i; });
+    return items.slice().sort(function(a, b){
+      var ai = idx[a.id], bi = idx[b.id];
+      if (ai != null && bi != null) return ai - bi;
+      if (ai != null) return -1;          // anything explicitly placed outranks
+      if (bi != null) return 1;           // anything that has never been dragged
+      var ac = a.createdAt || '', bc = b.createdAt || '';
+      if (ac !== bc) return ac < bc ? -1 : 1;
+      return (a.id || '') < (b.id || '') ? -1 : 1;
+    });
+  }
+  function planBase(dateStr){
+    return getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
+  }
+  function saveActionOrder(dateStr, ids){
+    savePlanForDate(dateStr, Object.assign({}, planBase(dateStr), { actionOrder: ids }));
+  }
+  function saveGroupOrder(dateStr, key, ids){
+    var plan = planBase(dateStr);
+    var go = Object.assign({}, plan.groupOrder || {});
+    go[key] = ids;
+    savePlanForDate(dateStr, Object.assign({}, plan, { groupOrder: go }));
+  }
+  // Changing an action's category retires it from its old section's ordering; it then
+  // has no hint in its new section, so it lands at the bottom there.
+  function dropFromGroupOrder(dateStr, key, id){
+    var plan = getPlanForDate(dateStr);
+    if (!plan || !plan.groupOrder || !plan.groupOrder[key]) return;
+    var next = plan.groupOrder[key].filter(function(x){ return x !== id; });
+    if (next.length === plan.groupOrder[key].length) return;
+    var go = Object.assign({}, plan.groupOrder);
+    go[key] = next;
+    savePlanForDate(dateStr, Object.assign({}, plan, { groupOrder: go }));
+  }
+
+  // ---- pointer-based reordering (works with touch; HTML5 drag-and-drop does not) ----
+  var sortDragActive = false;
+  function makeSortable(container, onCommit){
+    container.querySelectorAll('[data-drag-handle]').forEach(function(handle){
+      handle.addEventListener('pointerdown', function(e){
+        var row = handle.closest('[data-sort-item]');
+        if (!row) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        var startY = e.clientY, offset = 0;
+        sortDragActive = true;
+        row.classList.add('dragging');
+        container.classList.add('sorting');
+
+        function siblings(){
+          return Array.prototype.filter.call(container.children, function(el){
+            return el.hasAttribute('data-sort-item');
+          });
+        }
+        // Moving the node changes its layout position, so measure the shift, fold it into
+        // the origin and re-apply straight away — otherwise the row visibly jumps for a
+        // frame before the next pointermove corrects it.
+        var lastY = e.clientY;
+        function relocate(before){
+          var layoutBefore = row.getBoundingClientRect().top - offset;
+          container.insertBefore(row, before);
+          var layoutAfter = row.getBoundingClientRect().top - offset;
+          startY += (layoutAfter - layoutBefore);
+          offset = lastY - startY;
+          row.style.transform = 'translateY(' + offset + 'px)';
+        }
+        function onMove(ev){
+          lastY = ev.clientY;
+          offset = ev.clientY - startY;
+          row.style.transform = 'translateY(' + offset + 'px)';
+          var rect = row.getBoundingClientRect();
+          var mid = rect.top + rect.height / 2;
+          var list = siblings();
+          var i = list.indexOf(row);
+          var prev = list[i - 1], next = list[i + 1];
+          if (prev){
+            var pr = prev.getBoundingClientRect();
+            if (mid < pr.top + pr.height / 2){ relocate(prev); return; }
+          }
+          if (next){
+            var nr = next.getBoundingClientRect();
+            if (mid > nr.top + nr.height / 2){ relocate(next.nextSibling); return; }
+          }
+        }
+        function finish(){
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', finish);
+          window.removeEventListener('pointercancel', finish);
+          row.style.transform = '';
+          row.classList.remove('dragging');
+          container.classList.remove('sorting');
+          sortDragActive = false;
+          onCommit(siblings().map(function(el){ return el.dataset.sortItem; }));
+        }
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', finish);
+        window.addEventListener('pointercancel', finish);
+      });
+    });
+  }
+
+  function buildCommitmentRow(c, contextDate, opts){
+    opts = opts || {};
     var isRoadblock = c.category === 'roadblock';
     var row = document.createElement('div');
-    row.className = 'commitment-item' + (isRoadblock ? ' roadblock' : '') + (c.isKeyTask ? ' key-task' : '');
+    row.className = 'commitment-item' + (isRoadblock ? ' roadblock' : '') + (c.isKeyTask ? ' key-task' : '') +
+      (opts.drag ? ' sortable' : '');
+    if (opts.drag) row.dataset.sortItem = c.id;
     var metaParts = [];
     if (c.status !== 'planned' && c.status !== 'completed') metaParts.push(COMMITMENT_STATUS_LABEL[c.status]);
     if (c.status === 'disrupted' && c.disruptionReason) metaParts.push(c.disruptionReason);
@@ -3380,18 +3627,25 @@
     row.innerHTML =
       // Morning Prime picks the day's three; Today has to make them obvious at a glance,
       // without lifting them out of the group they belong to.
+      (opts.seq ? '<span class="ord-num">' + opts.seq + '</span>' : '') +
       (c.isKeyTask ? '<span class="key-star" aria-hidden="true">' + STAR_SVG + '</span>' : '') +
       '<span class="commitment-status-dot ' + (isRoadblock ? 'roadblock' : c.status) + '"></span>' +
       '<div class="commitment-body">' +
         '<div class="commitment-title' + (c.status==='completed'?' completed':'') + '">' + c.title + '</div>' +
         (metaParts.length ? '<div class="commitment-meta">' + metaParts.join(' · ') + '</div>' : '') +
         (showMinVer ? '<div class="commitment-minver">Minimum: ' + c.minVersion + '</div>' : '') +
+        (opts.showCategory
+          ? '<div class="commitment-cat"><span class="commitment-cat-ic">' + categoryIcon(c.category) + '</span>' +
+            actionCategoryLabel(actionCategoryKey(c)) + '</div>'
+          : '') +
       '</div>' +
       // the day label only earns its place when it isn't the day you're looking at —
       // on Today every row would otherwise read "Today" and steal width from the title
       (c.date === (contextDate || viewedDate) ? '' : '<span class="commitment-when">' + relativeDayLabel(c.date) + '</span>') +
       (c.isKeyTask ? '<span class="key-pill">Key</span>' : '') +
-      '<span class="chev">' + UI_ICON.chevronRight + '</span>';
+      (opts.drag
+        ? '<button type="button" class="drag-handle" data-drag-handle aria-label="Reorder">' + UI_ICON.grip + '</button>'
+        : '<span class="chev">' + UI_ICON.chevronRight + '</span>');
     row.addEventListener('click', function(){ openCommitmentSheet(c); });
     if (!isRoadblock){
       row.querySelector('.commitment-status-dot').addEventListener('click', function(e){
@@ -3408,7 +3662,9 @@
         e.stopPropagation();
         expandQuickLog();
       });
-      row.insertBefore(trainBtn, row.querySelector('.key-pill') || row.querySelector('.chev'));
+      var catLine = row.querySelector('.commitment-cat');
+      if (catLine) catLine.appendChild(trainBtn);
+      else row.insertBefore(trainBtn, row.querySelector('.key-pill') || row.querySelector('.drag-handle') || row.querySelector('.chev'));
     }
     return row;
   }
@@ -3416,14 +3672,42 @@
   function renderCommitments(){
     var list = document.getElementById('commitmentsList');
     if (!list) return;
+    if (sortDragActive) return;   // a background render must not replace the row being dragged
     var dateStr = viewedDate;
     var todays = commitments.filter(function(c){ return c.date === dateStr; });
+    var roadblocks = todays.filter(function(c){ return c.category === 'roadblock'; });
+    var actionable = todays.filter(function(c){ return c.category !== 'roadblock'; });
+    var doneCount = actionable.filter(function(c){ return c.status === 'completed'; }).length;
     list.innerHTML = '';
+
     var countEl = document.getElementById('actionsCount');
-    if (countEl){
-      var openCount = todays.filter(function(c){ return c.category !== 'roadblock'; }).length;
-      countEl.textContent = openCount ? String(openCount) : '';
+    if (countEl) countEl.textContent = actionable.length ? String(actionable.length) : '';
+
+    // header collapse + the one-line read you get while it's shut
+    var toggle = document.getElementById('actionsToggle');
+    var body = document.getElementById('actionsBody');
+    var summary = document.getElementById('actionsSummary');
+    if (toggle){
+      toggle.setAttribute('aria-expanded', actionsCollapsed ? 'false' : 'true');
+      body.hidden = actionsCollapsed;
+      summary.hidden = !actionsCollapsed || !todays.length;
+      summary.textContent = actionable.length
+        ? actionable.length + ' action' + (actionable.length === 1 ? '' : 's') + ' · ' + doneCount + ' complete'
+        : 'Nothing planned yet';
     }
+
+    var toolbar = document.getElementById('actionsToolbar');
+    var hint = document.getElementById('actionsHint');
+    if (toolbar){
+      toolbar.hidden = actionable.length < 2;
+      hint.textContent = actionsViewMode === 'order'
+        ? (dateStr === todayStr() ? 'Your plan for today. Drag to reorder.' : 'Day order. Drag to reorder.')
+        : 'Grouped by category.';
+      toolbar.querySelectorAll('[data-view]').forEach(function(b){
+        b.classList.toggle('sel', b.dataset.view === actionsViewMode);
+      });
+    }
+
     if (!todays.length){
       var e = document.createElement('div');
       e.className = 'empty-state';
@@ -3432,11 +3716,8 @@
       return;
     }
 
-    // Roadblocks are risks/constraints, not tasks to complete — surface them
-    // separately, above the actionable groups.
-    var roadblocks = todays.filter(function(c){ return c.category === 'roadblock'; });
-    var actionable = todays.filter(function(c){ return c.category !== 'roadblock'; });
-
+    // Roadblocks are risks, not sequence items — they sit above both views and
+    // take part in neither ordering.
     if (roadblocks.length){
       var rbHeading = document.createElement('div');
       rbHeading.className = 'commitment-group-title roadblock';
@@ -3444,43 +3725,82 @@
       list.appendChild(rbHeading);
       roadblocks.forEach(function(c){ list.appendChild(buildCommitmentRow(c)); });
     }
+    if (!actionable.length) return;
 
-    // Group by linked priority first (in priority list order); anything left
-    // over is grouped by its Quick Capture category, or "Other" if neither applies.
-    var groups = [];
-    var grouped = {};
-    priorities.forEach(function(p){
-      var items = actionable.filter(function(c){ return c.priorityId === p.id; });
-      if (items.length){
-        groups.push({ label: priorityGroupLabel(p), items: items });
-        items.forEach(function(c){ grouped[c.id] = true; });
-      }
-    });
-    var remaining = actionable.filter(function(c){ return !grouped[c.id]; });
-    var catGroups = [];
-    var catIndex = {};
-    remaining.forEach(function(c){
-      var catKey = (c.category && QUICK_CAPTURE_CATEGORY_MAP[c.category]) ? c.category : '__other__';
-      if (!catIndex[catKey]){
-        var g = { label: catKey === '__other__' ? 'Other' : QUICK_CAPTURE_CATEGORY_MAP[catKey].label, items: [] };
-        catIndex[catKey] = g;
-        catGroups.push(g);
-      }
-      catIndex[catKey].items.push(c);
-    });
-    catGroups.sort(function(a, b){
-      if (a.label === 'Other') return 1;
-      if (b.label === 'Other') return -1;
-      return 0;
-    });
-    groups = groups.concat(catGroups);
+    if (actionsViewMode === 'order') renderActionsOrderView(list, dateStr, actionable);
+    else renderActionsGroupsView(list, dateStr, actionable);
+  }
 
-    groups.forEach(function(g){
-      var heading = document.createElement('div');
-      heading.className = 'commitment-group-title';
-      heading.textContent = g.label;
-      list.appendChild(heading);
-      g.items.forEach(function(c){ list.appendChild(buildCommitmentRow(c)); });
+  // ---- Order view: one manual sequence for the whole day ----
+  function renderActionsOrderView(list, dateStr, actionable){
+    var ordered = sortByOrderHint(actionable, dayActionOrder(dateStr));
+    var wrap = document.createElement('div');
+    wrap.className = 'sort-list';
+    ordered.forEach(function(c, i){
+      wrap.appendChild(buildCommitmentRow(c, dateStr, { seq: i + 1, drag: true, showCategory: true }));
+    });
+    list.appendChild(wrap);
+    makeSortable(wrap, function(ids){
+      saveActionOrder(dateStr, ids);   // global sequence only; group order is untouched
+    });
+  }
+
+  // ---- Groups view: sections, each with its own internal sequence ----
+  function renderActionsGroupsView(list, dateStr, actionable){
+    var byKey = {};
+    actionable.forEach(function(c){
+      var k = actionCategoryKey(c);
+      (byKey[k] = byKey[k] || []).push(c);
+    });
+    var globalSeq = {};
+    sortByOrderHint(actionable, dayActionOrder(dateStr)).forEach(function(c, i){ globalSeq[c.id] = i; });
+    var keys = Object.keys(byKey).sort(function(a, b){
+      if (a === '__other__') return 1;
+      if (b === '__other__') return -1;
+      var ea = Math.min.apply(null, byKey[a].map(function(c){ return globalSeq[c.id]; }));
+      var eb = Math.min.apply(null, byKey[b].map(function(c){ return globalSeq[c.id]; }));
+      return ea - eb;
+    });
+
+    keys.forEach(function(key){
+      var items = sortByOrderHint(byKey[key], dayGroupOrder(dateStr, key));
+      var done = items.filter(function(c){ return c.status === 'completed'; }).length;
+      var collapsed = !!actionGroupCollapsed[key];
+
+      var head = document.createElement('button');
+      head.type = 'button';
+      head.className = 'action-group-head';
+      head.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      head.innerHTML =
+        '<span class="action-group-ic">' + categoryIcon(key === '__other__' ? null : key) + '</span>' +
+        '<span class="action-group-body">' +
+          '<span class="action-group-label">' + actionCategoryLabel(key) + '</span>' +
+          '<span class="action-group-count">' + items.length + ' task' + (items.length === 1 ? '' : 's') +
+            ' · ' + done + ' complete</span>' +
+        '</span>' +
+        '<span class="action-group-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg></span>';
+      head.addEventListener('click', function(){
+        actionGroupCollapsed[key] = !actionGroupCollapsed[key];
+        lsSet(ACTION_GROUPS_KEY, JSON.stringify(actionGroupCollapsed));
+        renderCommitments();
+      });
+
+      var section = document.createElement('div');
+      section.className = 'action-group' + (collapsed ? ' collapsed' : '');
+      section.appendChild(head);
+
+      if (!collapsed){
+        var rows = document.createElement('div');
+        rows.className = 'sort-list action-group-rows';
+        items.forEach(function(c){
+          rows.appendChild(buildCommitmentRow(c, dateStr, { drag: true }));
+        });
+        section.appendChild(rows);
+        makeSortable(rows, function(ids){
+          saveGroupOrder(dateStr, key, ids);   // this section only; the day sequence stands
+        });
+      }
+      list.appendChild(section);
     });
   }
 
@@ -3585,6 +3905,11 @@
         if (!title) { closeSheet(); return; }
         var out = buildCommitOut(title);
         if (isEditing && out.status === 'completed') cleanupPinsForCompletedAction(out.id);
+        // leaving a section gives up its place in that section's order; with no hint in
+        // the new one it lands at the bottom there, and the day sequence is untouched
+        if (existing && actionCategoryKey(existing) !== actionCategoryKey(out)){
+          dropFromGroupOrder(existing.date, actionCategoryKey(existing), existing.id);
+        }
         saveCommitment(out);
         closeSheet();
       });
@@ -5439,6 +5764,19 @@
       if (type === 'symptom'){ openSymptomSheet(null, { date: viewedDate }); return; }
       var existing = type === 'nutrition' ? getNutritionForDate(viewedDate) : null;
       openSheet(type, existing, viewedDate);
+    });
+  });
+
+  document.getElementById('actionsToggle').addEventListener('click', function(){
+    actionsCollapsed = !actionsCollapsed;
+    lsSet(ACTIONS_COLLAPSED_KEY, actionsCollapsed ? '1' : '0');
+    renderCommitments();
+  });
+  document.getElementById('actionsViewSwitch').querySelectorAll('[data-view]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      actionsViewMode = btn.dataset.view;
+      lsSet(ACTION_VIEW_KEY, actionsViewMode);   // the choice is remembered
+      renderCommitments();
     });
   });
 
