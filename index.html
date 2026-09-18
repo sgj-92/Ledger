@@ -388,7 +388,8 @@
   .commitment-train-link {
     flex-shrink: 0; background: none; border: 1px solid var(--line); color: var(--text-3);
     font-family: var(--sans); font-size: 10.5px; font-weight: 400; letter-spacing: 0.06em;
-    text-transform: uppercase; padding: 6px 10px; border-radius: 100px; cursor: pointer;
+    text-transform: uppercase; padding: 4px 9px; border-radius: 100px; cursor: pointer;
+    line-height: 1;
   }
   .commitment-train-link:active { background: var(--surface-2); }
 
@@ -1702,7 +1703,30 @@
   .add-option-sub { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
 
   /* key tasks read as the day's spine — a whisper of gold, not a badge */
-  .commitment-item.key-task { box-shadow: inset 2px 0 0 rgba(var(--gold-rgb),0.55); }
+  /* A key task keeps its group and its shape — it gains a gold edge, a small star in
+     the gutter and a Key pill, and keeps all three once completed. */
+  .commitment-item.key-task {
+    box-shadow: inset 3px 0 0 var(--gold);
+    border-color: rgba(var(--gold-rgb),0.34);
+    background: linear-gradient(90deg, rgba(var(--gold-rgb),0.055), rgba(var(--gold-rgb),0) 42%), var(--surface);
+    padding-left: 9px;
+  }
+  .commitment-item.key-task:active {
+    background: linear-gradient(90deg, rgba(var(--gold-rgb),0.09), rgba(var(--gold-rgb),0) 42%), var(--surface-2);
+  }
+  .key-star {
+    flex-shrink: 0; width: 12px; height: 12px; margin-right: -3px;
+    color: var(--gold); display: flex; align-items: center;
+  }
+  .key-star svg { width: 100%; height: 100%; display: block; }
+  .key-pill {
+    flex-shrink: 0; font-size: 9.5px; font-weight: 500; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--gold);
+    border: 1px solid rgba(var(--gold-rgb),0.42); border-radius: 100px;
+    padding: 4px 8px; line-height: 1;
+  }
+  /* completion dims the task, never its standing as one of the three */
+  .commitment-item.key-task .commitment-title.completed { color: var(--text-2); }
 
   /* ============ Backlog ============
      A recovery layer for unfinished history — never a second task list.
@@ -2124,6 +2148,7 @@
     resistance: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><line x1="5" y1="12" x2="19" y2="12"/><rect x="6.5" y="6.5" width="3" height="11" rx="1"/><rect x="14.5" y="6.5" width="3" height="11" rx="1"/></svg>',
     yoga: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.8" fill="currentColor" stroke="none"/><path d="M12 8v6"/><path d="M12 9c-2 2-3 3-6 3"/><path d="M12 9c2 2 3 3 6 3"/><path d="M12 14c-1.5 2-2 3-2 5.5"/><path d="M12 14c1.5 2 2 3 2 5.5"/></svg>'
   };
+  var STAR_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 3.4l2.55 5.62 6.15.66-4.58 4.13 1.26 6.05L12 16.8l-5.38 3.06 1.26-6.05L3.3 9.68l6.15-.66z"/></svg>';
   var CLOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="6.5" y1="6.5" x2="17.5" y2="17.5"/><line x1="17.5" y1="6.5" x2="6.5" y2="17.5"/></svg>';
   var SHORT_TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance', cardio: 'Cardio', yoga: 'Mobility' };
   var CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
@@ -3353,6 +3378,9 @@
     if (c.status === 'disrupted' && c.disruptionReason) metaParts.push(c.disruptionReason);
     var showMinVer = c.minVersion && c.status !== 'completed';
     row.innerHTML =
+      // Morning Prime picks the day's three; Today has to make them obvious at a glance,
+      // without lifting them out of the group they belong to.
+      (c.isKeyTask ? '<span class="key-star" aria-hidden="true">' + STAR_SVG + '</span>' : '') +
       '<span class="commitment-status-dot ' + (isRoadblock ? 'roadblock' : c.status) + '"></span>' +
       '<div class="commitment-body">' +
         '<div class="commitment-title' + (c.status==='completed'?' completed':'') + '">' + c.title + '</div>' +
@@ -3362,6 +3390,7 @@
       // the day label only earns its place when it isn't the day you're looking at —
       // on Today every row would otherwise read "Today" and steal width from the title
       (c.date === (contextDate || viewedDate) ? '' : '<span class="commitment-when">' + relativeDayLabel(c.date) + '</span>') +
+      (c.isKeyTask ? '<span class="key-pill">Key</span>' : '') +
       '<span class="chev">' + UI_ICON.chevronRight + '</span>';
     row.addEventListener('click', function(){ openCommitmentSheet(c); });
     if (!isRoadblock){
@@ -3379,7 +3408,7 @@
         e.stopPropagation();
         expandQuickLog();
       });
-      row.appendChild(trainBtn);
+      row.insertBefore(trainBtn, row.querySelector('.key-pill') || row.querySelector('.chev'));
     }
     return row;
   }
@@ -3527,6 +3556,8 @@
         createdAt: existing ? existing.createdAt : new Date().toISOString()
       });
       out.originalDate = existing ? actionOriginalDate(existing) : nextDate;
+      // key-task standing belongs to the day it was chosen for
+      if (existing && existing.isKeyTask && nextDate !== existing.date) out.isKeyTask = false;
       if (isEditing) out.id = existing.id;
       return out;
     }
@@ -3911,6 +3942,7 @@
     saveCommitment(Object.assign({}, c, {
       originalDate: actionOriginalDate(c),
       date: dateStr,
+      isKeyTask: c.isKeyTask && c.date === dateStr,
       movedFromBacklogAt: new Date().toISOString()
     }));
   }
