@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-20 (against `main` @ `1f6cd15`)
+Last updated: 2026-09-21 (against `main` @ `1f6cd15` + theme work)
 
 ---
 
@@ -68,6 +68,14 @@ Web Push. Client writes to `ledger_pins`; `functions/index.js` (Firebase Cloud
 Function, `onDocumentCreated`) sends the push via `web-push`. VAPID private key
 lives in Secret Manager, never in the repo. Device subscriptions in
 `ledger_push_subscriptions`.
+
+### Theming
+Three modes — **Dark** (default and primary identity), **Light** (warm parchment
+editorial), **System** (follows `prefers-color-scheme`, live). Resolved theme
+sits on `<html data-theme>`; every component reads semantic tokens only. An
+inline pre-render bootstrap in `<head>` applies the stored choice before first
+paint. Preference in `localStorage` under `ledger_theme`. Control lives in
+Focus → Appearance. `<meta name="theme-color">` updates with the theme.
 
 ### Persistence
 Firebase Firestore (project `ledger-6aec3`) with a **full localStorage
@@ -165,6 +173,24 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-09-21 — Theme is a device-level setting over semantic tokens
+**Decision:** Ledger supports Dark, Light and System. The preference is a
+device-level UI setting stored in `localStorage` (`ledger_theme`), never in
+Firestore. System follows `prefers-color-scheme` and reacts live; an explicit
+Dark or Light ignores the OS. Dark remains the default and the primary visual
+identity. All visual components depend on semantic theme tokens rather than
+assuming dark.
+**Why:** The same product should work in an evening and on a desk in daylight
+without becoming a different app — and without a second stylesheet to maintain.
+**Implications:** Only tokens change between themes; no component knows which
+theme it is in. Light is a deliberate palette (parchment / cream / espresso /
+antique gold), not an inversion. The hero photograph is theme-driven via
+`--hero-*` tokens — lit at night, a pressed watermark on paper. Colours that
+carry meaning (the eight category accents, four day-status colours, six rank
+tiers) keep their hue and are adjusted only for legibility. Contrast was
+measured, not eyeballed: light finished at 1 flagged item against dark's 97
+existing.
+
 ### 2026-09-18 — Two independent action orderings
 **Decision:** Order view and Groups view maintain separate stored orderings
 (`plan.actionOrder`, `plan.groupOrder[category]`); neither is derived from the
@@ -261,6 +287,8 @@ Status: Ready
 Objective: No active implementation task. Await next handoff.
 Acceptance criteria: N/A
 
+(Theme support completed 2026-09-21; see Decisions Log and Recently Completed.)
+
 ---
 
 ## Open Questions
@@ -282,7 +310,12 @@ Acceptance criteria: N/A
    Priorities remain on the action, in its editor and in the Handoff export.
    Confirm this is the intended end state, or whether priority deserves a
    third view.
-5. **No automated tests or CI.** Verification to date has been manual Playwright
+5. **Light-mode refinements still open.** The six rank-tier colours are fixed
+   values set inline by JS; on parchment the level chip needs a darkening
+   overlay to stay legible, and Rookie/Grinder read faintly as ring and XP-bar
+   fills. A tier palette that adapts per theme would be cleaner, but the
+   colours carry rank meaning so it is a product decision, not a styling one.
+6. **No automated tests or CI.** Verification to date has been manual Playwright
    scripting in the working session, none of it committed. Decide whether a
    minimal smoke suite belongs in the repo.
 
@@ -306,6 +339,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-21) — Theme system: Dark / Light / System, semantic token layer,
+  no-flash bootstrap, Appearance control in Focus, theme-aware hero and
+  `theme-color`. Dark unchanged.
 - `1f6cd15` (2026-09-18) — Actions gains two independent orderings (Order /
   Groups), collapsible sections, collapsible Actions header, pointer-based drag.
 - `d622326` (2026-09-18) — Key tasks made visible in the Today list (gold star,

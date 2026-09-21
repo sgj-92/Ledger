@@ -8,6 +8,25 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ledger">
 <meta name="theme-color" content="#0e0b08">
+<script>
+// Runs before the stylesheet and before any paint, so the app never opens in the
+// wrong theme and flips. Deliberately tiny and dependency-free; if anything throws
+// we fall back to dark, which is Ledger's default identity.
+(function(){
+  try {
+    var pref = localStorage.getItem('ledger_theme');
+    if (pref !== 'light' && pref !== 'system') pref = 'dark';   // existing users stay dark
+    var resolved = pref === 'system'
+      ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+      : pref;
+    var el = document.documentElement;
+    el.setAttribute('data-theme', resolved);
+    el.setAttribute('data-theme-pref', pref);
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', resolved === 'light' ? '#f5efe4' : '#0e0b08');
+  } catch(e){ document.documentElement.setAttribute('data-theme', 'dark'); }
+})();
+</script>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -93,6 +112,27 @@
 
     --shadow-card: 0 1px 2px rgba(0,0,0,0.3);
     --shadow-raised: 0 -18px 50px -24px rgba(0,0,0,0.85);
+    --shadow-lift: 0 14px 30px -12px rgba(0,0,0,0.85);
+    --shadow-fab: 0 12px 28px -14px rgba(0,0,0,0.8);
+    --shadow-pop: 0 20px 50px -20px rgba(0,0,0,0.9);
+    --shadow-toast: 0 18px 40px -20px rgba(0,0,0,0.9);
+
+    /* ---- theme-dependent atmospherics ---- */
+    --tint-raise: rgba(255,255,255,0.014);   /* the faintest lift off a surface */
+    --backdrop: rgba(0,0,0,0.62);            /* behind sheets */
+    --bar: rgba(14,11,8,0.88);               /* bottom tab bar */
+    --header-fade: rgba(14,11,8,0.82);       /* header → content fade */
+    --header-fade-0: rgba(14,11,8,0);
+    /* the mountain: a lit photograph at night, a pressed watermark on paper */
+    --hero-opacity: 0.62;
+    --hero-filter: none;
+    --hero-h: calc(212px + env(safe-area-inset-top));
+    --hero-pos: 50% 58%;
+    --hero-mask: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,1) 38%, rgba(0,0,0,0.72) 76%, rgba(0,0,0,0) 100%);
+    --hero-scrim:
+      radial-gradient(120% 80% at 50% 34%, rgba(14,11,8,0.72) 0%, rgba(14,11,8,0.28) 55%, rgba(14,11,8,0) 100%),
+      linear-gradient(180deg, rgba(14,11,8,0.5) 0%, rgba(14,11,8,0.1) 40%, rgba(14,11,8,0.55) 100%);
+    color-scheme: dark;
 
     /* ---- legacy aliases so untouched components stay coherent ---- */
     --panel: var(--surface);
@@ -136,7 +176,7 @@
     display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--line-2);
     color: var(--text-2);
-    background: rgba(255,255,255,0.012);
+    background: var(--tint-raise);
   }
   .iring svg { display: block; }
   .iring.sz-48 { width: 48px; height: 48px; }
@@ -191,30 +231,33 @@
   header.top {
     position: sticky; top: 0; z-index: 5; flex-shrink: 0;
     padding: calc(14px + env(safe-area-inset-top)) 22px 14px;
-    background: linear-gradient(var(--bg) 90%, rgba(14,11,8,0.82) 97%, rgba(14,11,8,0));
+    background: linear-gradient(var(--bg) 90%, var(--header-fade) 97%, var(--header-fade-0));
     overflow: hidden;
   }
   /* Photographic hero. The image is pre-darkened and desaturated at build time,
      then masked + scrimmed here so the serif date always wins over the sky glow. */
   .hdr-tex {
     position: absolute; left: 0; right: 0; top: 0;
-    height: calc(212px + env(safe-area-inset-top)); pointer-events: none;
-    background-image: url("hero-mountain.webp");
-    background-repeat: no-repeat; background-size: cover; background-position: 50% 58%;
-    opacity: 0.62;
-    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,1) 38%, rgba(0,0,0,0.72) 76%, rgba(0,0,0,0) 100%);
-    mask-image: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,1) 38%, rgba(0,0,0,0.72) 76%, rgba(0,0,0,0) 100%);
+    height: var(--hero-h); pointer-events: none;
+    -webkit-mask-image: var(--hero-mask);
+    mask-image: var(--hero-mask);
   }
+  /* the photograph itself — the only layer the theme filter touches */
+  .hdr-tex::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: url("hero-mountain.webp");
+    background-repeat: no-repeat; background-size: cover; background-position: var(--hero-pos);
+    opacity: var(--hero-opacity); filter: var(--hero-filter);
+  }
+  /* the wash that keeps the date readable over it */
   .hdr-tex::after {
     content: ''; position: absolute; inset: 0;
-    background:
-      radial-gradient(120% 80% at 50% 34%, rgba(14,11,8,0.72) 0%, rgba(14,11,8,0.28) 55%, rgba(14,11,8,0) 100%),
-      linear-gradient(180deg, rgba(14,11,8,0.5) 0%, rgba(14,11,8,0.1) 40%, rgba(14,11,8,0.55) 100%);
+    background: var(--hero-scrim);
   }
   .hdr-bar { position: relative; display: flex; align-items: center; gap: 10px; }
   .circ-btn {
     flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
-    border: 1px solid var(--line-2); background: rgba(255,255,255,0.015);
+    border: 1px solid var(--line-2); background: var(--tint-raise);
     color: var(--text-2); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: background 0.14s ease, color 0.14s ease, opacity 0.14s ease;
@@ -454,7 +497,7 @@
   .commitment-item.dragging {
     position: relative; z-index: 4;
     border-color: rgba(var(--gold-rgb),0.45);
-    box-shadow: 0 14px 30px -12px rgba(0,0,0,0.85), inset 3px 0 0 var(--gold);
+    box-shadow: var(--shadow-lift), inset 3px 0 0 var(--gold);
     transition: none;
   }
   .sort-list.sorting .commitment-item:not(.dragging) { transition: transform 0.18s ease; }
@@ -1031,7 +1074,7 @@
   /* ---------- tab bar ---------- */
   nav.tabbar {
     position: sticky; bottom: 0; z-index: 20; flex-shrink: 0; display: flex;
-    background: rgba(14,11,8,0.88);
+    background: var(--bar);
     backdrop-filter: blur(22px) saturate(1.1);
     -webkit-backdrop-filter: blur(22px) saturate(1.1);
     border-top: 1px solid var(--line);
@@ -1054,7 +1097,7 @@
     width: 54px; height: 54px; border-radius: 50%; border: none;
     background: var(--gold); color: var(--ink);
     display: flex; align-items: center; justify-content: center; cursor: pointer;
-    box-shadow: 0 12px 28px -14px rgba(0,0,0,0.8);
+    box-shadow: var(--shadow-fab);
     z-index: 22; transition: transform 0.14s cubic-bezier(.2,.8,.3,1);
   }
   .global-fab[hidden] { display: none; }
@@ -1107,7 +1150,7 @@
   .qc-type-popover {
     position: fixed; z-index: 60; background: var(--surface-2);
     border: 1px solid var(--line-2); border-radius: var(--r-md);
-    box-shadow: 0 20px 50px -20px rgba(0,0,0,0.9);
+    box-shadow: var(--shadow-pop);
     padding: 6px; display: flex; flex-direction: column; gap: 2px;
     min-width: 172px; overflow-y: auto;
   }
@@ -1122,7 +1165,7 @@
 
   /* ---------- sheets ---------- */
   .sheet-backdrop {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.62); z-index: 30;
+    position: fixed; inset: 0; background: var(--backdrop); z-index: 30;
     display: none; align-items: flex-end; justify-content: center;
     backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
   }
@@ -1577,7 +1620,7 @@
     position: fixed; left: 50%; bottom: 104px; transform: translateX(-50%) translateY(10px);
     background: var(--surface-2); border: 1px solid var(--line-2); color: var(--text);
     padding: 13px 19px; border-radius: 100px; font-size: 13px; font-weight: 500;
-    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.9); z-index: 300; opacity: 0;
+    box-shadow: var(--shadow-toast); z-index: 300; opacity: 0;
     transition: opacity 0.2s ease, transform 0.2s ease;
     max-width: 84%; text-align: center; pointer-events: none;
   }
@@ -1585,6 +1628,119 @@
   .pin-toast.error { border-color: rgba(var(--danger-rgb),0.4); color: var(--danger); }
   .pin-toast-icon { color: var(--gold); margin-right: 5px; vertical-align: -2px; display: inline-block; }
   .pin-toast-icon svg { width: 14px; height: 14px; display: block; }
+
+  /* ---- Appearance control ---- */
+  .appearance-card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: 14px 15px;
+  }
+  .appearance-row { display: flex; align-items: center; gap: 12px; }
+  .appearance-label {
+    flex: 1; min-width: 0; font-family: var(--serif); font-size: 16px; color: var(--text);
+  }
+  .theme-switch {
+    flex-shrink: 0; display: flex; gap: 3px; padding: 3px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 100px;
+  }
+  .theme-switch button {
+    padding: 7px 12px; border: none; border-radius: 100px; background: none;
+    font-family: var(--sans); font-size: 11.5px; font-weight: 500; color: var(--text-3);
+    cursor: pointer; transition: background 0.16s ease, color 0.16s ease;
+  }
+  .theme-switch button.sel { background: var(--gold); color: var(--ink); }
+  .appearance-note {
+    margin: 10px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--text-3);
+  }
+  @media (max-width: 379px) {
+    .appearance-row { flex-direction: column; align-items: stretch; gap: 10px; }
+    .theme-switch { justify-content: space-between; }
+    .theme-switch button { flex: 1; }
+  }
+
+  /* ============ Light theme ============
+     Same product, different hour: the evening journal becomes a paper one.
+     Only tokens change — no component knows which theme it is in. */
+  html[data-theme="light"] {
+    --bg: #f5efe4;             /* parchment */
+    --surface: #fcf8f1;        /* soft cream card */
+    --surface-2: #f1e9dc;      /* field / pressed — deeper, not lighter */
+    --surface-3: #e9dfcd;      /* raised / featured stone */
+
+    --line: rgba(74,56,36,0.10);
+    --line-2: rgba(74,56,36,0.20);
+
+    --text: #2b211a;           /* deep espresso */
+    --text-2: #665949;         /* muted taupe — 5.9:1 on parchment */
+    --text-3: #7a6a55;         /* faint taupe — 4.6:1, the AA floor */
+
+    --gold: #866325;           /* antique gold — 4.8:1 as text, 5.3:1 as a fill */
+    --gold-rgb: 134,99,37;
+    --gold-2: #6b5019;
+    --ink: #fffbf3;            /* what sits on top of gold */
+
+    /* category marks: same hues, taken down so they read on ivory */
+    --padel: #a85f33;
+    --padel-soft: rgba(168,95,51,0.13);
+    --resistance: #92693a;
+    --resistance-soft: rgba(146,105,58,0.13);
+    --cardio: #3d7169;
+    --cardio-soft: rgba(61,113,105,0.13);
+    --yoga: #6f5c74;
+    --yoga-soft: rgba(111,92,116,0.13);
+    --weight: #566e80;
+    --weight-soft: rgba(86,110,128,0.13);
+    --photo: #96545c;
+    --photo-soft: rgba(150,84,92,0.13);
+    --nutrition: #5f7840;
+    --nutrition-soft: rgba(95,120,64,0.13);
+    --gluten: #8e3f2c;
+    --gluten-soft: rgba(142,63,44,0.13);
+
+    --day-good: #4f7a39;
+    --day-good-rgb: 79,122,57;
+    --day-neutral: #97752a;
+    --day-neutral-rgb: 151,117,42;
+    --day-bad: #7d7263;
+    --day-bad-rgb: 125,114,99;
+    --danger: #a4452e;
+    --danger-rgb: 164,69,46;
+
+    --shadow-card: 0 1px 2px rgba(76,58,36,0.07);
+    --shadow-raised: 0 -18px 50px -26px rgba(76,58,36,0.34);
+    --shadow-lift: 0 14px 30px -14px rgba(76,58,36,0.30);
+    --shadow-fab: 0 12px 26px -14px rgba(76,58,36,0.38);
+    --shadow-pop: 0 20px 46px -22px rgba(76,58,36,0.30);
+    --shadow-toast: 0 18px 38px -22px rgba(76,58,36,0.34);
+
+    --tint-raise: rgba(76,58,36,0.022);
+    --backdrop: rgba(58,44,28,0.34);
+    --bar: rgba(250,245,236,0.90);
+    --header-fade: rgba(245,239,228,0.82);
+    --header-fade-0: rgba(245,239,228,0);
+    /* pressed into the paper rather than lit from behind */
+    --hero-opacity: 0.42;
+    --hero-filter: grayscale(0.1) sepia(0.7) brightness(1.3) contrast(0.6) saturate(0.9);
+    --hero-h: 100%;
+    --hero-pos: 50% 46%;
+    --hero-mask: linear-gradient(180deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,1) 30%, rgba(0,0,0,0.55) 62%, rgba(0,0,0,0) 97%);
+    --hero-scrim:
+      radial-gradient(120% 80% at 50% 34%, rgba(245,239,228,0.58) 0%, rgba(245,239,228,0.29) 55%, rgba(245,239,228,0.08) 100%),
+      linear-gradient(180deg, rgba(245,239,228,0.35) 0%, rgba(245,239,228,0.15) 40%, rgba(245,239,228,0.72) 100%);
+    color-scheme: light;
+  }
+  /* light-only legibility corrections: alpha-gold text is too faint on paper */
+  html[data-theme="light"] .commitment-minver,
+  html[data-theme="light"] .key-task .ord-num,
+  html[data-theme="light"] .mp-card.done .mp-sub,
+  html[data-theme="light"] .mp-step.done .mp-step-val,
+  html[data-theme="light"] .bk-meta .bk-state { color: var(--gold-2); }
+  html[data-theme="light"] .exposure-note-ic,
+  html[data-theme="light"] .bk-btn.moved svg { color: var(--gold); }
+  /* rank colours are meaning, not decoration — darken the chip instead of restyling them */
+  html[data-theme="light"] .avatar-level-chip { box-shadow: inset 0 0 0 999px rgba(28,20,10,0.34); }
+  html[data-theme="light"] .cal-cell.today { color: var(--gold-2); }
+  html[data-theme="light"] .view-switch button:not(.sel),
+  html[data-theme="light"] .theme-switch button:not(.sel) { color: var(--text-2); }
 
   /* ============ Morning Prime ============
      A daily setup ritual: useful before completion, quiet after it. */
@@ -2166,6 +2322,19 @@
 
     <h2 class="section-title">Targets</h2>
     <div id="targetWeightCard"></div>
+
+    <h2 class="section-title">Appearance</h2>
+    <div class="appearance-card">
+      <div class="appearance-row">
+        <span class="appearance-label">Theme</span>
+        <div class="theme-switch" id="themeSwitch">
+          <button type="button" data-theme-set="dark">Dark</button>
+          <button type="button" data-theme-set="light">Light</button>
+          <button type="button" data-theme-set="system">System</button>
+        </div>
+      </div>
+      <p class="appearance-note" id="themeNote"></p>
+    </div>
   </section>
 
   <section class="view" id="view-plan">
@@ -3480,6 +3649,60 @@
   // Both are sparse hints: an id that isn't listed simply sorts after the ones that are,
   // by creation order. That means no migration for existing days, and a newly created
   // action lands at the bottom of both systems without anything being written.
+  // ============ Theme ============
+  // Device-level preference, so localStorage rather than Firestore (see PROJECT_LEDGER).
+  // 'dark' | 'light' | 'system'. The resolved value lands on <html data-theme>, which is
+  // the only thing any component reads — via tokens, never directly.
+  var THEME_KEY = 'ledger_theme';
+  var THEME_COLOR = { dark: '#0e0b08', light: '#f5efe4' };
+  var lightMQ = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+
+  function themePref(){
+    var v;
+    try { v = localStorage.getItem(THEME_KEY); } catch(e){}
+    return (v === 'light' || v === 'system') ? v : 'dark';   // default stays dark
+  }
+  function resolveTheme(pref){
+    if (pref !== 'system') return pref;
+    return (lightMQ && lightMQ.matches) ? 'light' : 'dark';
+  }
+  function applyTheme(){
+    var pref = themePref();
+    var resolved = resolveTheme(pref);
+    var el = document.documentElement;
+    el.setAttribute('data-theme', resolved);
+    el.setAttribute('data-theme-pref', pref);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', THEME_COLOR[resolved]);
+    renderThemeSwitch();
+  }
+  function setThemePref(pref){
+    try { localStorage.setItem(THEME_KEY, pref); } catch(e){}
+    applyTheme();
+  }
+  // Only while the preference is System does the OS get a vote.
+  if (lightMQ){
+    var onSchemeChange = function(){ if (themePref() === 'system') applyTheme(); };
+    if (lightMQ.addEventListener) lightMQ.addEventListener('change', onSchemeChange);
+    else if (lightMQ.addListener) lightMQ.addListener(onSchemeChange);
+  }
+  function renderThemeSwitch(){
+    var wrap = document.getElementById('themeSwitch');
+    if (!wrap) return;
+    var pref = themePref();
+    wrap.querySelectorAll('[data-theme-set]').forEach(function(b){
+      b.classList.toggle('sel', b.dataset.themeSet === pref);
+    });
+    var note = document.getElementById('themeNote');
+    if (note){
+      note.textContent = pref === 'system'
+        ? 'Following your device — currently ' + resolveTheme('system') + '.'
+        : (pref === 'light'
+            ? 'Warm paper. Stays light whatever your device does.'
+            : 'The default. Stays dark whatever your device does.');
+    }
+  }
+
   var ACTION_VIEW_KEY = 'ledger_actions_view';
   var ACTIONS_COLLAPSED_KEY = 'ledger_actions_collapsed';
   var ACTION_GROUPS_KEY = 'ledger_action_groups_collapsed';
@@ -5766,6 +5989,11 @@
       openSheet(type, existing, viewedDate);
     });
   });
+
+  document.getElementById('themeSwitch').querySelectorAll('[data-theme-set]').forEach(function(btn){
+    btn.addEventListener('click', function(){ setThemePref(btn.dataset.themeSet); });
+  });
+  applyTheme();
 
   document.getElementById('actionsToggle').addEventListener('click', function(){
     actionsCollapsed = !actionsCollapsed;
