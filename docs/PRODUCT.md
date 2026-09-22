@@ -49,7 +49,7 @@ These are the journeys that must always work. They are the basis of the
 release checklist and of any future automated smoke suite.
 
 1. **Prime the morning.** Open Today, run Morning Prime: acknowledge meals,
-   choose three key tasks, finish Today's Plan, set an intention.
+   choose three key tasks, finish health & fitness, set an intention.
 2. **Work the day.** Read Today, work the action list in order, complete
    actions, add new ones as they arrive.
 3. **Log evidence.** Record training, nutrition, weight, a photo or symptoms
@@ -99,7 +99,7 @@ casually.
 | Surface | Purpose |
 | --- | --- |
 | **Plan** | The week ahead: per-day summaries and the meal ideas library. |
-| **Today** | The execution surface. Morning Prime, Actions, Today's Plan, Quick Log, Recorded Activity, Backlog, Catch-up, Daily Handoff. |
+| **Today** | The execution surface. Morning Prime, Actions, Health & fitness, Quick Log, Recorded Activity, Backlog, Catch-up, Daily Handoff. |
 | **Calendar** | Month view, day detail, day status. |
 | **Progress** | Weekly chart, health and training stats, stat detail. |
 | **Focus** | Player card, priorities, target weight, focus items, appearance. |

@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-22 (against `main` @ `81f6cd1` + Today density pass)
+Last updated: 2026-09-22 (against `main` @ `26db0b3` + Today density follow-ups)
 
 ---
 
@@ -17,7 +17,7 @@ and `functions/` (one Firebase Cloud Function).
 
 ### Today (the main surface)
 - **Morning Prime** — a 4-step daily setup: plan meals → three key tasks →
-  finish Today's Plan → set intention. Collapses to a single "Completed at
+  finish health & fitness → set intention. Collapses to a single "Completed at
   HH:MM" row once done. Stored as `plan.morningPrime` on the day's plan record.
 - **Actions** — collapsible section with two independent views:
   - **Order view**: one numbered execution sequence for the day, drag to reorder.
@@ -26,13 +26,15 @@ and `functions/` (one Firebase Cloud Function).
   - Reordering is pointer-event based (HTML5 drag-and-drop does not work on touch).
 - **Key tasks** — Morning Prime's three; normal actions flagged `isKeyTask`,
   marked in both views with a gold star, gold left edge and a `Key` pill.
-- **Add action** — compact disclosure holding Quick add and Detailed add.
+- **Add action** — a `+` in the Actions section header; it opens a panel
+  under the list holding Quick add and Detailed add.
 - **Backlog** — unfinished actions from past dates. On Today it is a compact
   3-row shelf (category · added date · state on one meta line, icon controls for
   Add to today and Choose a day). The full sheet stays spacious and labelled
   (sort by Group/Date, filter, Add to today, Pick a day).
-- **Today's Plan** — 2×2 card grid (Training / Meals / Roadblock / Diet),
-  with a share control for Daily Handoff.
+- **Health & fitness** — 2×2 card grid (Training / Meals / Roadblock / Diet),
+  with a share control for Daily Handoff. Called **Today's Plan** until
+  2026-09-22.
 - **Quick Log** — collapsible grid: Nutrition, Weight, Daily photo, Padel,
   Cardio, Resistance, Mobility, Symptoms.
 - **Recorded Activity** — collapsible, with a summary in its header.
@@ -148,7 +150,7 @@ Conventions that should not be casually changed.
 - Morning Prime uses existing Ledger actions and plan data rather than
   duplicate task/meal systems.
 - Morning Prime key tasks are normal actions with a key-task marker.
-- Morning Prime and Today's Plan must share the same underlying data.
+- Morning Prime and Health & fitness must share the same underlying data.
 - Planned activities and recorded activities are distinct but linked.
 - Planned activity can pre-fill the actual log.
 - Planned meals become nutrition evidence when marked eaten.
@@ -184,6 +186,33 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-22 — The day's plan grid is named for what is in it
+**Decision:** The Today section previously labelled *Today's plan* is now
+**Health & fitness**. The Daily Handoff heading becomes `HEALTH & FITNESS PLAN`
+and its status line `- Health & fitness plan reviewed`. Morning Prime step 3
+becomes "Finish health & fitness". The label no longer varies by date — the
+header already says which day it is.
+**Why:** The grid holds training, meals, diet and whatever got in the way of
+them. "Today's plan" implied it covered the whole day, which Actions and
+Morning Prime already do.
+**Supersedes the naming in:** 2026-09-15 "Morning Prime includes Today's Plan as
+a step" and 2026-09-15 "Daily Handoff is a stable structured export". The
+structure and the fixed section order are unchanged; only the heading text
+moves. Anything parsing the old `TODAY'S PLAN` heading needs updating.
+
+### 2026-09-22 — Add action belongs to the Actions header
+**Decision:** The "Add action" card is replaced by a `+` in the Actions section
+header, styled as part of that row (same muted colour and weight as the
+chevron and the count). It rotates to a gold × when open, and the panel it
+opens — Quick add and Detailed add — sits under the list as before.
+**Why:** A 68px card to reach a control used a few times a day, sitting between
+the day's work and the backlog.
+**Implications:** `.sec-head` is a container with two buttons where Actions is
+concerned, because a button cannot nest a button. The section header gains a
+32px minimum height as a result. Collapsing Actions hides the `+` and closes the
+panel. The panel is scrolled into view on open only when it would land under the
+tab bar.
 
 ### 2026-09-22 — The hero is a band, not a poster
 **Decision:** The Today header establishes mood in a shallow band and then gets
@@ -418,6 +447,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-22) — Add action moved into the Actions header as a `+`; the Today
+  plan grid renamed **Health & fitness** across Today, Morning Prime and the
+  Daily Handoff export.
 - (2026-09-22) — Today density pass: hero compacted to a shallow band, Backlog
   preview rebuilt as a compact shelf, empty Actions state tightened. Today's
   Plan now lands in the first viewport.

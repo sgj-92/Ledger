@@ -69,7 +69,7 @@ below it or behind a sheet.
 Planning should flow naturally into Today rather than behave like a separate
 application.
 
-Morning Prime and Today's Plan write to the same record. The same data uses
+Morning Prime and Health & fitness write to the same record. The same data uses
 the same editor wherever it is reached from. Two editors for one concept is a
 bug waiting to happen.
 

@@ -457,5 +457,7 @@ token layer changes materially.*
 
 > **Since this audit:** a Today density pass (2026-09-22) shortened the hero
 > (147px → 108px), added a `--hero-size` token, and gave the Backlog preview a
-> compact `.bk-compact` shelf with 38×38 icon controls. The measurements in
-> §2, §7 and §14 predate it.
+> compact `.bk-compact` shelf with 38×38 icon controls. A follow-up moved the
+> Add action trigger into the Actions section header as a `.sec-add` plus, so
+> `.sec-head` is now a container with two buttons where Actions is concerned.
+> The measurements in §2, §7, §9 and §14 predate all of this.

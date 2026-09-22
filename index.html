@@ -448,6 +448,24 @@
     font-family: var(--sans); text-align: left;
   }
   .sec-head-toggle:active { opacity: 0.7; }
+  /* Actions carries its own add control, so the row is a container holding two
+     buttons rather than being one — a button cannot nest a button. */
+  .actions-head { gap: 12px; }
+  .actions-head-toggle {
+    display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;
+    min-height: 32px;
+  }
+  /* the plus belongs to the section label, not to a card: same weight, same muted
+     colour as the chevron and the count beside it */
+  .sec-add {
+    flex-shrink: 0; width: 34px; height: 34px; margin: -4px -8px -4px 0; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; color: var(--text-3); cursor: pointer;
+    transition: color 0.14s ease, transform 0.2s ease;
+  }
+  .sec-add svg { width: 15px; height: 15px; display: block; }
+  .sec-add:active { color: var(--gold); }
+  .sec-add[aria-expanded="true"] { color: var(--gold); transform: rotate(45deg); }
   .sec-head-chev {
     width: 13px; height: 13px; flex-shrink: 0; color: var(--text-3);
     margin-left: -7px; transition: transform 0.22s ease;
@@ -1913,33 +1931,19 @@
   .pm-row.done .pm-body { color: var(--text-2); }
   .pm-row .chev { flex-shrink: 0; }
 
-  /* ============ Add action disclosure ============ */
+  /* ============ Add action panel ============
+     The trigger lives in the Actions section header; this is only what it opens. */
   .add-action {
     border: 1px solid var(--line); border-radius: var(--r-lg);
-    background: var(--surface); overflow: hidden; margin-top: 8px;
+    background: var(--surface); overflow: hidden; margin-top: 10px;
+    max-height: 260px; opacity: 1;
+    transition: max-height 0.24s ease, opacity 0.2s ease, margin-top 0.24s ease;
   }
-  .add-action-head {
-    display: flex; align-items: center; gap: 12px; width: 100%;
-    padding: 10px 13px; background: none; border: none;
-    font-family: var(--sans); font-size: 14px; font-weight: 500;
-    color: var(--text); text-align: left; cursor: pointer;
+  .add-action.collapsed {
+    max-height: 0; opacity: 0; margin-top: 0; border-width: 0; visibility: hidden;
   }
-  .add-action-head:active { background: var(--surface-2); }
-  .add-action-plus {
-    flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
-    background: var(--gold); color: var(--ink);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .add-action-plus svg { width: 14px; height: 14px; display: block; }
-  .add-action-label { flex: 1; min-width: 0; }
-  .add-action-body {
-    overflow: hidden; max-height: 260px; opacity: 1;
-    transition: max-height 0.24s ease, opacity 0.2s ease;
-  }
-  .add-action-body.collapsed { max-height: 0; opacity: 0; visibility: hidden; }
   .add-action-body-inner {
-    padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px;
-    border-top: 1px solid var(--line);
+    padding: 12px; display: flex; flex-direction: column; gap: 8px;
   }
   .add-option {
     display: flex; align-items: center; gap: 13px; width: 100%;
@@ -2230,12 +2234,15 @@
 
     <div id="morningPrime"></div>
 
-    <button type="button" class="sec-head sec-head-toggle" id="actionsToggle" aria-expanded="true" aria-controls="actionsBody">
-      <span class="sec-label">Actions</span>
-      <span class="sec-head-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg></span>
-      <span class="sec-rule"></span>
+    <div class="sec-head actions-head">
+      <button type="button" class="sec-head-toggle actions-head-toggle" id="actionsToggle" aria-expanded="true" aria-controls="actionsBody">
+        <span class="sec-label">Actions</span>
+        <span class="sec-head-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg></span>
+        <span class="sec-rule"></span>
+      </button>
       <span class="sec-value" id="actionsCount"></span>
-    </button>
+      <button type="button" class="sec-add" id="addActionToggle" aria-expanded="false" aria-controls="addActionBody" aria-label="Add action" title="Add action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg></button>
+    </div>
     <div class="actions-summary" id="actionsSummary" hidden></div>
     <div id="actionsBody">
       <div class="actions-toolbar" id="actionsToolbar">
@@ -2247,23 +2254,16 @@
       </div>
       <div id="commitmentsList"></div>
     </div>
-    <div class="add-action" id="addActionWrap">
-      <button type="button" class="add-action-head" id="addActionToggle" aria-expanded="false" aria-controls="addActionBody">
-        <span class="add-action-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span>
-        <span class="add-action-label">Add action</span>
-        <span class="mp-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
-      </button>
-      <div class="add-action-body collapsed" id="addActionBody">
-        <div class="add-action-body-inner">
-          <button type="button" class="add-option gold" id="quickCaptureBtn">
-            <span class="add-option-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 4.5 13.5 11 13.5 10 22 19 10 12.5 10"/></svg></span>
-            <span class="add-option-body"><span class="add-option-title">Quick add</span><span class="add-option-sub">Capture a thought quickly</span></span>
-          </button>
-          <button type="button" class="add-option" id="addCommitmentBtn">
-            <span class="add-option-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2.2"/><line x1="8.5" y1="9" x2="15.5" y2="9"/><line x1="8.5" y1="13" x2="15.5" y2="13"/><line x1="8.5" y1="17" x2="12.5" y2="17"/></svg></span>
-            <span class="add-option-body"><span class="add-option-title">Detailed add</span><span class="add-option-sub">Add with full options</span></span>
-          </button>
-        </div>
+    <div class="add-action collapsed" id="addActionBody">
+      <div class="add-action-body-inner">
+        <button type="button" class="add-option gold" id="quickCaptureBtn">
+          <span class="add-option-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 4.5 13.5 11 13.5 10 22 19 10 12.5 10"/></svg></span>
+          <span class="add-option-body"><span class="add-option-title">Quick add</span><span class="add-option-sub">Capture a thought quickly</span></span>
+        </button>
+        <button type="button" class="add-option" id="addCommitmentBtn">
+          <span class="add-option-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2.2"/><line x1="8.5" y1="9" x2="15.5" y2="9"/><line x1="8.5" y1="13" x2="15.5" y2="13"/><line x1="8.5" y1="17" x2="12.5" y2="17"/></svg></span>
+          <span class="add-option-body"><span class="add-option-title">Detailed add</span><span class="add-option-sub">Add with full options</span></span>
+        </button>
       </div>
     </div>
 
@@ -2447,7 +2447,7 @@
   var planSelectedDate = null; // last day-row interacted with in Plan (for the global FAB's date target)
 
   var TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance training', cardio: 'Cardio', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition', gluten: 'Gluten exposure', symptom: 'Symptoms' };
-  // shared icon set for training types — reused by the Plan selector, Today's plan rows and Quick Log cards
+  // shared icon set for training types — reused by the Plan selector, the Health & fitness rows and Quick Log cards
   var TRAINING_ICON_SVG = {
     padel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="10" height="13" rx="5"/><line x1="10" y1="15.5" x2="10" y2="20"/><line x1="7" y1="21.5" x2="13" y2="21.5"/><circle cx="18.5" cy="18.5" r="2"/></svg>',
     cardio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2.5-7 4 14 2.5-7H21"/></svg>',
@@ -3949,6 +3949,16 @@
     if (toggle){
       toggle.setAttribute('aria-expanded', actionsCollapsed ? 'false' : 'true');
       body.hidden = actionsCollapsed;
+      // adding into a list you cannot see is not an offer worth making
+      var addBtn = document.getElementById('addActionToggle');
+      var addBody = document.getElementById('addActionBody');
+      if (addBtn && addBody){
+        addBtn.hidden = actionsCollapsed;
+        if (actionsCollapsed){
+          addBtn.setAttribute('aria-expanded', 'false');
+          addBody.classList.add('collapsed');
+        }
+      }
       summary.hidden = !actionsCollapsed || !todays.length;
       summary.textContent = actionable.length
         ? actionable.length + ' action' + (actionable.length === 1 ? '' : 's') + ' · ' + doneCount + ' complete'
@@ -4919,8 +4929,8 @@
     else L.push('- none');
     L.push('');
 
-    // 5. Today's plan
-    L.push("TODAY'S PLAN");
+    // 5. Health & fitness plan
+    L.push('HEALTH & FITNESS PLAN');
     if (plan && plan.restDay){
       L.push('Rest day');
     } else if (plan && plan.trainingTypes && plan.trainingTypes.length){
@@ -4966,7 +4976,7 @@
     L.push('- Morning Prime ' + (st.completedAt
       ? 'completed at ' + mpTimeLabel(st.completedAt)
       : st.doneCount + ' of ' + MP_STEP_COUNT + ' steps complete'));
-    L.push("- Today's Plan " + (st.planDone ? 'reviewed' : 'not yet reviewed'));
+    L.push('- Health & fitness plan ' + (st.planDone ? 'reviewed' : 'not yet reviewed'));
     if (actionable.length){
       var doneCount = actionable.filter(function(c){ return c.status === 'completed'; }).length;
       L.push('- Actions ' + doneCount + ' of ' + actionable.length + ' complete');
@@ -5183,7 +5193,7 @@
                      value: st.mealCount ? st.mealCount + ' planned' : (st.mealsAcknowledged ? 'None today' : '') }) +
         mpStepHtml({ step:'keys', num:2, icon:UI_ICON.list, label:'Set your three key tasks', done:st.keysDone,
                      value: st.keyCount + ' of 3' }) +
-        mpStepHtml({ step:'plan', num:3, icon:UI_ICON.sun, label:"Finish Today's Plan", done:st.planDone,
+        mpStepHtml({ step:'plan', num:3, icon:UI_ICON.sun, label:'Finish health & fitness', done:st.planDone,
                      value: st.planDone ? 'Complete' : 'Needs review' }) +
         mpStepHtml({ step:'intention', num:4, icon:UI_ICON.target, label:'Set your intention', done:st.intentionDone,
                      value: '' }) +
@@ -6067,6 +6077,18 @@
   function setAddActionOpen(open){
     addActionToggle.setAttribute('aria-expanded', String(open));
     addActionBody.classList.toggle('collapsed', !open);
+    // The trigger is in the header but the panel opens under the list, so on a
+    // long day it would otherwise open below the fold with nothing to see.
+    // Measured after the 0.24s reveal settles, and only moved if it needs it —
+    // the tab bar covers the last ~96px of the viewport.
+    if (open && addActionBody.scrollIntoView){
+      setTimeout(function(){
+        var r = addActionBody.getBoundingClientRect();
+        if (r.top < 0 || r.bottom > window.innerHeight - 96){
+          addActionBody.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 280);
+    }
   }
   addActionToggle.addEventListener('click', function(){
     setAddActionOpen(addActionToggle.getAttribute('aria-expanded') !== 'true');
@@ -6783,7 +6805,7 @@
   }
 
   // ---------- plan tab ----------
-  // Today's plan is an execution surface, not a read-only echo of Plan:
+  // Health & fitness is an execution surface, not a read-only echo of Plan:
   // training cards open the log sheet, meal rows tick into Nutrition, the
   // roadblock stays readable. "Edit plan" is the only route back to intent.
   function planTrainingSub(t, details){
@@ -6878,7 +6900,9 @@
       cards.push(planCardHtml({ icon: UI_ICON.leaf, title: 'Diet', sub: dietBits.join(' · '), attr: ' data-plan-edit="1"' }));
     }
 
-    var label = isToday ? "Today's plan" : "Day's plan";
+    // The grid is training, meals, diet and whatever got in the way of them —
+    // it is the day's health and fitness, not the day's plan in general.
+    var label = 'Health & fitness';
     var planActionLabel = hasAnyContent ? 'Edit plan' : (isToday ? 'Plan today' : 'Plan this day');
 
     var html = '<div class="today-plan-widget-head">' +
