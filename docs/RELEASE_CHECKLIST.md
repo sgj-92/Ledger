@@ -31,7 +31,8 @@ These stop a release.
 ## Surfaces
 
 - [ ] Plan
-- [ ] Today — Morning Prime, Actions (Order and Groups), Health & fitness,
+- [ ] Today — Morning Prime (Plan and Move), Actions (Order and Groups),
+      Health & fitness, Evening Wind-down,
       Quick Log, Recorded Activity, Backlog, Catch-up, Daily Handoff
 - [ ] Calendar
 - [ ] Progress

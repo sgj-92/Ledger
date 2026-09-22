@@ -460,4 +460,9 @@ token layer changes materially.*
 > compact `.bk-compact` shelf with 38×38 icon controls. A follow-up moved the
 > Add action trigger into the Actions section header as a `.sec-add` plus, so
 > `.sec-head` is now a container with two buttons where Actions is concerned.
-> The measurements in §2, §7, §9 and §14 predate all of this.
+> A later pass added the daily lifecycle: Morning Prime gained Plan/Move
+> sub-sections (`.mp-sec`), a shared routine row (`.mp-step-row` with a `.mp-tick`
+> or an icon in the leading slot) now serves Morning Prime and Evening Wind-down,
+> and a Settings sheet (`.set-*`) with a routine editor (`.re-*`) took over the
+> Appearance card from Focus. The measurements in §2, §7, §9 and §14 predate
+> all of this.

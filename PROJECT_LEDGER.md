@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-22 (against `main` @ `26db0b3` + Today density follow-ups)
+Last updated: 2026-09-22 (against `main` @ `af924a1` + the daily lifecycle)
 
 ---
 
@@ -16,9 +16,17 @@ and `functions/` (one Firebase Cloud Function).
 **Five tabs:** Plan · Today · Calendar · Progress · Focus.
 
 ### Today (the main surface)
-- **Morning Prime** — a 4-step daily setup: plan meals → three key tasks →
-  finish health & fitness → set intention. Collapses to a single "Completed at
-  HH:MM" row once done. Stored as `plan.morningPrime` on the day's plan record.
+- **Morning Prime** — two sections, tracked separately. **Plan** is what can be
+  done from the phone before getting up (meals → three key tasks → finish health
+  & fitness → intention); **Move** is the physical start (weigh-in, body photo,
+  supplements, water, stretch). Header reads `Plan ✓ · Move 3/5`, and collapses
+  to "Completed at HH:MM" once both are complete. Stored as `plan.morningPrime`;
+  manual ticks in `plan.morningPrime.checks[section]`.
+- **Evening Wind-down** — a compact collapsible section that closes today while
+  it is still today: finish food log, review food/day status, review suspected
+  gluten exposure, accountability check-in, review tomorrow. Most items derive
+  their state from real records. Closing writes `windDown.completedAt` and
+  `closedAt` onto `ledger_day_status/<date>`.
 - **Actions** — collapsible section with two independent views:
   - **Order view**: one numbered execution sequence for the day, drag to reorder.
   - **Groups view**: collapsible category sections, each with its own internal order.
@@ -38,10 +46,20 @@ and `functions/` (one Firebase Cloud Function).
 - **Quick Log** — collapsible grid: Nutrition, Weight, Daily photo, Padel,
   Cardio, Resistance, Mobility, Symptoms.
 - **Recorded Activity** — collapsible, with a summary in its header.
-- **Catch-up** — closes a past day against its real records (actions tally,
-  logged training, nutrition state, overall status, notes).
+- **Catch-up** — the recovery layer for whatever the evening did not close.
+  Reads the day's real records *and* its Wind-down state: anything already
+  resolved is reported as a ✓ line instead of asked again, and a day closed in
+  the evening is not listed as pending at all.
 - **Daily Handoff** — "Share day" → structured text export for Claude, with an
   optional instruction footer; clipboard + Web Share API.
+
+### Routines and Settings
+Morning Prime (Plan, Move) and Evening Wind-down are **editable routines**:
+reorder, enable/disable, rename, add and delete custom items. The definition is
+a preference, stored in `presets.routines` (`ledger_meta/presets`), so it follows
+Shaun across devices. Daily completion belongs to the date. Settings is a sheet
+reached from **Focus → Settings**, holding Appearance (Dark/Light/System), the
+two Morning Prime routines, the Wind-down routine and its prominence hour.
 
 ### Other tabs
 - **Plan** — 7-day week list with per-day summaries; meal ideas library.
@@ -49,7 +67,7 @@ and `functions/` (one Firebase Cloud Function).
 - **Progress** (`view-stats`) — weekly bar chart, health & training stat cards,
   stat detail sheets.
 - **Focus** — player card (XP/level/tier/streak/avatar), priorities, target
-  weight, focus items.
+  weight, focus items, and the entry to Settings.
 
 ### Nutrition
 Daily checks (gluten-free, minimal processed, water, water amount, suspected
@@ -169,6 +187,15 @@ Conventions that should not be casually changed.
 - Daily Handoff exports Ledger day data in a stable structured format for Claude.
 - Today is an execution surface, not merely a read-only summary of Plan.
 - Same data should use the same editor wherever possible.
+- The day has one lifecycle: Morning Prime prepares, Today executes, Evening
+  Wind-down closes, Catch-up recovers, Calendar reviews history.
+- Routine *definitions* are a device-independent preference; routine
+  *completion* belongs to the date.
+- A routine step linked to a Ledger record derives its completion from that
+  record. Manual ticks exist only for steps no record can answer.
+- Renaming a routine step changes its label, never its link.
+- A day is closed once, by whichever surface got there first, and both
+  Wind-down and Catch-up write the same `closedAt`.
 - Main branch may be used unless Shaun explicitly requests otherwise.
 
 ### Implementation conventions observed in code
@@ -186,6 +213,61 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-22 — Morning Prime is Plan and Move
+**Decision:** Morning Prime has two sections tracked separately. Plan is what
+Shaun can do from the phone before getting up; Move is the physical start. The
+header reads `Plan ✓ · Move 3/5` and Prime completes only when both enabled
+sections do. It stays guidance, never a gate on the rest of Today.
+**Why:** The existing four steps were all phone-bound. The morning routine that
+actually happens has a physical half, and merging the two into one list would
+have hidden which half was outstanding.
+**Implications:** `mpState` returns `planSec`/`moveSec` section states. Move
+ticks live in `plan.morningPrime.checks.move`, keyed by routine item id.
+
+### 2026-09-22 — Routines are editable definitions, completion is evidence
+**Decision:** Morning Prime (Plan, Move) and Evening Wind-down are ordered lists
+Shaun can reorder, disable, rename and extend. The definition lives in
+`presets.routines` (`ledger_meta/presets`) — a preference, so it follows him
+across devices. Completion belongs to the date, and where Ledger already holds a
+structured record, completion is *derived* from that record rather than stored
+again. A manual tick exists only where no record can answer.
+**Why:** A checklist that has to be ticked alongside the record it describes is
+two versions of the truth, and the first one to drift wins.
+**Implications:** A routine item carries a `key` (the link) and a `label` (the
+display). Renaming changes only the label. Ten keys derive from records: meals,
+key tasks, the day's plan, the intention, the weight log, the daily photo,
+nutrition closure, the nutrition day rating, the exposure check and tomorrow's
+plan. Everything else — supplements, water, a stretch, the accountability
+check-in, anything custom — is a plain tick. Built-in steps are switched off
+rather than deleted, because `getRoutine` re-appends missing defaults so later
+versions can add steps without a migration.
+
+### 2026-09-22 — Evening Wind-down closes today; Catch-up recovers what it didn't
+**Decision:** Wind-down is same-day closure and Catch-up is the next-morning
+recovery layer. They are one flow with one closure concept: completing Wind-down
+writes `windDown.completedAt` and `closedAt` on the day record, and Catch-up
+stops listing that day as pending. Opening it anyway shows "closed itself last
+night" with the resolved facts reported rather than re-asked. When Wind-down was
+only partial, Catch-up reports what is already settled as ✓ lines and keeps its
+controls only for what is genuinely unresolved.
+**Why:** Two independent reviews of the same day would make the evening pointless
+and the morning tedious.
+**Implications:** `ledger_day_status/<date>` gains `windDown { checks, completedAt }`
+and `closedAt`. `computeCatchUpDates` treats an evening closure as resolved.
+Training already logged and nutrition already closed no longer render a
+segmented control. The calendar reports "Closed at HH:MM" for a day that was
+closed without an overall status being chosen.
+
+### 2026-09-22 — Next-morning symptoms stay dated to the symptom
+**Decision:** Wind-down only asks whether a suspected exposure happened *today*;
+it never asks about symptoms. Catch-up may prompt the next morning, with three
+answers — No symptoms, Log symptoms, Not sure — and logging opens the symptom
+episode dated to today with a *possible* link to yesterday's exposure.
+**Why:** Symptoms usually appear the following morning. This preserves the
+2026-09-15 separation rather than letting a closing routine collapse it.
+**Implications:** "Not sure" records `symptomsUnknown` alongside
+`symptomsChecked` — asked and unanswered is a real answer, and is not "no".
 
 ### 2026-09-22 — The day's plan grid is named for what is in it
 **Decision:** The Today section previously labelled *Today's plan* is now
@@ -400,9 +482,13 @@ carries the detail; this list records that the question is still open.
 3. **Two overlapping day-review flows.** `openReviewDaySheet` (older,
    per-action status then overall day) still exists and is reachable from the
    header and calendar day detail, alongside the newer `openCatchUpSheet`.
-   Decide whether Review day should be retired, merged, or kept for a distinct
-   purpose.
-   → **#12** (proposed P2).
+   → **#12** (proposed P2). **Reassessed 2026-09-22:** Wind-down and Catch-up
+   now cover everything Review day does *except* its one-action-at-a-time
+   status prompt — Catch-up links out to the day instead. Recommendation: move
+   that sequential pass into Catch-up, then route both Review day entry points
+   there and delete `openReviewDaySheet`. Not done here: it changes two
+   entry points' behaviour, which is Shaun's call. Its buttons already hide on
+   a day Wind-down closed, so the two do not collide today.
 4. **Priority grouping was dropped from Today.** Groups view is category-only.
    Priorities remain on the action, in its editor and in the Handoff export.
    Confirm this is the intended end state, or whether priority deserves a
@@ -447,6 +533,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-22) — The daily lifecycle: Morning Prime split into Plan and Move,
+  editable routines with a Settings sheet, Evening Wind-down, and Catch-up
+  rebuilt as the recovery layer behind it.
 - (2026-09-22) — Add action moved into the Actions header as a `+`; the Today
   plan grid renamed **Health & fitness** across Today, Morning Prime and the
   Daily Handoff export.

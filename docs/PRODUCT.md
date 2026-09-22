@@ -48,21 +48,24 @@ feature that does not serve the loop needs a reason to exist.
 These are the journeys that must always work. They are the basis of the
 release checklist and of any future automated smoke suite.
 
-1. **Prime the morning.** Open Today, run Morning Prime: acknowledge meals,
-   choose three key tasks, finish health & fitness, set an intention.
+1. **Prime the morning.** Open Today, run Morning Prime: **Plan** (acknowledge
+   meals, choose three key tasks, finish health & fitness, set an intention)
+   and **Move** (the physical morning routine).
 2. **Work the day.** Read Today, work the action list in order, complete
    actions, add new ones as they arrive.
 3. **Log evidence.** Record training, nutrition, weight, a photo or symptoms
    as the day goes — from Quick Log or from a planned item.
 4. **Plan ahead.** Use Plan to set up a coming day or week, including meals
    and training.
-5. **Close a day.** Use Catch-up to close a previous day against its real
-   records — actions, training, nutrition, overall status, notes.
-6. **Recover unfinished work.** Review the Backlog and deliberately pull
+5. **Close the day.** Use Evening Wind-down to close today while it is still
+   today — food log, day status, exposure check, accountability, tomorrow.
+6. **Recover a day.** Use Catch-up the next morning for whatever the evening
+   did not close. A day already closed is reported, not re-asked.
+7. **Recover unfinished work.** Review the Backlog and deliberately pull
    selected items onto a chosen day.
-7. **Hand the day to Claude.** Export the Daily Handoff as structured text
+8. **Hand the day to Claude.** Export the Daily Handoff as structured text
    and paste it into an external tool.
-8. **See progress.** Read Progress and Focus: trends, stats, priorities,
+9. **See progress.** Read Progress and Focus: trends, stats, priorities,
    level and streak.
 
 ## Product principles
@@ -99,10 +102,10 @@ casually.
 | Surface | Purpose |
 | --- | --- |
 | **Plan** | The week ahead: per-day summaries and the meal ideas library. |
-| **Today** | The execution surface. Morning Prime, Actions, Health & fitness, Quick Log, Recorded Activity, Backlog, Catch-up, Daily Handoff. |
+| **Today** | The execution surface. Morning Prime (Plan, Move), Actions, Health & fitness, Quick Log, Evening Wind-down, Recorded Activity, Backlog, Catch-up, Daily Handoff. |
 | **Calendar** | Month view, day detail, day status. |
 | **Progress** | Weekly chart, health and training stats, stat detail. |
-| **Focus** | Player card, priorities, target weight, focus items, appearance. |
+| **Focus** | Player card, priorities, target weight, focus items, Settings. |
 
 Today is the centre of the product. Everything else supports it.
 
@@ -125,6 +128,12 @@ Today is the centre of the product. Everything else supports it.
   as proven cause.
 - **Daily Handoff.** A stable, structured plain-text export of one day, in a
   fixed section order, inventing nothing.
+- **Routines.** Morning Prime and Evening Wind-down are editable ordered lists,
+  stored as a preference. Where Ledger holds a record of a step, that record
+  decides whether the step is done — a tick is only for steps nothing else
+  answers.
+- **One closure.** A day is closed once. Wind-down closes it in the evening,
+  Catch-up closes it the next morning; both write the same `closedAt`.
 
 ## What Ledger deliberately is not
 

@@ -1077,6 +1077,18 @@
   }
   .accountability-box:empty { display: none; }
   .accountability-box > div + div { margin-top: 4px; }
+  .cu-resolved {
+    display: flex; align-items: flex-start; gap: 9px;
+    font-size: 12.5px; color: var(--text-2); line-height: 1.45; margin: 2px 0 0;
+  }
+  .cu-resolved .cu-ev-tick { flex-shrink: 0; }
+  .catchup-banner.cu-banner-done {
+    display: flex; align-items: center; gap: 9px;
+    color: var(--text-2); border-color: rgba(var(--gold-rgb),0.24);
+  }
+  .cu-banner-tick { flex-shrink: 0; width: 15px; height: 15px; color: var(--gold); display: flex; }
+  .cu-banner-tick svg { width: 100%; height: 100%; display: block; }
+
   .catchup-banner {
     border: 1px solid var(--line); border-radius: var(--r-md);
     background: var(--surface); padding: 14px 15px; margin-bottom: var(--sp-5);
@@ -1820,19 +1832,46 @@
   .mp-mark.filled { background: var(--gold); border-color: var(--gold); color: var(--ink); }
 
   .mp-body {
-    overflow: hidden; max-height: 820px; opacity: 1;
+    overflow: hidden; max-height: 1500px; opacity: 1;
     transition: max-height 0.26s ease, opacity 0.2s ease;
   }
   .mp-body.collapsed { max-height: 0; opacity: 0; visibility: hidden; }
   .mp-body-inner { padding: 0 15px 15px; border-top: 1px solid var(--line); }
 
+  /* A routine row: a leading slot (tick, or the item's icon where a real record
+     answers for it) and the row itself, which opens that record when there is one. */
+  .mp-step-row {
+    display: flex; align-items: center; gap: 13px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mp-step-row > .mp-step-ic { padding: 13px 0; }
+  .mp-tick {
+    flex-shrink: 0; width: 22px; height: 22px; padding: 0; margin: 13px 0;
+    border-radius: 50%; border: 1px solid var(--line-2); background: none;
+    color: var(--ink); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.14s ease, border-color 0.14s ease;
+  }
+  .mp-tick svg { width: 12px; height: 12px; display: block; }
+  .mp-tick.on { background: var(--gold); border-color: var(--gold); }
+  .mp-tick:active { border-color: rgba(var(--gold-rgb),0.6); }
   .mp-step {
     display: flex; align-items: center; gap: 13px; width: 100%;
     padding: 13px 0; background: none; border: none;
-    border-bottom: 1px solid var(--line);
     font-family: var(--sans); text-align: left; color: var(--text); cursor: pointer;
+    min-width: 0;
   }
-  .mp-step:active { opacity: 0.6; }
+  .mp-step.static { cursor: default; }
+  .mp-step:not(.static):active { opacity: 0.6; }
+
+  /* Plan / Move headings inside the card */
+  .mp-sec { display: flex; align-items: center; gap: 12px; padding: 16px 0 6px; }
+  .mp-sec-label {
+    font-size: 10px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.2em; color: var(--text-3); white-space: nowrap;
+  }
+  .mp-sec-rule { flex: 1; height: 1px; background: var(--line); min-width: 10px; }
+  .mp-sec-val { font-size: 11px; color: var(--text-3); flex-shrink: 0; font-variant-numeric: tabular-nums; }
   .mp-step-ic { flex-shrink: 0; width: 19px; color: var(--text-2); display: flex; }
   .mp-step-ic svg { width: 19px; height: 19px; display: block; }
   .mp-step.done .mp-step-ic { color: var(--gold); }
@@ -2205,6 +2244,81 @@
     letter-spacing: 0.01em; text-transform: none;
   }
   .section-toggle-label.has-value::after { min-width: 12px; }
+
+  /* ---- Evening Wind-down ----
+     Close today while it is still today. Quiet until the evening, never hidden. */
+  .wd-wrap { margin-top: var(--sp-5); }
+  .wd-body {
+    overflow: hidden; max-height: 900px; opacity: 1; margin-top: var(--sp-3);
+    transition: max-height 0.26s ease, opacity 0.2s ease, margin 0.24s ease;
+  }
+  .wd-body.collapsed { max-height: 0; opacity: 0; margin-top: 0; visibility: hidden; }
+  .wd-panel {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: 2px 15px 15px;
+  }
+  .wd-panel .mp-step-row:last-of-type { border-bottom: none; }
+  .wd-note { font-size: 11.5px; color: var(--text-3); margin: 12px 0 0; line-height: 1.5; }
+  .wd-close { margin-top: 13px; padding: 13px 14px; font-size: 14.5px; border-radius: var(--r-md); }
+  .section-toggle.wd-due .section-toggle-label { color: var(--gold); }
+  .section-toggle.wd-due .section-toggle-chevron { color: var(--gold); }
+  .wd-closed-val { color: rgba(var(--gold-rgb),0.85); }
+
+  /* ---- Settings ---- */
+  .set-group { margin-bottom: var(--sp-5); }
+  .set-group-label {
+    display: block; font-size: 10.5px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.2em; color: var(--text-3); margin-bottom: var(--sp-3);
+  }
+  .set-card {
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--r-lg); overflow: hidden;
+  }
+  .set-row {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 14px 14px; background: none; border: none;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--sans); font-size: 14px; color: var(--text);
+    text-align: left; cursor: pointer;
+  }
+  .set-row:last-child { border-bottom: none; }
+  .set-row:active { background: var(--surface-3); }
+  .set-row.static { cursor: default; display: block; }
+  .set-row-label { flex: 1; min-width: 0; }
+  .set-row-val {
+    font-size: 12px; color: var(--text-3); flex-shrink: 0;
+    max-width: 52%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .set-row .chev { flex-shrink: 0; color: var(--text-3); }
+  .set-row.static .appearance-row { margin: 0; }
+  .set-note { font-size: 11.5px; color: var(--text-3); margin: 8px 2px 0; line-height: 1.5; }
+
+  /* ---- routine editor ---- */
+  .re-list { position: relative; }
+  .re-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--r-md); padding: 8px 8px 8px 11px; margin-bottom: 8px;
+  }
+  .re-row.dragging {
+    position: relative; z-index: 4;
+    border-color: rgba(var(--gold-rgb),0.45); box-shadow: var(--shadow-lift);
+    transition: none;
+  }
+  .re-list.sorting .re-row:not(.dragging) { transition: transform 0.18s ease; }
+  .re-row.off .re-label, .re-row.off .re-sub { opacity: 0.45; }
+  .re-body { flex: 1; min-width: 0; }
+  .re-label { display: block; font-size: 14px; color: var(--text); line-height: 1.3; }
+  .re-sub { display: block; font-size: 10.5px; color: var(--text-3); margin-top: 3px; letter-spacing: 0.02em; }
+  .re-btn {
+    flex-shrink: 0; width: 34px; height: 34px; padding: 0; border-radius: var(--r-sm);
+    border: 1px solid var(--line-2); background: none; color: var(--text-3); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .re-btn svg { width: 15px; height: 15px; display: block; }
+  .re-btn:active { background: var(--surface-3); }
+  .re-btn.on { color: var(--gold); border-color: rgba(var(--gold-rgb),0.45); }
+  .re-row .drag-handle { margin-left: -4px; }
 </style>
 </head>
 <body>
@@ -2312,6 +2426,8 @@
       </button>
     </div>
 
+    <div class="wd-wrap" id="windDownSection"></div>
+
     <button type="button" class="section-toggle" id="recordedToggle" aria-expanded="false" aria-controls="recordedBody">
       <span class="section-toggle-label has-value">Recorded activity</span>
       <span class="section-toggle-value" id="recordedSummary"></span>
@@ -2359,17 +2475,12 @@
     <h2 class="section-title">Targets</h2>
     <div id="targetWeightCard"></div>
 
-    <h2 class="section-title">Appearance</h2>
-    <div class="appearance-card">
-      <div class="appearance-row">
-        <span class="appearance-label">Theme</span>
-        <div class="theme-switch" id="themeSwitch">
-          <button type="button" data-theme-set="dark">Dark</button>
-          <button type="button" data-theme-set="light">Light</button>
-          <button type="button" data-theme-set="system">System</button>
-        </div>
-      </div>
-      <p class="appearance-note" id="themeNote"></p>
+    <h2 class="section-title">Settings</h2>
+    <div class="set-card">
+      <button type="button" class="set-row" id="openSettingsBtn">
+        <span class="set-row-label">Appearance, routines and wind-down</span>
+        <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9.5 6 15.5 12 9.5 18"/></svg></span>
+      </button>
     </div>
   </section>
 
@@ -2553,7 +2664,7 @@
     {name:'Bench press', unit:'kg'}, {name:'Squat', unit:'kg'}, {name:'Deadlift', unit:'kg'},
     {name:'Overhead press', unit:'kg'}, {name:'Pull-up', unit:'reps'}, {name:'Plank', unit:'sec'}
   ];
-  var presets = { cardioTypes: DEFAULT_CARDIO_TYPES.slice(), exercises: DEFAULT_EXERCISES.slice(), targetWeightKg: null, prioritiesSeeded: false };
+  var presets = { cardioTypes: DEFAULT_CARDIO_TYPES.slice(), exercises: DEFAULT_EXERCISES.slice(), targetWeightKg: null, prioritiesSeeded: false, routines: null };
   var focusItems = [];
   var FOCUS_CATEGORY_LABEL = { technique: 'Technique', footwork: 'Footwork', physical: 'Physical', general: 'General' };
 
@@ -2667,7 +2778,11 @@
           presets.exercises = data.exercises || DEFAULT_EXERCISES.slice();
           presets.targetWeightKg = data.targetWeightKg != null ? data.targetWeightKg : null;
           presets.prioritiesSeeded = !!data.prioritiesSeeded;
+          // routines are a preference like the rest of this document — name it
+          // explicitly, because this handler rebuilds presets field by field
+          presets.routines = data.routines || null;
           if (currentView === 'focus') renderFocus();
+          renderLogView();
         } else {
           dbRef.collection('ledger_meta').doc('presets').set(presets).catch(function(){});
         }
@@ -3459,7 +3574,7 @@
         parts.push('<button type="button" class="day-today-btn" id="dayJumpTodayBtn">Today</button>');
       }
       var hasUnresolved = commitments.some(function(c){ return c.date === viewedDate && c.status === 'planned'; });
-      var hasDayStatus = dayStatuses.some(function(ds){ return ds.date === viewedDate; });
+      var hasDayStatus = dayStatuses.some(function(ds){ return ds.date === viewedDate && (ds.status || ds.closedAt); });
       var hasAnythingThatDay = commitments.some(function(c){ return c.date === viewedDate; }) || !!getPlanForDate(viewedDate);
       if (viewedDate < today && (hasUnresolved || (!hasDayStatus && hasAnythingThatDay))){
         parts.push('<button type="button" class="day-review-btn" id="dayReviewBtn">Review day</button>');
@@ -4975,7 +5090,7 @@
     L.push('STATUS / NOTES');
     L.push('- Morning Prime ' + (st.completedAt
       ? 'completed at ' + mpTimeLabel(st.completedAt)
-      : st.doneCount + ' of ' + MP_STEP_COUNT + ' steps complete'));
+      : st.doneCount + ' of ' + st.total + ' steps complete'));
     L.push('- Health & fitness plan ' + (st.planDone ? 'reviewed' : 'not yet reviewed'));
     if (actionable.length){
       var doneCount = actionable.filter(function(c){ return c.status === 'completed'; }).length;
@@ -5082,6 +5197,294 @@
   // It leans on the systems already here — key tasks are ordinary actions flagged
   // isKeyTask, meals are the day's plan.meals — so nothing here is a parallel record.
   var MP_INTENTION_MAX = 200;
+  // ============ Daily routines ============
+  // One lifecycle, four surfaces: Morning Prime prepares (Plan, then Move),
+  // Today executes, Evening Wind-down closes the day while it is still today,
+  // and Catch-up recovers whatever the evening did not close.
+  //
+  // A routine is a *definition* — an ordered list of items Shaun can reorder,
+  // disable, rename or extend. That is a preference, so it lives in
+  // ledger_meta/presets and follows him across devices. Completion is per date,
+  // and wherever Ledger already holds structured evidence it is derived from
+  // that record rather than stored a second time. Manual ticks exist only for
+  // items no record can answer.
+
+  var RT_WEIGHT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c0-2.5 1.5-4 3.5-4s3.5 1.5 3.5 4"/><line x1="12" y1="7" x2="12" y2="8.5"/></svg>';
+  var RT_PHOTO_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.3"/></svg>';
+
+  var RT_EDIT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 4.5l3 3L8 19H5v-3z"/><line x1="14.5" y1="6.5" x2="17.5" y2="9.5"/></svg>';
+  var RT_OFF_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7.5"/></svg>';
+
+  var ROUTINE_ICON = {
+    meals: UI_ICON.cutlery, keys: UI_ICON.list, plan: UI_ICON.sun, intention: UI_ICON.target,
+    weighIn: RT_WEIGHT_SVG, bodyPhoto: RT_PHOTO_SVG, supplements: UI_ICON.box,
+    water: UI_ICON.glass, stretch: TRAINING_ICON_SVG.yoga,
+    foodLog: UI_ICON.cutlery, dayQuality: UI_ICON.chart, gluten: UI_ICON.alert,
+    accountability: UI_ICON.chat, reviewTomorrow: UI_ICON.calendar
+  };
+  function routineIcon(item){
+    return (item.key && ROUTINE_ICON[item.key]) || UI_ICON.note;
+  }
+
+  var ROUTINE_SECTION_LABEL = { plan: 'Plan', move: 'Move', windDown: 'Evening Wind-down' };
+
+  var DEFAULT_ROUTINES = {
+    plan: [
+      { id: 'plan-meals',     key: 'meals',     label: 'Plan main meals',         enabled: true },
+      { id: 'plan-keys',      key: 'keys',      label: 'Set 3 key tasks',         enabled: true },
+      { id: 'plan-plan',      key: 'plan',      label: 'Finish health & fitness', enabled: true },
+      { id: 'plan-intention', key: 'intention', label: 'One-line intention',      enabled: true }
+    ],
+    move: [
+      { id: 'move-weigh',   key: 'weighIn',     label: 'Toilet & weigh-in',   enabled: true },
+      { id: 'move-photo',   key: 'bodyPhoto',   label: 'Body photo',          enabled: true },
+      { id: 'move-supps',   key: 'supplements', label: 'Morning supplements', enabled: true },
+      { id: 'move-water',   key: 'water',       label: 'Drink 500ml water',   enabled: true },
+      { id: 'move-stretch', key: 'stretch',     label: 'Quick stretch',       enabled: true }
+    ],
+    windDown: [
+      { id: 'wd-food',     key: 'foodLog',        label: 'Finish food log',                  enabled: true },
+      { id: 'wd-quality',  key: 'dayQuality',     label: 'Review food & day status',         enabled: true },
+      { id: 'wd-gluten',   key: 'gluten',         label: 'Review suspected gluten exposure', enabled: true },
+      { id: 'wd-partner',  key: null,             label: 'Accountability partner check-in',  enabled: true },
+      { id: 'wd-tomorrow', key: 'reviewTomorrow', label: 'Review tomorrow',                  enabled: true },
+      // the old external step, kept as an ordinary custom item and off by default
+      { id: 'wd-habit',    key: null,             label: 'Update habit app', enabled: false, custom: true }
+    ]
+  };
+  var WIND_DOWN_DEFAULT_HOUR = 19;
+
+  function routineConfig(){ return (presets && presets.routines) || {}; }
+
+  // Stored order wins; a default this version added but the stored copy has never
+  // seen joins the end. Sparse, like the action order hints — no migration.
+  function getRoutine(section){
+    var defs = DEFAULT_ROUTINES[section] || [];
+    var stored = routineConfig()[section];
+    if (!stored || !stored.length) return defs.map(function(it){ return Object.assign({}, it); });
+    var out = stored.map(function(it){ return Object.assign({}, it); });
+    defs.forEach(function(d){
+      if (!out.some(function(it){ return it.id === d.id; })) out.push(Object.assign({}, d));
+    });
+    return out;
+  }
+  function enabledRoutine(section){
+    return getRoutine(section).filter(function(it){ return it.enabled !== false; });
+  }
+  async function saveRoutine(section, items){
+    var next = Object.assign({}, routineConfig());
+    next[section] = items;
+    presets.routines = next;
+    await savePresets();
+    renderLogView();
+  }
+  function windDownHour(){
+    var h = routineConfig().windDownHour;
+    return (typeof h === 'number' && h >= 0 && h <= 23) ? h : WIND_DOWN_DEFAULT_HOUR;
+  }
+  async function saveWindDownHour(h){
+    var next = Object.assign({}, routineConfig());
+    next.windDownHour = h;
+    presets.routines = next;
+    await savePresets();
+    renderLogView();
+  }
+
+  // Manual ticks belong to the date. Morning Prime's sit on the day's plan record
+  // beside the rest of Prime; Wind-down's sit on the day record, where the day's
+  // closure already lives.
+  function routineChecks(section, dateStr){
+    if (section === 'windDown'){
+      var rec = getDayRecord(dateStr) || {};
+      return (rec.windDown && rec.windDown.checks) || {};
+    }
+    var plan = getPlanForDate(dateStr);
+    var mp = (plan && plan.morningPrime) || {};
+    return (mp.checks && mp.checks[section]) || {};
+  }
+  async function setRoutineCheck(section, dateStr, itemId, on){
+    if (section === 'windDown'){
+      var rec = getDayRecord(dateStr) || {};
+      var wd = Object.assign({}, rec.windDown || {});
+      var wchecks = Object.assign({}, wd.checks || {});
+      if (on) wchecks[itemId] = new Date().toISOString(); else delete wchecks[itemId];
+      wd.checks = wchecks;
+      await saveDayStatus(dateStr, { windDown: wd });
+      return;
+    }
+    var plan = getPlanForDate(dateStr);
+    var mp = (plan && plan.morningPrime) || {};
+    var all = Object.assign({}, mp.checks || {});
+    var sec = Object.assign({}, all[section] || {});
+    if (on) sec[itemId] = new Date().toISOString(); else delete sec[itemId];
+    all[section] = sec;
+    await patchMorningPrime(dateStr, { checks: all });
+  }
+
+  // If Ledger already holds structured evidence of something, that evidence is
+  // the answer. `soft` marks an item the routine can also satisfy by hand — you
+  // can weigh yourself without recording it.
+  function routineEvidence(key, dateStr){
+    var plan, nutrition;
+    if (key === 'meals'){
+      plan = getPlanForDate(dateStr);
+      var meals = getPlanMeals(plan);
+      var ack = !!(plan && plan.morningPrime && plan.morningPrime.mealsAcknowledged);
+      return { done: meals.length > 0 || ack, value: meals.length ? meals.length + ' planned' : (ack ? 'None today' : '') };
+    }
+    if (key === 'keys'){
+      var keys = getKeyTasks(dateStr);
+      return { done: keys.length >= 3, value: keys.length + ' of 3' };
+    }
+    if (key === 'plan'){
+      plan = getPlanForDate(dateStr);
+      return { done: !!(plan && plan.planReviewedAt), value: (plan && plan.planReviewedAt) ? 'Complete' : 'Needs review' };
+    }
+    if (key === 'intention'){
+      var text = (mpIntentionValue(dateStr) || '').trim();
+      return { done: !!text, value: '' };
+    }
+    if (key === 'weighIn'){
+      var w = sessions.find(function(x){ return x.type === 'weight' && x.date === dateStr; });
+      return { done: !!w, value: (w && w.weightKg) ? w.weightKg + ' kg' : (w ? 'Logged' : ''), soft: true };
+    }
+    if (key === 'bodyPhoto'){
+      var ph = sessions.find(function(x){ return x.type === 'photo' && x.date === dateStr; });
+      return { done: !!ph, value: ph ? 'Logged' : '', soft: true };
+    }
+    if (key === 'foodLog'){
+      nutrition = getNutritionForDate(dateStr);
+      if (nutrition && nutrition.closed) return { done: true, value: 'Closed' };
+      if (nutrition && hasNutritionEvidence(nutrition)) return { done: false, value: 'In progress' };
+      return { done: false, value: 'Not started' };
+    }
+    if (key === 'dayQuality'){
+      nutrition = getNutritionForDate(dateStr);
+      return { done: !!(nutrition && nutrition.dayRating),
+               value: (nutrition && nutrition.dayRating) ? DAY_RATING_LABEL[nutrition.dayRating] : '' };
+    }
+    if (key === 'gluten'){
+      nutrition = getNutritionForDate(dateStr);
+      if (nutrition && nutrition.glutenExposure) return { done: true, value: 'Exposure recorded' };
+      if (nutrition && nutrition.closed) return { done: true, value: 'None recorded' };
+      return { done: false, value: '' };
+    }
+    if (key === 'reviewTomorrow'){
+      var t = getPlanForDate(nextDateStr(dateStr));
+      return { done: !!(t && t.planReviewedAt), value: (t && t.planReviewedAt) ? 'Reviewed' : '' };
+    }
+    return null;   // nothing structured to read — a manual tick is the record
+  }
+
+  // The keys Ledger holds a real record for. Everything else — supplements,
+  // water, a stretch, anything custom — is a plain checklist item.
+  var ROUTINE_RECORD_KEYS = ['meals','keys','plan','intention','weighIn','bodyPhoto',
+                             'foodLog','dayQuality','gluten','reviewTomorrow'];
+  function routineHasRecord(key){ return ROUTINE_RECORD_KEYS.indexOf(key) > -1; }
+
+  function routineItemState(section, item, dateStr){
+    var ev = item.key ? routineEvidence(item.key, dateStr) : null;
+    var tickable = !ev || ev.soft === true;
+    var ticked = !!routineChecks(section, dateStr)[item.id];
+    return {
+      item: item,
+      done: !!(ev && ev.done) || (tickable && ticked),
+      fromRecord: !!(ev && ev.done),
+      value: ev ? (ev.value || '') : '',
+      tickable: tickable,
+      linked: routineHasRecord(item.key)
+    };
+  }
+  function routineSectionState(section, dateStr){
+    var items = enabledRoutine(section).map(function(it){ return routineItemState(section, it, dateStr); });
+    var done = items.filter(function(x){ return x.done; }).length;
+    return {
+      items: items, done: done, total: items.length,
+      complete: items.length === 0 || done === items.length
+    };
+  }
+
+  // A routine item never invents a record — it opens the real one.
+  function openRoutineItem(item, dateStr){
+    var k = item.key;
+    if (k === 'meals'){ openPlanMealsSheet(dateStr); return true; }
+    if (k === 'keys'){ openKeyTasksSheet(dateStr); return true; }
+    if (k === 'plan'){ openPlanSheet(dateStr, getPlanForDate(dateStr), { returnToMorningPrime: true }); return true; }
+    if (k === 'intention'){ openIntentionSheet(dateStr); return true; }
+    if (k === 'weighIn'){
+      openSheet('weight', sessions.find(function(x){ return x.type === 'weight' && x.date === dateStr; }) || null, dateStr);
+      return true;
+    }
+    if (k === 'bodyPhoto'){
+      openSheet('photo', sessions.find(function(x){ return x.type === 'photo' && x.date === dateStr; }) || null, dateStr);
+      return true;
+    }
+    if (k === 'foodLog' || k === 'dayQuality' || k === 'gluten'){
+      openSheet('nutrition', getNutritionForDate(dateStr), dateStr);
+      return true;
+    }
+    if (k === 'reviewTomorrow'){
+      var t = nextDateStr(dateStr);
+      openPlanSheet(t, getPlanForDate(t), {});
+      return true;
+    }
+    return false;
+  }
+
+  // One row shape for every routine item. The leading slot is a tick where a tick
+  // is the only possible record, and the item's icon where a real record answers
+  // for it. Labels are user content, so they are filled as text afterwards.
+  function routineRowHtml(s, opts){
+    opts = opts || {};
+    var it = s.item;
+    var lead = s.tickable
+      ? '<button type="button" class="mp-tick' + (s.done ? ' on' : '') + '" data-rt-tick="' + it.id + '"' +
+          ' aria-pressed="' + (s.done ? 'true' : 'false') + '" data-rt-ticklabel="' + it.id + '">' +
+          (s.done ? CHECK_SVG : '') + '</button>'
+      : '<span class="mp-step-ic">' + routineIcon(it) + '</span>';
+    var open = s.linked;
+    var tag = open ? 'button' : 'div';
+    return '<div class="mp-step-row' + (s.done ? ' done' : '') + '">' + lead +
+      '<' + tag + (open ? ' type="button" data-rt-open="' + it.id + '"' : '') +
+        ' class="mp-step' + (s.done ? ' done' : '') + (open ? '' : ' static') + '">' +
+        (opts.num ? '<span class="mp-step-num">' + opts.num + '. </span>' : '') +
+        '<span class="mp-step-label" data-rt-label="' + it.id + '"></span>' +
+        (s.value ? '<span class="mp-step-val">' + s.value + '</span>' : '') +
+        (open ? '<span class="chev">' + UI_ICON.chevronRight + '</span>' : '') +
+      '</' + tag + '>' +
+    '</div>';
+  }
+  // labels and their aria copies are user content — always written as text
+  function fillRoutineLabels(root, states){
+    states.forEach(function(s){
+      root.querySelectorAll('[data-rt-label="' + s.item.id + '"]').forEach(function(el){
+        el.textContent = s.item.label;
+      });
+      root.querySelectorAll('[data-rt-ticklabel="' + s.item.id + '"]').forEach(function(el){
+        el.setAttribute('aria-label', (s.done ? 'Undo ' : 'Complete ') + s.item.label);
+      });
+    });
+  }
+  function wireRoutineRows(root, section, dateStr, states, after){
+    root.querySelectorAll('[data-rt-tick]').forEach(function(btn){
+      btn.addEventListener('click', async function(e){
+        e.stopPropagation();
+        var st = states.find(function(x){ return x.item.id === btn.dataset.rtTick; });
+        if (!st) return;
+        if (st.fromRecord) return;      // the record says so; a tick cannot argue
+        await setRoutineCheck(section, dateStr, st.item.id, !st.done);
+        if (after) after();
+      });
+    });
+    root.querySelectorAll('[data-rt-open]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var st = states.find(function(x){ return x.item.id === btn.dataset.rtOpen; });
+        if (st) openRoutineItem(st.item, dateStr);
+      });
+    });
+  }
+
   var mpExpanded = {};        // dateStr -> bool, session-only disclosure state
   var mpIntentionDraft = {};  // dateStr -> string, uncommitted edit
 
@@ -5100,30 +5503,39 @@
   function mpIntentionValue(dateStr){
     return mpIntentionDraft[dateStr] != null ? mpIntentionDraft[dateStr] : getMorningPrime(dateStr).intention;
   }
-  var MP_STEP_COUNT = 4;
+  // Morning Prime is two sections now: Plan is what Shaun can do from the phone
+  // before getting up, Move is the physical start. They are tracked separately
+  // and Prime is complete when both enabled sections are.
   function mpState(dateStr){
     var mp = getMorningPrime(dateStr);
     var plan = getPlanForDate(dateStr);
-    var meals = getPlanMeals(plan);
-    var keys = getKeyTasks(dateStr);
+    var planSec = routineSectionState('plan', dateStr);
+    var moveSec = routineSectionState('move', dateStr);
     var intention = (mpIntentionValue(dateStr) || '').trim();
     var st = {
-      mealCount: meals.length,
-      mealsDone: meals.length > 0 || mp.mealsAcknowledged,
-      mealsAcknowledged: mp.mealsAcknowledged,
-      keyCount: keys.length,
-      keysDone: keys.length >= 3,
+      planSec: planSec,
+      moveSec: moveSec,
       // the plan step is satisfied by reviewing and saving the day's plan, not by
       // filling every field — Morning Prime guides the plan, it doesn't duplicate it
       planReviewedAt: (plan && plan.planReviewedAt) || null,
       planDone: !!(plan && plan.planReviewedAt),
       intention: intention,
       intentionDone: !!intention,
+      intentionEnabled: enabledRoutine('plan').some(function(it){ return it.key === 'intention'; }),
+      mealsAcknowledged: mp.mealsAcknowledged,
       completedAt: mp.completedAt
     };
-    st.doneCount = (st.mealsDone?1:0) + (st.keysDone?1:0) + (st.planDone?1:0) + (st.intentionDone?1:0);
-    st.complete = st.doneCount === MP_STEP_COUNT;
+    st.doneCount = planSec.done + moveSec.done;
+    st.total = planSec.total + moveSec.total;
+    st.complete = planSec.complete && moveSec.complete;
     return st;
+  }
+  // "Plan ✓ · Move 3/5" — one line that says where each half stands
+  function mpProgressLabel(st){
+    var bits = [];
+    if (st.planSec.total) bits.push('Plan ' + (st.planSec.complete ? '\u2713' : st.planSec.done + '/' + st.planSec.total));
+    if (st.moveSec.total) bits.push('Move ' + (st.moveSec.complete ? '\u2713' : st.moveSec.done + '/' + st.moveSec.total));
+    return bits.join(' \u00b7 ');
   }
   // Morning Prime only asks for attention on a day it belongs to, and only while unfinished
   function mpNeedsAttention(dateStr){
@@ -5145,22 +5557,21 @@
   }
   function mpMissingLabel(st){
     var missing = [];
-    if (!st.mealsDone) missing.push('plan your meals');
-    if (!st.keysDone) missing.push((3 - st.keyCount) + ' more key task' + ((3 - st.keyCount) === 1 ? '' : 's'));
-    if (!st.planDone) missing.push("today's plan");
-    if (!st.intentionDone) missing.push('an intention');
+    st.planSec.items.concat(st.moveSec.items).forEach(function(x){
+      if (!x.done) missing.push(x.item.label.toLowerCase());
+    });
     if (!missing.length) return '';
     if (missing.length === 1) return 'Still to go: ' + missing[0] + '.';
+    if (missing.length > 3) return 'Still to go: ' + missing.length + ' items.';
     return 'Still to go: ' + missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length-1] + '.';
   }
 
-  function mpStepHtml(opts){
-    return '<button type="button" class="mp-step' + (opts.done ? ' done' : '') + '" data-mp-step="' + opts.step + '">' +
-      '<span class="mp-step-ic">' + opts.icon + '</span>' +
-      '<span class="mp-step-label"><span class="mp-step-num">' + opts.num + '. </span>' + opts.label + '</span>' +
-      (opts.value ? '<span class="mp-step-val">' + opts.value + '</span>' : '') +
-      '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
-    '</button>';
+  function mpSectionHead(label, sec){
+    return '<div class="mp-sec">' +
+      '<span class="mp-sec-label">' + label + '</span>' +
+      '<span class="mp-sec-rule"></span>' +
+      '<span class="mp-sec-val">' + (sec.complete ? 'Complete' : sec.done + ' of ' + sec.total) + '</span>' +
+    '</div>';
   }
 
   function renderMorningPrime(){
@@ -5176,7 +5587,7 @@
     var backlogCount = backlogActions().length;
     var sub = st.completedAt
       ? 'Completed at ' + mpTimeLabel(st.completedAt)
-      : (expanded ? 'Set yourself up for a focused day.' : 'Plan your day · ' + st.doneCount + ' of ' + MP_STEP_COUNT + ' complete');
+      : (expanded ? 'Set yourself up for a focused day.' : mpProgressLabel(st));
 
     var html = '<div class="mp-card' + (st.completedAt ? ' done' : '') + '">' +
       '<button type="button" class="mp-head" id="mpHead" aria-expanded="' + (expanded ? 'true' : 'false') + '" aria-controls="mpBody">' +
@@ -5189,18 +5600,20 @@
         '<span class="mp-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
       '</button>' +
       '<div class="mp-body' + (expanded ? '' : ' collapsed') + '" id="mpBody"><div class="mp-body-inner">' +
-        mpStepHtml({ step:'meals', num:1, icon:UI_ICON.cutlery, label:'Plan your meals', done:st.mealsDone,
-                     value: st.mealCount ? st.mealCount + ' planned' : (st.mealsAcknowledged ? 'None today' : '') }) +
-        mpStepHtml({ step:'keys', num:2, icon:UI_ICON.list, label:'Set your three key tasks', done:st.keysDone,
-                     value: st.keyCount + ' of 3' }) +
-        mpStepHtml({ step:'plan', num:3, icon:UI_ICON.sun, label:'Finish health & fitness', done:st.planDone,
-                     value: st.planDone ? 'Complete' : 'Needs review' }) +
-        mpStepHtml({ step:'intention', num:4, icon:UI_ICON.target, label:'Set your intention', done:st.intentionDone,
-                     value: '' }) +
-        '<div class="mp-intention-wrap">' +
-          '<textarea id="mpIntention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
-          '<span class="mp-count" id="mpCount"></span>' +
-        '</div>' +
+        (st.planSec.total
+          ? mpSectionHead('Plan', st.planSec) +
+            st.planSec.items.map(function(x, i){ return routineRowHtml(x, { num: i + 1 }); }).join('')
+          : '') +
+        (st.intentionEnabled
+          ? '<div class="mp-intention-wrap">' +
+              '<textarea id="mpIntention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
+              '<span class="mp-count" id="mpCount"></span>' +
+            '</div>'
+          : '') +
+        (st.moveSec.total
+          ? mpSectionHead('Move', st.moveSec) +
+            st.moveSec.items.map(function(x){ return routineRowHtml(x, {}); }).join('')
+          : '') +
         (isToday && backlogCount ?
           '<button type="button" class="mp-backlog" id="mpBacklogBtn">' +
             '<span class="mp-backlog-ic">' + UI_ICON.box + '</span>' +
@@ -5213,40 +5626,38 @@
     '</div>';
     wrap.innerHTML = html;
 
+    var allStates = st.planSec.items.concat(st.moveSec.items);
+    fillRoutineLabels(wrap, allStates);
+    wireRoutineRows(wrap, 'plan', dateStr, st.planSec.items, renderMorningPrime);
+    wireRoutineRows(wrap, 'move', dateStr, st.moveSec.items, renderMorningPrime);
+
     var ta = document.getElementById('mpIntention');
-    var count = document.getElementById('mpCount');
-    ta.value = mpIntentionValue(dateStr);           // set as value, never as markup
-    count.textContent = ta.value.length + '/' + MP_INTENTION_MAX;
-    ta.addEventListener('input', function(){
-      mpIntentionDraft[dateStr] = ta.value;
+    if (ta){
+      var count = document.getElementById('mpCount');
+      ta.value = mpIntentionValue(dateStr);         // set as value, never as markup
       count.textContent = ta.value.length + '/' + MP_INTENTION_MAX;
-    });
+      ta.addEventListener('input', function(){
+        mpIntentionDraft[dateStr] = ta.value;
+        count.textContent = ta.value.length + '/' + MP_INTENTION_MAX;
+      });
+    }
 
     document.getElementById('mpHead').addEventListener('click', function(){
       mpExpanded[dateStr] = !mpExpanded[dateStr];
       renderMorningPrime();
     });
 
-    wrap.querySelectorAll('[data-mp-step]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var step = btn.dataset.mpStep;
-        if (step === 'meals') openPlanMealsSheet(dateStr);
-        else if (step === 'keys') openKeyTasksSheet(dateStr);
-        else if (step === 'plan') openPlanSheet(dateStr, getPlanForDate(dateStr), { returnToMorningPrime: true });
-        else openIntentionSheet(dateStr);
-      });
-    });
-
     var mpBacklogBtn = document.getElementById('mpBacklogBtn');
     if (mpBacklogBtn) mpBacklogBtn.addEventListener('click', openBacklogSheet);
 
     document.getElementById('mpSaveBtn').addEventListener('click', async function(){
-      var text = (document.getElementById('mpIntention').value || '').trim();
+      var el = document.getElementById('mpIntention');
+      var text = el ? (el.value || '').trim() : mpIntentionValue(dateStr);
       mpIntentionDraft[dateStr] = text;
       var after = mpState(dateStr);
       var patch = { intention: text, mealsAcknowledged: true };
-      // completion is earned, not asserted by tapping save
-      if (after.mealsDone && after.keysDone && after.planDone && text){
+      // completion is earned, not asserted by tapping save — and both halves count
+      if (after.complete){
         patch.completedAt = after.completedAt || new Date().toISOString();
         mpExpanded[dateStr] = false;
       }
@@ -5653,7 +6064,11 @@
       exposure: exposureForDate(dateStr),
       symptomsNextDay: symptomEpisodesForDate(nextDateStr(dateStr)),
       status: rec.status || null,
-      notes: rec.notes || ''
+      notes: rec.notes || '',
+      // what the evening already closed, so the morning only asks for the rest
+      windDownAt: (rec.windDown && rec.windDown.completedAt) || null,
+      windDown: windDownState(dateStr),
+      actionsOpen: dayActions.filter(function(c){ return c.status === 'planned'; }).length
     };
   }
   // day-first, as everywhere else in Ledger
@@ -5680,8 +6095,13 @@
       var hasPlan = !!getPlanForDate(dateStr);
       var hasCommitments = commitments.some(function(c){ return c.date === dateStr; });
       var rec = getDayRecord(dateStr);
-      // a day is closed once catch-up finished it; a "finish later" draft stays pending
-      var resolved = !!rec && (!!rec.caughtUpAt || (!!rec.status && !rec.draft));
+      // One closure concept, reached two ways: closed in the evening by Wind-down,
+      // or closed the next morning by Catch-up. A "finish later" draft stays pending.
+      var resolved = !!rec && (
+        !!(rec.windDown && rec.windDown.completedAt) ||
+        !!rec.caughtUpAt ||
+        (!!rec.status && !rec.draft)
+      );
       if ((hasPlan || hasCommitments) && !resolved) results.push(dateStr);
     }
     return results.sort();
@@ -5691,7 +6111,20 @@
     var wrap = document.getElementById('catchUpBanner');
     if (!wrap) return;
     var pending = computeCatchUpDates();
-    if (!pending.length){ wrap.innerHTML = ''; return; }
+    if (!pending.length){
+      // nothing to recover — but if last night closed itself, say so once and move on
+      var y = yesterdayStr();
+      var yRec = getDayRecord(y);
+      var closedAt = yRec && yRec.windDown && yRec.windDown.completedAt;
+      if (viewedDate === todayStr() && closedAt){
+        wrap.innerHTML = '<div class="catchup-banner cu-banner-done" id="catchUpBannerBtn">' +
+          '<span class="cu-banner-tick">' + CHECK_SVG + '</span>' +
+          'Yesterday closed at ' + mpTimeLabel(closedAt) + ' · Review \u2192</div>';
+        document.getElementById('catchUpBannerBtn').addEventListener('click', function(){ openCatchUpSheet(y); });
+        return;
+      }
+      wrap.innerHTML = ''; return;
+    }
     wrap.innerHTML = '<div class="catchup-banner" id="catchUpBannerBtn">' +
       pending.length + ' day' + (pending.length===1?'':'s') + ' need' + (pending.length===1?'s':'') + ' a quick catch-up →</div>';
     document.getElementById('catchUpBannerBtn').addEventListener('click', function(){ openCatchUpSheet(); });
@@ -5705,6 +6138,11 @@
         bodyHtml +
       '</div>' +
     '</div>';
+  }
+  // Something Ledger already knows is reported, not asked
+  function cuResolved(text){
+    return '<div class="cu-resolved"><span class="cu-ev-tick">' + CHECK_SVG + '</span>' +
+      '<span>' + text + '</span></div>';
   }
   function cuSeg(name, options, current, twoUp){
     return '<div class="cu-seg' + (twoUp ? ' two-up' : '') + '">' + options.map(function(o){
@@ -5745,16 +6183,25 @@
       var otherPending = computeCatchUpDates().filter(function(x){ return x !== dateStr; });
 
       var html = '<div class="sheet-handle"></div>' +
-        sheetHead('', 'Catch-up', 'Missing data isn\'t the same as failure — close the day by marking what actually happened.', '') +
+        sheetHead('', 'Catch-up', snap.windDownAt
+          ? 'This day closed itself last night. Nothing here needs answering again.'
+          : 'Missing data isn\'t the same as failure \u2014 close the day by marking what actually happened.', '') +
         '<div class="cu-daylabel">' + label +
           (otherPending.length ? '<span class="cu-daymore">' + otherPending.length + ' more to close</span>' : '') +
         '</div>';
 
+      if (snap.windDownAt){
+        html += cuResolved('Closed in the evening at ' + mpTimeLabel(snap.windDownAt) + '.');
+      }
+
       // --- actions: read straight from that day's commitments ---
       html += cuBlock(UI_ICON.list, 'Actions',
-        '<div class="cu-sub">' + (snap.actionsTotal
-          ? snap.actionsCompleted + ' of ' + snap.actionsTotal + ' completed'
-          : 'No actions recorded for this day') + '</div>',
+        (snap.actionsTotal && !snap.actionsOpen
+          ? cuResolved('All ' + snap.actionsTotal + ' reviewed · ' + snap.actionsCompleted + ' completed')
+          : '<div class="cu-sub">' + (snap.actionsTotal
+              ? snap.actionsCompleted + ' of ' + snap.actionsTotal + ' completed' +
+                (snap.actionsOpen ? ' · ' + snap.actionsOpen + ' still open' : '')
+              : 'No actions recorded for this day') + '</div>'),
         '<button type="button" class="cu-link" id="cuReviewActions">Review actions' + UI_ICON.chevronRight + '</button>');
 
       // --- training: an existing log is the answer, not a question ---
@@ -5769,12 +6216,7 @@
               '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
             '</button>';
           }).join('') +
-        '</div>' +
-        cuSeg('training', [
-          { value: 'logged', label: 'Logged' },
-          { value: 'none', label: 'Didn\'t train' },
-          { value: 'unknown', label: 'Unknown' }
-        ], trainingVal);
+        '</div>' + cuResolved('Training logged.');
       } else {
         trainingBody = cuSeg('training', [
           { value: 'logged', label: 'Logged' },
@@ -5790,12 +6232,16 @@
       html += cuBlock(TRAINING_ICON_SVG.resistance, 'Training', trainingBody);
 
       // --- nutrition: real lifecycle state, and a way straight into that day's record ---
+      var nutritionClosed = !!(snap.nutrition && snap.nutrition.closed);
       html += cuBlock(UI_ICON.cutlery, 'Nutrition',
-        cuSeg('nutrition', [
-          { value: 'in_progress', label: 'In progress' },
-          { value: 'closed', label: 'Closed' },
-          { value: 'unknown', label: 'Unknown' }
-        ], nutritionVal) +
+        (nutritionClosed
+          ? cuResolved('Closed for the day' +
+              (snap.nutrition.dayRating ? ' · ' + DAY_RATING_LABEL[snap.nutrition.dayRating] : '') + '.')
+          : cuSeg('nutrition', [
+              { value: 'in_progress', label: 'In progress' },
+              { value: 'closed', label: 'Closed' },
+              { value: 'unknown', label: 'Unknown' }
+            ], nutritionVal)) +
         '<button type="button" class="cu-link cu-link-block" id="cuOpenNutrition">' +
           (snap.nutrition ? 'Open nutrition' : 'Start nutrition') + UI_ICON.chevronRight +
         '</button>');
@@ -5815,11 +6261,13 @@
                 '</button>';
               }).join('') + '</div>'
             : (alreadyAnswered
-                ? '<div class="cu-sub cu-sub-quiet">No symptoms recorded.</div>'
+                ? '<div class="cu-sub cu-sub-quiet">' +
+                (snap.rec.symptomsUnknown ? 'Marked not sure.' : 'No symptoms recorded.') + '</div>'
                 : '<div class="cu-sub cu-sub-quiet">How did you feel afterwards?</div>' +
                   '<div class="cu-seg">' +
                     '<button type="button" class="cu-seg-btn" id="cuNoSymptoms">No symptoms</button>' +
                     '<button type="button" class="cu-seg-btn" id="cuLogSymptoms">Log symptoms</button>' +
+                    '<button type="button" class="cu-seg-btn" id="cuUnsureSymptoms">Not sure</button>' +
                   '</div>')));
       }
 
@@ -5839,7 +6287,9 @@
         '<span>Saves onto this day\'s record: action tally, training and nutrition state, overall status and notes.</span></div>';
 
       html += '<div class="sheet-actionbar">' +
-        '<button type="button" class="btn-primary" id="cuCloseDayBtn">Close ' + (dateStr === yesterdayStr() ? 'previous day' : 'this day') + '</button>' +
+        '<button type="button" class="btn-primary" id="cuCloseDayBtn">' +
+          (snap.windDownAt ? 'Done' : 'Close ' + (dateStr === yesterdayStr() ? 'previous day' : 'this day')) +
+        '</button>' +
         '<button type="button" class="btn-secondary" id="cuLaterBtn">Save and finish later</button>' +
       '</div>';
       return html;
@@ -5926,6 +6376,13 @@
         saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true, symptomsChecked: true }));
         render();
       });
+      var unsureSym = document.getElementById('cuUnsureSymptoms');
+      if (unsureSym) unsureSym.addEventListener('click', function(){
+        readNotes();
+        // asked and unanswered is a real answer; it is not "no symptoms"
+        saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true, symptomsChecked: true, symptomsUnknown: true }));
+        render();
+      });
       var logSym = document.getElementById('cuLogSymptoms');
       if (logSym) logSym.addEventListener('click', function(){
         readNotes();
@@ -5942,10 +6399,12 @@
       });
       document.getElementById('cuCloseDayBtn').addEventListener('click', function(){
         readNotes();
+        var nowIso = new Date().toISOString();
         saveDayStatus(dateStr, Object.assign(currentPatch(), {
           status: statusVal || 'unknown',
           draft: false,
-          caughtUpAt: new Date().toISOString()
+          caughtUpAt: nowIso,
+          closedAt: (getDayRecord(dateStr) || {}).closedAt || nowIso
         }));
         var remaining = computeCatchUpDates().filter(function(x){ return x !== dateStr; });
         if (remaining.length){ dateStr = remaining[0]; resetForDate(); render(); }
@@ -5991,8 +6450,324 @@
   }
 
 
+  // ============ Settings ============
+  // A sheet, not a sixth tab — reached from Focus. Holds the things that shape
+  // the day rather than the things that happen in it.
+
+  function settingsRow(id, label, value, opts){
+    opts = opts || {};
+    return '<button type="button" class="set-row" id="' + id + '">' +
+      '<span class="set-row-label">' + label + '</span>' +
+      (value ? '<span class="set-row-val">' + value + '</span>' : '') +
+      '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
+    '</button>';
+  }
+  function routineSummary(section){
+    var all = getRoutine(section);
+    var on = all.filter(function(it){ return it.enabled !== false; }).length;
+    return on + ' of ' + all.length + ' on';
+  }
+  function hourLabel(h){ return (h < 10 ? '0' : '') + h + ':00'; }
+
+  function openSettingsSheet(){
+    editingId = null;
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead('', 'Settings', 'How Ledger behaves, and what the day asks of you.', '') +
+
+      '<div class="set-group">' +
+        '<span class="set-group-label">Appearance</span>' +
+        '<div class="set-card">' +
+          '<div class="set-row static">' +
+            '<div class="appearance-row">' +
+              '<span class="appearance-label">Theme</span>' +
+              '<div class="theme-switch" id="themeSwitch">' +
+                '<button type="button" data-theme-set="dark">Dark</button>' +
+                '<button type="button" data-theme-set="light">Light</button>' +
+                '<button type="button" data-theme-set="system">System</button>' +
+              '</div>' +
+            '</div>' +
+            '<p class="appearance-note" id="themeNote"></p>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="set-group">' +
+        '<span class="set-group-label">Morning Prime</span>' +
+        '<div class="set-card">' +
+          settingsRow('setPlanRoutine', 'Plan routine', routineSummary('plan')) +
+          settingsRow('setMoveRoutine', 'Move routine', routineSummary('move')) +
+        '</div>' +
+        '<p class="set-note">Plan is what you can do from the phone before getting up. ' +
+          'Move is the physical start.</p>' +
+      '</div>' +
+
+      '<div class="set-group">' +
+        '<span class="set-group-label">Evening Wind-down</span>' +
+        '<div class="set-card">' +
+          settingsRow('setWindRoutine', 'Routine', routineSummary('windDown')) +
+          settingsRow('setWindHour', 'Becomes prominent at', hourLabel(windDownHour())) +
+        '</div>' +
+        '<p class="set-note">Before that hour the section stays quiet. It is never hidden.</p>' +
+      '</div>';
+
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    renderThemeSwitch();
+    sheetEl.querySelectorAll('[data-theme-set]').forEach(function(btn){
+      btn.addEventListener('click', function(){ setThemePref(btn.dataset.themeSet); });
+    });
+    document.getElementById('setPlanRoutine').addEventListener('click', function(){ openRoutineEditor('plan'); });
+    document.getElementById('setMoveRoutine').addEventListener('click', function(){ openRoutineEditor('move'); });
+    document.getElementById('setWindRoutine').addEventListener('click', function(){ openRoutineEditor('windDown'); });
+    document.getElementById('setWindHour').addEventListener('click', openWindDownHourSheet);
+    activeSheetRefresh = null;
+  }
+
+  function openWindDownHourSheet(){
+    var hours = [16,17,18,19,20,21,22];
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.clock, 'Wind-down hour',
+        'When the evening routine starts leaning forward on Today.', '') +
+      '<div class="set-card">' +
+        hours.map(function(h){
+          return '<button type="button" class="set-row" data-wd-hour="' + h + '">' +
+            '<span class="set-row-label">' + hourLabel(h) + '</span>' +
+            (h === windDownHour() ? '<span class="set-row-val">Current</span>' : '') +
+          '</button>';
+        }).join('') +
+      '</div>' +
+      '<button type="button" class="btn-quiet" id="wdHourBackBtn">Back to settings</button>';
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('wdHourBackBtn').addEventListener('click', openSettingsSheet);
+    sheetEl.querySelectorAll('[data-wd-hour]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        await saveWindDownHour(parseInt(btn.dataset.wdHour, 10));
+        openSettingsSheet();
+      });
+    });
+  }
+
+  // ---- routine editor ----
+  // Reorder, enable, rename, add, delete. A system item keeps its `key` whatever
+  // its label says — the key is the link to the record, the label is only display.
+  function openRoutineEditor(section){
+    editingId = null;
+    var items = getRoutine(section);
+
+    function persist(){ return saveRoutine(section, items); }
+
+    function build(){
+      return '<div class="sheet-handle"></div>' +
+        sheetHead('', ROUTINE_SECTION_LABEL[section] + ' routine',
+          'Drag to reorder. Switch off what you don\'t use. Renaming a linked step keeps its link.', '') +
+        '<div class="re-list" id="reList">' +
+          items.map(function(it){
+            var linked = routineHasRecord(it.key);
+            return '<div class="re-row' + (it.enabled === false ? ' off' : '') + '" data-sort-item="' + it.id + '">' +
+              '<button type="button" class="drag-handle" data-drag-handle aria-label="Reorder">' + UI_ICON.grip + '</button>' +
+              '<span class="re-body">' +
+                '<span class="re-label" data-re-label="' + it.id + '"></span>' +
+                '<span class="re-sub">' + (linked ? 'Linked to ' + routineLinkName(it.key) : 'Checklist item') + '</span>' +
+              '</span>' +
+              '<button type="button" class="re-btn' + (it.enabled === false ? '' : ' on') + '" data-re-toggle="' + it.id + '"' +
+                ' aria-pressed="' + (it.enabled === false ? 'false' : 'true') + '" data-re-togglelabel="' + it.id + '">' +
+                (it.enabled === false ? RT_OFF_SVG : CHECK_SVG) + '</button>' +
+              '<button type="button" class="re-btn" data-re-edit="' + it.id + '" data-re-editlabel="' + it.id + '">' + RT_EDIT_SVG + '</button>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+        '<button type="button" class="custom-log-btn" id="reAddBtn">+ Add item</button>' +
+        '<button type="button" class="btn-quiet" id="reBackBtn">Back to settings</button>';
+    }
+
+    function render(){
+      sheetEl.innerHTML = build();
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      items.forEach(function(it){
+        sheetEl.querySelectorAll('[data-re-label="' + it.id + '"]').forEach(function(el){ el.textContent = it.label; });
+        sheetEl.querySelectorAll('[data-re-togglelabel="' + it.id + '"]').forEach(function(el){
+          el.setAttribute('aria-label', (it.enabled === false ? 'Enable ' : 'Disable ') + it.label);
+        });
+        sheetEl.querySelectorAll('[data-re-editlabel="' + it.id + '"]').forEach(function(el){
+          el.setAttribute('aria-label', 'Edit ' + it.label);
+        });
+      });
+
+      makeSortable(document.getElementById('reList'), function(ids){
+        items = ids.map(function(id){ return items.find(function(it){ return it.id === id; }); })
+                   .filter(function(x){ return !!x; });
+        persist();
+      });
+
+      sheetEl.querySelectorAll('[data-re-toggle]').forEach(function(btn){
+        btn.addEventListener('click', async function(){
+          var it = items.find(function(x){ return x.id === btn.dataset.reToggle; });
+          if (!it) return;
+          it.enabled = it.enabled === false;
+          await persist();
+          render();
+        });
+      });
+      sheetEl.querySelectorAll('[data-re-edit]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var it = items.find(function(x){ return x.id === btn.dataset.reEdit; });
+          if (it) openRoutineItemEditor(section, items, it, render, persist);
+        });
+      });
+      document.getElementById('reAddBtn').addEventListener('click', function(){
+        openRoutineItemEditor(section, items, null, render, persist);
+      });
+      document.getElementById('reBackBtn').addEventListener('click', openSettingsSheet);
+    }
+
+    render();
+    backdrop.classList.add('open');
+    activeSheetRefresh = null;
+  }
+
+  function routineLinkName(key){
+    if (key === 'meals') return 'planned meals';
+    if (key === 'keys') return 'key tasks';
+    if (key === 'plan') return "the day's plan";
+    if (key === 'intention') return 'the intention field';
+    if (key === 'weighIn') return 'the weight log';
+    if (key === 'bodyPhoto') return 'the daily photo';
+    if (key === 'foodLog') return 'nutrition (closed)';
+    if (key === 'dayQuality') return 'the nutrition day rating';
+    if (key === 'gluten') return 'the exposure check';
+    if (key === 'reviewTomorrow') return "tomorrow's plan";
+    return 'a Ledger record';
+  }
+
+  function openRoutineItemEditor(section, items, item, back, persist){
+    var isNew = !item;
+    var linked = !!(item && routineHasRecord(item.key));
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead('', isNew ? 'Add item' : 'Edit item',
+        linked ? 'Renaming this keeps it linked to ' + routineLinkName(item.key) + '.'
+               : (isNew ? 'A plain checklist item — nothing in Ledger will answer for it.'
+                        : (item.custom ? 'A plain checklist item.'
+                                       : 'A built-in step. Switch it off in the routine rather than deleting it.')), '') +
+      fieldText('f_reLabel', 'Label', item ? item.label : '', 'e.g. Ten minutes of reading') +
+      '<button type="button" class="save-btn" id="reSaveBtn">' + (isNew ? 'Add item' : 'Save') + '</button>' +
+      (!isNew && item.custom ? '<button type="button" class="delete-btn" id="reDeleteBtn">Delete item</button>' : '') +
+      '<button type="button" class="btn-quiet" id="reCancelBtn">Back</button>';
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('f_reLabel').value = item ? item.label : '';   // user content
+    document.getElementById('reCancelBtn').addEventListener('click', back);
+    document.getElementById('reSaveBtn').addEventListener('click', async function(){
+      var text = (document.getElementById('f_reLabel').value || '').trim();
+      if (!text) return;
+      if (isNew) items.push({ id: 'rt-' + uid(), key: null, label: text, enabled: true, custom: true });
+      else item.label = text;      // the key is untouched; only the display moves
+      await persist();
+      back();
+    });
+    var del = document.getElementById('reDeleteBtn');
+    if (del) del.addEventListener('click', async function(){
+      var i = items.indexOf(item);
+      if (i > -1) items.splice(i, 1);
+      await persist();
+      back();
+    });
+  }
+
+  // ============ Evening Wind-down ============
+  // Close today while it is still today. Whatever it does not close, next
+  // morning's Catch-up picks up — the two are one flow, not two reviews.
+
+  var wdExpanded = {};   // dateStr -> bool, session-only disclosure state
+
+  function windDownRecord(dateStr){
+    var rec = getDayRecord(dateStr) || {};
+    return rec.windDown || {};
+  }
+  function windDownState(dateStr){
+    var sec = routineSectionState('windDown', dateStr);
+    var wd = windDownRecord(dateStr);
+    sec.completedAt = wd.completedAt || null;
+    return sec;
+  }
+  // A day is closed in the evening when every enabled Wind-down item is resolved.
+  // Nothing else writes this — it is recorded once, on the day record.
+  async function commitWindDown(dateStr){
+    var st = windDownState(dateStr);
+    if (!st.complete || st.completedAt) return;
+    var wd = Object.assign({}, windDownRecord(dateStr), { completedAt: new Date().toISOString() });
+    await saveDayStatus(dateStr, { windDown: wd, closedAt: wd.completedAt });
+  }
+  async function reopenWindDown(dateStr){
+    var wd = Object.assign({}, windDownRecord(dateStr));
+    delete wd.completedAt;
+    await saveDayStatus(dateStr, { windDown: wd, closedAt: null });
+  }
+
+  function renderWindDown(){
+    var wrap = document.getElementById('windDownSection');
+    if (!wrap) return;
+    var dateStr = viewedDate;
+    var st = windDownState(dateStr);
+    if (!st.total){ wrap.innerHTML = ''; return; }
+
+    var isToday = dateStr === todayStr();
+    // after the hour it is set for, the evening routine leans forward a little;
+    // before then it is quiet. It is never hidden, and always expandable.
+    var due = isToday && new Date().getHours() >= windDownHour();
+    var expanded = wdExpanded[dateStr] != null
+      ? wdExpanded[dateStr]
+      : (due && !st.completedAt);
+
+    var value = st.completedAt
+      ? 'Closed at ' + mpTimeLabel(st.completedAt)
+      : st.done + ' of ' + st.total + ' complete';
+
+    wrap.innerHTML =
+      '<button type="button" class="section-toggle' + (due && !st.completedAt ? ' wd-due' : '') + '"' +
+        ' id="wdToggle" aria-expanded="' + (expanded ? 'true' : 'false') + '" aria-controls="wdBody">' +
+        '<span class="section-toggle-label has-value">Evening Wind-down</span>' +
+        '<span class="section-toggle-value' + (st.completedAt ? ' wd-closed-val' : '') + '">' + value + '</span>' +
+        '<span class="section-toggle-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
+      '</button>' +
+      '<div class="wd-body' + (expanded ? '' : ' collapsed') + '" id="wdBody">' +
+        '<div class="wd-panel">' +
+          st.items.map(function(x){ return routineRowHtml(x, {}); }).join('') +
+          (st.completedAt
+            ? '<p class="wd-note">Closed at ' + mpTimeLabel(st.completedAt) +
+              '. Catch-up will leave this day alone.</p>' +
+              '<button type="button" class="btn-quiet" id="wdReopenBtn">Reopen the day</button>'
+            : (st.complete
+                ? '<button type="button" class="btn-primary wd-close" id="wdCloseBtn">Close the day</button>'
+                : '<p class="wd-note">' + (st.total - st.done) + ' left. Whatever you don\'t finish tonight, ' +
+                  'Catch-up will pick up tomorrow.</p>')) +
+        '</div>' +
+      '</div>';
+
+    fillRoutineLabels(wrap, st.items);
+    wireRoutineRows(wrap, 'windDown', dateStr, st.items, renderWindDown);
+
+    document.getElementById('wdToggle').addEventListener('click', function(){
+      wdExpanded[dateStr] = !expanded;
+      renderWindDown();
+    });
+    var closeBtn = document.getElementById('wdCloseBtn');
+    if (closeBtn) closeBtn.addEventListener('click', async function(){
+      await commitWindDown(dateStr);
+      wdExpanded[dateStr] = false;
+      renderWindDown();
+    });
+    var reopenBtn = document.getElementById('wdReopenBtn');
+    if (reopenBtn) reopenBtn.addEventListener('click', async function(){
+      await reopenWindDown(dateStr);
+      wdExpanded[dateStr] = true;
+      renderWindDown();
+    });
+  }
+
   function renderLogView(){
     renderMorningPrime();
+    renderWindDown();
     renderCommitments();
     renderAccountabilityMessage();
     renderBacklogSection();
@@ -6053,10 +6828,8 @@
     });
   });
 
-  document.getElementById('themeSwitch').querySelectorAll('[data-theme-set]').forEach(function(btn){
-    btn.addEventListener('click', function(){ setThemePref(btn.dataset.themeSet); });
-  });
   applyTheme();
+  document.getElementById('openSettingsBtn').addEventListener('click', openSettingsSheet);
 
   document.getElementById('actionsToggle').addEventListener('click', function(){
     actionsCollapsed = !actionsCollapsed;
@@ -6252,16 +7025,19 @@
         wrap.appendChild(pr);
       }
     }
-    if (dayStatus){
+    if (dayStatus && (dayStatus.status || dayStatus.closedAt)){
       var outHead = document.createElement('div'); outHead.className = 'cal-day-section-title'; outHead.textContent = 'Outcome';
       wrap.appendChild(outHead);
       var out = document.createElement('div'); out.className = 'cal-day-outcome';
-      out.innerHTML = 'Marked <strong>' + DAY_STATUS_LABEL[dayStatus.status] + '</strong>';
+      out.innerHTML = dayStatus.status
+        ? 'Marked <strong>' + DAY_STATUS_LABEL[dayStatus.status] + '</strong>'
+        : 'Closed at <strong>' + mpTimeLabel(dayStatus.closedAt) + '</strong>';
       wrap.appendChild(out);
     }
     var todayCutoff = dateStr < todayStr();
     var hasUnresolved = dayCommitments.some(function(c){ return c.status === 'planned'; });
-    if (todayCutoff && (hasUnresolved || !dayStatus)){
+    var dayResolved = !!(dayStatus && (dayStatus.status || dayStatus.closedAt));
+    if (todayCutoff && (hasUnresolved || !dayResolved)){
       var reviewBtn = document.createElement('button');
       reviewBtn.type = 'button';
       reviewBtn.className = 'day-review-btn';
