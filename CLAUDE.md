@@ -53,12 +53,88 @@ Rules:
 
 ---
 
+# GitHub is the backlog
+
+Issues are the canonical backlog for discrete work. `PROJECT_LEDGER.md` is
+coordination state, not a task list — do not maintain a duplicate issue list
+in it. Reference Issue numbers instead.
+
+| Where | Holds |
+| --- | --- |
+| GitHub Issues | Discrete backlog items |
+| GitHub Project ("Ledger — Road to Shippable") | Workflow status and Priority |
+| `PROJECT_LEDGER.md` | Current state, durable decisions, current task, handoffs |
+| `docs/PRODUCT.md` | Durable product definition |
+| `docs/UX_PRINCIPLES.md` | Interaction philosophy |
+| `docs/DESIGN_SYSTEM.md` | Visual/component system (an audit of what exists) |
+| `docs/ROAD_TO_SHIPPABLE.md` | Quality framework — what to examine, not what to do |
+| `docs/RELEASE_CHECKLIST.md` | Release gate |
+
+## Labels
+
+One **Type** label per Issue: `type: friction`, `type: bug`, `type: feature`,
+`type: polish`, `type: technical-debt`.
+
+One or more **Area** labels: `area: ui`, `area: ux`, `area: performance`,
+`area: accessibility`, `area: mobile-pwa`, `area: data`, `area: architecture`,
+`area: security`, `area: testing`.
+
+Labels never represent workflow status, and never represent priority. Status
+and Priority live on the Project.
+
+## Critical rule
+
+**An Issue existing in GitHub does not authorise implementation.**
+
+Claude Code may implement an Issue only when:
+
+1. Shaun explicitly asks for it; or
+2. it is part of the currently active Claude Code handoff in
+   `PROJECT_LEDGER.md`.
+
+Capturing something and building it are separate acts. A backlog full of
+unbuilt Issues is the system working correctly.
+
+## When implementing tracked work
+
+- Reference the Issue number.
+- Understand the acceptance criteria *before* writing code. If they are
+  missing or ambiguous, resolve that first.
+- Move the Issue to **In Progress** where Project access permits.
+- Make the smallest coherent change that satisfies the criteria.
+- Test it.
+- Move it to **Test** rather than Done where Shaun or device verification is
+  required.
+- Link the implementing commit or PR on the Issue.
+- Close only once the acceptance criteria are actually satisfied. Close as
+  *not planned* rather than inventing a "Won't Do" column.
+
+Do not opportunistically fix unrelated backlog items while working on another
+Issue unless they are genuinely inseparable. Note what you noticed instead —
+that is a capture, not a fix.
+
+---
+
 # Short command protocol
 
 Shaun may use these shorthand commands:
 
 ## Ledger CCode
 Read PROJECT_LEDGER.md, inspect current repo state, execute only the active Claude Code handoff, update PROJECT_LEDGER.md, then stop.
+
+## Ledger Capture
+Shaun is handing over an observation, irritation or idea to be recorded — not
+built.
+
+- Search existing Issues first. If a substantially identical Issue exists,
+  update that Issue rather than opening a duplicate.
+- Otherwise create an Issue using the matching template (friction / bug /
+  feature).
+- Apply one Type label and one or more Area labels.
+- Place it in **Inbox** where Project access permits.
+- Leave acceptance criteria blank if they are not yet known.
+- **Do not implement it. Do not change product code.**
+- Report the Issue number and title, and stop.
 
 ## Ledger Sync
 Read PROJECT_LEDGER.md and repo state. Report:
@@ -108,6 +184,12 @@ These are observed facts about this repo, useful before making changes.
   sends Web Push for "Pin now". It has its own `package.json`.
 - Other root files: `sw.js` (service worker), `manifest.json`, `fonts/`
   (self-hosted woff2 subsets), `hero-mountain.webp`, app icons, `avatars/`.
+- `docs/` holds product documentation, not code: `PRODUCT.md`,
+  `UX_PRINCIPLES.md`, `DESIGN_SYSTEM.md`, `ROAD_TO_SHIPPABLE.md`,
+  `RELEASE_CHECKLIST.md`. `.github/ISSUE_TEMPLATE/` holds the Issue templates.
+- `docs/DESIGN_SYSTEM.md` is an audit of what the UI currently is, including
+  its inconsistencies. It is not a spec to conform code to, and the items it
+  marks **Needs design decision** must not be resolved unilaterally.
 
 ## Conventions
 - Match the surrounding style: ES5-era vanilla JS (`var`, function

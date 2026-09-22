@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Product definition, UX principles and design system
+    url: https://github.com/sgj-92/Ledger/tree/main/docs
+    about: What Ledger is, how it should behave, and what already exists. Read before proposing changes.
+  - name: Project state, decisions and handoffs
+    url: https://github.com/sgj-92/Ledger/blob/main/PROJECT_LEDGER.md
+    about: Current state, durable decisions and cross-agent coordination. Not a backlog.

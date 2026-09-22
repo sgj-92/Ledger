@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-21 (against `main` @ `1f6cd15` + theme work)
+Last updated: 2026-09-22 (against `main` @ `c7c37b1` + product-development infrastructure)
 
 ---
 
@@ -76,6 +76,16 @@ sits on `<html data-theme>`; every component reads semantic tokens only. An
 inline pre-render bootstrap in `<head>` applies the stored choice before first
 paint. Preference in `localStorage` under `ledger_theme`. Control lives in
 Focus → Appearance. `<meta name="theme-color">` updates with the theme.
+
+### Development workflow
+GitHub Issues are the backlog. The repository carries its own product
+documentation in `docs/` (`PRODUCT.md`, `UX_PRINCIPLES.md`,
+`DESIGN_SYSTEM.md`, `ROAD_TO_SHIPPABLE.md`, `RELEASE_CHECKLIST.md`) and Issue
+templates in `.github/ISSUE_TEMPLATE/`. Labels are two axes only — one `type:`
+and one or more `area:` — never status and never priority. Capturing an Issue
+does not authorise building it; see the workflow rules in `CLAUDE.md`.
+
+**The GitHub Project is not yet created** — see Open Questions 7.
 
 ### Persistence
 Firebase Firestore (project `ledger-6aec3`) with a **full localStorage
@@ -172,6 +182,25 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-22 — Capture is separate from implementation; GitHub holds the backlog
+**Decision:** GitHub Issues become the canonical backlog for discrete work,
+with a two-axis label taxonomy (`type:` × `area:`). Workflow status and
+priority live on the GitHub Project, never on labels. Durable product
+definition moves to `docs/PRODUCT.md`, interaction standards to
+`docs/UX_PRINCIPLES.md`, the visual audit to `docs/DESIGN_SYSTEM.md`, the
+quality framework to `docs/ROAD_TO_SHIPPABLE.md` and the release gate to
+`docs/RELEASE_CHECKLIST.md`. An Issue existing does not authorise
+implementation — Claude Code builds only on an explicit ask from Shaun or an
+active handoff here.
+**Why:** Recording a problem had come to imply fixing it immediately, which
+made every observation expensive to mention. A backlog lets an idea be
+captured, and deliberately not built, without pressure.
+**Implications:** This file stops being the place discrete problems are
+listed; reference Issue numbers instead. `docs/DESIGN_SYSTEM.md` is an audit
+of what the UI currently is, including its inconsistencies — it is not a spec
+to conform code to, and items it marks *Needs design decision* are product
+calls, not cleanups.
 
 ### 2026-09-21 — Theme is a device-level setting over semantic tokens
 **Decision:** Ledger supports Dark, Light and System. The preference is a
@@ -287,37 +316,57 @@ Status: Ready
 Objective: No active implementation task. Await next handoff.
 Acceptance criteria: N/A
 
-(Theme support completed 2026-09-21; see Decisions Log and Recently Completed.)
+The backlog now exists as GitHub Issues (#5–#19). None of it is authorised for
+implementation — see the workflow rules in `CLAUDE.md`.
 
 ---
 
 ## Open Questions
 
+Each question that became a discrete piece of work now has an Issue. The Issue
+carries the detail; this list records that the question is still open.
+
 1. **Firestore rules vs "Privacy by design".** Rules are fully open and not in
    the repo (no `firestore.rules`; `firebase.json` deploys functions only).
    Knowingly accepted, but it conflicts with the stated principle. Options
    previously offered: scope rules per collection, App Check, or real auth.
+   → **#5** (proposed P0). Sharpened by audit: the repository is public and the
+   client config is committed, and `ledger_pins` is writable by anyone, which
+   means arbitrary push notifications to the phone.
 2. **XP is not yet "earned and explainable".** `computeXP()` is
    `sessions.length × 10 + completed focus items × 25` — every session counts
    equally regardless of effort or evidence quality, and nothing in the UI
    explains where XP came from. Conflicts with the gamification principle.
+   → **#11** (proposed P2). Needs a product decision before implementation.
 3. **Two overlapping day-review flows.** `openReviewDaySheet` (older,
    per-action status then overall day) still exists and is reachable from the
    header and calendar day detail, alongside the newer `openCatchUpSheet`.
    Decide whether Review day should be retired, merged, or kept for a distinct
    purpose.
+   → **#12** (proposed P2).
 4. **Priority grouping was dropped from Today.** Groups view is category-only.
    Priorities remain on the action, in its editor and in the Handoff export.
    Confirm this is the intended end state, or whether priority deserves a
-   third view.
+   third view. *No Issue filed* — this is a question about intent with no
+   confirmed problem behind it. It becomes an Issue if the answer is “no”.
 5. **Light-mode refinements still open.** The six rank-tier colours are fixed
    values set inline by JS; on parchment the level chip needs a darkening
    overlay to stay legible, and Rookie/Grinder read faintly as ring and XP-bar
    fills. A tier palette that adapts per theme would be cleaner, but the
    colours carry rank meaning so it is a product decision, not a styling one.
+   → **#15** (proposed P3).
 6. **No automated tests or CI.** Verification to date has been manual Playwright
    scripting in the working session, none of it committed. Decide whether a
    minimal smoke suite belongs in the repo.
+   → **#18** (proposed P2), with a staged approach so it can stop where it
+   stops paying for itself.
+
+7. **The GitHub Project does not exist yet.** GitHub Projects v2 is a
+   GraphQL-only API, and GraphQL is blocked from Claude Code sessions, so the
+   board, its Status column and its Priority field could not be created here.
+   Until Shaun creates it, workflow status and priority live only as proposed
+   values written into each Issue body. The intended configuration is recorded
+   in the delivery report and takes a few minutes in the GitHub UI.
 
 ---
 
@@ -339,6 +388,10 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-22) — Product-development infrastructure: Issue labels (two axes),
+  Issue templates, five `docs/` files, GitHub workflow rules and the
+  `Ledger Capture` protocol in `CLAUDE.md`, and 15 seeded Issues (#5–#19)
+  from a repository audit. No product code changed.
 - (2026-09-21) — Theme system: Dark / Light / System, semantic token layer,
   no-flash bootstrap, Appearance control in Focus, theme-aware hero and
   `theme-color`. Dark unchanged.
@@ -359,6 +412,11 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Next
 
-1. Resolve the XP model so gamification is earned and explainable (Open Q2).
-2. Decide the fate of the legacy Review day sheet vs Catch-up (Open Q3).
-3. Revisit Firestore rules before any wider exposure (Open Q1).
+1. **Shaun:** create the GitHub Project (Open Q7). Configuration is recorded in
+   `docs/ROAD_TO_SHIPPABLE.md` → Appendix. Nothing else can be prioritised
+   properly until it exists.
+2. Decide on #5 (open Firestore rules on a public repository). Proposed P0, and
+   the only seeded Issue proposed above P1.
+3. Triage #6–#19 into the board, then decide what, if anything, to build.
+
+Everything else is on the board. Do not duplicate it here.
