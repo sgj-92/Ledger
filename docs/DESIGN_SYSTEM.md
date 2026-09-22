@@ -454,3 +454,8 @@ lost. Those with a filed Issue are marked.
 
 *Audited against `main` @ `c7c37b1`. Re-audit when the Today surface or the
 token layer changes materially.*
+
+> **Since this audit:** a Today density pass (2026-09-22) shortened the hero
+> (147px → 108px), added a `--hero-size` token, and gave the Backlog preview a
+> compact `.bk-compact` shelf with 38×38 icon controls. The measurements in
+> §2, §7 and §14 predate it.

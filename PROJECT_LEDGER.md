@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-22 (against `main` @ `c7c37b1` + product-development infrastructure)
+Last updated: 2026-09-22 (against `main` @ `81f6cd1` + Today density pass)
 
 ---
 
@@ -27,8 +27,10 @@ and `functions/` (one Firebase Cloud Function).
 - **Key tasks** — Morning Prime's three; normal actions flagged `isKeyTask`,
   marked in both views with a gold star, gold left edge and a `Key` pill.
 - **Add action** — compact disclosure holding Quick add and Detailed add.
-- **Backlog** — unfinished actions from past dates; bounded 3-row preview on
-  Today plus a full sheet (sort by Group/Date, filter, Add to today, Pick a day).
+- **Backlog** — unfinished actions from past dates. On Today it is a compact
+  3-row shelf (category · added date · state on one meta line, icon controls for
+  Add to today and Choose a day). The full sheet stays spacious and labelled
+  (sort by Group/Date, filter, Add to today, Pick a day).
 - **Today's Plan** — 2×2 card grid (Training / Meals / Roadblock / Diet),
   with a share control for Daily Handoff.
 - **Quick Log** — collapsible grid: Nutrition, Weight, Daily photo, Padel,
@@ -183,6 +185,33 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-09-22 — The hero is a band, not a poster
+**Decision:** The Today header establishes mood in a shallow band and then gets
+out of the way. The photograph is scaled past its band (`--hero-size`) and
+positioned on the ridge, so a shorter header crops the view without shrinking
+the mountains. The quote is capped at roughly half the header width so it can
+never grow a third line and push the day down the screen.
+**Why:** The header behaved like a poster: 147px of a 844px viewport, permanently,
+since it is sticky. The first screen was the header rather than the day.
+**Implications:** Header 147px → 108px (iPhone) and 163px → 106px (S24); Today's
+Plan moved ~300px up and now lands in the first viewport. Scroll-collapse was
+considered and rejected — a sticky header occupies flow space, so shrinking it
+mid-scroll pulls the page up under the thumb. A permanently shorter header gets
+the same space back without the jump.
+
+### 2026-09-22 — Today surfaces the backlog; it does not become the backlog
+**Decision:** The Today shelf and the full Backlog sheet are two shapes of one
+row (`backlogRowHtml(c, { compact: true })`). On the shelf the category folds
+into the meta line, the disruption *reason* is dropped (the state word stays),
+the meta is held to one line, and the two controls become icon buttons. The
+full sheet keeps its labels and its spacing.
+**Why:** Three backlog rows were consuming 485px — more of Today than Today.
+**Implications:** Rows 148px → ~70px, panel 485px → 245px. Both actions stay one
+tap; the icon controls are 38×38 with `aria-label` and `title`. The trade is
+discoverability: on the shelf you have to recognise + and the calendar glyph.
+The backlog logic itself is untouched — membership, ordering and dates are as
+they were.
+
 ### 2026-09-22 — Capture is separate from implementation; GitHub holds the backlog
 **Decision:** GitHub Issues become the canonical backlog for discrete work,
 with a two-axis label taxonomy (`type:` × `area:`). Workflow status and
@@ -316,8 +345,9 @@ Status: Ready
 Objective: No active implementation task. Await next handoff.
 Acceptance criteria: N/A
 
-The backlog now exists as GitHub Issues (#5–#19). None of it is authorised for
-implementation — see the workflow rules in `CLAUDE.md`.
+The backlog exists as GitHub Issues (#5–#19). None of it is authorised for
+implementation — see the workflow rules in `CLAUDE.md`. The Today density pass
+was a direct instruction from Shaun, not a backlog item.
 
 ---
 
@@ -388,6 +418,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-22) — Today density pass: hero compacted to a shallow band, Backlog
+  preview rebuilt as a compact shelf, empty Actions state tightened. Today's
+  Plan now lands in the first viewport.
 - (2026-09-22) — Product-development infrastructure: Issue labels (two axes),
   Issue templates, five `docs/` files, GitHub workflow rules and the
   `Ledger Capture` protocol in `CLAUDE.md`, and 15 seeded Issues (#5–#19)
