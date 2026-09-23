@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-22 (against `main` @ `af924a1` + the daily lifecycle)
+Last updated: 2026-09-23 (against `main` @ `29b80cd` + handoff cleanup section)
 
 ---
 
@@ -51,7 +51,10 @@ and `functions/` (one Firebase Cloud Function).
   resolved is reported as a ✓ line instead of asked again, and a day closed in
   the evening is not listed as pending at all.
 - **Daily Handoff** — "Share day" → structured text export for Claude, with an
-  optional instruction footer; clipboard + Web Share API.
+  optional instruction footer; clipboard + Web Share API. Opens with a
+  **Previous Day Cleanup** section (completed / partially completed / moved
+  forward, each with categories) so Claude can reconcile Todoist and FlowSavvy
+  before touching today. Read-only — the export reports state, never changes it.
 
 ### Routines and Settings
 Morning Prime (Plan, Move) and Evening Wind-down are **editable routines**:
@@ -213,6 +216,28 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-23 — The Handoff reports yesterday so Claude can reconcile, not re-create
+**Decision:** Every Daily Handoff opens with `PREVIOUS DAY CLEANUP`, derived from
+the previous day's real records: what was completed, what is partially completed
+and still unresolved, and what was deliberately rescheduled to a later date.
+Categories are kept in brackets for cross-tool matching; no ids are exported.
+The instruction footer now leads with reconciliation, then today's work.
+**Why:** External tools keep yesterday's tasks after Ledger has moved on, so the
+day starts with duplicates and stale items. Ledger knows what actually happened;
+it should say so.
+**Ledger does not integrate with Todoist, FlowSavvy or Google Calendar.** This is
+an export, read-only. The section derives from the same records Catch-up, the
+backlog and the day record read — no second history system — and mutates
+nothing: no status changes, no reschedules, no completions.
+**Implications:** Completed and partial are read from the previous day's action
+status. Moved-forward is `originalDate === previous day` and `date > previous
+day`, so the three lists cannot overlap. **A "Dropped / no longer active"
+subsection is not implemented** — Ledger has no cancelled state, and `not_done`
+means it did not happen, not that it was abandoned. It is left out rather than
+guessed. A task moved *onto* the previous day from an earlier one and then moved
+again is not detectable, because `date` is overwritten and only the first
+`originalDate` survives.
 
 ### 2026-09-22 — Morning Prime is Plan and Move
 **Decision:** Morning Prime has two sections tracked separately. Plan is what
@@ -533,6 +558,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-23) — Daily Handoff gains a Previous Day Cleanup section and a
+  reconciliation-first instruction footer, so external tools can be cleaned up
+  before today's work is created.
 - (2026-09-22) — The daily lifecycle: Morning Prime split into Plan and Move,
   editable routines with a Settings sheet, Evening Wind-down, and Catch-up
   rebuilt as the recovery layer behind it.

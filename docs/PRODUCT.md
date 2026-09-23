@@ -127,7 +127,8 @@ Today is the centre of the product. Everything else supports it.
   noticed. Any link between them is recorded and worded as *possible*, never
   as proven cause.
 - **Daily Handoff.** A stable, structured plain-text export of one day, in a
-  fixed section order, inventing nothing.
+  fixed section order, inventing nothing. It opens with Previous Day Cleanup so
+  external tools can be reconciled before today's work is created.
 - **Routines.** Morning Prime and Evening Wind-down are editable ordered lists,
   stored as a preference. Where Ledger holds a record of a step, that record
   decides whether the step is done — a tick is only for steps nothing else

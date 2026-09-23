@@ -4971,10 +4971,12 @@
   // Firestore fields) is emitted, and nothing is invented — a time that isn't recorded
   // simply isn't written.
   var HANDOFF_INSTRUCTIONS = [
-    'Use this as today\'s source of truth.',
-    'Create or update tasks/calendar items in my connected tools where appropriate.',
-    'Do not duplicate items that already exist.',
-    'Preserve categories and times where specified.'
+    'EXECUTE THIS HANDOFF',
+    '1. Reconcile Previous Day Cleanup against existing Todoist and FlowSavvy items.',
+    '2. Complete/clear tasks Ledger says were completed.',
+    '3. Reuse/reschedule moved-forward tasks rather than duplicating them.',
+    '4. Then process today\'s actions and schedule.',
+    '5. Avoid duplicates. Preserve categories and times where specified.'
   ].join('\n');
 
   function handoffWantsInstructions(){
@@ -5008,6 +5010,89 @@
     return line;
   }
 
+  // ---- Previous Day Cleanup ----
+  // External tools still hold yesterday's tasks. This reports what Ledger says
+  // became of them so Claude can reconcile rather than re-create. It reads the
+  // same records Catch-up, the backlog and the day record read, and writes
+  // nothing — the export reports state, it never changes it.
+  function handoffLongDate(dateStr){
+    var d = new Date(dateStr + 'T00:00:00');
+    return d.getDate() + ' ' + d.toLocaleDateString(undefined, { month: 'long' }) + ' ' + d.getFullYear();
+  }
+
+  function previousDayCleanup(dateStr){
+    var prev = prevDateStr(dateStr);
+    var prevPlan = getPlanForDate(prev);
+    var order = (prevPlan && prevPlan.actionOrder) || [];
+    function ordered(list){ return sortByOrderHint(list, order); }
+
+    var prevActions = commitments.filter(function(c){
+      return c.date === prev && c.category !== 'roadblock';
+    });
+    // Completion is read from the record, never inferred from a task's absence.
+    var completed = ordered(prevActions.filter(function(c){ return c.status === 'completed'; }));
+    var partial   = ordered(prevActions.filter(function(c){ return c.status === 'partial'; }));
+    // Rescheduled out of that day: it was first written down for the previous day
+    // and is now scheduled later. Nothing can be in two of these lists — the first
+    // two are dated to the previous day, this one is dated after it.
+    var moved = ordered(commitments.filter(function(c){
+      return c.category !== 'roadblock' &&
+             actionOriginalDate(c) === prev &&
+             c.date > prev;
+    }));
+
+    var rec = getDayRecord(prev);
+    var closed = !!(rec && (
+      !!(rec.windDown && rec.windDown.completedAt) || !!rec.caughtUpAt || (!!rec.status && !rec.draft)
+    ));
+    var known = !!prevPlan || prevActions.length > 0 || moved.length > 0;
+
+    return {
+      date: prev, completed: completed, partial: partial, moved: moved,
+      closed: closed, known: known,
+      any: completed.length > 0 || partial.length > 0 || moved.length > 0
+    };
+  }
+
+  function handoffCleanupLines(dateStr){
+    var cu = previousDayCleanup(dateStr);
+    var L = ['PREVIOUS DAY CLEANUP'];
+    if (!cu.any){
+      // the shape stays predictable even on a quiet day
+      L.push('No cleanup required.');
+      if (cu.known && !cu.closed) L.push('Previous day not fully closed.');
+      return L;
+    }
+    L.push('Date: ' + handoffLongDate(cu.date));
+    if (cu.completed.length){
+      L.push('');
+      L.push('Completed yesterday:');
+      cu.completed.forEach(function(c){ L.push('- ' + c.title + handoffCategory(c)); });
+    }
+    if (cu.partial.length){
+      L.push('');
+      L.push('Partially completed yesterday:');
+      cu.partial.forEach(function(c){
+        var rest = c.minVersion || c.disruptionReason || '';
+        L.push('- ' + c.title + handoffCategory(c) + (rest ? ' \u2014 remaining: ' + rest : ''));
+      });
+    }
+    if (cu.moved.length){
+      L.push('');
+      L.push('Moved forward:');
+      cu.moved.forEach(function(c){
+        L.push('- ' + c.title + handoffCategory(c) + ' \u2192 ' + handoffLongDate(c.date));
+      });
+    }
+    // Ledger has no cancelled/dropped status, so a "Dropped" subsection would have
+    // to be guessed. It is left out rather than invented.
+    if (!cu.closed){
+      L.push('');
+      L.push('Previous day not fully closed.');
+    }
+    return L;
+  }
+
   function buildDailyHandoff(dateStr, includeInstructions){
     var d = new Date(dateStr + 'T00:00:00');
     var plan = getPlanForDate(dateStr);
@@ -5032,19 +5117,23 @@
     if (intention) L.push('Intention: ' + intention);
     L.push('');
 
-    // 3. Key tasks
+    // 3. Previous day cleanup — what external tools should know before today's work
+    handoffCleanupLines(dateStr).forEach(function(line){ L.push(line); });
+    L.push('');
+
+    // 4. Key tasks
     L.push('KEY TASKS');
     if (keyTasks.length) keyTasks.forEach(function(c, i){ L.push((i+1) + '. ' + handoffActionLine(c)); });
     else L.push('- none set');
     L.push('');
 
-    // 4. Other actions
+    // 5. Other actions
     L.push('OTHER ACTIONS');
     if (others.length) others.forEach(function(c){ L.push('- ' + handoffActionLine(c)); });
     else L.push('- none');
     L.push('');
 
-    // 5. Health & fitness plan
+    // 6. Health & fitness plan
     L.push('HEALTH & FITNESS PLAN');
     if (plan && plan.restDay){
       L.push('Rest day');
@@ -5078,7 +5167,7 @@
     }
     L.push('');
 
-    // 6. Roadblocks
+    // 7. Roadblocks
     L.push('ROADBLOCKS');
     var anyRoadblock = false;
     if (plan && plan.roadblocks){ L.push('- ' + plan.roadblocks); anyRoadblock = true; }
@@ -5086,7 +5175,7 @@
     if (!anyRoadblock) L.push('- none');
     L.push('');
 
-    // 7. Status / notes
+    // 8. Status / notes
     L.push('STATUS / NOTES');
     L.push('- Morning Prime ' + (st.completedAt
       ? 'completed at ' + mpTimeLabel(st.completedAt)
@@ -5106,8 +5195,11 @@
     // context only: these are deliberately NOT today's work
     var backlog = backlogActions().length;
     if (dateStr === todayStr() && backlog){
-      L.push('- ' + backlog + ' unfinished action' + (backlog === 1 ? '' : 's') +
-        ' sit in backlog from earlier days; they are not scheduled for today — do not create tasks for them.');
+      L.push('- ' + backlog + (backlog === 1
+        ? ' unfinished action sits in backlog from earlier days; it is not scheduled' +
+          ' for today — do not create a task for it.'
+        : ' unfinished actions sit in backlog from earlier days; they are not scheduled' +
+          ' for today — do not create tasks for them.'));
     }
 
     if (includeInstructions){
@@ -6084,6 +6176,11 @@
   function nextDateStr(dateStr){
     var d = new Date(dateStr + 'T00:00:00');
     d.setDate(d.getDate() + 1);
+    return fmtDate(d);
+  }
+  function prevDateStr(dateStr){
+    var d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() - 1);
     return fmtDate(d);
   }
 
