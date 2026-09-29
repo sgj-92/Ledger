@@ -1140,7 +1140,8 @@
      Offered, never forced: it waits out open sheets and focused fields, and
      only a tap reloads. */
   .update-bar {
-    position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom));
+    /* above the gold + (84px up, 54px tall), so the two never overlap */
+    position: fixed; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom));
     transform: translateX(-50%) translateY(12px); opacity: 0; pointer-events: none;
     display: flex; align-items: center; gap: 12px; z-index: 250;
     background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 100px;
@@ -1149,6 +1150,9 @@
     transition: opacity 0.2s ease, transform 0.2s ease;
   }
   .update-bar.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  /* while the offer is up, the page can scroll its last lines clear of it —
+     otherwise it covers the very build footer it is talking about */
+  body.has-update-bar main { padding-bottom: calc(190px + env(safe-area-inset-bottom)); }
   .update-bar button {
     border: none; cursor: pointer; font-family: var(--sans); border-radius: 100px;
   }
@@ -6924,6 +6928,7 @@
     return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
   }
   function hideUpdateBar(){
+    document.body.classList.remove('has-update-bar');
     var bar = document.getElementById('updateBar');
     if (bar){ bar.classList.remove('show'); setTimeout(function(){ if (bar.parentNode && !bar.classList.contains('show')) bar.remove(); }, 250); }
   }
@@ -6944,6 +6949,7 @@
       '<button type="button" class="ub-go" id="updateBarGo">Refresh</button>' +
       '<button type="button" class="ub-x" id="updateBarX" aria-label="Dismiss">' + CLOSE_SVG + '</button>';
     document.body.appendChild(bar);
+    document.body.classList.add('has-update-bar');
     requestAnimationFrame(function(){ bar.classList.add('show'); });
     document.getElementById('updateBarGo').addEventListener('click', refreshToLatest);
     document.getElementById('updateBarX').addEventListener('click', function(){
