@@ -2911,6 +2911,7 @@
       dbRef.collection('ledger_plans')
         .onSnapshot(function(snap){
           plans = snap.docs.map(function(d){ var data = d.data() || {}; data.date = d.id; return data; });
+          keepPendingPlans();
           if (currentView === 'plan') renderPlan();
           renderLogView();
         }, function(err){ console.error('plans snapshot error', err); });
@@ -3096,17 +3097,44 @@
     await savePlanForDate(plan.date, newPlan);
   }
 
+  // A saved plan is the plan, immediately. With Firestore live this used to wait
+  // for the onSnapshot round-trip before `plans` changed, so anything that read
+  // getPlanForDate() straight after a save — the Plan sheet reopening from
+  // Details, Morning Prime ticking, the next save — saw the old plan and could
+  // write it back over the new one. Now local state changes first, then the same
+  // object is persisted, and the listener converges onto it.
+  var planWritesInFlight = {};   // date -> { n: writes pending, data: newest local plan }
+  function setLocalPlan(dateStr, data){
+    var idx = plans.findIndex(function(p){ return p.date === dateStr; });
+    if (idx > -1) plans[idx] = data; else plans.push(data);
+  }
+  // A snapshot taken before our newest write landed must not roll it back.
+  function keepPendingPlans(){
+    Object.keys(planWritesInFlight).forEach(function(d){
+      var w = planWritesInFlight[d];
+      if (w && w.n > 0) setLocalPlan(d, w.data);
+    });
+  }
   async function savePlanForDate(dateStr, data){
     data.date = dateStr;
+    setLocalPlan(dateStr, data);
     if (dbReady && dbRef){
+      var w = planWritesInFlight[dateStr] || (planWritesInFlight[dateStr] = { n: 0, data: null });
+      w.n += 1; w.data = data;
+      if (currentView === 'plan') renderPlan();
+      renderLogView();
       try {
         var copy = Object.assign({}, data); delete copy.date;
         await dbRef.collection('ledger_plans').doc(dateStr).set(copy);
-        return;
-      } catch(e){ console.error('plan save failed', e); }
+      } catch(e){
+        console.error('plan save failed', e);
+        localSavePlans();          // the local copy stands, as it always did on failure
+      } finally {
+        w.n -= 1;
+        if (w.n <= 0) delete planWritesInFlight[dateStr];
+      }
+      return;
     }
-    var idx = plans.findIndex(function(p){ return p.date === dateStr; });
-    if (idx > -1) plans[idx] = data; else plans.push(data);
     localSavePlans();
     renderPlan();
     renderLogView();
@@ -3127,12 +3155,18 @@
   // Plan and Quick Log reuse the same activity form (openSheet/buildFormHtml/wireForm, mode: 'plan' | 'log').
   // Planning writes into plan.trainingDetails; only completing it creates/links an actual session,
   // so intention (plan) and evidence (session) stay distinct records even though the form is shared.
+  // Merges the planning fields the shared form shows onto the latest plan, saves
+  // it (local first) and returns it, so the caller reopens the Plan sheet with
+  // the plan it just made rather than whatever an older read held. Log-only
+  // evidence — match result and sets, bodyweight — is hidden in plan mode and
+  // never copied here.
   function saveTrainingPlanDetails(type, dateStr, raw){
     var plan = getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
     var newPlan = Object.assign({}, plan);
     newPlan.trainingTypes = (plan.trainingTypes || []).slice();
     if (newPlan.trainingTypes.indexOf(type) === -1) newPlan.trainingTypes.push(type);
     var details = Object.assign({}, (plan.trainingDetails && plan.trainingDetails[type]) || {});
+    details.activityTime = raw.activityTime || '';
     details.venue = raw.venue || '';
     details.notes = raw.notes || '';
     details.durationMin = raw.durationMin != null ? raw.durationMin : null;
@@ -3143,7 +3177,8 @@
     if (type === 'resistance'){ details.exercises = raw.exercises; }
     newPlan.trainingDetails = Object.assign({}, plan.trainingDetails || {});
     newPlan.trainingDetails[type] = details;
-    savePlanForDate(dateStr, newPlan);
+    savePlanForDate(dateStr, newPlan);   // local state is already this plan when this returns
+    return newPlan;
   }
 
   function removeTrainingFromPlan(type, dateStr){
@@ -3156,6 +3191,7 @@
       delete newPlan.trainingDetails[type];
     }
     savePlanForDate(dateStr, newPlan);
+    return newPlan;
   }
 
   // Called when a session is saved from a planned item — links the plan entry to the recorded
@@ -3181,7 +3217,8 @@
     openSheet(type, seed, dateStr, {
       mode: 'plan',
       planDate: dateStr,
-      onDone: function(){ openPlanSheet(dateStr, getPlanForDate(dateStr)); }
+      // reopen with the plan the detail sheet just saved, never an older read
+      onDone: function(saved){ openPlanSheet(dateStr, saved || getPlanForDate(dateStr)); }
     });
   }
 
@@ -5337,6 +5374,7 @@
       plan.trainingTypes.forEach(function(t){
         var det = (plan.trainingDetails && plan.trainingDetails[t]) || {};
         L.push('- ' + TYPE_LABEL[t] + (det.completed ? ' (logged)' : ''));
+        if (det.activityTime) L.push('  - Time: ' + det.activityTime);
         if (det.venue) L.push('  - Location: ' + det.venue);
         if (det.focus) L.push('  - Focus: ' + det.focus);
         if (det.cardioType) L.push('  - Type: ' + det.cardioType);
@@ -8219,12 +8257,13 @@
       return done.join(' · ');
     }
     var bits = [];
+    if (details.activityTime) bits.push(details.activityTime);
     if (details.durationMin) bits.push(details.durationMin + ' min');
     if (t === 'yoga' && details.focus) bits.push(details.focus);
     if (t === 'hiit' && details.outline){
       var ol = details.outline.split('\n').map(function(x){ return x.trim(); })
                               .filter(function(x){ return !!x; })[0];
-      if (ol) bits.push(ol);
+      if (ol) bits.push(ol.replace(/:\s*$/, ''));   // "5 rounds:" reads as "5 rounds"
     }
     if (t === 'cardio' && details.cardioType) bits.push(details.cardioType);
     if (t === 'resistance' && details.exercises && details.exercises.length) bits.push(details.exercises.length + ' exercise' + (details.exercises.length===1?'':'s'));
@@ -8264,7 +8303,8 @@
         var name = TYPE_LABEL[t];
         var sub = det.completed
           ? '<span class="tick">' + CHECK_SVG + '</span>' + (single ? name : 'Recorded' + (planTrainingSub(t, det).replace('Recorded', '').replace(/^ · /, '') ? ' · ' + planTrainingSub(t, det).replace(/^Recorded( · )?/, '') : ''))
-          : (single ? name : planTrainingSub(t, det) || name);
+          : (single ? [name].concat(planTrainingSub(t, det) ? [planTrainingSub(t, det)] : []).join(' · ')
+                    : planTrainingSub(t, det) || name);
         cards.push(planCardHtml({
           icon: TRAINING_ICON_SVG[t],
           title: single ? 'Training' : name,
@@ -8549,8 +8589,10 @@
       var det = trainingDetailsState[t];
       if (!det) return '';
       var bits = [];
+      if (det.activityTime) bits.push(det.activityTime);
       if (det.venue) bits.push(det.venue);
       if (det.focus) bits.push(det.focus);
+      if (det.outline) bits.push('outline');
       if (det.cardioType) bits.push(det.cardioType);
       if (det.distance) bits.push(det.distance + ' ' + (det.distanceUnit || 'km'));
       if (det.exercises && det.exercises.length) bits.push(det.exercises.length + ' exercise' + (det.exercises.length===1?'':'s'));
@@ -9647,9 +9689,9 @@
 
     document.getElementById('saveBtn').addEventListener('click', function(){
       if (opts.mode === 'plan'){
-        saveTrainingPlanDetails(type, opts.planDate, collectFormData());
+        var savedPlan = saveTrainingPlanDetails(type, opts.planDate, collectFormData());
         closeSheet();
-        if (opts.onDone) opts.onDone();
+        if (opts.onDone) opts.onDone(savedPlan);
         return;
       }
       var out = collectFormData();
@@ -9674,9 +9716,9 @@
 
     if (opts.mode === 'plan'){
       document.getElementById('removeFromPlanBtn').addEventListener('click', function(){
-        removeTrainingFromPlan(type, opts.planDate);
+        var afterRemove = removeTrainingFromPlan(type, opts.planDate);
         closeSheet();
-        if (opts.onDone) opts.onDone();
+        if (opts.onDone) opts.onDone(afterRemove);
       });
     } else if (editingId){
       document.getElementById('deleteBtn').addEventListener('click', function(){
