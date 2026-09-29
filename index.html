@@ -85,6 +85,8 @@
     --nutrition-soft: rgba(141,166,104,0.14);
     --gluten: #ab5a46;
     --gluten-soft: rgba(171,90,70,0.14);
+    --hiit: #8f7ab8;
+    --hiit-soft: rgba(143,122,184,0.14);
 
     /* ---- outcome / status ---- */
     --day-good: #7aa561;
@@ -821,6 +823,7 @@
   .dot.photo { background: var(--photo); }
   .dot.nutrition { background: var(--nutrition); }
   .dot.gluten { background: var(--gluten); }
+  .dot.hiit { background: var(--hiit); }
 
   /* ---------- empty states ---------- */
   .empty-state {
@@ -1407,6 +1410,7 @@
   .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: rgba(var(--gold-rgb),0.5); }
   .field textarea { resize: vertical; min-height: 64px; line-height: 1.55; }
   .field textarea.food-diary { min-height: 190px; line-height: 1.6; font-size: 14.5px; }
+  .field textarea.hiit-outline { min-height: 112px; line-height: 1.55; }
   input::placeholder, textarea::placeholder { color: var(--text-3); opacity: 0.75; }
   .field-row { display: flex; gap: 12px; }
   .field-row .field { flex: 1; min-width: 0; }
@@ -1589,8 +1593,25 @@
   .type-chip-btn.sel { border-color: rgba(var(--gold-rgb),0.5); color: var(--gold); background: rgba(var(--gold-rgb),0.1); }
   .type-chip-btn .dot { width: 16px; height: 16px; border-radius: 50%; }
 
-  .plan-type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; align-items: start; }
-  .plan-type-cell { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  /* Five types no longer fit one row, so the row scrolls rather than the cards
+     shrinking — every type stays the same size and the sheet stays short. The
+     scroller bleeds to the sheet's edges so the next card peeks, which is what
+     makes the scroll obvious without a control. */
+  .plan-type-grid {
+    display: flex; gap: 8px; margin-bottom: 10px; align-items: start;
+    overflow-x: auto; overflow-y: hidden;
+    margin-left: -22px; margin-right: -22px; padding: 2px 22px 4px;
+    /* the snapport has to respect the gutter, or the first card snaps flush
+       to the sheet edge and the padding is scrolled away */
+    scroll-snap-type: x proximity; scroll-padding-left: 22px; scroll-padding-right: 22px;
+    -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .plan-type-grid::-webkit-scrollbar { display: none; }
+  .plan-type-cell {
+    flex: 0 0 78px; width: 78px; scroll-snap-align: start;
+    display: flex; flex-direction: column; gap: 5px; min-width: 0;
+  }
   .plan-type-btn {
     position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px;
     padding: 15px 4px 13px; border-radius: var(--r-md);
@@ -1733,6 +1754,8 @@
     --nutrition-soft: rgba(95,120,64,0.13);
     --gluten: #8e3f2c;
     --gluten-soft: rgba(142,63,44,0.13);
+    --hiit: #6a5599;
+    --hiit-soft: rgba(106,85,153,0.13);
 
     --day-good: #4f7a39;
     --day-good-rgb: 79,122,57;
@@ -2245,6 +2268,40 @@
   }
   .section-toggle-label.has-value::after { min-width: 12px; }
 
+  /* ---- Day Notes ----
+     Somewhere to think, not another task list. A single row until it holds
+     something, then a serif glimpse of what it holds. */
+  .dn-row {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    background: none; border: none; padding: 0; margin: var(--sp-5) 0 0;
+    font-family: var(--sans); cursor: pointer; color: var(--text);
+    min-height: 34px; text-align: left;
+  }
+  .dn-row:active { opacity: 0.65; }
+  .dn-label {
+    font-size: 10.5px; font-weight: 500; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: 0.2em; white-space: nowrap;
+  }
+  .dn-rule { flex: 1; height: 1px; background: var(--line); min-width: 10px; }
+  .dn-value {
+    font-family: var(--serif); font-size: 13.5px; color: var(--text-2);
+    max-width: 58%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .dn-row.empty .dn-value { font-style: italic; color: var(--text-3); }
+  .dn-count { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .dn-row .chev { flex-shrink: 0; color: var(--text-3); }
+  /* specific enough to beat `.field textarea`, which otherwise caps it at 64px.
+     The preview outside is serif; typing stays sans, like every other input. */
+  .field textarea.dn-sheet-area {
+    resize: none; padding: 14px; font-size: 15px; line-height: 1.6;
+    min-height: 44vh;
+  }
+  .field textarea.dn-sheet-area::placeholder { color: var(--text-3); font-style: italic; }
+  .dn-saved {
+    display: block; text-align: right; font-size: 10.5px; color: var(--text-3);
+    margin-top: 7px; min-height: 13px;
+  }
+
   /* ---- Evening Wind-down ----
      Close today while it is still today. Quiet until the evening, never hidden. */
   .wd-wrap { margin-top: var(--sp-5); }
@@ -2387,6 +2444,8 @@
 
     <div id="todayPlanWidget" class="today-plan-widget"></div>
 
+    <div id="dayNotesSection"></div>
+
     <button type="button" class="section-toggle" id="quickLogToggle" aria-expanded="false" aria-controls="quickLogGrid">
       <span class="section-toggle-label">Quick log</span>
       <span class="section-toggle-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
@@ -2411,6 +2470,10 @@
       <button class="quicklog-card cardio" data-type="cardio">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2.5-7 4 14 2.5-7H21"/></svg></span>
         <span class="ql-label">Cardio</span>
+      </button>
+      <button class="quicklog-card hiit" data-type="hiit">
+        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 17.5h3.2V6.5h4.3v11h4.3V6.5h4.3v11h2.9"/></svg></span>
+        <span class="ql-label">HIIT</span>
       </button>
       <button class="quicklog-card resistance" data-type="resistance">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><line x1="5" y1="12" x2="19" y2="12"/><rect x="6.5" y="6.5" width="3" height="11" rx="1"/><rect x="14.5" y="6.5" width="3" height="11" rx="1"/></svg></span>
@@ -2549,7 +2612,7 @@
   var presetsLoaded = false;
   var prioritiesLoaded = false;
   var planWeekStart = new Date(); planWeekStart.setDate(planWeekStart.getDate() - planWeekStart.getDay());
-  var PLAN_TRAINING_TYPES = ['padel','cardio','resistance','yoga'];
+  var PLAN_TRAINING_TYPES = ['padel','cardio','hiit','resistance','yoga'];
   var CARB_LEVEL_LABEL = { low: 'Low carb', normal: 'Normal', high: 'High carb' };
   var editingId = null;
   // set by sheets that mirror live data, so a save elsewhere refreshes them in place
@@ -2557,17 +2620,18 @@
   var viewedDate = todayStr(); // the date the Today view is currently showing
   var planSelectedDate = null; // last day-row interacted with in Plan (for the global FAB's date target)
 
-  var TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance training', cardio: 'Cardio', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition', gluten: 'Gluten exposure', symptom: 'Symptoms' };
+  var TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance training', cardio: 'Cardio', hiit: 'HIIT', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition', gluten: 'Gluten exposure', symptom: 'Symptoms' };
   // shared icon set for training types — reused by the Plan selector, the Health & fitness rows and Quick Log cards
   var TRAINING_ICON_SVG = {
     padel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="10" height="13" rx="5"/><line x1="10" y1="15.5" x2="10" y2="20"/><line x1="7" y1="21.5" x2="13" y2="21.5"/><circle cx="18.5" cy="18.5" r="2"/></svg>',
     cardio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2.5-7 4 14 2.5-7H21"/></svg>',
     resistance: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><line x1="5" y1="12" x2="19" y2="12"/><rect x="6.5" y="6.5" width="3" height="11" rx="1"/><rect x="14.5" y="6.5" width="3" height="11" rx="1"/></svg>',
-    yoga: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.8" fill="currentColor" stroke="none"/><path d="M12 8v6"/><path d="M12 9c-2 2-3 3-6 3"/><path d="M12 9c2 2 3 3 6 3"/><path d="M12 14c-1.5 2-2 3-2 5.5"/><path d="M12 14c1.5 2 2 3 2 5.5"/></svg>'
+    yoga: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.8" fill="currentColor" stroke="none"/><path d="M12 8v6"/><path d="M12 9c-2 2-3 3-6 3"/><path d="M12 9c2 2 3 3 6 3"/><path d="M12 14c-1.5 2-2 3-2 5.5"/><path d="M12 14c1.5 2 2 3 2 5.5"/></svg>',
+    hiit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 17.5h3.2V6.5h4.3v11h4.3V6.5h4.3v11h2.9"/></svg>'
   };
   var STAR_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 3.4l2.55 5.62 6.15.66-4.58 4.13 1.26 6.05L12 16.8l-5.38 3.06 1.26-6.05L3.3 9.68l6.15-.66z"/></svg>';
   var CLOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="6.5" y1="6.5" x2="17.5" y2="17.5"/><line x1="17.5" y1="6.5" x2="6.5" y2="17.5"/></svg>';
-  var SHORT_TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance', cardio: 'Cardio', yoga: 'Mobility' };
+  var SHORT_TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance', cardio: 'Cardio', hiit: 'HIIT', yoga: 'Mobility' };
   var CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   // Icons for the non-training session types, shown as the same icon-wrap treatment
   // used for training types (Recorded Activity cards, Quick Log tiles).
@@ -3025,6 +3089,7 @@
     if (type === 'padel'){ details.padelType = raw.padelType; details.players = raw.players; }
     if (type === 'cardio'){ details.cardioType = raw.cardioType; details.distance = raw.distance; details.distanceUnit = raw.distanceUnit; }
     if (type === 'yoga'){ details.focus = raw.focus; }
+    if (type === 'hiit'){ details.outline = raw.outline; }
     if (type === 'resistance'){ details.exercises = raw.exercises; }
     newPlan.trainingDetails = Object.assign({}, plan.trainingDetails || {});
     newPlan.trainingDetails[type] = details;
@@ -3685,6 +3750,18 @@
       if (s.focus) b2.push(s.focus);
       if (s.durationMin) b2.push(s.durationMin + ' min');
       return b2.join(' · ') || 'Session logged';
+    }
+    if (s.type === 'hiit'){
+      var b3 = [];
+      if (s.durationMin) b3.push(s.durationMin + ' min');
+      else if (s.outline){
+        // no duration to show, so the outline's opening line stands in for it
+        var first = s.outline.split('\n').map(function(x){ return x.trim(); })
+                             .filter(function(x){ return !!x; })[0];
+        if (first) b3.push(first);
+      }
+      if (s.venue) b3.push('@ ' + s.venue);
+      return b3.join(' · ') || 'Session logged';
     }
     if (s.type === 'weight'){
       return s.weightKg ? s.weightKg + ' kg' : 'Weight logged';
@@ -4979,6 +5056,16 @@
     '5. Avoid duplicates. Preserve categories and times where specified.'
   ].join('\n');
 
+  // What was last sent for a date, so an unchanged note is not re-flagged every
+  // time. Device-local by nature — "what I already gave Claude" is not day data.
+  function handoffSentNotes(dateStr){
+    try { return localStorage.getItem('ledger_handoff_notes_' + dateStr); }
+    catch(e){ return null; }
+  }
+  function markHandoffSent(dateStr){
+    try { localStorage.setItem('ledger_handoff_notes_' + dateStr, getDayNotes(dateStr)); }
+    catch(e){}
+  }
   function handoffWantsInstructions(){
     try { return localStorage.getItem('ledger_handoff_instructions') !== '0'; }
     catch(e){ return true; }
@@ -5148,6 +5235,10 @@
         if (det.distance) L.push('  - Distance: ' + det.distance + ' ' + (det.distanceUnit || 'km'));
         if (det.exercises && det.exercises.length) L.push('  - Exercises: ' + det.exercises.map(function(e){ return e.name; }).join(', '));
         if (det.durationMin) L.push('  - Planned duration: ' + det.durationMin + ' min');
+        if (det.outline){
+          L.push('  - Outline:');
+          det.outline.split('\n').forEach(function(ln){ if (ln.trim()) L.push('    ' + ln.trim()); });
+        }
         if (det.notes) L.push('  - Notes: ' + det.notes);
       });
     } else {
@@ -5167,7 +5258,18 @@
     }
     L.push('');
 
-    // 7. Roadblocks
+    // 7. Day notes — context, not work. Claude treats these as background unless
+    // a line plainly describes an action; nothing here is parsed into tasks.
+    var notes = getDayNotes(dateStr);
+    if (notes && notes.trim()){
+      var sent = handoffSentNotes(dateStr);
+      // only call it an update when something really was sent before and has moved on
+      L.push(sent != null && sent !== notes ? 'DAY NOTES UPDATED' : 'DAY NOTES');
+      notes.split('\n').forEach(function(line){ L.push(line); });
+      L.push('');
+    }
+
+    // 8. Roadblocks
     L.push('ROADBLOCKS');
     var anyRoadblock = false;
     if (plan && plan.roadblocks){ L.push('- ' + plan.roadblocks); anyRoadblock = true; }
@@ -5175,7 +5277,7 @@
     if (!anyRoadblock) L.push('- none');
     L.push('');
 
-    // 8. Status / notes
+    // 9. Status / notes
     L.push('STATUS / NOTES');
     L.push('- Morning Prime ' + (st.completedAt
       ? 'completed at ' + mpTimeLabel(st.completedAt)
@@ -5266,6 +5368,7 @@
       });
       document.getElementById('handoffCopyBtn').addEventListener('click', function(){
         copyTextToClipboard(text()).then(function(){
+          markHandoffSent(dateStr);
           closeSheet();
           showPinToast('Day copied', false, CHECK_SVG);
         }).catch(function(){
@@ -5275,7 +5378,7 @@
       var shareBtn = document.getElementById('handoffShareBtn');
       if (shareBtn) shareBtn.addEventListener('click', function(){
         navigator.share({ title: 'Ledger — ' + shortDayLabel(dateStr), text: text() })
-          .then(function(){ closeSheet(); })
+          .then(function(){ markHandoffSent(dateStr); closeSheet(); })
           .catch(function(){ /* dismissed */ });
       });
     }
@@ -6771,6 +6874,94 @@
     });
   }
 
+  // ============ Day Notes ============
+  // Freeform context for one date — thinking, not committed work. Nothing here is
+  // ever parsed into Actions: "Call Mark tomorrow" stays a sentence until Shaun
+  // writes it as an action himself. Stored on the day's plan record, merged onto
+  // whatever else that record holds.
+
+  var dayNotesTimer = null;
+
+  function getDayNotes(dateStr){
+    var plan = getPlanForDate(dateStr);
+    return (plan && plan.dayNotes) || '';
+  }
+  async function saveDayNotes(dateStr, text){
+    var plan = getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
+    // build on the record, never rebuild it — Morning Prime, the orders and the
+    // rest of the plan all live here too
+    var next = Object.assign({}, plan, { dayNotes: text });
+    await savePlanForDate(dateStr, next);
+  }
+  function dayNotesLines(text){
+    return (text || '').split('\n').map(function(l){ return l.trim(); })
+                       .filter(function(l){ return !!l; });
+  }
+
+  function renderDayNotes(){
+    var wrap = document.getElementById('dayNotesSection');
+    if (!wrap) return;
+    var dateStr = viewedDate;
+    var text = getDayNotes(dateStr);
+    var lines = dayNotesLines(text);
+    var empty = lines.length === 0;
+
+    wrap.innerHTML =
+      '<button type="button" class="dn-row' + (empty ? ' empty' : '') + '" id="dayNotesBtn">' +
+        '<span class="dn-label">Day notes</span>' +
+        '<span class="dn-rule"></span>' +
+        (lines.length > 1 ? '<span class="dn-count">' + lines.length + ' lines</span>' : '') +
+        '<span class="dn-value" id="dayNotesPreview"></span>' +
+        '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
+      '</button>';
+    // the note is the user's own words — written as text, never as markup
+    document.getElementById('dayNotesPreview').textContent = empty ? 'Add a note\u2026' : lines[0];
+    document.getElementById('dayNotesBtn').addEventListener('click', function(){
+      openDayNotesSheet(dateStr);
+    });
+  }
+
+  function openDayNotesSheet(dateStr){
+    editingId = null;
+    activeSheetRefresh = null;
+    var saved = getDayNotes(dateStr);
+
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.note, 'Day notes', shortDayLabel(dateStr) + ' \u00b7 thoughts and context', '') +
+      '<div class="field"><textarea id="dayNotesArea" class="dn-sheet-area" ' +
+        'placeholder="Call Mark after lunch if he hasn\'t replied&#10;Kids were up early, energy lower today"></textarea>' +
+        '<span class="dn-saved" id="dayNotesSaved"></span></div>' +
+      '<div class="sheet-actionbar"><button type="button" class="btn-primary" id="dayNotesDoneBtn">Done</button></div>';
+
+    backdrop.classList.add('open');
+    var area = document.getElementById('dayNotesArea');
+    var savedLabel = document.getElementById('dayNotesSaved');
+    area.value = saved;                       // user content, set as a value
+
+    function flush(){
+      if (dayNotesTimer){ clearTimeout(dayNotesTimer); dayNotesTimer = null; }
+      var text = area.value;
+      if (text === saved) return Promise.resolve();
+      saved = text;
+      return saveDayNotes(dateStr, text).then(function(){
+        if (savedLabel) savedLabel.textContent = 'Saved';
+      });
+    }
+    // autosave as you type; Done just closes, and closing flushes whatever is left
+    area.addEventListener('input', function(){
+      if (savedLabel) savedLabel.textContent = '';
+      if (dayNotesTimer) clearTimeout(dayNotesTimer);
+      dayNotesTimer = setTimeout(function(){ flush(); }, 600);
+    });
+
+    document.getElementById('sheetCloseBtn').addEventListener('click', function(){
+      flush().then(closeSheet);
+    });
+    document.getElementById('dayNotesDoneBtn').addEventListener('click', function(){
+      flush().then(closeSheet);
+    });
+  }
+
   // ============ Evening Wind-down ============
   // Close today while it is still today. Whatever it does not close, next
   // morning's Catch-up picks up — the two are one flow, not two reviews.
@@ -6864,6 +7055,7 @@
 
   function renderLogView(){
     renderMorningPrime();
+    renderDayNotes();
     renderWindDown();
     renderCommitments();
     renderAccountabilityMessage();
@@ -6986,7 +7178,7 @@
   });
 
   // ---------- calendar view ----------
-  var CAL_TYPE_ORDER = ['padel','resistance','cardio','yoga','weight','nutrition','photo'];
+  var CAL_TYPE_ORDER = ['padel','resistance','hiit','cardio','yoga','weight','nutrition','photo'];
 
   function renderCalendar(){
     var grid = document.getElementById('calGrid');
@@ -7168,6 +7360,7 @@
     var typeMeta = [
       {type:'nutrition', label:'Nutrition'}, {type:'weight', label:'Weight'}, {type:'photo', label:'Photo'},
       {type:'padel', label:'Padel'}, {type:'cardio', label:'Cardio'},
+      {type:'hiit', label:'HIIT'},
       {type:'resistance', label:'Resistance'}, {type:'yoga', label:'Mobility'}
     ];
     typeMeta.forEach(function(m){
@@ -7228,6 +7421,15 @@
     container.appendChild(statCard('cardio', [
       { val: cardioMonth.length, lbl: 'Sessions this month' },
       { val: totalCardioMin || 0, lbl: 'Minutes this month' }
+    ]));
+
+    // HIIT
+    var hiit = sessions.filter(function(s){ return s.type==='hiit'; });
+    var hiitMonth = hiit.filter(withinThisMonth);
+    var hiitMin = hiitMonth.reduce(function(a,s){ return a + (s.durationMin||0); }, 0);
+    container.appendChild(statCard('hiit', [
+      { val: hiitMonth.length, lbl: 'Sessions this month' },
+      { val: hiitMin || 0, lbl: 'Minutes this month' }
     ]));
 
     // Yoga
@@ -7691,6 +7893,11 @@
     var bits = [];
     if (details.durationMin) bits.push(details.durationMin + ' min');
     if (t === 'yoga' && details.focus) bits.push(details.focus);
+    if (t === 'hiit' && details.outline){
+      var ol = details.outline.split('\n').map(function(x){ return x.trim(); })
+                              .filter(function(x){ return !!x; })[0];
+      if (ol) bits.push(ol);
+    }
     if (t === 'cardio' && details.cardioType) bits.push(details.cardioType);
     if (t === 'resistance' && details.exercises && details.exercises.length) bits.push(details.exercises.length + ' exercise' + (details.exercises.length===1?'':'s'));
     if (details.venue) bits.push(details.venue);
@@ -8598,6 +8805,15 @@
       html += fieldNum('f_durationMin', 'Duration (min)', d.durationMin, '30');
     }
 
+    if (type === 'hiit'){
+      // a freeform outline, not a workout builder — the rounds are the note
+      html += '<div class="field"><label>Workout outline</label>' +
+        '<textarea id="f_outline" class="hiit-outline" placeholder="5 rounds:&#10;30 sec bike sprint&#10;30 sec rest&#10;10 burpees">' +
+        '</textarea></div>';
+      html += fieldText('f_venue', 'Location', d.venue, 'e.g. home, gym');
+      html += fieldNum('f_durationMin', 'Duration (min)', d.durationMin, '20');
+    }
+
     if (type === 'weight'){
       html += fieldNum('f_weightKg', 'Weight (kg)', d.weightKg, 'xx.x', '0.1');
     }
@@ -8762,6 +8978,9 @@
       var mm = String(now.getMinutes()).padStart(2,'0');
       document.getElementById('f_activityTime').value = hh + ':' + mm;
     });
+
+    var outlineEl = document.getElementById('f_outline');
+    if (outlineEl) outlineEl.value = d.outline || '';
 
     var exerciseState = (d.exercises && d.exercises.length) ? d.exercises.slice() : (type==='resistance' ? [{name:'',sets:'',reps:'',value:'',unit:'kg'}] : []);
     var pendingPhotoDataUrl = d.photoDataUrl || null;
@@ -9051,6 +9270,11 @@
       }
       if (type === 'yoga'){
         out.focus = document.getElementById('f_focus').value;
+        out.venue = document.getElementById('f_venue').value;
+        out.durationMin = numOrNull('f_durationMin');
+      }
+      if (type === 'hiit'){
+        out.outline = document.getElementById('f_outline').value;
         out.venue = document.getElementById('f_venue').value;
         out.durationMin = numOrNull('f_durationMin');
       }

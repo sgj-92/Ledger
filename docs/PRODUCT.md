@@ -102,7 +102,7 @@ casually.
 | Surface | Purpose |
 | --- | --- |
 | **Plan** | The week ahead: per-day summaries and the meal ideas library. |
-| **Today** | The execution surface. Morning Prime (Plan, Move), Actions, Health & fitness, Quick Log, Evening Wind-down, Recorded Activity, Backlog, Catch-up, Daily Handoff. |
+| **Today** | The execution surface. Morning Prime (Plan, Move), Actions, Health & fitness, Day Notes, Quick Log, Evening Wind-down, Recorded Activity, Backlog, Catch-up, Daily Handoff. |
 | **Calendar** | Month view, day detail, day status. |
 | **Progress** | Weekly chart, health and training stats, stat detail. |
 | **Focus** | Player card, priorities, target weight, focus items, Settings. |
@@ -129,6 +129,8 @@ Today is the centre of the product. Everything else supports it.
 - **Daily Handoff.** A stable, structured plain-text export of one day, in a
   fixed section order, inventing nothing. It opens with Previous Day Cleanup so
   external tools can be reconciled before today's work is created.
+- **Day Notes.** Freeform text for one date. Context and thinking, never parsed
+  into Actions — a note becomes work only when it is written as an action.
 - **Routines.** Morning Prime and Evening Wind-down are editable ordered lists,
   stored as a preference. Where Ledger holds a record of a step, that record
   decides whether the step is done — a tick is only for steps nothing else

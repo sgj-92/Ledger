@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-23 (against `main` @ `29b80cd` + handoff cleanup section)
+Last updated: 2026-09-29 (against `main` @ `078bc2d` + Day Notes and HIIT)
 
 ---
 
@@ -43,15 +43,20 @@ and `functions/` (one Firebase Cloud Function).
 - **Health & fitness** — 2×2 card grid (Training / Meals / Roadblock / Diet),
   with a share control for Daily Handoff. Called **Today's Plan** until
   2026-09-22.
+- **Day Notes** — freeform text for one date, one compact row on Today between
+  Health & fitness and Quick Log; opens a sheet with autosave. Context and
+  thinking, never parsed into Actions. Stored as `plan.dayNotes`.
 - **Quick Log** — collapsible grid: Nutrition, Weight, Daily photo, Padel,
-  Cardio, Resistance, Mobility, Symptoms.
+  Cardio, HIIT, Resistance, Mobility, Symptoms.
 - **Recorded Activity** — collapsible, with a summary in its header.
 - **Catch-up** — the recovery layer for whatever the evening did not close.
   Reads the day's real records *and* its Wind-down state: anything already
   resolved is reported as a ✓ line instead of asked again, and a day closed in
   the evening is not listed as pending at all.
 - **Daily Handoff** — "Share day" → structured text export for Claude, with an
-  optional instruction footer; clipboard + Web Share API. Opens with a
+  optional instruction footer; clipboard + Web Share API. Carries Day Notes when
+  non-empty, headed `DAY NOTES UPDATED` when they have changed since the last
+  copy or share. Opens with a
   **Previous Day Cleanup** section (completed / partially completed / moved
   forward, each with categories) so Claude can reconcile Todoist and FlowSavvy
   before touching today. Read-only — the export reports state, never changes it.
@@ -80,8 +85,11 @@ vs **Day logged/Closed**. Exposure records source/time/confidence/note only;
 their own onset date/time and an optional *possible* link to an exposure.
 
 ### Training
-Planned training lives in `plan.trainingDetails[type]`; logging opens the same
-activity form pre-filled and creates a real session linked via `sessionId`.
+Five types: **Padel, Cardio, HIIT, Resistance, Mobility**. Planned training lives
+in `plan.trainingDetails[type]`; logging opens the same activity form pre-filled
+and creates a real session linked via `sessionId`. HIIT carries a freeform
+`outline` alongside the shared location and duration. The Plan sheet's type
+selector scrolls horizontally rather than shrinking five cards into a row.
 
 ### Gamification / XP
 Focus tab shows a player card: XP → level → tier (Rookie, Grinder, Contender,
@@ -216,6 +224,37 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-29 — Day Notes are context, and never become Actions
+**Decision:** Each date carries freeform Day Notes, stored as `plan.dayNotes` on
+that day's plan record and merged onto it like every other per-day field. Today
+shows one compact row — the first line in serif, a line count when there is more
+than one — which opens a sheet that autosaves as you type. The Handoff carries
+them when non-empty, headed `DAY NOTES UPDATED` when they have changed since the
+last copy or share (tracked per date in `localStorage`, since "what I already
+gave Claude" is a device fact, not day data).
+**Why:** This absorbs the freeform role NotePlan was doing, without Ledger
+growing a second task system.
+**Implications:** Nothing in Day Notes is ever parsed into Actions. "Call Mark
+tomorrow" stays a sentence until Shaun writes it as an action himself — Day
+Notes is thinking, Actions is committed work.
+
+### 2026-09-29 — HIIT is a training type, not a flavour of Cardio
+**Decision:** HIIT joins Padel, Cardio, Resistance and Mobility as a first-class
+type (`hiit`), with its own accent, icon, planned details, logging, Recorded
+Activity, stats card, Quick Log tile, calendar indicator and Handoff line. Its
+planned detail is a freeform `outline` beside the shared location and duration —
+not a workout builder. Historical Cardio is untouched; HIIT applies only to
+sessions explicitly recorded as HIIT.
+**Why:** It is a distinct kind of session, and folding it into Cardio would have
+made both unreadable in reporting.
+**Implications:** The warm end of the accent palette was full — every warm
+candidate sat closer to gluten or padel than the tightest existing pair
+(yoga/weight, 15.0 CIE76). HIIT takes violet (`#8f7ab8` / `#6a5599` light) at
+23.0, the one open slot at proper spacing. Its icon is a work/rest square wave:
+Cardio already owns the continuous pulse line and Quick add owns the bolt. Five
+cards no longer fit the Plan selector, so that row scrolls horizontally, bleeding
+to the sheet edges so the next card peeks.
 
 ### 2026-09-23 — The Handoff reports yesterday so Claude can reconcile, not re-create
 **Decision:** Every Daily Handoff opens with `PREVIOUS DAY CLEANUP`, derived from
@@ -558,6 +597,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-29) — Day Notes added to Today (per-date freeform context, autosaved,
+  carried into the Handoff); HIIT added as a fifth training type across planning,
+  logging, stats, Quick Log, calendar and export.
 - (2026-09-23) — Daily Handoff gains a Previous Day Cleanup section and a
   reconciliation-first instruction footer, so external tools can be cleaned up
   before today's work is created.
