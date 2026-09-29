@@ -1,14 +1,14 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-29 (against `main` @ `bc6f19d` + Review Day fix and build stamp)
+Last updated: 2026-09-29 (training-plan persistence fix; Focus / Progress / Calendar integration, Phase 1)
 
 ---
 
 ## Current State
 
 Ledger is a **single-file PWA**: the entire app (HTML, CSS, JS) lives in
-`index.html` (~8,000 lines, no build step, no framework, ES5-style vanilla JS).
+`index.html` (~10,000 lines, no build step, no framework, ES5-style vanilla JS).
 Supporting files: `sw.js`, `manifest.json`, `fonts/` (self-hosted Playfair
 Display + Inter woff2 subsets), `hero-mountain.webp`, icons, `avatars/`,
 and `functions/` (one Firebase Cloud Function).
@@ -71,11 +71,19 @@ two Morning Prime routines, the Wind-down routine and its prominence hour.
 
 ### Other tabs
 - **Plan** — 7-day week list with per-day summaries; meal ideas library.
-- **Calendar** — month grid, day detail, day status.
-- **Progress** (`view-stats`) — weekly bar chart, health & training stat cards,
-  stat detail sheets.
-- **Focus** — player card (XP/level/tier/streak/avatar), priorities, target
-  weight, focus items, the entry to Settings, and at its foot a muted **build
+The three reflective tabs have one job each: **Focus** — where am I going?
+**Progress** — am I moving there? **Calendar** — what actually happened?
+- **Calendar** — month grid with an activity filter (All, Training, Padel,
+  Resistance, HIIT, Cardio, Mobility, Weight, Nutrition), day detail reading
+  Planned → Recorded → Outcome, day status. A filter chosen from Progress holds
+  for that visit; any other way in shows everything.
+- **Progress** (`view-stats`) — **Towards your focus** (each priority that names
+  its evidence, with a factual signal), then the weekly bar chart, the health &
+  training stat cards and their detail sheets. A detail sheet names the priority
+  it supports and links to those days in Calendar.
+- **Focus** — player card (XP/level/tier/streak/avatar), priorities (optionally
+  linked to evidence, with a signal and **View progress →**), target weight,
+  focus items (optionally supporting a priority), the entry to Settings, and at its foot a muted **build
   footer**: `Build 7f3a2c1 · 29 Sep, 04:31` / `Pages: Current`. Tapping it opens a
   small detail sheet.
 
@@ -89,7 +97,9 @@ their own onset date/time and an optional *possible* link to an exposure.
 ### Training
 Five types: **Padel, Cardio, HIIT, Resistance, Mobility**. Planned training lives
 in `plan.trainingDetails[type]`; logging opens the same activity form pre-filled
-and creates a real session linked via `sessionId`. HIIT carries a freeform
+and creates a real session linked via `sessionId`. Plan saves are optimistic:
+the in-memory plan is the saved plan at once, and the listener converges on it.
+HIIT carries a freeform
 `outline` alongside the shared location and duration. The Plan sheet's type
 selector scrolls horizontally rather than shrinking five cards into a row.
 
@@ -239,6 +249,40 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-29 — Focus is direction, Progress is evidence, Calendar is what happened
+**Decision:** the three tabs keep distinct jobs and are joined by shared records,
+not by a new layer. Focus holds priorities (outcomes) and active focus
+(behaviours/skills now; may support a priority, never has to). A priority may
+optionally name its evidence (`evidenceType` on the priority record: weight,
+all training, one training type, nutrition or linked actions). Progress opens
+with **Towards your focus** for linked priorities; its detail sheets say which
+priority they support and open Calendar filtered to that activity.
+**Why:** the tabs were three unconnected views of the same records.
+**Implications:** no scores, percentages or pass/fail colour: signals are counts
+and the weight gap only (e.g. `96.1kg → 90kg · 6.1kg to go`, `2 sessions this
+week · 3 this month`), and missing data reads as "none logged", never failure.
+Qualitative priorities are valid with no link. Actions reuse their existing
+`priorityId`; completed linked actions show on any priority. Weight uses the one
+target under Targets rather than a second target on the priority. Counts reuse
+the Progress cards' windows so the two tabs agree. XP is untouched. The priority
+and focus editors now build on the stored record.
+
+### 2026-09-29 — A saved plan is the plan immediately
+**Decision:** `savePlanForDate` updates the in-memory plan before the Firestore
+write and keeps it until that write settles; the plans listener re-applies any
+plan still in flight. Training Details returns the plan it saved, and the Plan
+sheet reopens from that plan, not from a lookup.
+**Why (root cause):** with Firestore live, the plan changed only when the
+snapshot arrived. Details saved without waiting, then reopened the Plan sheet
+from the stale plan (training type unselected, details gone); pressing Save plan
+then wrote that stale sheet over both. Reproduced under 700ms latency for HIIT:
+after Save plan the stored plan had no types and no details. Every training type
+was affected; localStorage mode never showed it.
+**Implications:** verified for all five types (time, location, duration, notes
+and each type's own fields) through reopen, close, reload, Today and the
+Handoff. `activityTime` is now kept on planned details and shown in the Today
+summary and Handoff. Plan deletion still waits for the snapshot (not changed).
 
 ### 2026-09-29 — Review Day answers are held by the sheet until the record confirms them
 **Decision:** Review Day keeps its own record of what was chosen in the sheet,
@@ -653,6 +697,10 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-29) — Planned training details (HIIT and every other type) no longer
+  vanish on Save to plan under Firestore. Focus, Progress and Calendar joined:
+  priority evidence links, Towards your focus, cross-navigation, Calendar
+  activity filter, Planned / Recorded / Outcome day detail.
 - (2026-09-29) — Review Day advances on one tap (and no longer saves a second
   tap against the first action under Firestore). Focus shows the deployed build,
   and Ledger reports whether Pages and this device are current.

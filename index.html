@@ -1068,6 +1068,46 @@
   .focus-body { flex: 1; min-width: 0; }
   .focus-note { font-family: var(--sans); font-size: 12.5px; color: var(--text-2); margin-top: 4px; line-height: 1.45; }
   .focus-item { align-items: center; }
+  .section-hint { font-size: 12px; color: var(--text-3); margin: calc(-1 * var(--sp-2)) 0 var(--sp-2); line-height: 1.45; }
+  .prio-signal { display: flex; align-items: baseline; gap: 7px; font-size: 12.5px; color: var(--text); margin-top: 7px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+  .prio-signal .dot { width: 5px; height: 5px; background: var(--gold); transform: translateY(-1px); }
+  .prio-signal.quiet { color: var(--text-2); }
+  .prio-link {
+    display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; padding: 4px 0;
+    background: none; border: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--gold);
+  }
+  .prio-link:active { opacity: 0.6; }
+  .prio-link svg { width: 12px; height: 12px; display: block; }
+  .field-hint { font-size: 12px; color: var(--text-3); margin: -6px 2px 16px; line-height: 1.45; }
+  .focus-supports { font-family: var(--sans); font-size: 11.5px; color: var(--text-3); margin-top: 4px; }
+  #focusEvidence { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); padding: 0 17px; }
+  #focusEvidence .empty-state { padding: 16px 0; font-size: 13px; }
+  .fe-row { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+  .fe-row:last-child { border-bottom: none; }
+  .fe-row.clickable { cursor: pointer; transition: opacity 0.12s ease; }
+  .fe-row.clickable:active { opacity: 0.65; }
+  .fe-body { flex: 1; min-width: 0; }
+  .fe-title { font-family: var(--serif); font-size: 15.5px; color: var(--text); line-height: 1.35; }
+  .fe-kind { font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); margin-top: 6px; }
+  .fe-row .prio-signal { margin-top: 3px; }
+  .fe-row .chev { color: var(--text-3); display: flex; }
+  .fe-row .chev svg { width: 15px; height: 15px; display: block; }
+  .stat-links { margin: 16px 0 14px; }
+  .stat-supports { border: 1px solid var(--line); border-radius: var(--r-md); padding: 11px 13px; margin-bottom: 8px; }
+  .stat-supports-kicker { font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); }
+  .stat-supports-title { font-family: var(--serif); font-size: 15px; color: var(--text); margin-top: 4px; }
+  .stat-supports .prio-signal { margin-top: 4px; }
+  .cal-filter { display: flex; gap: 6px; overflow-x: auto; margin: 0 -16px var(--sp-4); padding: 0 16px 2px; scrollbar-width: none; }
+  .cal-filter::-webkit-scrollbar { display: none; }
+  .cal-filter button {
+    flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 100px; border: 1px solid var(--line); background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 11.5px; font-weight: 500; color: var(--text-2);
+  }
+  .cal-filter button .dot { width: 5px; height: 5px; }
+  .cal-filter button.sel { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .cal-filter button.sel .dot { background: var(--ink); opacity: 0.55; }
   .target-weight-card {
     border: 1px solid var(--line); border-radius: var(--r-lg);
     background: var(--surface); padding: 19px 20px; margin-bottom: 4px; cursor: pointer;
@@ -2554,11 +2594,15 @@
 
   <section class="view" id="view-calendar">
     <div class="cal-summary" id="calSummary"></div>
+    <div class="cal-filter" id="calFilter" role="group" aria-label="Show activity"></div>
     <div class="cal-grid" id="calGrid"></div>
     <div class="cal-day-detail" id="calDayDetail"></div>
   </section>
 
   <section class="view" id="view-stats">
+    <h2 class="section-title">Towards your focus</h2>
+    <div id="focusEvidence"></div>
+
     <h2 class="section-title">Recent progress</h2>
     <div class="weekbar" id="weekBar"></div>
 
@@ -2571,10 +2615,12 @@
     <div id="playerCard"></div>
 
     <h2 class="section-title">Priorities</h2>
+    <p class="section-hint">Where you're heading. Link one to what you record and it shows its evidence here and in Progress.</p>
     <div id="prioritiesList"></div>
     <button class="custom-log-btn" id="addPriorityBtn">+ Add priority</button>
 
     <h2 class="section-title">Active focus</h2>
+    <p class="section-hint">What you're practising now. It can support a priority, but doesn't have to.</p>
     <div id="focusList"></div>
     <button class="custom-log-btn" id="addFocusBtn">+ Add focus area</button>
 
@@ -2925,7 +2971,8 @@
           priorities = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
           prioritiesLoaded = true;
           seedPrioritiesIfNeeded();
-          if (currentView === 'focus') renderPriorities();
+          if (currentView === 'focus') renderFocus();
+          if (currentView === 'stats') renderStats();
         }, function(err){ console.error('priorities snapshot error', err); });
       dbRef.collection('ledger_commitments')
         .onSnapshot(function(snap){
@@ -3311,6 +3358,7 @@
     }
     localSavePriorities();
     renderPriorities();
+    if (currentView === 'stats') renderStats();
   }
 
   async function deletePriority(id){
@@ -3632,7 +3680,12 @@
       document.getElementById('view-' + currentView).classList.add('active');
       syncGlobalFab();
       if (currentView === 'log') renderLogView();
-      if (currentView === 'calendar') renderCalendar();
+      if (currentView === 'calendar'){
+        // a filter chosen from Progress holds for that visit; any other way in shows everything
+        if (!calFilterKeep) calFilter = 'all';
+        calFilterKeep = false;
+        renderCalendar();
+      }
       if (currentView === 'stats') renderStats();
       if (currentView === 'focus') renderFocus();
       if (currentView === 'plan') renderPlan();
@@ -7546,7 +7599,46 @@
   // ---------- calendar view ----------
   var CAL_TYPE_ORDER = ['padel','resistance','hiit','cardio','yoga','weight','nutrition','photo'];
 
+  // Show one kind of activity on the grid. The same records, just narrowed; 'all' is the usual view.
+  var CAL_FILTERS = [
+    { key: 'all', label: 'All' },
+    { key: 'training', label: 'Training' },
+    { key: 'padel', label: 'Padel' },
+    { key: 'resistance', label: 'Resistance' },
+    { key: 'hiit', label: 'HIIT' },
+    { key: 'cardio', label: 'Cardio' },
+    { key: 'yoga', label: 'Mobility' },
+    { key: 'weight', label: 'Weight' },
+    { key: 'nutrition', label: 'Nutrition' }
+  ];
+  var calFilter = 'all';
+  var calFilterKeep = false;
+  function calFilterLabel(key){
+    var f = CAL_FILTERS.find(function(x){ return x.key === key; });
+    return f ? f.label : key;
+  }
+  function renderCalFilter(){
+    var wrap = document.getElementById('calFilter');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    CAL_FILTERS.forEach(function(f){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.filter = f.key;
+      b.className = f.key === calFilter ? 'sel' : '';
+      b.setAttribute('aria-pressed', f.key === calFilter ? 'true' : 'false');
+      var dotType = (f.key === 'all' || f.key === 'training') ? '' : f.key;
+      b.innerHTML = (dotType ? '<span class="dot ' + dotType + '"></span>' : '') + '<span></span>';
+      b.lastChild.textContent = f.label;
+      b.addEventListener('click', function(){ calFilter = f.key; renderCalendar(); });
+      wrap.appendChild(b);
+    });
+    var sel = wrap.querySelector('button.sel');
+    if (sel && sel.scrollIntoView && calFilter !== 'all') sel.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
+
   function renderCalendar(){
+    renderCalFilter();
     var grid = document.getElementById('calGrid');
     grid.innerHTML = '';
     ['S','M','T','W','T','F','S'].forEach(function(d){
@@ -7563,6 +7655,8 @@
     var isCurrentMonth = (year === new Date().getFullYear() && month === new Date().getMonth());
     var activeDayCount = 0;
     var trainingDayCount = 0; // excludes passive log-only days like photo/nutrition-only
+    var filtered = calFilter !== 'all';
+    var filterDayCount = 0, filterEntryCount = 0;
 
     for (var i=0; i<firstDow; i++){
       var pad = document.createElement('div');
@@ -7579,10 +7673,14 @@
       else if (dateStr === selectedDay) cell.classList.add('selected');
       else if (dayStatus && dayStatus.status !== 'unknown') cell.classList.add('status-' + dayStatus.status);
 
-      var daySessions = sessions.filter(function(s){ return s.date === dateStr; });
+      var daySessions = sessions.filter(function(s){ return s.date === dateStr && (!filtered || evidenceMatches(calFilter, s)); });
       var typesPresent = [];
       daySessions.forEach(function(s){ if (typesPresent.indexOf(s.type) === -1) typesPresent.push(s.type); });
-      var hasActions = commitments.some(function(c){ return c.date === dateStr; });
+      var hasActions = !filtered && commitments.some(function(c){ return c.date === dateStr; });
+      if (filtered && daySessions.length && (!isCurrentMonth || dateObj <= new Date())){
+        filterDayCount++;
+        filterEntryCount += daySessions.length;
+      }
 
       if (typesPresent.length && (!isCurrentMonth || dateObj <= new Date())){
         activeDayCount++;
@@ -7608,7 +7706,8 @@
       grid.appendChild(cell);
     }
 
-    renderCalSummary(daysInMonth, activeDayCount, trainingDayCount, isCurrentMonth);
+    if (filtered) renderCalFilterSummary(filterDayCount, filterEntryCount);
+    else renderCalSummary(daysInMonth, activeDayCount, trainingDayCount, isCurrentMonth);
     renderDayDetail();
   }
 
@@ -7626,6 +7725,16 @@
     wrap.innerHTML =
       '<div class="stat-num"><div class="val display">' + trainingDayCount + ' / ' + daysSoFar + '</div><div class="lbl">Training days this month</div></div>' +
       '<div class="stat-num"><div class="val display">' + pct + '%</div><div class="lbl">Consistency</div></div>';
+  }
+
+  // Counts only: a filtered month states what was recorded, without a consistency judgement.
+  function renderCalFilterSummary(dayCount, entryCount){
+    var wrap = document.getElementById('calSummary');
+    var label = calFilterLabel(calFilter);
+    var noun = calFilter === 'weight' ? 'Weigh-ins' : (calFilter === 'nutrition' ? 'Days logged' : 'Sessions');
+    wrap.innerHTML =
+      '<div class="stat-num"><div class="val display">' + dayCount + '</div><div class="lbl">' + label + ' days this month</div></div>' +
+      '<div class="stat-num"><div class="val display">' + entryCount + '</div><div class="lbl">' + noun + '</div></div>';
   }
 
   function renderDayDetail(){
@@ -7663,15 +7772,24 @@
       wrap.appendChild(rbHead);
       roadblocks.forEach(function(c){ wrap.appendChild(buildCommitmentRow(c, dateStr)); });
     }
+    var daySessions = sessions.filter(function(s){ return s.date === dateStr; });
     if (plan && (plan.roadblocks || plan.trainingTypes && plan.trainingTypes.length || plan.restDay)){
-      var planHead = document.createElement('div'); planHead.className = 'cal-day-section-title'; planHead.textContent = 'Plan';
+      var planHead = document.createElement('div'); planHead.className = 'cal-day-section-title'; planHead.textContent = 'Planned';
       wrap.appendChild(planHead);
       var planWrap = document.createElement('div'); planWrap.className = 'plan-chips';
       if (plan.restDay) planWrap.innerHTML += '<span class="plan-chip outline">Rest day</span>';
-      else if (plan.trainingTypes) planWrap.innerHTML += plan.trainingTypes.map(function(t){
-        var color = getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim();
-        return '<span class="plan-chip" style="--chip-color:'+color+'">' + TYPE_LABEL[t] + '</span>';
-      }).join('');
+      else if (plan.trainingTypes) plan.trainingTypes.forEach(function(t){
+        var det = (plan.trainingDetails && plan.trainingDetails[t]) || {};
+        var bits = [SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]];
+        if (det.activityTime) bits.push(det.activityTime);
+        if (det.durationMin) bits.push(det.durationMin + ' min');
+        var recorded = det.completed || daySessions.some(function(s){ return s.type === t; });
+        var chip = document.createElement('span');
+        chip.className = 'plan-chip' + (recorded ? ' done' : '');
+        chip.style.setProperty('--chip-color', getComputedStyle(document.documentElement).getPropertyValue('--' + t).trim());
+        chip.textContent = bits.join(' · ');
+        planWrap.appendChild(chip);
+      });
       wrap.appendChild(planWrap);
       if (plan.roadblocks){
         var pr = document.createElement('div'); pr.className = 'plan-roadblock';
@@ -7680,6 +7798,18 @@
         wrap.appendChild(pr);
       }
     }
+
+    var logsHead = document.createElement('div'); logsHead.className = 'cal-day-section-title'; logsHead.textContent = 'Recorded';
+    wrap.appendChild(logsHead);
+    if (!daySessions.length){
+      var e = document.createElement('div');
+      e.className = 'empty-state compact';
+      e.textContent = 'Nothing recorded this day';
+      wrap.appendChild(e);
+    } else {
+      daySessions.forEach(function(s){ wrap.appendChild(renderSessionItem(s)); });
+    }
+
     if (dayStatus && (dayStatus.status || dayStatus.closedAt)){
       var outHead = document.createElement('div'); outHead.className = 'cal-day-section-title'; outHead.textContent = 'Outcome';
       wrap.appendChild(outHead);
@@ -7700,18 +7830,6 @@
       reviewBtn.textContent = 'Review day';
       reviewBtn.addEventListener('click', function(){ openReviewDaySheet(dateStr); });
       wrap.appendChild(reviewBtn);
-    }
-
-    var logsHead = document.createElement('div'); logsHead.className = 'cal-day-section-title'; logsHead.textContent = 'Logs';
-    wrap.appendChild(logsHead);
-    var daySessions = sessions.filter(function(s){ return s.date === dateStr; });
-    if (!daySessions.length){
-      var e = document.createElement('div');
-      e.className = 'empty-state compact';
-      e.textContent = 'No sessions logged this day';
-      wrap.appendChild(e);
-    } else {
-      daySessions.forEach(function(s){ wrap.appendChild(renderSessionItem(s)); });
     }
 
     var addLabel = document.createElement('div');
@@ -7755,7 +7873,50 @@
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }
 
+  // The priorities that name their evidence, summarised from the same records as the cards below.
+  function renderFocusEvidence(){
+    var wrap = document.getElementById('focusEvidence');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    var linked = priorities.filter(function(p){ return !!p.evidenceType; });
+    if (!linked.length){
+      var e = document.createElement('div');
+      e.className = 'empty-state';
+      e.textContent = priorities.length
+        ? 'Link a priority to what you record (in Focus) to follow it here.'
+        : 'Set a priority in Focus to follow it here.';
+      wrap.appendChild(e);
+      return;
+    }
+    linked.forEach(function(p){
+      var row = document.createElement('div');
+      var hasDetail = EVIDENCE_WITH_DETAIL.indexOf(p.evidenceType) !== -1;
+      row.className = 'fe-row' + (hasDetail ? ' clickable' : '');
+      var body = document.createElement('div');
+      body.className = 'fe-body';
+      var title = document.createElement('div');
+      title.className = 'fe-title';
+      title.textContent = p.title;
+      body.appendChild(title);
+      appendSignals(body, prioritySignals(p));
+      var kind = document.createElement('div');
+      kind.className = 'fe-kind';
+      kind.textContent = EVIDENCE_LABEL[p.evidenceType] || '';
+      body.appendChild(kind);
+      row.appendChild(body);
+      if (hasDetail){
+        var chev = document.createElement('span');
+        chev.className = 'chev';
+        chev.innerHTML = UI_ICON.chevronRight;
+        row.appendChild(chev);
+        row.addEventListener('click', function(){ openStatDetailSheet(p.evidenceType); });
+      }
+      wrap.appendChild(row);
+    });
+  }
+
   function renderStats(){
+    renderFocusEvidence();
     renderWeekBar();
     var container = document.getElementById('statsCards');
     container.innerHTML = '';
@@ -7971,9 +8132,38 @@
     return wrap;
   }
 
+  // Which priorities this detail counts towards, and a way into the matching Calendar days.
+  function renderStatLinks(type){
+    var wrap = document.getElementById('statDetailLinks');
+    if (!wrap) return;
+    priorities.filter(function(p){ return evidenceSupports(p.evidenceType, type); }).forEach(function(p){
+      var box = document.createElement('div');
+      box.className = 'stat-supports';
+      box.innerHTML = '<div class="stat-supports-kicker">Supports</div><div class="stat-supports-title"></div>';
+      box.lastChild.textContent = p.title;
+      appendSignals(box, prioritySignals(p).slice(0, 1));
+      wrap.appendChild(box);
+    });
+    if (CAL_FILTERS.some(function(f){ return f.key === type; })){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'prio-link';
+      btn.id = 'statCalendarLink';
+      btn.innerHTML = 'View ' + (type === 'weight' ? 'weigh-ins' : calFilterLabel(type) + ' days') + ' in Calendar' + UI_ICON.arrowRight;
+      btn.addEventListener('click', function(){
+        closeSheet();
+        calFilter = type;
+        calFilterKeep = true;
+        calMonth = new Date(); calMonth.setDate(1);
+        document.querySelector('.tab-btn[data-view="calendar"]').click();
+      });
+      wrap.appendChild(btn);
+    }
+  }
+
   function openStatDetailSheet(type){
     editingId = null;
-    var title = TYPE_LABEL[type];
+    var title = type === 'training' ? 'Training' : TYPE_LABEL[type];
     var bodyHtml = '';
 
     if (type === 'weight'){
@@ -7985,9 +8175,11 @@
       sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
         '<div class="sheet-head"><div class="sheet-title">' + title + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
         '<div id="statDetailChart"></div>' +
+        '<div class="stat-links" id="statDetailLinks"></div>' +
         '<div id="statDetailList"></div>';
       backdrop.classList.add('open');
       document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      renderStatLinks(type);
 
       var chartWrap = document.getElementById('statDetailChart');
       var color = getComputedStyle(document.documentElement).getPropertyValue('--weight').trim();
@@ -8019,15 +8211,17 @@
     // Generic detail: weekly frequency chart + full entry list, newest first
     var entries = (type === 'gluten')
       ? sessions.filter(function(s){ return s.type === 'nutrition' && s.glutenExposure; })
-      : sessions.filter(function(s){ return s.type === type; });
+      : sessions.filter(function(s){ return evidenceMatches(type, s); });
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
       '<div class="sheet-head"><div class="sheet-title">' + title + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
       '<div id="statDetailChart"></div>' +
+      '<div class="stat-links" id="statDetailLinks"></div>' +
       '<div id="statDetailList"></div>';
     backdrop.classList.add('open');
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    renderStatLinks(type);
 
-    var color2 = getComputedStyle(document.documentElement).getPropertyValue('--' + type).trim();
+    var color2 = getComputedStyle(document.documentElement).getPropertyValue('--' + (type === 'training' ? 'gold' : type)).trim();
     var chartWrap2 = document.getElementById('statDetailChart');
     if (entries.length){
       chartWrap2.appendChild(renderWeeklyBarChart(entries, color2));
@@ -8884,6 +9078,104 @@
   }
 
   // ---------- priorities ----------
+  // A priority is an outcome. It may optionally name the evidence that shows movement towards
+  // it (`evidenceType` on the priority record). The evidence is only what is already recorded —
+  // sessions, weight entries, nutrition days, and actions carrying this priority's priorityId.
+  // Nothing is scored or judged, and a priority with no link is just as valid.
+  var EVIDENCE_TYPES = [
+    { key: 'weight', label: 'Weight' },
+    { key: 'training', label: 'All training' },
+    { key: 'padel', label: 'Padel' },
+    { key: 'resistance', label: 'Resistance' },
+    { key: 'hiit', label: 'HIIT' },
+    { key: 'cardio', label: 'Cardio' },
+    { key: 'yoga', label: 'Mobility' },
+    { key: 'nutrition', label: 'Nutrition' },
+    { key: 'actions', label: 'Linked actions' }
+  ];
+  var EVIDENCE_LABEL = {};
+  EVIDENCE_TYPES.forEach(function(e){ EVIDENCE_LABEL[e.key] = e.label; });
+  // evidence kinds that have a Progress detail and a Calendar filter
+  var EVIDENCE_WITH_DETAIL = ['weight','training','padel','resistance','hiit','cardio','yoga','nutrition'];
+
+  function evidenceMatches(key, s){
+    if (key === 'weight') return (s.type === 'weight' && s.weightKg) || (s.type === 'resistance' && s.bodyweight);
+    if (key === 'training') return PLAN_TRAINING_TYPES.indexOf(s.type) !== -1;
+    return s.type === key;
+  }
+  // Does a Progress detail of this kind count towards a priority linked to `key`?
+  function evidenceSupports(key, detailType){
+    if (!key) return false;
+    if (key === detailType) return true;
+    return key === 'training' && PLAN_TRAINING_TYPES.indexOf(detailType) !== -1;
+  }
+  function plural(n, one, many){ return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+
+  function linkedActionsDoneThisMonth(p){
+    return commitments.filter(function(c){
+      return c.priorityId === p.id && c.status === 'completed' && c.date && withinThisMonth(c);
+    }).length;
+  }
+
+  // Concise, factual lines for a priority's evidence. [] when there is nothing to say.
+  function prioritySignals(p){
+    var key = p.evidenceType || '';
+    var lines = [];
+    if (key === 'weight'){
+      var latest = getLatestWeight();
+      var target = presets.targetWeightKg;
+      if (latest == null) lines.push({ text: 'No weight logged yet', quiet: true });
+      else if (target == null) lines.push({ text: 'Latest ' + latest + 'kg · no target weight set' });
+      else {
+        var diff = latest - target;
+        var gap = (Math.abs(diff) < 0.05) ? 'at target' : (diff > 0 ? diff.toFixed(1) + 'kg to go' : Math.abs(diff).toFixed(1) + 'kg under');
+        lines.push({ text: latest + 'kg → ' + target + 'kg · ' + gap });
+      }
+    } else if (key === 'nutrition'){
+      var month = sessions.filter(function(s){ return s.type === 'nutrition' && withinThisMonth(s); });
+      var good = month.filter(function(s){ return s.dayRating === 'good'; }).length;
+      lines.push(month.length
+        ? { text: plural(good, 'on-track day') + ' this month · ' + month.length + ' logged' }
+        : { text: 'No nutrition days logged this month', quiet: true });
+    } else if (key === 'actions'){
+      var linked = commitments.filter(function(c){ return c.priorityId === p.id; });
+      var done = linkedActionsDoneThisMonth(p);
+      var open = linked.filter(function(c){ return c.status === 'planned'; }).length;
+      lines.push(linked.length
+        ? { text: plural(done, 'linked action') + ' completed this month' + (open ? ' · ' + open + ' open' : '') }
+        : { text: 'No actions linked yet', quiet: true });
+    } else if (key){
+      var matching = sessions.filter(function(s){ return evidenceMatches(key, s); });
+      var wk = matching.filter(function(s){ return withinDays(s, 7); }).length;
+      var mo = matching.filter(withinThisMonth).length;
+      lines.push((wk || mo)
+        ? { text: plural(wk, 'session') + ' this week · ' + mo + ' this month' }
+        : { text: 'No sessions logged this month', quiet: true });
+    }
+    // Actions already carry a priorityId; completed ones are evidence for any priority.
+    if (key !== 'actions'){
+      var doneActs = linkedActionsDoneThisMonth(p);
+      if (doneActs) lines.push({ text: plural(doneActs, 'linked action') + ' completed this month' });
+    }
+    return lines;
+  }
+
+  function appendSignals(el, lines){
+    lines.forEach(function(l){
+      var row = document.createElement('div');
+      row.className = 'prio-signal' + (l.quiet ? ' quiet' : '');
+      row.innerHTML = '<span class="dot"></span><span></span>';
+      row.lastChild.textContent = l.text;
+      el.appendChild(row);
+    });
+  }
+
+  function openProgressFor(key){
+    closeSheet();
+    document.querySelector('.tab-btn[data-view="stats"]').click();
+    openStatDetailSheet(key);
+  }
+
   function renderPriorities(){
     var list = document.getElementById('prioritiesList');
     if (!list) return;
@@ -8898,9 +9190,32 @@
     priorities.forEach(function(p){
       var row = document.createElement('div');
       row.className = 'focus-item';
-      row.innerHTML = '<div class="focus-body"><div class="focus-text">' + p.title + '</div>' +
-        (p.note ? '<div class="focus-note">' + p.note + '</div>' : '') + '</div>' +
-        '<span class="chev">' + UI_ICON.chevronRight + '</span>';
+      var body = document.createElement('div');
+      body.className = 'focus-body';
+      var title = document.createElement('div');
+      title.className = 'focus-text';
+      title.textContent = p.title;
+      body.appendChild(title);
+      if (p.note){
+        var note = document.createElement('div');
+        note.className = 'focus-note';
+        note.textContent = p.note;
+        body.appendChild(note);
+      }
+      appendSignals(body, prioritySignals(p));
+      if (EVIDENCE_WITH_DETAIL.indexOf(p.evidenceType) !== -1){
+        var link = document.createElement('button');
+        link.type = 'button';
+        link.className = 'prio-link';
+        link.innerHTML = 'View progress' + UI_ICON.arrowRight;
+        link.addEventListener('click', function(ev){ ev.stopPropagation(); openProgressFor(p.evidenceType); });
+        body.appendChild(link);
+      }
+      row.appendChild(body);
+      var chev = document.createElement('span');
+      chev.className = 'chev';
+      chev.innerHTML = UI_ICON.chevronRight;
+      row.appendChild(chev);
       row.addEventListener('click', function(){ openPrioritySheet(p); });
       list.appendChild(row);
     });
@@ -8909,24 +9224,45 @@
   function openPrioritySheet(existing){
     editingId = null;
     var isEditing = !!existing;
+    var evidenceOptions = [{ value: '', label: 'None — no measure' }].concat(
+      EVIDENCE_TYPES.map(function(e){ return { value: e.key, label: e.label }; }));
     sheetEl.innerHTML =
       '<div class="sheet-handle"></div>' +
       '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit priority' : 'New priority') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
-      '<div class="field"><label>Priority</label><input type="text" id="f_priorityTitle" placeholder="e.g. Reduce weight to 90kg" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
-      '<div class="field"><label>Note (optional)</label><textarea id="f_priorityNote" placeholder="…">' + (existing ? (existing.note||'') : '') + '</textarea></div>' +
+      '<div class="field"><label>Priority</label><input type="text" id="f_priorityTitle" placeholder="e.g. Reduce weight to 90kg"></div>' +
+      '<div class="field"><label>Note (optional)</label><textarea id="f_priorityNote" placeholder="…"></textarea></div>' +
+      fieldSelect('f_priorityEvidence', 'Evidence (optional)', evidenceOptions, existing ? (existing.evidenceType || '') : '') +
+      '<p class="field-hint" id="f_priorityEvidenceHint"></p>' +
       '<button class="save-btn" id="savePriorityBtn">Save</button>' +
       (isEditing ? '<button class="delete-btn" id="deletePriorityBtn">Delete</button>' : '');
+    document.getElementById('f_priorityTitle').value = existing ? (existing.title || '') : '';
+    document.getElementById('f_priorityNote').value = existing ? (existing.note || '') : '';
+    var evSel = document.getElementById('f_priorityEvidence');
+    var evHint = document.getElementById('f_priorityEvidenceHint');
+    function syncEvidenceHint(){
+      var v = evSel.value;
+      evHint.textContent =
+        v === 'weight' ? 'Uses your weight entries and the target weight under Targets.' :
+        v === 'actions' ? 'Counts actions you link to this priority when adding them.' :
+        v === 'nutrition' ? 'Counts the nutrition days you log.' :
+        v === 'training' ? 'Counts every training session you log.' :
+        v ? 'Counts the ' + (v === 'hiit' ? 'HIIT' : EVIDENCE_LABEL[v].toLowerCase()) + ' sessions you log.' :
+        'Fine for priorities that aren’t measured. Linked actions still show when you complete them.';
+    }
+    evSel.addEventListener('change', syncEvidenceHint);
+    syncEvidenceHint();
     backdrop.classList.add('open');
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
     document.getElementById('savePriorityBtn').addEventListener('click', function(){
       var title = document.getElementById('f_priorityTitle').value.trim();
       if (!title) { closeSheet(); return; }
-      var out = {
+      // build on the stored record so fields this sheet doesn't own (groupName, …) survive
+      var out = Object.assign({}, existing || {}, {
         title: title,
         note: document.getElementById('f_priorityNote').value,
+        evidenceType: evSel.value || null,
         createdAt: existing ? existing.createdAt : new Date().toISOString()
-      };
-      if (isEditing) out.id = existing.id;
+      });
       savePriority(out);
       closeSheet();
     });
@@ -8978,7 +9314,15 @@
     div.className = 'focus-item' + (f.done ? ' done' : '');
     div.innerHTML =
       '<span class="focus-tag ' + f.category + '">' + FOCUS_CATEGORY_LABEL[f.category] + '</span>' +
-      '<span class="focus-text">' + f.text + '</span>';
+      '<div class="focus-body"><div class="focus-text"></div></div>';
+    div.querySelector('.focus-text').textContent = f.text;
+    var supports = f.priorityId && priorities.find(function(p){ return p.id === f.priorityId; });
+    if (supports){
+      var sup = document.createElement('div');
+      sup.className = 'focus-supports';
+      sup.textContent = 'Supports: ' + supports.title;
+      div.querySelector('.focus-body').appendChild(sup);
+    }
     div.addEventListener('click', function(){ openFocusSheet(f); });
     return div;
   }
@@ -8993,22 +9337,27 @@
         {value:'technique', label:'Technique'}, {value:'footwork', label:'Footwork'},
         {value:'physical', label:'Physical'}, {value:'general', label:'General'}
       ], d.category) +
-      '<div class="field"><label>Description</label><textarea id="f_focusText" placeholder="e.g. Bent-knee volleys at the net">' + (d.text||'') + '</textarea></div>' +
+      '<div class="field"><label>Description</label><textarea id="f_focusText" placeholder="e.g. Bent-knee volleys at the net"></textarea></div>' +
+      (priorities.length ? fieldSelect('f_focusPriority', 'Supports a priority (optional)',
+        [{ value: '', label: 'None' }].concat(priorities.map(function(p){ return { value: p.id, label: p.title }; })),
+        d.priorityId || '') : '') +
       (isEditing ? fieldCheckbox('f_focusDone', 'Mark as completed', d.done) : '') +
       '<button class="save-btn" id="saveFocusBtn">Save</button>' +
       (isEditing ? '<button class="delete-btn" id="deleteFocusBtn">Delete</button>' : '');
+    document.getElementById('f_focusText').value = d.text || '';
     backdrop.classList.add('open');
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
     document.getElementById('saveFocusBtn').addEventListener('click', function(){
       var text = document.getElementById('f_focusText').value.trim();
       if (!text) { closeSheet(); return; }
-      var out = {
+      var prioSel = document.getElementById('f_focusPriority');
+      var out = Object.assign({}, existing || {}, {
         category: document.getElementById('f_focusCategory').value,
         text: text,
         done: isEditing ? document.getElementById('f_focusDone').checked : false,
         createdAt: d.createdAt || new Date().toISOString()
-      };
-      if (isEditing) out.id = existing.id;
+      });
+      if (prioSel) out.priorityId = prioSel.value || null;
       saveFocusItem(out);
       closeSheet();
     });

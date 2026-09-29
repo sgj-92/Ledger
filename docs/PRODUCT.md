@@ -103,9 +103,9 @@ casually.
 | --- | --- |
 | **Plan** | The week ahead: per-day summaries and the meal ideas library. |
 | **Today** | The execution surface. Morning Prime (Plan, Move), Actions, Health & fitness, Day Notes, Quick Log, Evening Wind-down, Recorded Activity, Backlog, Catch-up, Daily Handoff. |
-| **Calendar** | Month view, day detail, day status. |
-| **Progress** | Weekly chart, health and training stats, stat detail. |
-| **Focus** | Player card, priorities, target weight, focus items, Settings. |
+| **Calendar** | What actually happened. Month view with an activity filter, day detail (Planned, Recorded, Outcome), day status. |
+| **Progress** | Am I moving there? Towards your focus, weekly chart, health and training stats, stat detail. |
+| **Focus** | Where am I going? Player card, priorities (optionally linked to evidence), active focus, target weight, Settings. |
 
 Today is the centre of the product. Everything else supports it.
 
