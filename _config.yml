@@ -1,0 +1,17 @@
+# GitHub Pages builds this site with Jekyll on every push to main (the legacy
+# "pages build and deployment" run). This file exists for one purpose: stamping
+# the deployed build, so the foot of Focus can say exactly which commit a device
+# is running. Same mechanism as Money Padel (MP-Dashboard-NewRatings).
+#
+# buildInfo.pages.js is a Liquid template rendered to buildInfo.js with the
+# commit being built. The committed buildInfo.js is the local placeholder and is
+# excluded, so it can never be copied over the stamped one.
+#
+# Nothing else in Ledger uses Liquid: index.html has no front matter, so Jekyll
+# copies it byte for byte.
+
+# The build time is Shaun's time, not the build server's (UTC).
+timezone: Europe/London
+
+exclude:
+  - buildInfo.js

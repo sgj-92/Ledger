@@ -210,6 +210,35 @@ These are observed facts about this repo, useful before making changes.
 - Firestore security rules are **not** in this repo and are currently fully
   open. See Open Questions in `PROJECT_LEDGER.md` before widening exposure.
 
+## Deploys and the build stamp
+- GitHub Pages deploys `main` by the legacy branch source ("pages build and
+  deployment", event `dynamic`), which runs Jekyll (github-pages 232). The same
+  mechanism as Money Padel (`MP-Dashboard-NewRatings`).
+- `buildInfo.pages.js` is a Liquid template the Pages build renders to
+  `buildInfo.js` with `site.github.build_revision` (the commit being built) and
+  the build time (Europe/London, from `_config.yml`). The committed
+  `buildInfo.js` is a placeholder (`sha: null` → "local build") that
+  `_config.yml` excludes so it can never overwrite the stamp. **Never write a SHA
+  into it by hand.** `index.html` has no front matter, so Jekyll publishes it
+  byte for byte; keep it that way.
+- **Markdown in this repo is rendered through Liquid on Pages.** github-pages
+  enables `jekyll-optional-front-matter` by default, so every `.md` file here —
+  this one, `PROJECT_LEDGER.md`, `docs/` — is published as HTML via Liquid. A
+  double opening brace or a brace-percent pair in any of them is a Liquid tag,
+  and an unterminated one fails the whole Pages build. Write them in words.
+- The Focus footer shows the stamp. The stamp is loaded with the page and is
+  never fetched from GitHub; only the freshness *comparison* reads GitHub, via
+  the public, unauthenticated commits API. **No token ever goes in client code.**
+- **Standing practice after pushing (from Money Padel, NEXT #15h):** confirm a
+  "pages build and deployment" run appeared for the pushed SHA
+  (`GET /repos/sgj-92/Ledger/actions/runs`). If a push produced no run, make the
+  last change through the GitHub API (a commit authored that way reliably
+  triggers Pages), then confirm the run. The Pages API itself is not reachable
+  from Claude Code sessions; the Actions runs and Deployments APIs are.
+- To verify a change to the stamp or `_config.yml` locally, build with
+  github-pages 232 and diff the published file set before and after; nothing
+  but `buildInfo.js` should differ.
+
 ## Verifying changes
 - There are no automated tests in the repo. Changes are verified by driving the
   app in a headless browser (Playwright against a local static server) and by

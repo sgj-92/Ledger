@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-29 (against `main` @ `078bc2d` + Day Notes and HIIT)
+Last updated: 2026-09-29 (against `main` @ `bc6f19d` + Review Day fix and build stamp)
 
 ---
 
@@ -75,7 +75,9 @@ two Morning Prime routines, the Wind-down routine and its prominence hour.
 - **Progress** (`view-stats`) — weekly bar chart, health & training stat cards,
   stat detail sheets.
 - **Focus** — player card (XP/level/tier/streak/avatar), priorities, target
-  weight, focus items, and the entry to Settings.
+  weight, focus items, the entry to Settings, and at its foot a muted **build
+  footer**: `Build 7f3a2c1 · 29 Sep, 04:31` / `Pages: Current`. Tapping it opens a
+  small detail sheet.
 
 ### Nutrition
 Daily checks (gluten-free, minimal processed, water, water amount, suspected
@@ -119,6 +121,19 @@ and one or more `area:` — never status and never priority. Capturing an Issue
 does not authorise building it; see the workflow rules in `CLAUDE.md`.
 
 **The GitHub Project is not yet created** — see Open Questions 7.
+
+### Build and deploy freshness
+The deployed commit is stamped into `buildInfo.js` by the Pages build itself
+(Money Padel's mechanism — see `CLAUDE.md` → Deploys and the build stamp).
+Freshness compares three SHAs: **loaded** (the stamp this page was loaded with),
+**served** (`buildInfo.js` fetched again with `no-store` — what Pages hands out
+now) and **latest** (HEAD of `main` from GitHub's public, unauthenticated API).
+served ≠ latest → `Pages: Update pending`; loaded ≠ served → `App: Refresh
+available` and a quiet "New Ledger build available · Refresh" offer. Checked on
+Focus and on returning to the app, at most every 10 minutes (GitHub allows 60
+anonymous reads an hour). The service worker is a pure pass-through and cannot
+pin an old build; staleness comes from Pages' 10-minute HTTP cache or an
+installed app left open, both of which the check reports.
 
 ### Persistence
 Firebase Firestore (project `ledger-6aec3`) with a **full localStorage
@@ -224,6 +239,46 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-29 — Review Day answers are held by the sheet until the record confirms them
+**Decision:** Review Day keeps its own record of what was chosen in the sheet,
+reads every row through it, advances on the tap, and persists in the background;
+the Firestore listener then confirms into the same sheet and the held choice is
+released. One tap per step.
+**Why (root cause):** with Firestore live, `saveCommitment` does not touch the
+in-memory `commitments` — the `onSnapshot` listener does, one round-trip later.
+The sheet re-rendered from `commitments` straight after the tap, so it drew the
+same item again, and the handlers wired by that render still pointed at it. The
+**second tap was saved against the first item**: reproduced under 700ms latency,
+tapping Completed / Partial / Disrupted for three different actions wrote all
+three to the first one and never reached the last two. It never showed with the
+localStorage fallback, which updates memory synchronously.
+**Implications:** each record is merged onto the latest copy, so `isKeyTask`,
+`originalDate` and order survive. The item a grid answers for travels with the
+grid (`data-id`), not in a closure. The overall-status stage now treats a day
+closed by Wind-down as resolved, like the entry points already did. The item
+title is now written as text rather than interpolated as markup. A failed save
+releases the choice and says so.
+
+### 2026-09-29 — The build says which commit it is; the app says whether that is current
+**Decision:** Ledger adopts Money Padel's build stamp unchanged in principle —
+the Pages build renders the commit into `buildInfo.js`, loaded with the page —
+and adds what Money Padel does not have: an in-app comparison against what Pages
+is serving and what GitHub has, and a quiet refresh offer.
+**Why:** Shaun needs to know he is looking at the newest build, and which way
+round it is when he is not.
+**Implications:** No token exists in the client; the one GitHub read is public
+and anonymous. **Money Padel's redeploy trigger is a Claude Code practice, not
+app code** — a push that produces no Pages run is repaired by making the last
+change through the GitHub API — and Ledger adopts it the same way (`CLAUDE.md`).
+An in-app "redeploy" button was not built: it would need a server-side bridge
+holding a GitHub token, and with Firestore rules fully open (#5) anything a
+client can write could trigger deploys. The refresh offer never auto-reloads,
+never shows over an open sheet or a focused field, disappears when typing
+starts, and is not offered twice for a build a refresh already failed to load
+— so it cannot loop. Money Padel considered and declined an update prompt
+because a plain reload could come back out of Pages' 10-minute cache; Ledger's
+Refresh first re-fetches the page and the stamp with `cache: 'reload'`.
 
 ### 2026-09-29 — Day Notes are context, and never become Actions
 **Decision:** Each date carries freeform Day Notes, stored as `plan.dayNotes` on
@@ -543,7 +598,8 @@ carries the detail; this list records that the question is still open.
    equally regardless of effort or evidence quality, and nothing in the UI
    explains where XP came from. Conflicts with the gamification principle.
    → **#11** (proposed P2). Needs a product decision before implementation.
-3. **Two overlapping day-review flows.** `openReviewDaySheet` (older,
+3. **Two overlapping day-review flows.** *(Review Day's first-tap bug fixed
+   2026-09-29; the overlap question itself is unchanged.)* `openReviewDaySheet` (older,
    per-action status then overall day) still exists and is reachable from the
    header and calendar day detail, alongside the newer `openCatchUpSheet`.
    → **#12** (proposed P2). **Reassessed 2026-09-22:** Wind-down and Catch-up
@@ -597,6 +653,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-29) — Review Day advances on one tap (and no longer saves a second
+  tap against the first action under Firestore). Focus shows the deployed build,
+  and Ledger reports whether Pages and this device are current.
 - (2026-09-29) — Day Notes added to Today (per-date freeform context, autosaved,
   carried into the Handoff); HIIT added as a fifth training type across planning,
   logging, stats, Quick Log, calendar and export.

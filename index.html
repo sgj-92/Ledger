@@ -31,6 +31,9 @@
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Ledger</title>
+<!-- The build this page is: rendered by the Pages build (buildInfo.pages.js),
+     a placeholder locally. Loaded with the app, never asked of GitHub. -->
+<script src="buildInfo.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
@@ -1113,6 +1116,47 @@
   .sync-note { font-size: 11px; color: var(--text-3); text-align: center; margin: var(--sp-6) 0 4px; letter-spacing: 0.02em; }
 
   /* ---------- tab bar ---------- */
+  /* ---- build footer: which commit this device is running ----
+     A confidence line, not a feature. Muted, small, and never alarming. */
+  .build-foot {
+    display: block; width: 100%; margin: var(--sp-7) 0 var(--sp-2); padding: 10px 0 4px;
+    background: none; border: none; border-top: 1px solid var(--line);
+    font-family: var(--sans); text-align: center; cursor: pointer; color: var(--text-3);
+  }
+  .build-foot:active { opacity: 0.6; }
+  .build-foot-line { display: block; font-size: 10.5px; letter-spacing: 0.04em; line-height: 1.6;
+    font-variant-numeric: tabular-nums; }
+  .build-foot-sha { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.02em; }
+  .build-foot-state { display: block; font-size: 10px; letter-spacing: 0.06em; opacity: 0.85; }
+  .build-foot-state .attn { color: var(--gold); }
+  .build-detail { width: 100%; border-collapse: collapse; margin-bottom: var(--sp-4); font-size: 13px; }
+  .build-detail td { padding: 10px 0; border-bottom: 1px solid var(--line); color: var(--text-2); }
+  .build-detail td + td { text-align: right; color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  .build-detail tr:last-child td { border-bottom: none; }
+  .build-explain { font-size: 12px; color: var(--text-3); line-height: 1.55; margin: 0 0 var(--sp-4); }
+
+  /* ---- new build available ----
+     Offered, never forced: it waits out open sheets and focused fields, and
+     only a tap reloads. */
+  .update-bar {
+    position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(12px); opacity: 0; pointer-events: none;
+    display: flex; align-items: center; gap: 12px; z-index: 250;
+    background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 100px;
+    box-shadow: var(--shadow-toast); padding: 7px 7px 7px 16px;
+    font-family: var(--sans); font-size: 12.5px; color: var(--text); white-space: nowrap;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .update-bar.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  .update-bar button {
+    border: none; cursor: pointer; font-family: var(--sans); border-radius: 100px;
+  }
+  .update-bar .ub-go { background: var(--gold); color: var(--ink); font-size: 12px; font-weight: 600; padding: 7px 13px; }
+  .update-bar .ub-x { background: none; color: var(--text-3); width: 28px; height: 28px; padding: 0;
+    display: flex; align-items: center; justify-content: center; }
+  .update-bar .ub-x svg { width: 13px; height: 13px; display: block; }
+
   nav.tabbar {
     position: sticky; bottom: 0; z-index: 20; flex-shrink: 0; display: flex;
     background: var(--bar);
@@ -2545,6 +2589,8 @@
         <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9.5 6 15.5 12 9.5 18"/></svg></span>
       </button>
     </div>
+
+    <button type="button" class="build-foot" id="buildFooter" aria-label="Build details"></button>
   </section>
 
   <section class="view" id="view-plan">
@@ -4605,24 +4651,57 @@
     var d = new Date(dateStr + 'T00:00:00');
     var dayLabel = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 
+    // A choice lands in the sheet the moment it is made; the record catches up
+    // behind it. With Firestore live, saveCommitment does not touch `commitments`
+    // — the onSnapshot listener does, a round-trip later — so re-rendering from
+    // `commitments` straight after a tap drew the same item again, and the
+    // handlers wired by that render still pointed at it. The *second* tap was
+    // then saved against the *first* item. The sheet now keeps its own record of
+    // what was chosen, reads every row through it, and lets the listener confirm.
+    var chosen = {};        // action id -> status picked in this sheet, until confirmed
+    var chosenDay = null;   // overall status picked in this sheet, until confirmed
+
+    function statusOf(c){ return chosen[c.id] || c.status; }
+    function unresolvedList(){
+      return commitments.filter(function(c){ return c.date === dateStr && statusOf(c) === 'planned'; });
+    }
+    function dayRecord(){ return dayStatuses.find(function(ds){ return ds.date === dateStr; }) || null; }
+    // an outcome is chosen, or the evening closed the day; a bare record is neither
+    function dayResolved(){
+      var rec = dayRecord();
+      return !!chosenDay || !!(rec && (rec.status || rec.closedAt));
+    }
+    // once the listener reports what was picked, the sheet stops holding it
+    function forgetConfirmed(){
+      Object.keys(chosen).forEach(function(id){
+        var c = commitments.find(function(x){ return x.id === id; });
+        if (c && c.status === chosen[id]) delete chosen[id];
+      });
+      var rec = dayRecord();
+      if (chosenDay && rec && rec.status === chosenDay) chosenDay = null;
+    }
+
+    function head(){
+      return '<div class="sheet-handle"></div>' +
+        '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>';
+    }
+
     function buildHtml(){
-      var unresolved = commitments.filter(function(c){ return c.date === dateStr && c.status === 'planned'; });
+      var unresolved = unresolvedList();
       if (unresolved.length){
         var c = unresolved[0];
-        return '<div class="sheet-handle"></div>' +
-          '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
+        return head() +
           '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">' + dayLabel + ' · ' + unresolved.length + ' item' + (unresolved.length===1?'':'s') + ' left</div>' +
-          '<div style="font-size:15px;font-weight:700;margin-bottom:12px">' + c.title + '</div>' +
-          '<div class="status-btn-grid" id="reviewStatusGrid">' +
+          '<div style="font-size:15px;font-weight:700;margin-bottom:12px" id="reviewItemTitle"></div>' +
+          // the item this grid answers for travels with the grid, not in a closure
+          '<div class="status-btn-grid" id="reviewStatusGrid" data-id="' + c.id + '">' +
             ['completed','partial','disrupted','not_done'].map(function(s){
               return '<button type="button" class="status-btn" data-s="' + s + '">' + COMMITMENT_STATUS_LABEL[s] + '</button>';
             }).join('') +
           '</div>';
       }
-      var hasDayStatus = dayStatuses.some(function(ds){ return ds.date === dateStr; });
-      if (!hasDayStatus){
-        return '<div class="sheet-handle"></div>' +
-          '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
+      if (!dayResolved()){
+        return head() +
           '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">' + dayLabel + ' — all actions resolved. How did the day go overall? Missing data isn\'t the same as failure.</div>' +
           '<div class="status-btn-grid" id="reviewDayStatusGrid">' +
             ['completed','partial','disrupted','unknown'].map(function(s){
@@ -4630,38 +4709,63 @@
             }).join('') +
           '</div>';
       }
-      return '<div class="sheet-handle"></div>' +
-        '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
-        '<div class="empty-state">' + dayLabel + ' is fully reviewed.</div>';
+      return head() + '<div class="empty-state">' + dayLabel + ' is fully reviewed.</div>';
     }
 
     function render(){
+      forgetConfirmed();
       sheetEl.innerHTML = buildHtml();
       backdrop.classList.add('open');
       document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+
       var itemGrid = document.getElementById('reviewStatusGrid');
       if (itemGrid){
-        var unresolved = commitments.filter(function(c){ return c.date === dateStr && c.status === 'planned'; });
-        var c = unresolved[0];
+        var shown = commitments.find(function(x){ return x.id === itemGrid.dataset.id; });
+        // the title is the user's own text — written as text, never as markup
+        document.getElementById('reviewItemTitle').textContent = shown ? shown.title : '';
         itemGrid.querySelectorAll('.status-btn').forEach(function(btn){
           btn.addEventListener('click', function(){
-            saveCommitment(Object.assign({}, c, { status: btn.dataset.s, disruptionReason: btn.dataset.s === 'disrupted' ? c.disruptionReason : null }));
-            render();
+            var id = itemGrid.dataset.id;
+            if (chosen[id]) return;                       // already answered
+            var fresh = commitments.find(function(x){ return x.id === id; });
+            if (!fresh) return;
+            var status = btn.dataset.s;
+            chosen[id] = status;
+            render();                                     // one tap: advance now
+            // build on the current record so key-task, dates and order survive
+            Promise.resolve(saveCommitment(Object.assign({}, fresh, {
+              status: status,
+              disruptionReason: status === 'disrupted' ? fresh.disruptionReason : null
+            }))).catch(function(){
+              delete chosen[id];
+              render();
+              showPinToast('Couldn\u2019t save that \u2014 try again', true);
+            });
           });
         });
       }
+
       var dayGrid = document.getElementById('reviewDayStatusGrid');
       if (dayGrid){
         dayGrid.querySelectorAll('.status-btn').forEach(function(btn){
           btn.addEventListener('click', function(){
-            saveDayStatus(dateStr, btn.dataset.s);
+            if (chosenDay) return;
+            var status = btn.dataset.s;
+            chosenDay = status;
             render();
+            Promise.resolve(saveDayStatus(dateStr, status)).catch(function(){
+              chosenDay = null;
+              render();
+              showPinToast('Couldn\u2019t save that \u2014 try again', true);
+            });
           });
         });
       }
     }
 
     render();
+    // the listeners confirm into the same sheet; closeSheet clears this hook
+    activeSheetRefresh = render;
   }
 
   // ============ Backlog ============
@@ -6650,6 +6754,217 @@
   }
 
 
+  // ============ Build & Pages freshness ============
+  // Which commit this device is running, and whether it is the newest one.
+  // Three SHAs from three sources, never confused with each other:
+  //   loaded  window.LEDGER_BUILD — rendered into buildInfo.js by the Pages build
+  //           and loaded with this page, so it describes the code executing now.
+  //           Never fetched later or asked of GitHub (Money Padel's rule).
+  //   served  buildInfo.js fetched again, no-store: what Pages is handing out now.
+  //   latest  HEAD of main from GitHub's public API: the newest pushed commit.
+  // served != latest -> Pages has not deployed the newest commit yet.
+  // loaded != served -> Pages has, and this device is still on an older copy.
+  // No token exists anywhere in this: the commit read is public and anonymous.
+
+  var LEDGER_REPO = 'sgj-92/Ledger';
+  var BUILD_CHECK_KEY = 'ledger_build_check';
+  var BUILD_CHECK_EVERY = 10 * 60 * 1000;   // GitHub allows 60 anonymous reads an hour
+  var BUILD_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // A stamp is only believed when it looks like one; the local placeholder or an
+  // unrendered Liquid tag reads as a local build, never as a plausible wrong SHA.
+  function shortSha(sha){
+    return (typeof sha === 'string' && /^[0-9a-f]{7,40}$/i.test(sha.trim())) ? sha.trim().slice(0, 7).toLowerCase() : null;
+  }
+  // "2026-09-29T04:31" -> "29 Sep, 04:31", read as a calendar value. Parsing it
+  // with Date would shift it across midnight in some zones.
+  function stampLabel(t){
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(t || '');
+    if (!m || +m[2] < 1 || +m[2] > 12) return '';
+    return (+m[3]) + ' ' + BUILD_MONTHS[+m[2] - 1] + ', ' + m[4] + ':' + m[5];
+  }
+  function loadedBuild(){
+    var b = window.LEDGER_BUILD || {};
+    return { sha: shortSha(b.sha), when: stampLabel(b.time) };
+  }
+
+  function describeFreshness(f){
+    if (!f.loaded) return { pages: 'local', app: 'local' };
+    return {
+      pages: (!f.served || !f.latest) ? 'unknown' : (f.served === f.latest ? 'current' : 'pending'),
+      app:   !f.served ? 'unknown' : (f.served === f.loaded ? 'current' : 'refresh')
+    };
+  }
+  var PAGES_LABEL = { current: 'Current', pending: 'Update pending', unknown: 'Unable to verify', checking: 'Checking\u2026' };
+
+  // the last result survives a reload, but only for the build it was taken on
+  var buildState = { checking: false, served: null, latest: null, at: null, pending: null };
+  (function(){
+    try {
+      var c = JSON.parse(localStorage.getItem(BUILD_CHECK_KEY) || 'null');
+      if (c && c.loaded && c.loaded === loadedBuild().sha){
+        buildState.served = c.served; buildState.latest = c.latest; buildState.at = c.at;
+      }
+    } catch(e){}
+  })();
+
+  function fetchServedSha(){
+    return fetch('buildInfo.js?check=' + Date.now(), { cache: 'no-store' })
+      .then(function(r){ return r.ok ? r.text() : Promise.reject(r.status); })
+      .then(function(t){ var m = /sha:\s*"([0-9a-f]{7,40})"/i.exec(t); return m ? shortSha(m[1]) : null; });
+  }
+  function fetchLatestSha(){
+    // the .sha media type answers with the bare hash — a few bytes, not a commit
+    return fetch('https://api.github.com/repos/' + LEDGER_REPO + '/commits/main', {
+      headers: { 'Accept': 'application/vnd.github.sha' }
+    }).then(function(r){ return r.ok ? r.text() : Promise.reject(r.status); })
+      .then(function(t){ return shortSha(t); });
+  }
+
+  function checkBuild(force){
+    var loaded = loadedBuild().sha;
+    if (!loaded){ renderBuildFooter(); return Promise.resolve(); }
+    if (buildState.checking) return buildState.pending;
+    if (!force && buildState.at && Date.now() - buildState.at < BUILD_CHECK_EVERY){
+      renderBuildFooter(); maybeOfferUpdate(); return Promise.resolve();
+    }
+    buildState.checking = true;
+    renderBuildFooter();
+    var served = null, latest = null;
+    buildState.pending = Promise.all([
+      fetchServedSha().then(function(v){ served = v; }, function(){}),
+      fetchLatestSha().then(function(v){ latest = v; }, function(){})
+    ]).then(function(){
+      buildState.checking = false;
+      buildState.served = served; buildState.latest = latest; buildState.at = Date.now();
+      try {
+        localStorage.setItem(BUILD_CHECK_KEY, JSON.stringify({
+          loaded: loaded, served: served, latest: latest, at: buildState.at }));
+      } catch(e){}
+      renderBuildFooter();
+      maybeOfferUpdate();
+      if (activeSheetRefresh === renderBuildSheet) renderBuildSheet();
+    });
+    return buildState.pending;
+  }
+
+  function currentFreshness(){
+    var f = describeFreshness({ loaded: loadedBuild().sha, served: buildState.served, latest: buildState.latest });
+    if (buildState.checking) f.pages = 'checking';
+    return f;
+  }
+
+  function renderBuildFooter(){
+    var el = document.getElementById('buildFooter');
+    if (!el) return;
+    var b = loadedBuild();
+    if (!b.sha){
+      el.innerHTML = '<span class="build-foot-line">Ledger \u00b7 local build</span>' +
+        '<span class="build-foot-state">Build dev</span>';
+      return;
+    }
+    var f = currentFreshness();
+    el.innerHTML =
+      '<span class="build-foot-line">Build <span class="build-foot-sha">' + b.sha + '</span>' +
+        (b.when ? ' \u00b7 ' + b.when : '') + '</span>' +
+      '<span class="build-foot-state">Pages: ' + PAGES_LABEL[f.pages] +
+        (f.app === 'refresh' ? ' \u00b7 <span class="attn">App: Refresh available</span>' : '') +
+      '</span>';
+  }
+
+  function renderBuildSheet(){
+    var b = loadedBuild();
+    var f = currentFreshness();
+    var when = buildState.at ? new Date(buildState.at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }) : '\u2014';
+    var explain = !b.sha
+      ? 'This is a local copy, not a Pages build, so there is nothing to compare.'
+      : f.pages === 'pending'
+        ? 'GitHub has a newer commit than Pages is serving. Pages usually catches up within a minute or two of a push.'
+        : f.app === 'refresh'
+          ? 'Pages has a newer build than this device is running. Refresh to load it.'
+          : f.pages === 'current' && f.app === 'current'
+            ? 'This device is running the newest deployed build.'
+            : f.pages === 'checking' ? 'Checking\u2026' : 'Couldn\u2019t reach Pages or GitHub just now \u2014 offline, or the hourly limit for anonymous checks.';
+    var row = function(k, v){ return '<tr><td>' + k + '</td><td>' + (v || '\u2014') + '</td></tr>'; };
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead('', 'Build', 'Which Ledger this device is running.', '') +
+      '<table class="build-detail">' +
+        row('This device', b.sha ? b.sha + (b.when ? ' \u00b7 ' + b.when : '') : 'local build') +
+        row('Pages serving', buildState.served) +
+        row('Latest commit', buildState.latest) +
+        row('Pages', PAGES_LABEL[f.pages] || '\u2014') +
+        row('This app', f.app === 'refresh' ? 'Refresh available' : (f.app === 'current' ? 'Current' : (f.app === 'local' ? 'Local' : 'Unknown'))) +
+        row('Last checked', when) +
+      '</table>' +
+      '<p class="build-explain">' + explain + '</p>' +
+      '<div class="sheet-actionbar">' +
+        (f.app === 'refresh' ? '<button type="button" class="btn-primary" id="buildRefreshBtn">Refresh</button>' : '') +
+        '<button type="button" class="' + (f.app === 'refresh' ? 'btn-secondary' : 'btn-primary') + '" id="buildCheckBtn"' +
+          (b.sha ? '' : ' disabled') + '>Check now</button>' +
+      '</div>';
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    var rb = document.getElementById('buildRefreshBtn');
+    if (rb) rb.addEventListener('click', refreshToLatest);
+    document.getElementById('buildCheckBtn').addEventListener('click', function(){ checkBuild(true); renderBuildSheet(); });
+  }
+  function openBuildSheet(){
+    editingId = null;
+    renderBuildSheet();
+    backdrop.classList.add('open');
+    activeSheetRefresh = renderBuildSheet;
+  }
+
+  // ---- the update offer: shown, never forced ----
+  var UPDATE_DISMISSED_KEY = 'ledger_update_dismissed';
+  var UPDATE_TRIED_KEY = 'ledger_update_refreshed_for';
+  function lsRead(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function lsWrite(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+  function isEditing(){
+    var a = document.activeElement;
+    return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+  }
+  function hideUpdateBar(){
+    var bar = document.getElementById('updateBar');
+    if (bar){ bar.classList.remove('show'); setTimeout(function(){ if (bar.parentNode && !bar.classList.contains('show')) bar.remove(); }, 250); }
+  }
+  function maybeOfferUpdate(){
+    var f = currentFreshness();
+    if (f.app !== 'refresh'){ hideUpdateBar(); return; }
+    // once per new build: not after a dismissal, and not again if a refresh
+    // for this very build already ran and did not take — that would be a loop
+    if (lsRead(UPDATE_DISMISSED_KEY) === buildState.served) return;
+    if (lsRead(UPDATE_TRIED_KEY) === buildState.served) return;
+    // never over an open sheet or someone mid-sentence; the next check offers again
+    if (backdrop.classList.contains('open') || isEditing()) return;
+    if (document.getElementById('updateBar')) return;
+    var bar = document.createElement('div');
+    bar.className = 'update-bar';
+    bar.id = 'updateBar';
+    bar.innerHTML = '<span>New Ledger build available</span>' +
+      '<button type="button" class="ub-go" id="updateBarGo">Refresh</button>' +
+      '<button type="button" class="ub-x" id="updateBarX" aria-label="Dismiss">' + CLOSE_SVG + '</button>';
+    document.body.appendChild(bar);
+    requestAnimationFrame(function(){ bar.classList.add('show'); });
+    document.getElementById('updateBarGo').addEventListener('click', refreshToLatest);
+    document.getElementById('updateBarX').addEventListener('click', function(){
+      lsWrite(UPDATE_DISMISSED_KEY, buildState.served);
+      hideUpdateBar();
+    });
+  }
+  function refreshToLatest(){
+    lsWrite(UPDATE_TRIED_KEY, buildState.served);
+    // Warm the HTTP cache with the new copies first. Pages serves with a
+    // 10-minute max-age, and a plain reload could pull the old ones back out.
+    Promise.all([
+      fetch('./', { cache: 'reload' }).catch(function(){}),
+      fetch('buildInfo.js', { cache: 'reload' }).catch(function(){})
+    ]).then(function(){ location.reload(); });
+  }
+  // starting to type takes the offer away, so a tap can never land mid-edit
+  document.addEventListener('focusin', function(e){
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) hideUpdateBar();
+  });
+
   // ============ Settings ============
   // A sheet, not a sixth tab — reached from Focus. Holds the things that shape
   // the day rather than the things that happen in it.
@@ -7119,6 +7434,13 @@
 
   applyTheme();
   document.getElementById('openSettingsBtn').addEventListener('click', openSettingsSheet);
+  document.getElementById('buildFooter').addEventListener('click', openBuildSheet);
+  renderBuildFooter();
+  // after first paint, and again whenever the app comes back to the foreground
+  setTimeout(function(){ checkBuild(false); }, 4000);
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'visible') checkBuild(false);
+  });
 
   document.getElementById('actionsToggle').addEventListener('click', function(){
     actionsCollapsed = !actionsCollapsed;
@@ -8599,6 +8921,8 @@
     } else {
       doneWrap.style.display = 'none';
     }
+    renderBuildFooter();
+    checkBuild(false);
   }
 
   function renderFocusItem(f){
