@@ -1,19 +1,37 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-29 (training-plan persistence fix; Focus / Progress / Calendar integration, Phase 1)
+Last updated: 2026-09-30 (responsive desktop and ultrawide layout)
 
 ---
 
 ## Current State
 
 Ledger is a **single-file PWA**: the entire app (HTML, CSS, JS) lives in
-`index.html` (~10,000 lines, no build step, no framework, ES5-style vanilla JS).
+`index.html` (~10,500 lines, no build step, no framework, ES5-style vanilla JS).
 Supporting files: `sw.js`, `manifest.json`, `fonts/` (self-hosted Playfair
 Display + Inter woff2 subsets), `hero-mountain.webp`, icons, `avatars/`,
 and `functions/` (one Firebase Cloud Function).
 
 **Five tabs:** Plan · Today · Calendar · Progress · Focus.
+
+### Responsive layout (one app, one URL)
+The same page adapts by viewport width; there is no desktop build, route or flag.
+- **< 768px (phone):** unchanged mobile-first layout, bottom tab bar, bottom sheets.
+- **768–1199px:** the tab bar becomes a left icon rail (Settings and Quick add at
+  its foot); a shallow horizontal header replaces the phone hero. Content is one
+  column; sheets stay bottom sheets below 1024px.
+- **≥ 1024px:** Today becomes a workspace — Morning Prime / Catch-up across the
+  top, Actions + Backlog in the main column, Health & fitness beside it, then Day
+  Notes (an inline, autosaved notebook) with Quick log, Wind-down and Recorded.
+  Sheets open as a right-hand **inspector**. Plan is week list + selected-day pane;
+  Calendar is month + day pane; Progress puts Towards your focus beside the week
+  chart with the stat cards in a grid; Focus is two columns.
+- **≥ 1200px:** full labelled sidebar (Ledger mark, five views, Quick add, Settings).
+- **≥ 1600px:** Today gains a third column (Day Notes and the evening sections).
+- The workspace is capped at 1680px and centred; the inspector aligns to it.
+- Every wide breakpoint also needs 520px of height, so a phone turned sideways
+  keeps the phone layout.
 
 ### Today (the main surface)
 - **Morning Prime** — two sections, tracked separately. **Plan** is what can be
@@ -205,6 +223,12 @@ Conventions that should not be casually changed.
   duplicate task/meal systems.
 - Morning Prime key tasks are normal actions with a key-task marker.
 - Morning Prime and Health & fitness must share the same underlying data.
+- Ledger is one responsive app. Phone uses the bottom nav and bottom sheets;
+  desktop uses the left navigation, a multi-column Today and side inspectors.
+  Wider screens rearrange the same DOM with CSS (Today's and Focus's wrappers are
+  `display: contents` on phones); the few presentation differences in JS
+  (inline Day Notes, the Plan day pane, a default Calendar day) call the same
+  savers, editors and records. No separate desktop codebase or render path.
 - Planned activities and recorded activities are distinct but linked.
 - Planned activity can pre-fill the actual log.
 - Planned meals become nutrition evidence when marked eaten.
@@ -249,6 +273,22 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-30 — One responsive Ledger for phone, laptop and ultrawide
+**Decision:** the normal URL adapts by width (768 / 1024 / 1200 / 1600px). The
+tab bar is the sidebar; Today's sections sit in four presentation wrappers that
+are `display: contents` on a phone and grid columns from 1024px; sheets become a
+right inspector from 1024px; the workspace is capped at 1680px.
+**Why:** on a laptop the phone column wasted the screen, and Actions, the plan
+and Day Notes could not be seen together.
+**Implications:** mobile is verified pixel-for-pixel against the previous build
+(28 dark + 14 light screenshots at 390/430px; one Morning Prime frame differs by
+at most 6/255 in colour, invisibly). Day Notes on desktop autosaves through the
+same `saveDayNotes` and never redraws under the cursor. Plan's pane and Today's
+Health & fitness are one renderer (`renderPlanWidget`). Keyboard: Escape closes
+a sheet via its own close button (so save-on-close still runs); Cmd/Ctrl+Enter
+presses its primary action; keyboard focus is outlined. Hover styles apply only
+to fine pointers. Between 768 and 1023px sheets remain bottom sheets.
 
 ### 2026-09-29 — Focus is direction, Progress is evidence, Calendar is what happened
 **Decision:** the three tabs keep distinct jobs and are joined by shared records,
@@ -697,6 +737,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-30) — Responsive desktop/laptop/ultrawide layout on the same URL:
+  sidebar, shallow header, Today workspace with inline Day Notes, right-hand
+  inspector, Plan and Calendar split panes, Progress grid, two-column Focus.
 - (2026-09-29) — Planned training details (HIIT and every other type) no longer
   vanish on Save to plan under Firestore. Focus, Progress and Calendar joined:
   priority evidence links, Towards your focus, cross-navigation, Calendar

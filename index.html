@@ -2464,6 +2464,310 @@
   .re-btn:active { background: var(--surface-3); }
   .re-btn.on { color: var(--gold); border-color: rgba(var(--gold-rgb),0.45); }
   .re-row .drag-handle { margin-left: -4px; }
+
+  /* ==========================================================
+     Wider screens — one app, one URL.
+     Phones never reach anything below the first block. Everything here
+     rearranges the same DOM, data and handlers: the tab bar becomes the
+     sidebar, Today's four presentation wrappers become columns, and sheets
+     become an inspector on the right. There is no second layout to maintain.
+     Breakpoints: < 768 phone · 768–1199 rail · ≥ 1024 desktop · ≥ 1200 sidebar ·
+     ≥ 1600 wide. All need 520px of height, so a phone held sideways stays a phone.
+     ========================================================== */
+  .today-top, .today-main, .today-side, .today-extra,
+  .focus-col-main, .focus-col-side { display: contents; }
+  /* the wrappers must not change what a phone sees: these two were never first */
+  .today-main > .actions-head:first-child { margin-top: var(--sp-6); }
+  .focus-col-side > h2.section-title:first-child { margin-top: var(--sp-7); }
+  nav.tabbar .side-brand, nav.tabbar .side-settings, .sec-add-label,
+  .plan-day-pane, .plan-card-more { display: none; }
+
+  /* keyboard focus is visible everywhere; pointer and touch focus are not */
+  :where(button, a, [role="button"], select, summary):focus-visible {
+    outline: 2px solid rgba(var(--gold-rgb),0.75); outline-offset: 2px;
+  }
+
+  /* hover only where there is a real pointer, so touch never sticks */
+  @media (hover: hover) and (pointer: fine) {
+    .commitment-item:hover, .session-item:hover, .plan-card:hover, .bk-row:hover,
+    .mp-head:hover, .quicklog-card:hover, .cal-day-log-btn:hover, .add-option:hover,
+    .dn-row:hover, .panel-row:hover { background: var(--surface-2); }
+    .focus-item:hover, .plan-day-row:hover, .fe-row.clickable:hover,
+    .stat-card-clickable:hover { background: rgba(var(--gold-rgb),0.035); }
+    .cal-cell:not(.empty):not(.selected):hover { border-color: var(--line-2); }
+    .section-toggle:hover .section-toggle-label, .sec-head-toggle:hover .sec-label { color: var(--text-2); }
+    .sec-link:hover, .prio-link:hover, .btn-link:hover { opacity: 0.8; }
+    .circ-btn:hover { color: var(--text); border-color: rgba(var(--gold-rgb),0.35); }
+    .drag-handle { cursor: grab; }
+  }
+
+  @media (min-width: 768px) and (min-height: 520px) {
+    :root { --side-w: 88px; --ws-max: 1680px; --gutter: 32px; }
+    html, body { height: auto; }
+    body {
+      max-width: var(--ws-max); min-height: 100vh;
+      display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr);
+      grid-template-rows: auto 1fr; align-items: start;
+    }
+
+    /* ---- the tab bar, standing up: a sidebar rail ---- */
+    nav.tabbar {
+      grid-column: 1; grid-row: 1 / span 2; align-self: start;
+      position: sticky; top: 0; height: 100vh; height: 100dvh;
+      flex-direction: column; align-items: stretch; gap: 4px;
+      background: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+      border-top: none; border-right: 1px solid var(--line);
+      padding: 20px 10px 18px;
+      overflow-y: auto; scrollbar-width: none;
+    }
+    nav.tabbar .side-brand {
+      display: flex; align-items: center; justify-content: center; gap: 11px;
+      padding: 2px 0 22px; margin-bottom: 6px; border-bottom: 1px solid var(--line);
+    }
+    nav.tabbar .side-brand img { width: 30px; height: 30px; border-radius: 8px; display: block; }
+    nav.tabbar .side-brand span { display: none; font-family: var(--serif); font-size: 21px; color: var(--text); letter-spacing: -0.01em; }
+    nav.tabbar button {
+      flex: 0 0 auto; padding: 11px 0; border-radius: 12px; gap: 6px;
+    }
+    nav.tabbar button.active { background: rgba(var(--gold-rgb),0.07); }
+    nav.tabbar .side-settings { display: flex; margin-top: auto; }
+    nav.tabbar button:hover { color: var(--text-2); }
+    nav.tabbar button.active:hover { color: var(--gold); }
+
+    /* ---- a shallow horizontal header: the day, the mountain, the arrows ---- */
+    header.top {
+      grid-column: 2; grid-row: 1; position: relative; top: auto;
+      display: grid; align-items: center; column-gap: 14px;
+      grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+      grid-template-areas: "center quote sub prev next" "motto quote sub prev next";
+      padding: 26px var(--gutter) 20px; margin-bottom: 6px;
+      background: none; border-bottom: 1px solid var(--line);
+      --hero-h: 100%; --hero-size: cover; --hero-pos: 50% 58%;
+      --hero-mask: linear-gradient(90deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.9) 55%, rgba(0,0,0,0.55) 100%);
+    }
+    .hdr-bar, .hdr-foot { display: contents; }
+    header.top > *:not(.hdr-tex), .hdr-bar > *, .hdr-foot > * { position: relative; }
+    #dayPrevBtn { grid-area: prev; }
+    #dayNextBtn { grid-area: next; }
+    .hdr-center { grid-area: center; text-align: left; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 16px; }
+    .hdr-kicker { margin-bottom: 6px; flex-basis: 100%; }
+    .hdr-date { font-size: 36px; }
+    .hdr-range { margin: 0; font-size: 13px; }
+    .hdr-range[hidden] { display: none; }
+    .hdr-motto { grid-area: motto; align-self: start; margin-top: 13px; }
+    .hdr-quote { grid-area: quote; max-width: 280px; align-self: center; padding-right: 8px; }
+    .hdr-quote-text { font-size: 13px; }
+    .day-nav-sub { grid-area: sub; margin-top: 0; }
+    .day-nav-sub:empty { display: none; }
+
+    main { grid-column: 2; grid-row: 2; min-width: 0; padding: 18px var(--gutter) 64px; }
+    body.has-update-bar main { padding-bottom: 96px; }
+    /* Quick add sits in the sidebar, above Settings, instead of over the content */
+    .global-fab {
+      right: auto; bottom: 96px; width: 48px; height: 48px; box-shadow: none;
+      left: calc(max(0px, (100vw - var(--ws-max)) / 2) + (var(--side-w) - 48px) / 2);
+    }
+    .update-bar { bottom: 28px; }
+    .pin-toast { bottom: 32px; }
+
+    /* Calendar filter: wraps instead of scrolling sideways */
+    .cal-filter { flex-wrap: wrap; margin: 0 0 var(--sp-4); padding: 0; overflow: visible; }
+  }
+
+  @media (min-width: 1024px) and (min-height: 520px) {
+    :root { --gutter: 36px; }
+
+    /* ---- sheets become an inspector on the right; Ledger stays in view ---- */
+    .sheet-backdrop {
+      justify-content: flex-end; align-items: stretch;
+      background: rgba(8,6,4,0.34); backdrop-filter: none; -webkit-backdrop-filter: none;
+      padding-right: max(0px, calc((100vw - var(--ws-max)) / 2));
+    }
+    .sheet {
+      width: clamp(420px, 34vw, 520px); max-width: none;
+      height: 100%; max-height: none;
+      border-radius: 0; border-top: none; border-left: 1px solid var(--line-2);
+      padding: 22px 28px 28px;
+      box-shadow: -28px 0 60px -30px rgba(0,0,0,0.85);
+      animation: inspector-in 0.22s cubic-bezier(.2,.9,.3,1);
+    }
+    html[data-theme="light"] .sheet-backdrop { background: rgba(60,44,22,0.16); }
+    .sheet-handle { display: none; }
+    .sheet-actionbar { bottom: -28px; margin: var(--sp-5) -28px -28px; padding: 12px 28px 16px; }
+
+    /* ---- Today: one working surface ---- */
+    #view-log.active {
+      display: grid; column-gap: 40px; align-items: start;
+      grid-template-columns: minmax(0, 1.7fr) minmax(330px, 1fr);
+      grid-template-areas: "top top" "main side" "main extra";
+      grid-template-rows: auto auto 1fr;
+    }
+    .today-top { display: block; grid-area: top; margin-bottom: var(--sp-5); }
+    .today-top:has(> #catchUpBanner:empty):has(> #morningPrime:empty) { display: none; }
+    .today-main { display: block; grid-area: main; min-width: 0; }
+    .today-side { display: block; grid-area: side; min-width: 0; }
+    .today-extra { display: block; grid-area: extra; min-width: 0; }
+    .today-main > .actions-head:first-child { margin-top: var(--sp-2); }
+    .today-side > .today-plan-widget { margin: 0 0 var(--sp-6); }
+    .today-side .today-plan-widget-head { margin: var(--sp-2) 0 var(--sp-3); min-height: 32px; }
+
+    /* Morning Prime: a shallow row; opened, its halves sit side by side */
+    .mp-body-inner { display: grid; grid-template-columns: 1fr 1fr; column-gap: 36px; }
+    .mp-body-inner > * { grid-column: 1 / -1; }
+    .mp-body-inner > .mp-group-plan { grid-column: 1; grid-row: 1; }
+    .mp-body-inner > .mp-group-move { grid-column: 2; grid-row: 1; }
+
+    /* Actions: one line per action where it fits */
+    .commitment-item { padding: 9px 13px; gap: 12px; }
+    .commitment-body { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 14px; row-gap: 2px; }
+    .commitment-title { flex: 1 1 240px; min-width: 0; font-size: 15px; }
+    .commitment-meta, .commitment-minver { margin-top: 0; }
+    .commitment-cat { margin-top: 0; flex-shrink: 0; }
+    .sec-add {
+      width: auto; height: 30px; margin: 0; padding: 0 12px 0 10px; gap: 6px;
+      border: 1px solid rgba(var(--gold-rgb),0.3); border-radius: 100px; color: var(--gold);
+      font-family: var(--sans); font-size: 12px; font-weight: 500; letter-spacing: 0.01em;
+    }
+    .sec-add-label { display: inline; }
+    .sec-add[aria-expanded="true"] { transform: none; background: rgba(var(--gold-rgb),0.08); }
+    .sec-add[aria-expanded="true"] svg { transform: rotate(45deg); }
+    .sec-add svg { transition: transform 0.2s ease; }
+
+    /* Backlog shelf: tighter rows (from 1200px the meta also sits beside the title) */
+    .bk-compact .bk-row { padding: 7px 11px; }
+    .bk-compact .bk-btn { width: 34px; height: 34px; }
+
+    /* Health & fitness: a planned session takes the grid's full width so its line
+       reads in one go, and its saved detail earns a line beneath */
+    .today-plan-widget .plan-card[data-train-open] { grid-column: 1 / -1; }
+    .plan-card-more {
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      font-size: 12px; line-height: 1.45; color: var(--text-3); margin-top: 4px; white-space: pre-line;
+    }
+
+    /* Day Notes: a notebook beside the list */
+    .dn-panel { margin: 0 0 var(--sp-6); }
+    .dn-panel-head { display: flex; align-items: center; gap: 14px; margin-bottom: var(--sp-3); min-height: 20px; }
+    .dn-panel-status { font-size: 11px; color: var(--text-3); }
+    .dn-panel-status:empty { display: none; }
+    .dn-panel-area {
+      display: block; width: 100%; min-height: 170px; resize: vertical;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+      padding: 14px 16px; color: var(--text);
+      font-family: var(--serif); font-size: 15px; line-height: 1.6;
+    }
+    .dn-panel-area::placeholder { color: var(--text-3); font-style: italic; }
+    .dn-panel-area:focus { outline: none; border-color: rgba(var(--gold-rgb),0.4); }
+
+    /* ---- Plan: the week on the left, the chosen day on the right ---- */
+    #view-plan.active {
+      display: grid; column-gap: 36px; align-items: start;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 1.05fr);
+    }
+    #planWeekList { grid-column: 1; grid-row: 1; }
+    #view-plan .meal-ideas-panel { grid-column: 1; grid-row: 2; }
+    .plan-day-pane {
+      display: block; grid-column: 2; grid-row: 1 / span 2;
+      position: sticky; top: 18px; max-height: calc(100vh - 36px); overflow-y: auto;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+      padding: 22px 24px 24px; overscroll-behavior: contain;
+    }
+    .plan-day-row.selected { background: rgba(var(--gold-rgb),0.05); box-shadow: inset 2px 0 0 var(--gold); }
+    .pdp-head { display: flex; align-items: flex-end; gap: 12px; margin-bottom: var(--sp-5); }
+    .pdp-head-body { flex: 1; min-width: 0; }
+    .pdp-kicker { font-size: 10px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-3); }
+    .pdp-date { font-family: var(--serif); font-size: clamp(21px, 1.8vw, 26px); color: var(--text); margin-top: 5px; line-height: 1.1; }
+    .plan-day-pane .today-plan-widget { margin: 0 0 var(--sp-6); }
+    .pdp-sec { display: flex; align-items: center; gap: 14px; margin: var(--sp-5) 0 var(--sp-3); }
+    .pdp-notes { font-family: var(--serif); font-size: 14.5px; line-height: 1.6; color: var(--text-2); white-space: pre-line; }
+    .pdp-empty { font-size: 13px; color: var(--text-3); font-style: italic; }
+
+    /* ---- Calendar: the month on the left, the day on the right ---- */
+    #view-calendar.active {
+      display: grid; column-gap: 36px; align-items: start;
+      grid-template-columns: minmax(0, 1fr) minmax(340px, 410px);
+    }
+    #calSummary, #calFilter, #calGrid { grid-column: 1; }
+    #calDayDetail {
+      grid-column: 2; grid-row: 1 / span 3; margin-top: 0;
+      position: sticky; top: 18px; max-height: calc(100vh - 36px); overflow-y: auto;
+      padding: 2px 4px 8px 28px; border-left: 1px solid var(--line); overscroll-behavior: contain;
+    }
+    .cal-cell { aspect-ratio: 1.3; }
+
+    /* ---- Progress: evidence beside trend, then the cards in a grid ---- */
+    #view-stats.active {
+      display: grid; column-gap: 36px; align-items: start;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    #view-stats > h2:nth-of-type(1) { grid-column: 1; grid-row: 1; margin-top: var(--sp-2); }
+    #focusEvidence { grid-column: 1; grid-row: 2; }
+    #view-stats > h2:nth-of-type(2) { grid-column: 2; grid-row: 1; margin-top: var(--sp-2); }
+    #weekBar { grid-column: 2; grid-row: 2; margin-bottom: 0; }
+    #view-stats > h2:nth-of-type(3) { grid-column: 1 / -1; grid-row: 3; }
+    #statsCards {
+      grid-column: 1 / -1; grid-row: 4;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px;
+      border: none; background: none; padding: 0;
+    }
+    #statsCards .stat-card {
+      border: 1px solid var(--line); border-radius: var(--r-lg);
+      background: var(--surface); padding: 18px 20px;
+    }
+    #statsCards .stat-row { flex-wrap: wrap; row-gap: 16px; }
+    #statsCards .stat-num { flex: 1 1 100px; }
+    .weekbar-bars { height: 150px; gap: 12px; }
+    .weekbar-stack { max-width: 40px; }
+    .weekbar-seg { height: auto; flex: 1 1 0; }
+
+    /* ---- Focus: direction on the left; targets, settings and build on the right ---- */
+    #view-focus.active {
+      display: grid; column-gap: 44px; align-items: start;
+      grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+    }
+    .focus-col-main, .focus-col-side { display: block; min-width: 0; }
+    .focus-col-side > h2.section-title:first-child { margin-top: var(--sp-6); }
+  }
+
+  @media (min-width: 1200px) and (min-height: 520px) {
+    :root { --side-w: 212px; }
+    nav.tabbar { padding: 24px 14px 20px; gap: 2px; }
+    nav.tabbar .side-brand { justify-content: flex-start; padding: 0 10px 22px; }
+    nav.tabbar .side-brand span { display: inline; }
+    nav.tabbar button {
+      flex-direction: row; justify-content: flex-start; gap: 13px;
+      padding: 10px 12px; font-size: 13.5px; letter-spacing: 0.01em;
+    }
+    nav.tabbar .side-brand + button { margin-top: 12px; }
+    nav.tabbar button .tab-icon { width: 19px; height: 19px; }
+    .global-fab {
+      left: calc(max(0px, (100vw - var(--ws-max)) / 2) + 14px);
+      width: calc(var(--side-w) - 28px); height: 40px; border-radius: 12px; bottom: 74px;
+      justify-content: flex-start; gap: 12px; padding: 0 12px;
+      background: rgba(var(--gold-rgb),0.1); color: var(--gold);
+      border: 1px solid rgba(var(--gold-rgb),0.28);
+    }
+    .global-fab svg { width: 17px; height: 17px; }
+    .global-fab::after { content: 'Quick add'; font-family: var(--sans); font-size: 13px; font-weight: 500; letter-spacing: 0.01em; }
+    .global-fab:active { transform: none; background: rgba(var(--gold-rgb),0.16); }
+    .bk-compact .bk-body { display: flex; align-items: baseline; gap: 14px; }
+    .bk-compact .bk-title { flex: 1; min-width: 0; }
+    .bk-compact .bk-meta { margin-top: 0; flex-shrink: 0; max-width: 45%; }
+  }
+
+  @media (min-width: 1600px) and (min-height: 520px) {
+    :root { --side-w: 224px; --gutter: 40px; }
+    /* Today gets a third column rather than longer lines */
+    #view-log.active {
+      grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr) minmax(290px, 0.9fr);
+      grid-template-areas: "top top top" "main side extra";
+      grid-template-rows: auto 1fr;
+      column-gap: 36px;
+    }
+    .today-extra .dn-panel-head { margin-top: var(--sp-2); min-height: 32px; }
+  }
+
+  @keyframes inspector-in { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
 </style>
 </head>
 <body>
@@ -2489,10 +2793,15 @@
 <main>
 
   <section class="view active" id="view-log">
+    <!-- The four wrappers below only arrange Today into columns on wider screens.
+         On a phone they are display: contents, so the day reads exactly as before. -->
+    <div class="today-top">
     <div id="catchUpBanner"></div>
 
     <div id="morningPrime"></div>
+    </div>
 
+    <div class="today-main">
     <div class="sec-head actions-head">
       <button type="button" class="sec-head-toggle actions-head-toggle" id="actionsToggle" aria-expanded="true" aria-controls="actionsBody">
         <span class="sec-label">Actions</span>
@@ -2500,7 +2809,7 @@
         <span class="sec-rule"></span>
       </button>
       <span class="sec-value" id="actionsCount"></span>
-      <button type="button" class="sec-add" id="addActionToggle" aria-expanded="false" aria-controls="addActionBody" aria-label="Add action" title="Add action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg></button>
+      <button type="button" class="sec-add" id="addActionToggle" aria-expanded="false" aria-controls="addActionBody" aria-label="Add action" title="Add action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg><span class="sec-add-label">Add action</span></button>
     </div>
     <div class="actions-summary" id="actionsSummary" hidden></div>
     <div id="actionsBody">
@@ -2529,9 +2838,13 @@
     <div id="accountabilityMsg"></div>
 
     <div id="backlogSection"></div>
+    </div>
 
+    <div class="today-side">
     <div id="todayPlanWidget" class="today-plan-widget"></div>
+    </div>
 
+    <div class="today-extra">
     <div id="dayNotesSection"></div>
 
     <button type="button" class="section-toggle" id="quickLogToggle" aria-expanded="false" aria-controls="quickLogGrid">
@@ -2590,6 +2903,7 @@
     </div>
     <button type="button" class="btn-link day-share-link" id="shareDayFootBtn">Share day for Claude →</button>
     <p class="sync-note" id="syncNote"></p>
+    </div>
   </section>
 
   <section class="view" id="view-calendar">
@@ -2611,6 +2925,7 @@
   </section>
 
   <section class="view" id="view-focus">
+    <div class="focus-col-main">
     <div class="section-kicker">Progress identity</div>
     <div id="playerCard"></div>
 
@@ -2628,7 +2943,9 @@
       <h2 class="section-title tight">Completed</h2>
       <div id="focusCompletedList"></div>
     </div>
+    </div>
 
+    <div class="focus-col-side">
     <h2 class="section-title">Targets</h2>
     <div id="targetWeightCard"></div>
 
@@ -2641,6 +2958,7 @@
     </div>
 
     <button type="button" class="build-foot" id="buildFooter" aria-label="Build details"></button>
+    </div>
   </section>
 
   <section class="view" id="view-plan">
@@ -2654,11 +2972,14 @@
       </div>
       <div id="mealIdeasList"></div>
     </div>
+
+    <aside class="plan-day-pane" id="planDayPane" aria-label="Selected day"></aside>
   </section>
 
 </main>
 
-<nav class="tabbar">
+<nav class="tabbar" aria-label="Sections">
+  <div class="side-brand" aria-hidden="true"><img src="icon-192.png" alt="" width="30" height="30"><span>Ledger</span></div>
   <button class="tab-btn" data-view="plan">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></span>
     Plan
@@ -2678,6 +2999,10 @@
   <button class="tab-btn" data-view="focus">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/></svg></span>
     Focus
+  </button>
+  <button type="button" class="side-settings" id="sideSettingsBtn">
+    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.3" fill="var(--bg)"/><circle cx="15" cy="17" r="2.3" fill="var(--bg)"/></svg></span>
+    Settings
   </button>
 </nav>
 
@@ -2711,6 +3036,10 @@
   var PLAN_TRAINING_TYPES = ['padel','cardio','hiit','resistance','yoga'];
   var CARB_LEVEL_LABEL = { low: 'Low carb', normal: 'Normal', high: 'High carb' };
   var editingId = null;
+  // Desktop and laptop widths: the same app, arranged for a wider screen. A few renderers
+  // show more in place (Day Notes inline, the Plan day pane); nothing else forks on it.
+  var WIDE_MQ = window.matchMedia('(min-width: 1024px) and (min-height: 520px)');
+  function isWide(){ return WIDE_MQ.matches; }
   // set by sheets that mirror live data, so a save elsewhere refreshes them in place
   var activeSheetRefresh = null;
   var viewedDate = todayStr(); // the date the Today view is currently showing
@@ -5995,8 +6324,8 @@
       '</button>' +
       '<div class="mp-body' + (expanded ? '' : ' collapsed') + '" id="mpBody"><div class="mp-body-inner">' +
         (st.planSec.total
-          ? mpSectionHead('Plan', st.planSec) +
-            st.planSec.items.map(function(x, i){ return routineRowHtml(x, { num: i + 1 }); }).join('')
+          ? '<div class="mp-group mp-group-plan">' + mpSectionHead('Plan', st.planSec) +
+            st.planSec.items.map(function(x, i){ return routineRowHtml(x, { num: i + 1 }); }).join('') + '</div>'
           : '') +
         (st.intentionEnabled
           ? '<div class="mp-intention-wrap">' +
@@ -6005,8 +6334,8 @@
             '</div>'
           : '') +
         (st.moveSec.total
-          ? mpSectionHead('Move', st.moveSec) +
-            st.moveSec.items.map(function(x){ return routineRowHtml(x, {}); }).join('')
+          ? '<div class="mp-group mp-group-move">' + mpSectionHead('Move', st.moveSec) +
+            st.moveSec.items.map(function(x){ return routineRowHtml(x, {}); }).join('') + '</div>'
           : '') +
         (isToday && backlogCount ?
           '<button type="button" class="mp-backlog" id="mpBacklogBtn">' +
@@ -7310,10 +7639,57 @@
                        .filter(function(l){ return !!l; });
   }
 
+  // Wide screens keep the notes open beside the list: type straight in, autosaved as in the
+  // sheet (same saveDayNotes, same plan record). Phones keep the compact row and its sheet.
+  var dnInline = null;   // { date, saved, timer } for the open panel
+  function flushInlineDayNotes(){
+    var st = dnInline;
+    if (!st) return Promise.resolve();
+    if (st.timer){ clearTimeout(st.timer); st.timer = null; }
+    var area = document.getElementById('dayNotesInline');
+    if (!area || area.dataset.date !== st.date) return Promise.resolve();
+    var text = area.value;
+    if (text === st.saved) return Promise.resolve();
+    st.saved = text;
+    return saveDayNotes(st.date, text).then(function(){
+      var lbl = document.getElementById('dayNotesInlineStatus');
+      if (lbl && dnInline === st) lbl.textContent = 'Saved';
+    });
+  }
+  function renderDayNotesInline(wrap, dateStr){
+    var area = document.getElementById('dayNotesInline');
+    // never redraw under the cursor: a snapshot mid-sentence would take the words back
+    if (area && area.dataset.date === dateStr && document.activeElement === area) return;
+    if (dnInline && dnInline.date !== dateStr) flushInlineDayNotes();
+    var saved = getDayNotes(dateStr);
+    wrap.innerHTML =
+      '<div class="dn-panel">' +
+        '<div class="dn-panel-head">' +
+          '<span class="sec-label">Day notes</span><span class="sec-rule"></span>' +
+          '<span class="dn-panel-status" id="dayNotesInlineStatus"></span>' +
+        '</div>' +
+        '<textarea class="dn-panel-area" id="dayNotesInline" aria-label="Day notes" ' +
+          'placeholder="Call Mark after lunch if he hasn\'t replied&#10;Kids were up early, energy lower today"></textarea>' +
+      '</div>';
+    area = document.getElementById('dayNotesInline');
+    area.dataset.date = dateStr;
+    area.value = saved;                       // user content, set as a value
+    var st = dnInline = { date: dateStr, saved: saved, timer: null };
+    var status = document.getElementById('dayNotesInlineStatus');
+    area.addEventListener('input', function(){
+      status.textContent = '';
+      if (st.timer) clearTimeout(st.timer);
+      st.timer = setTimeout(flushInlineDayNotes, 600);
+    });
+    area.addEventListener('blur', function(){ flushInlineDayNotes(); });
+  }
+
   function renderDayNotes(){
     var wrap = document.getElementById('dayNotesSection');
     if (!wrap) return;
     var dateStr = viewedDate;
+    if (isWide()){ renderDayNotesInline(wrap, dateStr); return; }
+    if (dnInline){ flushInlineDayNotes(); dnInline = null; }
     var text = getDayNotes(dateStr);
     var lines = dayNotesLines(text);
     var empty = lines.length === 0;
@@ -7531,6 +7907,35 @@
 
   applyTheme();
   document.getElementById('openSettingsBtn').addEventListener('click', openSettingsSheet);
+  document.getElementById('sideSettingsBtn').addEventListener('click', openSettingsSheet);
+
+  // crossing the desktop breakpoint re-renders the few views that present differently
+  function onWideChange(){
+    renderDayNotes();
+    if (currentView === 'plan') renderPlan();
+    if (currentView === 'calendar') renderCalendar();
+    if (currentView === 'stats') renderStats();
+  }
+  if (WIDE_MQ.addEventListener) WIDE_MQ.addEventListener('change', onWideChange);
+  else if (WIDE_MQ.addListener) WIDE_MQ.addListener(onWideChange);
+
+  // Keyboard: Escape closes the open sheet or inspector the way its own close button
+  // would (so anything it saves on close is saved); Cmd/Ctrl+Enter presses its primary action.
+  document.addEventListener('keydown', function(e){
+    if (!backdrop.classList.contains('open')) return;
+    if (e.key === 'Escape'){
+      var pop = document.querySelector('.qc-type-popover');
+      if (pop){ pop.remove(); e.preventDefault(); return; }
+      var closeBtn = sheetEl.querySelector('#sheetCloseBtn');
+      e.preventDefault();
+      if (closeBtn) closeBtn.click(); else closeSheet();
+      return;
+    }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)){
+      var primary = sheetEl.querySelector('.sheet-actionbar .btn-primary, .save-btn');
+      if (primary && !primary.disabled){ e.preventDefault(); primary.click(); }
+    }
+  });
   document.getElementById('buildFooter').addEventListener('click', openBuildSheet);
   renderBuildFooter();
   // after first paint, and again whenever the app comes back to the foreground
@@ -7638,6 +8043,7 @@
   }
 
   function renderCalendar(){
+    if (!selectedDay && isWide()) selectedDay = todayStr();
     renderCalFilter();
     var grid = document.getElementById('calGrid');
     grid.innerHTML = '';
@@ -8258,7 +8664,7 @@
       col.className = 'weekbar-col';
       var stack = document.createElement('div');
       stack.className = 'weekbar-stack';
-      var h = (counts[i].length / maxCount) * 74;
+      var h = (counts[i].length / maxCount) * (isWide() ? 120 : 74);
       stack.style.height = Math.max(h, counts[i].length ? 10 : 0) + 'px';
       counts[i].forEach(function(s){
         var seg = document.createElement('div');
@@ -8480,7 +8886,14 @@
   function renderTodayPlanWidget(){
     var wrap = document.getElementById('todayPlanWidget');
     if (!wrap) return;
-    var dateStr = viewedDate;
+    renderPlanWidget(wrap, viewedDate, { primary: true });
+  }
+
+  // The day's Health & fitness grid. Today's copy keeps its element ids; the Plan day pane
+  // renders the same cards and handlers for any date, found through data-role instead.
+  function renderPlanWidget(wrap, dateStr, opts){
+    opts = opts || {};
+    function idAttr(name){ return opts.primary ? ' id="' + name + '"' : ''; }
     var plan = getPlanForDate(dateStr);
     var meals = getPlanMeals(plan);
     var isToday = dateStr === todayStr();
@@ -8525,13 +8938,13 @@
 
     // compact in the grid; tapping gives it the full row so the note is never clipped
     if (plan && plan.roadblocks){
-      cards.push('<button type="button" class="plan-card roadblock-card" id="planRoadblockCard">' +
+      cards.push('<button type="button" class="plan-card roadblock-card" data-role="rb-card"' + idAttr('planRoadblockCard') + '>' +
         '<span class="plan-card-ic">' + UI_ICON.mountain + '</span>' +
         '<span class="plan-card-body">' +
           '<span class="plan-card-title">Roadblock</span>' +
-          '<span class="plan-card-sub clamped" id="planRoadblockText"></span>' +
+          '<span class="plan-card-sub clamped" data-role="rb-text"' + idAttr('planRoadblockText') + '></span>' +
         '</span>' +
-        '<span class="chev" id="planRoadblockChev">' + UI_ICON.chevronRight + '</span>' +
+        '<span class="chev" data-role="rb-chev"' + idAttr('planRoadblockChev') + '>' + UI_ICON.chevronRight + '</span>' +
       '</button>');
     }
 
@@ -8550,8 +8963,8 @@
     var html = '<div class="today-plan-widget-head">' +
       '<span class="sec-label">' + label + '</span>' +
       '<span class="sec-rule"></span>' +
-      '<button type="button" class="icon-btn" id="shareDayBtn" aria-label="Share day">' + UI_ICON.share + '</button>' +
-      '<button type="button" class="sec-link" id="planTodayBtn">' + planActionLabel + UI_ICON.arrowRight + '</button>' +
+      '<button type="button" class="icon-btn" data-role="share"' + idAttr('shareDayBtn') + ' aria-label="Share day">' + UI_ICON.share + '</button>' +
+      '<button type="button" class="sec-link" data-role="plan-edit"' + idAttr('planTodayBtn') + '>' + planActionLabel + UI_ICON.arrowRight + '</button>' +
     '</div>';
 
     if (cards.length){
@@ -8563,20 +8976,41 @@
 
     // roadblock text is set as text (never markup); the card expands it in place
     if (plan && plan.roadblocks){
-      var rbEl = document.getElementById('planRoadblockText');
+      var rbEl = wrap.querySelector('[data-role="rb-text"]');
       rbEl.textContent = plan.roadblocks;
-      var rbCard = document.getElementById('planRoadblockCard');
+      var rbCard = wrap.querySelector('[data-role="rb-card"]');
       rbCard.addEventListener('click', function(){
         var nowClamped = rbEl.classList.toggle('clamped');
         rbCard.classList.toggle('expanded', !nowClamped);
-        document.getElementById('planRoadblockChev').classList.toggle('flip', !nowClamped);
+        wrap.querySelector('[data-role="rb-chev"]').classList.toggle('flip', !nowClamped);
       });
     }
 
-    document.getElementById('planTodayBtn').addEventListener('click', function(){
+    // the saved detail behind a planned session (outline, exercises, notes). Shown only
+    // where the layout has room for it; written as text, never as markup.
+    if (plan && plan.trainingDetails){
+      wrap.querySelectorAll('[data-train-open]').forEach(function(card){
+        var det = plan.trainingDetails[card.dataset.trainOpen] || {};
+        if (det.completed) return;
+        var more = [];
+        // "5 rounds:" introduces what follows, so it runs straight on rather than taking a separator
+        if (det.outline) more.push(det.outline.split('\n').map(function(x){ return x.trim(); }).filter(function(x){ return !!x; })
+          .reduce(function(acc, x){ return !acc ? x : acc + (/:$/.test(acc) ? ' ' : ' \u00b7 ') + x; }, ''));
+        if (det.exercises && det.exercises.length) more.push(det.exercises.map(function(x){ return x.name; }).filter(function(x){ return !!x; }).join(' \u00b7 '));
+        if (det.notes) more.push(det.notes);
+        more = more.filter(function(x){ return !!x; });
+        if (!more.length) return;
+        var el = document.createElement('span');
+        el.className = 'plan-card-more';
+        el.textContent = more.join('\n');
+        card.querySelector('.plan-card-body').appendChild(el);
+      });
+    }
+
+    wrap.querySelector('[data-role="plan-edit"]').addEventListener('click', function(){
       openPlanSheet(dateStr, getPlanForDate(dateStr));
     });
-    document.getElementById('shareDayBtn').addEventListener('click', function(){ openShareDaySheet(dateStr); });
+    wrap.querySelector('[data-role="share"]').addEventListener('click', function(){ openShareDaySheet(dateStr); });
     wrap.querySelectorAll('[data-plan-edit]').forEach(function(el){
       el.addEventListener('click', function(e){
         e.stopPropagation();
@@ -8640,6 +9074,8 @@
     var list = document.getElementById('planWeekList');
     list.innerHTML = '';
     var today = todayStr();
+    var wide = isWide();
+    var paneDate = wide ? planPaneDate() : null;
 
     for (var i=0; i<7; i++){
       var d = new Date(planWeekStart); d.setDate(d.getDate() + i);
@@ -8651,7 +9087,7 @@
       var sum = planDaySummary(plan, dayCommitments, meals);
 
       var row = document.createElement('div');
-      row.className = 'plan-day-row' + (isToday ? ' today' : '');
+      row.className = 'plan-day-row' + (isToday ? ' today' : '') + (wide && dateStr === paneDate ? ' selected' : '');
       var html =
         '<div class="pday-date">' +
           '<div class="pday-dow">' + d.toLocaleDateString(undefined,{weekday:'short'}) + '</div>' +
@@ -8705,11 +9141,55 @@
           if (jump){ jumpToToday(ds); return; }
           var typeEl = e.target.closest('[data-type]');
           if (typeEl){ openPlanTrainingLogSheet(typeEl.dataset.type, ds); return; }
+          // wide: choose the day for the pane; its Edit plan opens the same editor
+          if (isWide()){ renderPlan(); return; }
           openPlanSheet(ds, p);
         };
       }(dateStr, plan));
       list.appendChild(row);
     }
+    if (wide) renderPlanDayPane(paneDate);
+  }
+
+  // the day the Plan pane shows: the one last chosen if it is in this week, else today, else Sunday
+  function planPaneDate(){
+    var start = fmtDate(planWeekStart);
+    var end = fmtDate(new Date(planWeekStart.getTime() + 6*86400000));
+    if (planSelectedDate && planSelectedDate >= start && planSelectedDate <= end) return planSelectedDate;
+    var t = todayStr();
+    return (t >= start && t <= end) ? t : start;
+  }
+
+  // The selected day, in full: the same Health & fitness cards as Today, the day's actions
+  // and its notes. Every control reuses the existing editors and records.
+  function renderPlanDayPane(dateStr){
+    var pane = document.getElementById('planDayPane');
+    if (!pane) return;
+    var d = new Date(dateStr + 'T00:00:00');
+    pane.innerHTML =
+      '<div class="pdp-head"><div class="pdp-head-body">' +
+        '<div class="pdp-kicker">' + relativeDayLabel(dateStr) + '</div>' +
+        '<div class="pdp-date">' + d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }) + '</div>' +
+      '</div><button type="button" class="sec-link" data-role="pane-day">View day' + UI_ICON.arrowRight + '</button></div>' +
+      '<div class="today-plan-widget" data-role="pane-widget"></div>' +
+      '<div class="pdp-sec"><span class="sec-label">Actions</span><span class="sec-rule"></span><span class="sec-value" data-role="pane-count"></span></div>' +
+      '<div data-role="pane-actions"></div>' +
+      '<div class="pdp-sec"><span class="sec-label">Day notes</span><span class="sec-rule"></span></div>' +
+      '<div class="pdp-notes" data-role="pane-notes"></div>';
+    renderPlanWidget(pane.querySelector('[data-role="pane-widget"]'), dateStr, { primary: false });
+    var acts = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
+    pane.querySelector('[data-role="pane-count"]').textContent = acts.length ? String(acts.length) : '';
+    var list = pane.querySelector('[data-role="pane-actions"]');
+    if (!acts.length){
+      list.innerHTML = '<p class="pdp-empty">No actions for this day.</p>';
+    } else {
+      acts.forEach(function(c){ list.appendChild(buildCommitmentRow(c, dateStr)); });
+    }
+    var notes = pane.querySelector('[data-role="pane-notes"]');
+    var text = getDayNotes(dateStr).trim();
+    if (text) notes.textContent = text;
+    else notes.innerHTML = '<span class="pdp-empty">No notes for this day.</span>';
+    pane.querySelector('[data-role="pane-day"]').addEventListener('click', function(){ jumpToToday(dateStr); });
   }
 
   function openPlanSheet(dateStr, existing, opts){

@@ -178,7 +178,7 @@ These are observed facts about this repo, useful before making changes.
 
 ## Shape
 - **Single-file app.** All product code — HTML, CSS and JavaScript — lives in
-  `index.html` (~8,000 lines). There is no build step, no bundler, no framework
+  `index.html` (~10,500 lines). There is no build step, no bundler, no framework
   and no package manager for the app itself.
 - `functions/` is the only separate codebase: one Firebase Cloud Function that
   sends Web Push for "Pin now". It has its own `package.json`.
@@ -201,6 +201,13 @@ These are observed facts about this repo, useful before making changes.
   than once. Treat it as a bug pattern.
 - User-supplied text is written with `textContent` or as an input `value`,
   never interpolated into an HTML string.
+- **One responsive app.** Wider screens are CSS over the same DOM (breakpoints
+  768 / 1024 / 1200 / 1600px, in the "Wider screens" block at the end of the
+  stylesheet). Today's `.today-top/-main/-side/-extra` and Focus's
+  `.focus-col-*` wrappers are `display: contents` on phones — keep new Today
+  sections in the wrapper that preserves the phone order, and beware
+  `:first-child` rules on their children. JS checks `isWide()` only for
+  presentation (inline Day Notes, Plan day pane); never fork business logic.
 
 ## Persistence
 - Firebase Firestore (project `ledger-6aec3`) with a complete localStorage
@@ -245,3 +252,6 @@ These are observed facts about this repo, useful before making changes.
   reading the rendered result — not by assuming.
 - A JS syntax check over the inline `<script>` block is a cheap first gate
   before any browser run.
+- For layout changes, screenshot every tab and the main sheets at 390px before
+  and after and diff the images: the phone layout should not move unless the
+  change is meant for phones.
