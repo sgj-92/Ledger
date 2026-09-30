@@ -2504,6 +2504,9 @@
   @media (min-width: 768px) and (min-height: 520px) {
     :root { --side-w: 88px; --ws-max: 1680px; --gutter: 32px; }
     html, body { height: auto; }
+    /* reserve the scrollbar's gutter, so content that makes the page scroll (a busy
+       Calendar day, an expanded section) never narrows the layout by its width */
+    html { scrollbar-gutter: stable; }
     body {
       max-width: var(--ws-max); min-height: 100vh;
       display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr);
@@ -2682,17 +2685,32 @@
     .pdp-notes { font-family: var(--serif); font-size: 14.5px; line-height: 1.6; color: var(--text-2); white-space: pre-line; }
     .pdp-empty { font-size: 13px; color: var(--text-3); font-style: italic; }
 
-    /* ---- Calendar: the month on the left, the day on the right ---- */
+    /* ---- Calendar: the month on the left, the day on the right ----
+       The day pane has a fixed width (set by the viewport, never by its content)
+       and spans the column's rows with the month in a flexible last row, so a
+       tall day grows that row only; the summary and chips never move. The
+       divider is drawn by the section, so it is the same line on every day. */
     #view-calendar.active {
+      --cal-pane-w: clamp(340px, 26vw, 400px);
+      position: relative;
       display: grid; column-gap: 36px; align-items: start;
-      grid-template-columns: minmax(0, 1fr) minmax(340px, 410px);
+      grid-template-columns: minmax(0, 1fr) var(--cal-pane-w);
+      grid-template-rows: auto auto 1fr;
     }
-    #calSummary, #calFilter, #calGrid { grid-column: 1; }
+    #view-calendar.active::before {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 1px;
+      right: var(--cal-pane-w); background: var(--line); pointer-events: none;
+    }
+    #calSummary, #calFilter, #calGrid { grid-column: 1; min-width: 0; }
+    #calSummary { grid-row: 1; }
+    #calFilter { grid-row: 2; }
+    #calGrid { grid-row: 3; grid-template-columns: repeat(7, minmax(0, 1fr)); }
     #calDayDetail {
-      grid-column: 2; grid-row: 1 / span 3; margin-top: 0;
-      position: sticky; top: 18px; max-height: calc(100vh - 36px); overflow-y: auto;
-      padding: 2px 4px 8px 28px; border-left: 1px solid var(--line); overscroll-behavior: contain;
+      grid-column: 2; grid-row: 1 / span 3; margin-top: 0; min-width: 0;
+      position: sticky; top: 18px;
+      padding: 2px 0 8px 28px; overflow-wrap: anywhere;
     }
+    #calDayDetail > * { max-width: 100%; }
     .cal-cell { aspect-ratio: 1.3; }
 
     /* ---- Progress: evidence beside trend, then the cards in a grid ---- */

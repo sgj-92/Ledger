@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-30 (responsive desktop and ultrawide layout)
+Last updated: 2026-09-30 (desktop Calendar layout stability)
 
 ---
 
@@ -25,7 +25,8 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   top, Actions + Backlog in the main column, Health & fitness beside it, then Day
   Notes (an inline, autosaved notebook) with Quick log, Wind-down and Recorded.
   Sheets open as a right-hand **inspector**. Plan is week list + selected-day pane;
-  Calendar is month + day pane; Progress puts Towards your focus beside the week
+  Calendar is month + a fixed-width day pane (selected-day content never moves
+  the month); Progress puts Towards your focus beside the week
   chart with the stat cards in a grid; Focus is two columns.
 - **≥ 1200px:** full labelled sidebar (Ledger mark, five views, Quick add, Settings).
 - **≥ 1600px:** Today gains a third column (Day Notes and the evening sections).
@@ -273,6 +274,20 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-30 — Desktop Calendar: the day pane cannot move the month
+**Decision:** from 1024px the Calendar is `minmax(0, 1fr)` + a day-pane column of
+`clamp(340px, 26vw, 400px)`, set by the viewport, never by content. The pane
+spans the month column's rows with the month grid in a flexible last row. The
+divider is drawn by the section, and wider screens reserve the scrollbar gutter.
+The pane is sticky, and it never scrolls on its own.
+**Why (root cause):** the pane shared the month column's grid rows. A busy
+day's height was spread over the summary and chip rows, pushing the chips and
+month grid down by up to about 430px. Its changing height also toggled the page
+scrollbar, which on always-visible-scrollbar setups narrowed everything by 15px.
+**Implications:** measured identical positions for the month heading, summary,
+chips, weekday row, grid, cells, pane and divider across sparse, busy, today,
+single-plan and long-title days at 1024–2560px. Long titles wrap inside the pane.
 
 ### 2026-09-30 — One responsive Ledger for phone, laptop and ultrawide
 **Decision:** the normal URL adapts by width (768 / 1024 / 1200 / 1600px). The
