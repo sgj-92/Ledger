@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-30 (plan readiness; Today gains Overview and Flow)
+Last updated: 2026-09-30 (Communications Centre, Phase 1)
 
 ---
 
@@ -13,7 +13,9 @@ Supporting files: `sw.js`, `manifest.json`, `fonts/` (self-hosted Playfair
 Display + Inter woff2 subsets), `hero-mountain.webp`, icons, `avatars/`,
 and `functions/` (one Firebase Cloud Function).
 
-**Five tabs:** Plan · Today · Calendar · Progress · Focus.
+**Five tabs:** Plan · Today · Calendar · Progress · Focus. **Communications** is a
+sixth view reached from Today on phones (no bottom tab) and a sidebar entry on
+wider screens.
 
 ### Responsive layout (one app, one URL)
 The same page adapts by viewport width; there is no desktop build, route or flag.
@@ -97,6 +99,27 @@ a preference, stored in `presets.routines` (`ledger_meta/presets`), so it follow
 Shaun across devices. Daily completion belongs to the date. Settings is a sheet
 reached from **Focus → Settings**, holding Appearance (Dark/Light/System), the
 two Morning Prime routines, the Wind-down routine and its prominence hour.
+
+### Communications (Phase 1)
+- **Who has the ball, across everything in motion.** Matters (`ledger_matters`:
+  the wider ongoing thing — a sale, a nursery place) hold Conversations
+  (`ledger_conversations`: the thread with a person or organisation). Each
+  conversation has an attention state — Needs me · Waiting on them · Waiting on
+  third party · Follow up · No action · Closed — plus who it waits on, a follow-up
+  date, a current position, notes and a small movement log.
+- **Actions stay actions.** A normal `ledger_commitments` record may carry
+  `matterId` / `conversationId`. Rows show the matter quietly ("Communicate ·
+  Pinewood"); Flow and the Day Plan show it in their meta line.
+- **Completing a conversation-linked action** asks "What happens next?" — Waiting
+  on them / Waiting on third party (who?) / No action / Matter complete / Leave as
+  it is, with an optional follow-up date. Nothing closes a matter on its own.
+- **Today** shows a Communications summary (need you · waiting · follow-ups due),
+  each number opening the Centre on that filter.
+- **The Centre:** search, Needs me / Waiting / Follow-up / All filters (All is
+  grouped by matter, with Closed folded away), compact rows. Phone: tap → detail
+  sheet. Desktop (≥1024): list left, record right, edited in place.
+- **Handoff** gains COMMUNICATIONS ATTENTION (Needs me / Waiting / Follow-up due)
+  for today, and an instruction that waiting items are never tasks.
 
 ### Other tabs
 - **Plan** — Ledger's whole-life forward-planning surface (Plan = intent, Today =
@@ -190,7 +213,8 @@ Firebase Firestore (project `ledger-6aec3`) with a **full localStorage
 fallback** — the app works entirely offline/unconfigured. Collections:
 `ledger_commitments`, `ledger_plans`, `ledger_sessions`, `ledger_day_status`,
 `ledger_priorities`, `ledger_focus`, `ledger_meals`, `ledger_meta`,
-`ledger_pins`, `ledger_push_subscriptions`. Live `onSnapshot` listeners drive
+`ledger_pins`, `ledger_push_subscriptions`, `ledger_matters`,
+`ledger_conversations`. Live `onSnapshot` listeners drive
 re-renders. Deployed to GitHub Pages (`https://sgj-92.github.io/Ledger/`).
 
 ---
@@ -251,6 +275,13 @@ Conventions that should not be casually changed.
   intention is `plan.morningPrime.intention`; notes are `plan.dayNotes`;
   constraints are `plan.roadblocks`. Future days may be planned loosely —
   Morning Prime confirms the current day's key three.
+- Communications has three nouns and no second task system: a **Matter** is the
+  wider ongoing piece of life or work; a **Conversation** is the communication
+  thread and its context; an **Action** is the existing executable commitment,
+  linked by optional `matterId` / `conversationId`. Every commitment saver builds
+  on the record it edits, so the links survive edits, ticks, moves and key-task
+  toggles. The movement log lives on the record (`log`, capped at 80) and actions
+  created against a record are derived from their `createdAt`, never stored twice.
 - Three orderings, three jobs: `plan.actionOrder` = sequence among actions;
   `plan.groupOrder` = order within each category; `plan.dayFlow` = the whole-day
   execution sequence across actions and planned training. `dayFlow` holds
@@ -310,6 +341,25 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-30 — Communications: who has the ball, not another inbox
+**Decision:** Phase 1 of the Communications Centre models Matter → Conversation →
+Action (§34 of the brief):
+- Matter = the wider ongoing piece of life/work.
+- Conversation = the communication thread/context.
+- Action = the existing executable commitment (`ledger_commitments`).
+- Waiting is a state, not a task — Ledger never creates "Wait for X" actions.
+- Completing a communication Action does not close its Matter.
+- Communications are whole-life, not business-only (areas: Business, Family,
+  Personal, Friends, Other).
+- Future external messaging integrations (Gmail, WhatsApp) attach to this model
+  through `channel` and `externalRef` on the conversation.
+**Why:** the question Shaun needs answered is "who has the ball?", which neither a
+task list nor an inbox answers.
+**Implications:** Today counts Needs me, Waiting (on them or a third party) and
+follow-ups due (date today or earlier, conversation still active). Waiting never
+enters Flow. No ingestion, sending, AI triage, contact sync, CRM or notifications
+in Phase 1. Wording states position, never blame ("Waiting on solicitor").
 
 ### 2026-09-30 — Planned is a declared state; Flow is an order, not a schedule
 **Decision:** a day's readiness is Unplanned / Draft / Planned, derived by
@@ -762,7 +812,9 @@ carries the detail; this list records that the question is still open.
    previously offered: scope rules per collection, App Check, or real auth.
    → **#5** (proposed P0). Sharpened by audit: the repository is public and the
    client config is committed, and `ledger_pins` is writable by anyone, which
-   means arbitrary push notifications to the phone.
+   means arbitrary push notifications to the phone. Since 2026-09-30,
+   `ledger_matters` / `ledger_conversations` hold names, positions and notes about
+   clients and family under the same open rules — raising the stakes of #5.
 2. **XP is not yet "earned and explainable".** `computeXP()` is
    `sessions.length × 10 + completed focus items × 25` — every session counts
    equally regardless of effort or evidence quality, and nothing in the UI
@@ -823,6 +875,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-30) — Communications Centre Phase 1: Matters and Conversations with
+  attention states, linked Actions, the "What happens next?" step on completion,
+  Today summary, Centre (phone sheet / desktop split), Handoff attention section.
 - (2026-09-30) — Plan readiness (Unplanned / Draft / Planned ✓) across the week,
   Day Plan and desktop pane; Today gains Overview / Flow with `plan.dayFlow`; the
   Handoff exports the flow.

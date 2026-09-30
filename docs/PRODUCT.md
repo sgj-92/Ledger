@@ -107,6 +107,7 @@ casually.
 | **Calendar** | What actually happened. Month view with an activity filter, day detail (Planned, Recorded, Outcome), day status. |
 | **Progress** | Am I moving there? Towards your focus, weekly chart, health and training stats, stat detail. |
 | **Focus** | Where am I going? Player card, priorities (optionally linked to evidence), active focus, target weight, Settings. |
+| **Communications** | Who has the ball? Matters and the conversations inside them, by attention state. Reached from Today on a phone (not a tab); a sidebar entry on wider screens. |
 
 Today is the centre of the product. Everything else supports it.
 
@@ -136,6 +137,12 @@ Today is the centre of the product. Everything else supports it.
   stored as a preference. Where Ledger holds a record of a step, that record
   decides whether the step is done — a tick is only for steps nothing else
   answers.
+- **Matter, Conversation, Action.** A Matter is the wider ongoing piece of life
+  or work; a Conversation is the communication thread with its context; an
+  Action is the ordinary executable commitment, optionally linked to either.
+  Waiting is a state of a conversation, never a task. Completing a
+  communication action asks what happens next; it never closes the Matter.
+  Communications are whole-life — family and friends as much as clients.
 - **One closure.** A day is closed once. Wind-down closes it in the evening,
   Catch-up closes it the next morning; both write the same `closedAt`.
 
@@ -144,6 +151,8 @@ Today is the centre of the product. Everything else supports it.
 - Not a multi-user or team product.
 - Not a general task manager competing with Todoist.
 - Not a calendar replacement.
+- Not an email client, a messaging app or a CRM — Communications tracks who
+  has the ball, not the messages themselves.
 - Not a habit-streak app that rewards self-report over evidence.
 - Not an automatic scheduler — it does not move work without being told.
 - Not a system that carries unfinished work forward silently.

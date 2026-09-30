@@ -2664,6 +2664,221 @@
   .pdp-support { margin: 8px 0 2px; }
   .plan-day-pane .today-plan-widget { margin: var(--sp-5) 0 0; }
 
+  /* ---------- Communications: who has the ball ---------- */
+  /* attention colours are marks only — a dot or an edge, never a fill */
+  .st-needs_me { --att: var(--gold); }
+  .st-waiting_on_person { --att: var(--cardio); }
+  .st-waiting_on_third_party { --att: var(--weight); }
+  .st-follow_up_later { --att: var(--yoga); }
+  .st-no_action, .st-closed { --att: var(--text-3); }
+
+  /* reached from Today on a phone: no tab of its own, and Today stays lit */
+  nav.tabbar .tab-comms, .tab-label-long { display: none; }
+  body.in-comms nav.tabbar .tab-btn[data-view="log"] { color: var(--gold); font-weight: 500; }
+  body.in-comms nav.tabbar .tab-btn[data-view="log"] .tab-icon { opacity: 1; }
+
+  /* Today's summary: three numbers, each a way in */
+  .cs-row { display: flex; gap: 8px; }
+  .cs-stat {
+    flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+    padding: 11px 13px 10px; border-radius: var(--r-md); cursor: pointer; text-align: left;
+    background: var(--surface); border: 1px solid var(--line); color: var(--text-3);
+    font-family: var(--sans); transition: border-color 0.14s ease, background 0.14s ease;
+  }
+  .cs-stat:active { background: var(--surface-2); }
+  .cs-n { font-family: var(--serif); font-size: 22px; line-height: 1; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .cs-l { font-size: 11px; line-height: 1.3; letter-spacing: 0.01em; }
+  .cs-stat.on .cs-n { color: var(--text); }
+  .cs-stat.on .cs-l { color: var(--text-2); }
+  .cs-stat.needs { border-color: rgba(var(--gold-rgb),0.3); }
+  .cs-stat.needs .cs-n { color: var(--gold); }
+  .cs-empty {
+    display: block; width: 100%; padding: 12px 14px; border-radius: var(--r-md); cursor: pointer; text-align: left;
+    background: none; border: 1px dashed var(--line-2); color: var(--text-3);
+    font-family: var(--sans); font-size: 12.5px; line-height: 1.5;
+  }
+
+  /* the Centre: search, a filter, compact rows */
+  .comms-intro { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--text-2); margin: var(--sp-2) 0 var(--sp-4); }
+  .comms-search {
+    display: flex; align-items: center; gap: 10px; margin-bottom: var(--sp-3);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 13px;
+  }
+  .comms-search:focus-within { border-color: rgba(var(--gold-rgb),0.4); }
+  .comms-search svg { width: 15px; height: 15px; color: var(--text-3); flex-shrink: 0; display: block; }
+  .comms-search input {
+    flex: 1; min-width: 0; background: none; border: none; outline: none; -webkit-appearance: none; appearance: none;
+    font-family: var(--sans); font-size: 14px; color: var(--text);
+  }
+  .comms-search input::placeholder { color: var(--text-3); }
+  .comms-filter {
+    display: flex; gap: 3px; padding: 3px; margin-bottom: var(--sp-4);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 100px;
+  }
+  .comms-filter button {
+    flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 6px; border: none; border-radius: 100px; background: none; cursor: pointer; white-space: nowrap;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; letter-spacing: 0.01em; color: var(--text-3);
+    transition: background 0.16s ease, color 0.16s ease;
+  }
+  .comms-filter button.sel { background: var(--gold); color: var(--ink); }
+  .cf-n { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; opacity: 0.75; }
+  .cf-n:empty { display: none; }
+  .comms-new { display: flex; flex-wrap: wrap; gap: 8px; margin: var(--sp-5) 0 var(--sp-2); }
+  .comms-pane:empty { display: none; }
+  .comms-empty { font-size: 13px; line-height: 1.5; color: var(--text-3); padding: 14px 2px; }
+
+  .cv-row, .mt-row {
+    display: flex; align-items: center; gap: 11px; width: 100%; margin-bottom: 4px; padding: 10px 12px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    cursor: pointer; text-align: left; font-family: var(--sans); color: var(--text);
+  }
+  .cv-row:active, .mt-row:active { background: var(--surface-2); }
+  .cv-row.sel, .mt-row.sel { background: rgba(var(--gold-rgb),0.05); border-color: rgba(var(--gold-rgb),0.3); }
+  .cv-mark { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--att, var(--text-3)); }
+  .st-no_action .cv-mark, .st-closed .cv-mark { background: none; border: 1.5px solid var(--text-3); width: 6px; height: 6px; }
+  .cv-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .cv-title { font-family: var(--serif); font-size: 15px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cv-sub { font-size: 11.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cv-aside { flex-shrink: 0; max-width: 44%; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+  .cv-state { font-size: 11.5px; font-weight: 500; color: var(--text-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st-needs_me .cv-state { color: var(--gold); }
+  .cv-row.due .cv-when { color: var(--day-neutral); font-weight: 500; }
+  .cv-sub:empty { display: none; }
+  /* inside a record, its actions don't need to name the matter again */
+  .comms-pane .commitment-item .commitment-matter, .comms-sheet-body .commitment-item .commitment-matter { display: none; }
+  .cv-when { font-size: 10.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .cv-when:empty { display: none; }
+  .cv-row.st-closed .cv-title, .mt-row.st-closed .mt-title { color: var(--text-3); }
+
+  .mt-row { flex-direction: column; align-items: flex-start; gap: 3px; background: none; border-color: var(--line-2); }
+  .mt-title { font-family: var(--serif); font-size: 16.5px; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mt-sub { font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); }
+  .mt-row.st-on_hold .mt-sub { color: var(--day-neutral); }
+  .mt-group { margin-bottom: var(--sp-4); }
+  .mt-group > .cv-row { margin-left: 14px; width: calc(100% - 14px); }
+  .mt-group-label, .comms-closed-toggle {
+    display: block; margin: var(--sp-5) 0 var(--sp-2); padding: 0;
+    font-family: var(--sans); font-size: 10.5px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.2em; color: var(--text-3);
+  }
+  .comms-closed-toggle { background: none; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+  .comms-closed-toggle::after {
+    content: ''; width: 6px; height: 6px; margin-top: -3px;
+    border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg);
+  }
+  .comms-closed-toggle[aria-expanded="true"]::after { transform: rotate(225deg); margin-top: 3px; }
+
+  /* detail: one record, in the pane on desktop or a sheet on a phone */
+  .cd-top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; min-height: 34px; }
+  .cd-kicker { flex: 1; min-width: 0; font-size: 10px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-3); }
+  .cd-matter-link {
+    background: none; border: none; padding: 0; cursor: pointer; font: inherit; letter-spacing: inherit; text-transform: inherit;
+    color: var(--gold); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom;
+  }
+  .cd-title {
+    display: block; width: 100%; margin: 0 0 var(--sp-4); padding: 2px 0 6px;
+    background: none; border: none; border-bottom: 1px solid transparent; border-radius: 0;
+    font-family: var(--serif); font-size: 26px; line-height: 1.2; letter-spacing: -0.01em; color: var(--text);
+  }
+  .cd-title:focus { outline: none; border-bottom-color: rgba(var(--gold-rgb),0.4); }
+  .cd-title::placeholder { color: var(--text-3); }
+  .cd-label, .cd-field > span {
+    display: block; font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px;
+  }
+  .cd-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--sp-4); }
+  .cd-chip {
+    display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 100px; cursor: pointer;
+    border: 1px solid var(--line-2); background: none; color: var(--text-2);
+    font-family: var(--sans); font-size: 12px; font-weight: 500; letter-spacing: 0.01em;
+    transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  }
+  .cd-chip[class*=" a-"]::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--att, var(--text-3)); }
+  .cd-chip.a-needs_me { --att: var(--gold); }
+  .cd-chip.a-waiting_on_person { --att: var(--cardio); }
+  .cd-chip.a-waiting_on_third_party { --att: var(--weight); }
+  .cd-chip.a-follow_up_later { --att: var(--yoga); }
+  .cd-chip.a-no_action { --att: var(--text-3); }
+  .cd-chip.sel { background: rgba(var(--gold-rgb),0.1); border-color: rgba(var(--gold-rgb),0.5); color: var(--text); }
+  .cd-waiting { margin: -6px 0 var(--sp-4); }
+  .cd-waiting[hidden] { display: none; }
+  .cd-waiting input, .cd-field input, .cd-field select, .cd-field textarea, .cd-log-input input, .ns-third input {
+    display: block; width: 100%; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px;
+    padding: 11px 13px; color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.45;
+    transition: border-color 0.12s ease;
+  }
+  .cd-waiting input:focus, .cd-field input:focus, .cd-field select:focus, .cd-field textarea:focus,
+  .cd-log-input input:focus, .ns-third input:focus { outline: none; border-color: rgba(var(--gold-rgb),0.45); }
+  .cd-field input[type="date"], .ns-follow input { color-scheme: dark; font-variant-numeric: tabular-nums; }
+  .cd-field textarea { resize: vertical; min-height: 60px; font-family: var(--serif); font-size: 15px; line-height: 1.5; }
+  .cd-field { display: block; margin-bottom: var(--sp-4); }
+  .cd-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+  .cd-sec { display: flex; align-items: center; gap: 14px; margin: var(--sp-6) 0 var(--sp-3); }
+  .cd-sec .sec-link svg { width: 12px; height: 12px; }
+  .cd-log { margin-top: 6px; }
+  .cd-log-row {
+    display: grid; grid-template-columns: 74px minmax(0, 1fr); column-gap: 10px; row-gap: 1px;
+    padding: 8px 0; border-top: 1px solid var(--line); font-size: 12.5px; line-height: 1.45;
+  }
+  .cd-log-row:first-child { border-top: none; }
+  .cd-log-when { grid-row: 1 / span 2; font-size: 11px; color: var(--text-3); padding-top: 1px; font-variant-numeric: tabular-nums; }
+  .cd-log-kind { font-size: 9.5px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); }
+  .cd-log-kind:empty { display: none; }
+  .cd-log-text { color: var(--text-2); overflow-wrap: anywhere; }
+  .cd-log-row.k-done .cd-log-kind, .cd-log-row.k-state .cd-log-kind { color: rgba(var(--gold-rgb),0.75); }
+  .cd-log-add .cd-chips { margin-bottom: 8px; }
+  .cd-log-add .cd-chip { padding: 5px 10px; font-size: 11.5px; }
+  .cd-log-input { display: flex; gap: 8px; }
+  .cd-log-input input { flex: 1; min-width: 0; }
+  .cd-log-btn, .ns-third .btn-primary { flex-shrink: 0; }
+  .cd-log-btn {
+    width: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(var(--gold-rgb),0.32); background: none; color: var(--gold);
+  }
+  .cd-log-btn svg { width: 15px; height: 15px; display: block; }
+  .cd-more { margin-top: var(--sp-6); border-top: 1px solid var(--line); padding-top: var(--sp-3); }
+  .cd-more > summary {
+    list-style: none; cursor: pointer; padding: 6px 0; margin-bottom: var(--sp-3);
+    font-size: 12.5px; font-weight: 500; color: var(--text-2);
+  }
+  .cd-more > summary::-webkit-details-marker { display: none; }
+  .cd-more > summary::after { content: ' +'; color: var(--text-3); }
+  .cd-more[open] > summary::after { content: ' −'; }
+  .cd-close-btn { margin-top: var(--sp-3); }
+
+  .md-conv {
+    display: flex; align-items: center; gap: 11px; width: 100%; padding: 11px 4px; cursor: pointer; text-align: left;
+    background: none; border: none; border-top: 1px solid var(--line); font-family: var(--sans); color: var(--text);
+  }
+  .md-conv:first-child { border-top: none; }
+  .md-conv-name { flex: 1; min-width: 0; font-family: var(--serif); font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .md-conv-state { flex-shrink: 0; max-width: 55%; font-size: 12px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .md-conv.st-needs_me .md-conv-state { color: var(--gold); }
+
+  /* an action's wider matter, quietly */
+  .commitment-cat .commitment-matter { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .commitment-cat .commitment-matter::before { content: '· '; }
+  .commitment-body > .commitment-matter { display: block; margin-top: 4px; font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* after a linked action: what happens next? */
+  .ns-q { font-size: 14px; color: var(--text-2); margin: 0 0 var(--sp-3); }
+  .ns-q strong { color: var(--text); font-weight: 500; }
+  .ns-opts { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--sp-4); }
+  .ns-opt {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; padding: 12px 14px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md); cursor: pointer; text-align: left;
+    font-family: var(--sans); color: var(--text); transition: border-color 0.14s ease;
+  }
+  .ns-opt:active { border-color: rgba(var(--gold-rgb),0.45); }
+  .ns-t { font-size: 14.5px; font-weight: 500; }
+  .ns-s { font-size: 12px; color: var(--text-3); }
+  .ns-opt.sel { border-color: rgba(var(--gold-rgb),0.5); background: rgba(var(--gold-rgb),0.06); }
+  .ns-third { display: flex; gap: 8px; margin: 0 0 4px; }
+  .ns-third[hidden] { display: none; }
+  .ns-third input { flex: 1; min-width: 0; }
+  .ns-third .btn-primary { width: auto; padding: 0 20px; }
+  html[data-theme="light"] .cd-field input[type="date"], html[data-theme="light"] .ns-follow input { color-scheme: light; }
+
   /* ==========================================================
      Wider screens — one app, one URL.
      Phones never reach anything below the first block. Everything here
@@ -2690,7 +2905,11 @@
   @media (hover: hover) and (pointer: fine) {
     .commitment-item:hover, .session-item:hover, .plan-card:hover, .bk-row:hover,
     .mp-head:hover, .quicklog-card:hover, .cal-day-log-btn:hover, .add-option:hover,
-    .dn-row:hover, .panel-row:hover { background: var(--surface-2); }
+    .dn-row:hover, .panel-row:hover, .cv-row:hover, .mt-row:hover, .ns-opt:hover { background: var(--surface-2); }
+    .md-conv:hover { background: rgba(var(--gold-rgb),0.035); }
+    .cs-stat:hover, .cd-chip:hover:not(.sel) { border-color: rgba(var(--gold-rgb),0.3); }
+    .cv-row.sel:hover, .mt-row.sel:hover { background: rgba(var(--gold-rgb),0.07); }
+    .comms-filter button:not(.sel):hover { color: var(--text-2); }
     .focus-item:hover, .plan-day-row:hover, .fe-row.clickable:hover,
     .stat-card-clickable:hover { background: rgba(var(--gold-rgb),0.035); }
     .cal-cell:not(.empty):not(.selected):hover { border-color: var(--line-2); }
@@ -2771,6 +2990,11 @@
     }
     .update-bar { bottom: 28px; }
     .pin-toast { bottom: 32px; }
+
+    /* Communications has its own place in the rail; Today is no longer its stand-in */
+    nav.tabbar .tab-comms { display: flex; }
+    body.in-comms nav.tabbar .tab-btn[data-view="log"]:not(.active) { color: var(--text-3); font-weight: 400; }
+    body.in-comms nav.tabbar .tab-btn[data-view="log"]:not(.active) .tab-icon { opacity: 0.65; }
 
     /* Calendar filter: wraps instead of scrolling sideways */
     .cal-filter { flex-wrap: wrap; margin: 0 0 var(--sp-4); padding: 0; overflow: visible; }
@@ -2916,6 +3140,20 @@
     #calDayDetail > * { max-width: 100%; }
     .cal-cell { aspect-ratio: 1.3; }
 
+    /* ---- Communications: the list on the left, the record on the right ---- */
+    #view-comms.active {
+      display: grid; column-gap: 36px; align-items: start; max-width: 1240px;
+      grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+    }
+    .comms-list-col { min-width: 0; }
+    .comms-pane, .comms-pane:empty {
+      display: block; position: sticky; top: 18px; max-height: calc(100vh - 36px); overflow-y: auto;
+      border-left: 1px solid var(--line); padding: 4px 4px 24px 32px; overscroll-behavior: contain; min-width: 0;
+    }
+    .comms-pane .cd-title { font-size: clamp(24px, 2vw, 30px); }
+    .comms-pane .commitment-item { padding: 9px 13px; }
+    .comms-intro { margin-top: var(--sp-1); }
+
     /* ---- Progress: evidence beside trend, then the cards in a grid ---- */
     #view-stats.active {
       display: grid; column-gap: 36px; align-items: start;
@@ -2961,6 +3199,8 @@
     }
     nav.tabbar .side-brand + button { margin-top: 12px; }
     nav.tabbar button .tab-icon { width: 19px; height: 19px; }
+    .tab-label-long { display: inline; }
+    .tab-label-short { display: none; }
     .global-fab {
       left: calc(max(0px, (100vw - var(--ws-max)) / 2) + 14px);
       width: calc(var(--side-w) - 28px); height: 40px; border-radius: 12px; bottom: 74px;
@@ -3067,6 +3307,8 @@
     <div id="accountabilityMsg"></div>
 
     <div id="backlogSection"></div>
+
+    <div id="commsSummary"></div>
     </div>
 
     <div class="today-side">
@@ -3190,6 +3432,25 @@
     </div>
   </section>
 
+  <section class="view" id="view-comms">
+    <div class="comms-list-col">
+      <p class="comms-intro">Who has the ball, across everything in motion.</p>
+      <label class="comms-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><line x1="16" y1="16" x2="20.5" y2="20.5"/></svg><input type="search" id="commsSearch" placeholder="Search matters and people" aria-label="Search communications" autocomplete="off"></label>
+      <div class="comms-filter" id="commsFilter" role="tablist" aria-label="Show">
+        <button type="button" role="tab" data-comms-filter="needs">Needs me<span class="cf-n"></span></button>
+        <button type="button" role="tab" data-comms-filter="waiting">Waiting<span class="cf-n"></span></button>
+        <button type="button" role="tab" data-comms-filter="follow">Follow-up<span class="cf-n"></span></button>
+        <button type="button" role="tab" data-comms-filter="all">All</button>
+      </div>
+      <div id="commsRows"></div>
+      <div class="comms-new">
+        <button type="button" class="dpa-add-btn" id="commsNewConv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>Conversation</button>
+        <button type="button" class="dpa-add-btn quiet" id="commsNewMatter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>Matter</button>
+      </div>
+    </div>
+    <aside class="comms-pane" id="commsPane" aria-label="Selected conversation or matter"></aside>
+  </section>
+
   <section class="view" id="view-plan">
     <div id="planWeekList"></div>
 
@@ -3229,6 +3490,10 @@
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/></svg></span>
     Focus
   </button>
+  <button class="tab-btn tab-comms" data-view="comms">
+    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10H9.5L5 19.5v-4H4z"/><line x1="8" y1="9.5" x2="16" y2="9.5"/><line x1="8" y1="12.5" x2="13" y2="12.5"/></svg></span>
+    <span class="tab-label-long">Communications</span><span class="tab-label-short">Comms</span>
+  </button>
   <button type="button" class="side-settings" id="sideSettingsBtn">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.3" fill="var(--bg)"/><circle cx="15" cy="17" r="2.3" fill="var(--bg)"/></svg></span>
     Settings
@@ -3254,6 +3519,8 @@
   var plans = [];
   var mealIdeas = [];
   var priorities = [];
+  var matters = [];         // ledger_matters — the wider things that are happening
+  var conversations = [];   // ledger_conversations — who is involved, and who has the ball
   var commitments = [];
   var dayStatuses = [];
   var COMMITMENT_STATUS_LABEL = { planned: 'Planned', completed: 'Completed', partial: 'Partially completed', disrupted: 'Disrupted', not_done: 'Not done' };
@@ -3538,8 +3805,17 @@
           renderLogView();
           // Plan reads the same actions: its week rows and day pane follow them
           if (currentView === 'plan') renderPlan();
+          if (currentView === 'comms') renderComms();
           tryHandleDeepLink();
         }, function(err){ console.error('commitments snapshot error', err); });
+      ['ledger_matters', 'ledger_conversations'].forEach(function(coll){
+        dbRef.collection(coll).onSnapshot(function(snap){
+          var list = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
+          if (coll === 'ledger_matters') matters = list; else conversations = list;
+          keepCommsPending(coll);
+          commsChanged();
+        }, function(err){ console.error(coll + ' snapshot error', err); });
+      });
       dbRef.collection('ledger_day_status')
         .onSnapshot(function(snap){
           dayStatuses = snap.docs.map(function(d){ var data = d.data() || {}; data.date = d.id; return data; });
@@ -3561,6 +3837,7 @@
     localLoadPriorities();
     localLoadCommitments();
     localLoadDayStatuses();
+    localLoadComms();
     presetsLoaded = true;
     prioritiesLoaded = true;
     seedPrioritiesIfNeeded();
@@ -4241,6 +4518,8 @@
       document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
       btn.classList.add('active');
       currentView = btn.dataset.view;
+      // on a phone Communications lives inside Today, so Today stays lit
+      document.body.classList.toggle('in-comms', currentView === 'comms');
       document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
       document.getElementById('view-' + currentView).classList.add('active');
       syncGlobalFab();
@@ -4254,6 +4533,7 @@
       if (currentView === 'stats') renderStats();
       if (currentView === 'focus') renderFocus();
       if (currentView === 'plan') renderPlan();
+      if (currentView === 'comms') renderComms();
       renderHeader();
     });
   });
@@ -4268,7 +4548,8 @@
     calendar: { kicker: 'Calendar', title: 'History' },
     plan: { kicker: 'Plan', title: 'This week' },
     stats: { kicker: 'Progress', title: 'Over time' },
-    focus: { kicker: 'Focus', title: 'Direction' }
+    focus: { kicker: 'Focus', title: 'Direction' },
+    comms: { kicker: 'Communications', title: 'In motion' }
   };
 
   function relativeDayLabel(dateStr){
@@ -4383,7 +4664,9 @@
       rangeEl.textContent = calMonth.getFullYear();
       rangeEl.hidden = false;
     } else {
-      prevBtn.hidden = true;
+      // Communications is reached from Today on a phone, so the way back is always there
+      prevBtn.hidden = !(currentView === 'comms' && !window.matchMedia('(min-width: 768px) and (min-height: 520px)').matches);
+      prevBtn.setAttribute('aria-label', currentView === 'comms' ? 'Back to Today' : 'Previous');
       nextBtn.hidden = true;
       sub.innerHTML = '';
       var info = TAB_INFO[currentView] || { kicker: 'Ledger', title: '' };
@@ -4393,6 +4676,7 @@
   }
 
   function headerNavStep(dir){
+    if (currentView === 'comms'){ document.querySelector('.tab-btn[data-view="log"]').click(); return; }
     if (currentView === 'plan'){
       planWeekStart.setDate(planWeekStart.getDate() + dir * 7);
       renderPlan(); renderHeader();
@@ -4569,6 +4853,17 @@
     var next = c.status === 'completed' ? 'planned' : 'completed';
     if (next === 'completed') cleanupPinsForCompletedAction(c.id);
     saveCommitment(Object.assign({}, c, { status: next }));
+    if (next === 'completed') afterLinkedCompletion(c);
+  }
+  // Completing an action never closes its matter. It is recorded as movement, and when
+  // the action belongs to a conversation Shaun says what happens next — nothing assumed.
+  function afterLinkedCompletion(c){
+    if (c.conversationId && convById(c.conversationId)){
+      logConv(c.conversationId, 'done', c.title);
+      openNextStepSheet(c);
+    } else if (c.matterId && matterById(c.matterId)){
+      logMatter(c.matterId, 'done', c.title);
+    }
   }
 
   // contextDate: the day this list is already headed by. The row's own day label is
@@ -4803,6 +5098,15 @@
       (opts.drag
         ? '<button type="button" class="drag-handle" data-drag-handle aria-label="Reorder">' + UI_ICON.grip + '</button>'
         : '<span class="chev">' + UI_ICON.chevronRight + '</span>');
+    // the wider matter an action belongs to, quietly — written as text
+    var mt = matterTitle(c.matterId);
+    if (mt){
+      var host = row.querySelector('.commitment-cat') || row.querySelector('.commitment-body');
+      var ms = document.createElement('span');
+      ms.className = 'commitment-matter';
+      ms.textContent = mt;
+      host.appendChild(ms);
+    }
     row.addEventListener('click', function(){ openCommitmentSheet(c); });
     if (!isRoadblock){
       row.querySelector('.commitment-status-dot').addEventListener('click', function(e){
@@ -5081,6 +5385,7 @@
         t.textContent = it.c.title;
         var bits = [categoryLabel(it.c.category)];
         if (it.c.status !== 'planned' && it.c.status !== 'completed') bits.push(COMMITMENT_STATUS_LABEL[it.c.status]);
+        if (matterTitle(it.c.matterId)) bits.push(matterTitle(it.c.matterId));
         if (it.c.minVersion && it.c.status !== 'completed') bits.push('Min: ' + it.c.minVersion);
         m.textContent = bits.join(' · ');
       } else {
@@ -5269,10 +5574,14 @@
         '<div class="field"><label>Action</label><input type="text" id="f_commitTitle" placeholder="e.g. Resistance training" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
         fieldSelect('f_commitCategory', 'Category',
           [{value:'', label:'No category'}].concat(QUICK_CAPTURE_CATEGORIES.map(function(c){ return {value:c.key, label:c.label}; })),
-          existing ? (existing.category || '') : qcLastCategory) +
+          existing ? (existing.category || '') : (opts.category || qcLastCategory)) +
         fieldSelect('f_commitPriority', 'Linked priority', priorityOptions, existing ? (existing.priorityId||'') : '') +
+        commsLinkFieldsHtml() +
         '<div class="field"><label>Minimum version</label><input type="text" id="f_commitMinVer" placeholder="e.g. 20-minute home workout" value="' + (existing && existing.minVersion ? existing.minVersion.replace(/"/g,'&quot;') : '') + '"></div>';
 
+      if (!isEditing && opts.pickDate){
+        html += fieldDate('f_commitDate', 'For', newDate);
+      }
       if (isEditing){
         html += fieldDate('f_commitDate', 'Scheduled for', existing.date || todayStr());
         var orig = actionOriginalDate(existing);
@@ -5297,7 +5606,7 @@
         // Three lightweight outcomes for a freshly typed action, per the "Call dentist" example:
         // save it as a Today action, push it to the phone right now, or both — no second form.
         html += '<div class="btn-row"><button class="btn-primary" id="saveCommitBtn">' +
-            (opts.date && opts.date !== todayStr() ? 'Add to ' + shortDayLabel(opts.date) : 'Add to Today') + '</button></div>' +
+            (opts.pickDate ? 'Add action' : (opts.date && opts.date !== todayStr() ? 'Add to ' + shortDayLabel(opts.date) : 'Add to Today')) + '</button></div>' +
           '<div class="btn-row pin-outcome-row">' +
             '<button type="button" class="btn-secondary pin-action-btn" id="pinOnlyBtn"><span class="pin-btn-icon">' + PIN_ICON_SVG + '</span>Pin now</button>' +
             '<button type="button" class="btn-secondary pin-action-btn" id="pinBothBtn"><span class="pin-btn-icon">' + PIN_ICON_SVG + '</span>Both</button>' +
@@ -5305,6 +5614,21 @@
       }
       return html;
     }
+
+    // Matter / Conversation links. Offered only once there is something to link to;
+    // a closed record stays selectable when it is already the link.
+    var linkMatter = existing ? (existing.matterId || '') : ((opts.links && opts.links.matterId) || '');
+    var linkConv = existing ? (existing.conversationId || '') : ((opts.links && opts.links.conversationId) || '');
+    function commsLinkFieldsHtml(){
+      var ms = matters.filter(function(m){ return m.status !== 'closed' || m.id === linkMatter; });
+      var cs = conversations.filter(function(v){ return v.attentionState !== 'closed' || v.id === linkConv; });
+      if (!ms.length && !cs.length) return '';
+      return '<div class="field-row commit-links">' +
+        fieldSelect('f_commitMatter', 'Part of', [{ value: '', label: 'No matter' }].concat(ms.map(function(m){ return { value: m.id, label: escOpt(m.title) }; })), linkMatter) +
+        fieldSelect('f_commitConv', 'Conversation', [{ value: '', label: 'None' }].concat(cs.map(function(v){ return { value: v.id, label: escOpt(convName(v)) }; })), linkConv) +
+      '</div>';
+    }
+    function escOpt(t){ return String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
 
     sheetEl.innerHTML = buildHtml();
     backdrop.classList.add('open');
@@ -5325,6 +5649,12 @@
         category: document.getElementById('f_commitCategory').value || null,
         createdAt: existing ? existing.createdAt : new Date().toISOString()
       });
+      // links: from the form when it shows them, otherwise whatever the record already had
+      var mSel = document.getElementById('f_commitMatter'), cSel = document.getElementById('f_commitConv');
+      if (mSel) out.matterId = mSel.value || null;
+      else if (!existing && opts.links) out.matterId = opts.links.matterId || null;
+      if (cSel) out.conversationId = cSel.value || null;
+      else if (!existing && opts.links) out.conversationId = opts.links.conversationId || null;
       out.originalDate = existing ? actionOriginalDate(existing) : nextDate;
       // key-task standing belongs to the day it was chosen for
       if (existing && existing.isKeyTask && nextDate !== existing.date) out.isKeyTask = false;
@@ -5334,6 +5664,11 @@
 
     function wireSheet(){
       document.getElementById('sheetCloseBtn').addEventListener('click', done);
+      var cSelEl = document.getElementById('f_commitConv'), mSelEl = document.getElementById('f_commitMatter');
+      if (cSelEl && mSelEl) cSelEl.addEventListener('change', function(){
+        var v = convById(cSelEl.value);
+        if (v && v.matterId && !mSelEl.value) mSelEl.value = v.matterId;
+      });
       if (isEditing){
         document.querySelectorAll('#commitStatusGrid .status-btn').forEach(function(btn){
           btn.addEventListener('click', function(){
@@ -5360,8 +5695,10 @@
         if (existing && actionCategoryKey(existing) !== actionCategoryKey(out)){
           dropFromGroupOrder(existing.date, actionCategoryKey(existing), existing.id);
         }
+        var justCompleted = isEditing && out.status === 'completed' && existing.status !== 'completed';
         saveCommitment(out);
         done();
+        if (justCompleted) afterLinkedCompletion(out);
       });
       if (!isEditing){
         document.getElementById('pinOnlyBtn').addEventListener('click', function(){
@@ -5569,7 +5906,7 @@
   // Today has its own Add action control; a floating duplicate would only cover content
   function syncGlobalFab(){
     var fab = document.getElementById('globalFabBtn');
-    if (fab) fab.hidden = currentView === 'log';
+    if (fab) fab.hidden = currentView === 'log' || currentView === 'comms';
   }
   syncGlobalFab();
 
@@ -5709,6 +6046,819 @@
     render();
     // the listeners confirm into the same sheet; closeSheet clears this hook
     activeSheetRefresh = render;
+  }
+
+  // ============ Communications: Matters and Conversations ============
+  // A Matter is the wider thing that is happening (a sale, a nursery place, a house
+  // repair). A Conversation is the communication with the people involved, and says who
+  // has the ball. Actions stay ordinary ledger_commitments; they may carry a matterId and
+  // a conversationId, and nothing here copies them. Waiting is a state, never a task.
+  // Both records are manual in Phase 1; channel and externalRef are where a future Gmail
+  // or WhatsApp integration attaches (a thread or contact id), without changing the model.
+  var ATTENTION_LABEL = {
+    needs_me: 'Needs me', waiting_on_person: 'Waiting on them', waiting_on_third_party: 'Waiting on third party',
+    follow_up_later: 'Follow up', no_action: 'No action', closed: 'Closed'
+  };
+  var ATTENTION_ORDER = ['needs_me', 'waiting_on_person', 'waiting_on_third_party', 'follow_up_later', 'no_action', 'closed'];
+  var MATTER_STATUS_LABEL = { active: 'Active', on_hold: 'On hold', closed: 'Closed' };
+  var MATTER_AREA_LABEL = { business: 'Business', family: 'Family', personal: 'Personal', friends: 'Friends', other: 'Other' };
+  var CHANNEL_LABEL = { email: 'Email', whatsapp: 'WhatsApp', phone: 'Phone', in_person: 'In person', other: 'Other' };
+  var LOG_KIND_LABEL = { received: 'Received', sent: 'Sent', call: 'Call', meeting: 'Meeting', note: 'Note', state: 'Status', done: 'Done', created: 'Action' };
+
+  function localSaveComms(){
+    try {
+      localStorage.setItem('ledger_matters_fallback', JSON.stringify(matters));
+      localStorage.setItem('ledger_conversations_fallback', JSON.stringify(conversations));
+    } catch(e){}
+  }
+  function localLoadComms(){
+    try {
+      matters = JSON.parse(localStorage.getItem('ledger_matters_fallback') || '[]') || [];
+      conversations = JSON.parse(localStorage.getItem('ledger_conversations_fallback') || '[]') || [];
+    } catch(e){}
+  }
+  // Saved like plans: the change is local at once, then written; the listener converges.
+  var commsPending = { ledger_matters: {}, ledger_conversations: {} };
+  function commsList(coll){ return coll === 'ledger_matters' ? matters : conversations; }
+  function setCommsLocal(coll, item){
+    var arr = commsList(coll);
+    var i = arr.findIndex(function(x){ return x.id === item.id; });
+    if (i > -1) arr[i] = item; else arr.push(item);
+  }
+  function keepCommsPending(coll){
+    Object.keys(commsPending[coll]).forEach(function(id){
+      var w = commsPending[coll][id];
+      if (w && w.n > 0) setCommsLocal(coll, w.data);
+    });
+  }
+  function commsChanged(){
+    renderLogView();
+    if (currentView === 'comms') renderComms();
+  }
+  async function saveCommsRecord(coll, item){
+    item = Object.assign({}, item, { updatedAt: new Date().toISOString() });
+    if (!item.id) item.id = uid();
+    if (!item.createdAt) item.createdAt = item.updatedAt;
+    setCommsLocal(coll, item);
+    if (dbReady && dbRef){
+      var w = commsPending[coll][item.id] || (commsPending[coll][item.id] = { n: 0, data: null });
+      w.n += 1; w.data = item;
+      commsChanged();
+      try {
+        var copy = Object.assign({}, item); delete copy.id;
+        await dbRef.collection(coll).doc(item.id).set(copy);
+      } catch(e){ console.error(coll + ' save failed', e); localSaveComms(); }
+      finally { w.n -= 1; if (w.n <= 0) delete commsPending[coll][item.id]; }
+      return item;
+    }
+    localSaveComms();
+    commsChanged();
+    return item;
+  }
+  function matterById(id){ return (id && matters.find(function(m){ return m.id === id; })) || null; }
+  function convById(id){ return (id && conversations.find(function(v){ return v.id === id; })) || null; }
+  // Every change goes onto the latest copy of the record, never a rebuilt one.
+  function patchMatter(id, patch){ var m = matterById(id); return m ? saveCommsRecord('ledger_matters', Object.assign({}, m, patch)) : null; }
+  function patchConv(id, patch){ var v = convById(id); return v ? saveCommsRecord('ledger_conversations', Object.assign({}, v, patch)) : null; }
+
+  // A short movement log on each record. Matter detail merges its own with its
+  // conversations' and the actions linked to it.
+  var COMMS_LOG_MAX = 80;
+  function withLog(rec, kind, text){
+    var log = (rec.log || []).concat([{ at: new Date().toISOString(), kind: kind, text: text }]);
+    return log.slice(-COMMS_LOG_MAX);
+  }
+  function logConv(id, kind, text, extra){
+    var v = convById(id);
+    if (!v) return null;
+    var patch = Object.assign({ log: withLog(v, kind, text) }, extra || {});
+    if (kind !== 'state') patch.lastActivityAt = new Date().toISOString();
+    return saveCommsRecord('ledger_conversations', Object.assign({}, v, patch));
+  }
+  function logMatter(id, kind, text, extra){
+    var m = matterById(id);
+    if (!m) return null;
+    return saveCommsRecord('ledger_matters', Object.assign({}, m, { log: withLog(m, kind, text) }, extra || {}));
+  }
+
+  function participantNames(v){
+    return (v.participants || []).map(function(p){ return p && p.name; }).filter(function(n){ return !!n; });
+  }
+  function participantsText(v){
+    return (v.participants || []).map(function(p){ return p.role ? p.name + ' (' + p.role + ')' : p.name; }).join(', ');
+  }
+  // "Yusuf (Client), Abi" -> [{ name, role }] — light on purpose; a People layer can replace it
+  function parseParticipants(text){
+    return (text || '').split(',').map(function(part){
+      var t = part.trim();
+      if (!t) return null;
+      var m = t.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+      return m ? { name: m[1].trim(), role: m[2].trim() } : { name: t, role: '' };
+    }).filter(function(p){ return p && p.name; });
+  }
+  function convName(v){ return (v.title || '').trim() || participantNames(v).join(', ') || 'Untitled conversation'; }
+  function convIsActive(v){
+    if (!v || v.attentionState === 'closed') return false;
+    var m = matterById(v.matterId);
+    return !(m && m.status === 'closed');
+  }
+  function convIsWaiting(v){ return v.attentionState === 'waiting_on_person' || v.attentionState === 'waiting_on_third_party'; }
+  function convFollowUpDue(v){ return convIsActive(v) && !!v.nextFollowUpAt && v.nextFollowUpAt <= todayStr(); }
+  // The Today counts, each traceable to one rule.
+  function commsCounts(){
+    var active = conversations.filter(convIsActive);
+    return {
+      needs: active.filter(function(v){ return v.attentionState === 'needs_me'; }).length,
+      waiting: active.filter(convIsWaiting).length,
+      due: active.filter(convFollowUpDue).length,
+      total: conversations.length + matters.length
+    };
+  }
+  function friendlyDay(dateStr){
+    if (!dateStr) return '';
+    var t = todayStr();
+    if (dateStr === t) return 'today';
+    var d = new Date(dateStr + 'T00:00:00'), n = new Date(t + 'T00:00:00');
+    var diff = Math.round((d - n) / 86400000);
+    if (diff === 1) return 'tomorrow';
+    if (diff === -1) return 'yesterday';
+    if (diff > 1 && diff < 7) return d.toLocaleDateString(undefined, { weekday: 'long' });
+    return d.getDate() + ' ' + d.toLocaleDateString(undefined, { month: 'short' });
+  }
+  function sinceLabel(iso){
+    if (!iso) return '';
+    var days = Math.floor((new Date(todayStr() + 'T00:00:00') - new Date(fmtDate(new Date(iso)) + 'T00:00:00')) / 86400000);
+    if (days <= 0) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 14) return days + ' days';
+    return Math.round(days / 7) + ' weeks';
+  }
+  // What the row says about who has the ball.
+  function convStateLine(v){
+    var st = v.attentionState || 'needs_me';
+    if (st === 'waiting_on_person') return 'Waiting on ' + (v.waitingOn || participantNames(v).join(' + ') || 'them');
+    if (st === 'waiting_on_third_party') return 'Waiting on ' + (v.waitingOn || 'a third party');
+    if (st === 'follow_up_later') return v.nextFollowUpAt ? 'Follow up ' + friendlyDay(v.nextFollowUpAt) : 'Follow up';
+    return ATTENTION_LABEL[st];
+  }
+  function convActions(v){ return commitments.filter(function(c){ return c.conversationId === v.id; }); }
+  function matterActions(m){ return commitments.filter(function(c){ return c.matterId === m.id; }); }
+  function openFirst(list){
+    return list.filter(function(c){ return c.status !== 'completed' && c.category !== 'roadblock'; })
+      .sort(function(a, b){ return a.date === b.date ? 0 : (a.date < b.date ? -1 : 1); })[0] || null;
+  }
+  function matterTitle(id){ var m = matterById(id); return m ? m.title : ''; }
+
+  // ---- Today: an attention summary, never message bodies ----
+  function renderCommsSummary(){
+    var wrap = document.getElementById('commsSummary');
+    if (!wrap) return;
+    if (viewedDate !== todayStr()){ wrap.innerHTML = ''; return; }
+    var n = commsCounts();
+    var head = '<div class="sec-head"><span class="sec-label">Communications</span><span class="sec-rule"></span>' +
+      '<button type="button" class="sec-link" data-comms-open="">Open' + UI_ICON.arrowRight + '</button></div>';
+    if (!n.total){
+      wrap.innerHTML = head + '<button type="button" class="cs-empty" data-comms-open="all">' +
+        'Keep track of who you’re waiting on — clients, family, anyone. Start a conversation or matter.</button>';
+    } else {
+      function stat(key, num, one, many){
+        return '<button type="button" class="cs-stat' + (num ? ' on' : '') + (key === 'needs' && num ? ' needs' : '') + '" data-comms-open="' + key + '">' +
+          '<span class="cs-n">' + num + '</span><span class="cs-l">' + (num === 1 ? one : many) + '</span></button>';
+      }
+      wrap.innerHTML = head + '<div class="cs-row">' +
+        stat('needs', n.needs, 'needs you', 'need you') +
+        stat('waiting', n.waiting, 'waiting', 'waiting') +
+        stat('follow', n.due, 'follow-up due', 'follow-ups due') +
+      '</div>';
+    }
+    wrap.querySelectorAll('[data-comms-open]').forEach(function(el){
+      el.addEventListener('click', function(){ openComms(el.dataset.commsOpen || null); });
+    });
+  }
+
+  // ---- the Communications Centre ----
+  var COMMS_FILTER_KEY = 'ledger_comms_filter';
+  var commsFilter = (function(){ var f = lsGet(COMMS_FILTER_KEY, 'needs'); return ['needs', 'waiting', 'follow', 'all'].indexOf(f) > -1 ? f : 'needs'; })();
+  var commsQuery = '';
+  var commsSel = null;          // { kind: 'conv' | 'matter', id } — the record open in the pane or sheet
+  var commsClosedOpen = false;
+
+  function openComms(filter){
+    if (filter){ commsFilter = filter; lsSet(COMMS_FILTER_KEY, filter); }
+    document.querySelector('.tab-btn[data-view="comms"]').click();
+    window.scrollTo(0, 0);
+  }
+  function commsSelKey(sel){ return sel ? sel.kind + ':' + sel.id : ''; }
+  function commsSelExists(sel){ return !!(sel && (sel.kind === 'conv' ? convById(sel.id) : matterById(sel.id))); }
+
+  function commsMatchesQuery(text){ return (text || '').toLowerCase().indexOf(commsQuery.toLowerCase()) > -1; }
+  function convMatches(v){
+    return commsMatchesQuery(convName(v)) || commsMatchesQuery(participantsText(v)) ||
+      commsMatchesQuery(v.summary) || commsMatchesQuery(v.waitingOn) || commsMatchesQuery(matterTitle(v.matterId));
+  }
+  function matterMatches(m){ return commsMatchesQuery(m.title) || commsMatchesQuery(m.summary); }
+  function byTimeDesc(a, b){ return (b.lastActivityAt || b.updatedAt || '') < (a.lastActivityAt || a.updatedAt || '') ? -1 : 1; }
+  function byTimeAsc(a, b){ return -byTimeDesc(a, b); }
+
+  function convRowEl(v, underMatter){
+    var b = document.createElement('button');
+    b.type = 'button';
+    var st = v.attentionState || 'needs_me';
+    var due = convFollowUpDue(v);
+    b.className = 'cv-row st-' + st + (due ? ' due' : '') + (commsSelKey(commsSel) === 'conv:' + v.id && isWide() ? ' sel' : '');
+    b.innerHTML = '<span class="cv-mark" aria-hidden="true"></span>' +
+      '<span class="cv-main"><span class="cv-title"></span><span class="cv-sub"></span></span>' +
+      '<span class="cv-aside"><span class="cv-state"></span><span class="cv-when"></span></span>';
+    b.querySelector('.cv-title').textContent = convName(v);
+    var next = openFirst(convActions(v));
+    var sub = [underMatter ? '' : matterTitle(v.matterId)];
+    if (next) sub.push(next.title);
+    else if (v.summary) sub.push(v.summary.split('\n')[0]);
+    var people = participantsText(v);
+    b.querySelector('.cv-sub').textContent = sub.filter(function(x){ return !!x; }).join(' · ') ||
+      (people && people !== convName(v) ? people : (v.channel && v.channel !== 'other' ? CHANNEL_LABEL[v.channel] : ''));
+    // who has the ball, then how long it has sat — or that a follow-up is now due
+    b.querySelector('.cv-state').textContent = convStateLine(v);
+    b.querySelector('.cv-when').textContent = due ? 'Follow-up due' : (v.lastActivityAt ? sinceLabel(v.lastActivityAt) : '');
+    b.addEventListener('click', function(){ selectComms({ kind: 'conv', id: v.id }); });
+    return b;
+  }
+  function matterRowEl(m, convCount){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'mt-row' + (m.status !== 'active' ? ' st-' + m.status : '') + (commsSelKey(commsSel) === 'matter:' + m.id && isWide() ? ' sel' : '');
+    b.innerHTML = '<span class="mt-title"></span><span class="mt-sub"></span>';
+    b.querySelector('.mt-title').textContent = m.title || 'Untitled matter';
+    var bits = [MATTER_AREA_LABEL[m.area] || 'Other'];
+    if (m.status !== 'active') bits.push(MATTER_STATUS_LABEL[m.status]);
+    bits.push(convCount ? plural(convCount, 'conversation') : 'No conversations yet');
+    b.querySelector('.mt-sub').textContent = bits.join(' · ');
+    b.addEventListener('click', function(){ selectComms({ kind: 'matter', id: m.id }); });
+    return b;
+  }
+  function commsEmpty(text){
+    var e = document.createElement('div');
+    e.className = 'comms-empty';
+    e.textContent = text;
+    return e;
+  }
+
+  // the rows, in the order that answers the filter's question
+  function commsVisible(){
+    var active = conversations.filter(convIsActive);
+    if (commsQuery.trim()) return { convs: conversations.filter(convMatches).sort(byTimeDesc), matters: matters.filter(matterMatches) };
+    if (commsFilter === 'needs') return { convs: active.filter(function(v){ return v.attentionState === 'needs_me'; }).sort(byTimeDesc) };
+    if (commsFilter === 'waiting') return { convs: active.filter(convIsWaiting).sort(byTimeAsc) };   // longest wait first
+    if (commsFilter === 'follow') return { convs: active.filter(function(v){ return !!v.nextFollowUpAt; })
+      .sort(function(a, b){ return a.nextFollowUpAt < b.nextFollowUpAt ? -1 : 1; }) };
+    return null;   // All: grouped by matter
+  }
+
+  function renderComms(){
+    var rowsEl = document.getElementById('commsRows');
+    if (!rowsEl) return;
+    var n = commsCounts();
+    document.querySelectorAll('[data-comms-filter]').forEach(function(b){
+      var on = b.dataset.commsFilter === commsFilter && !commsQuery.trim();
+      b.classList.toggle('sel', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      var c = b.querySelector('.cf-n');
+      var num = { needs: n.needs, waiting: n.waiting, follow: n.due }[b.dataset.commsFilter];
+      if (c) c.textContent = num ? String(num) : '';
+    });
+    rowsEl.innerHTML = '';
+    var firstSel = null;
+    var vis = commsVisible();
+    if (vis){
+      vis.convs.forEach(function(v){ rowsEl.appendChild(convRowEl(v)); if (!firstSel) firstSel = { kind: 'conv', id: v.id }; });
+      (vis.matters || []).forEach(function(m){
+        rowsEl.appendChild(matterRowEl(m, conversations.filter(function(v){ return v.matterId === m.id; }).length));
+        if (!firstSel) firstSel = { kind: 'matter', id: m.id };
+      });
+      if (!rowsEl.children.length){
+        rowsEl.appendChild(commsEmpty(commsQuery.trim() ? 'Nothing matches “' + commsQuery.trim() + '”.'
+          : commsFilter === 'needs' ? 'Nothing needs you. When a conversation is waiting on your reply, it shows here.'
+          : commsFilter === 'waiting' ? 'Nobody owes you a reply. Conversations waiting on someone else collect here.'
+          : 'No follow-ups set. Give a waiting conversation a follow-up date and it comes back here when it’s due.'));
+      }
+    } else {
+      // All: every active matter with its conversations, then loose conversations, then what's closed
+      var openMatters = matters.filter(function(m){ return m.status !== 'closed'; })
+        .sort(function(a, b){ return (b.updatedAt || '') < (a.updatedAt || '') ? -1 : 1; });
+      openMatters.forEach(function(m){
+        var cs = conversations.filter(function(v){ return v.matterId === m.id && v.attentionState !== 'closed'; }).sort(byTimeDesc);
+        var g = document.createElement('div');
+        g.className = 'mt-group';
+        g.appendChild(matterRowEl(m, cs.length));
+        cs.forEach(function(v){ g.appendChild(convRowEl(v, true)); });
+        rowsEl.appendChild(g);
+        if (!firstSel) firstSel = { kind: 'matter', id: m.id };
+      });
+      var loose = conversations.filter(function(v){
+        var m = matterById(v.matterId);
+        return v.attentionState !== 'closed' && !(m && m.status !== 'closed') && !(m && m.status === 'closed');
+      }).sort(byTimeDesc);
+      if (loose.length){
+        var lh = document.createElement('div'); lh.className = 'mt-group-label'; lh.textContent = 'Not part of a matter';
+        rowsEl.appendChild(lh);
+        loose.forEach(function(v){ rowsEl.appendChild(convRowEl(v)); if (!firstSel) firstSel = { kind: 'conv', id: v.id }; });
+      }
+      var closedConvs = conversations.filter(function(v){ return !convIsActive(v); });
+      var closedMatters = matters.filter(function(m){ return m.status === 'closed'; });
+      if (closedConvs.length || closedMatters.length){
+        var t = document.createElement('button');
+        t.type = 'button';
+        t.className = 'comms-closed-toggle';
+        t.setAttribute('aria-expanded', commsClosedOpen ? 'true' : 'false');
+        t.textContent = 'Closed · ' + (closedConvs.length + closedMatters.length);
+        t.addEventListener('click', function(){ commsClosedOpen = !commsClosedOpen; renderComms(); });
+        rowsEl.appendChild(t);
+        if (commsClosedOpen){
+          closedMatters.forEach(function(m){ rowsEl.appendChild(matterRowEl(m, conversations.filter(function(v){ return v.matterId === m.id; }).length)); });
+          closedConvs.forEach(function(v){ rowsEl.appendChild(convRowEl(v)); });
+        }
+      }
+      if (!matters.length && !conversations.length){
+        rowsEl.appendChild(commsEmpty('Nothing tracked yet. Start with a matter — a sale, a nursery place, a house repair — or simply the conversation you’re waiting on.'));
+      }
+    }
+
+    var pane = document.getElementById('commsPane');
+    if (isWide()){
+      if (!commsSelExists(commsSel)) commsSel = firstSel;
+      if (commsSel) renderCommsDetail(pane, commsSel, { rerender: function(){ renderComms(); } });
+      else { pane.innerHTML = ''; pane.appendChild(commsEmpty('Choose a conversation or matter to see what’s happening with it.')); }
+    } else {
+      pane.innerHTML = '';
+    }
+  }
+  document.getElementById('commsSearch').addEventListener('input', function(){ commsQuery = this.value; renderComms(); });
+  document.querySelectorAll('[data-comms-filter]').forEach(function(b){
+    b.addEventListener('click', function(){
+      commsFilter = b.dataset.commsFilter;
+      lsSet(COMMS_FILTER_KEY, commsFilter);
+      commsQuery = '';
+      document.getElementById('commsSearch').value = '';
+      commsSel = null;
+      renderComms();
+    });
+  });
+  document.getElementById('commsNewConv').addEventListener('click', function(){ openNewCommsSheet('conv', {}); });
+  document.getElementById('commsNewMatter').addEventListener('click', function(){ openNewCommsSheet('matter', {}); });
+
+  // desktop shows the record beside the list; a phone opens it as a sheet
+  function selectComms(sel){
+    commsSel = sel;
+    if (isWide()) renderComms();
+    else openCommsSheet(sel);
+  }
+  function openCommsSheet(sel){
+    editingId = null;
+    commsSel = sel;
+    sheetEl.innerHTML = '';
+    var body = document.createElement('div');
+    body.className = 'comms-sheet-body';
+    sheetEl.appendChild(body);
+    function rerender(){ if (commsSelExists(sel)) renderCommsDetail(body, sel, { inSheet: true, rerender: rerender }); }
+    renderCommsDetail(body, sel, { inSheet: true, rerender: rerender });
+    backdrop.classList.add('open');
+    activeSheetRefresh = rerender;
+  }
+  // after a sub-editor, come back to the record that was open
+  function returnToComms(sel){
+    if (isWide()){ if (currentView === 'comms') renderComms(); return; }
+    if (sel && commsSelExists(sel)) openCommsSheet(sel);
+  }
+
+  // ---- detail: one coherent view of a conversation or a matter ----
+  var commsSavers = {};
+  // a flush saves, and a save can redraw (and replace the savers) — so detach them first
+  function flushCommsSavers(){
+    var pending = commsSavers;
+    commsSavers = {};
+    Object.keys(pending).forEach(function(k){ pending[k].flush(); });
+  }
+  function renderCommsDetail(wrap, sel, ctx){
+    var key = commsSelKey(sel);
+    // never redraw under the cursor; catch up once the field is left
+    var act = document.activeElement;
+    if (act && wrap.contains(act) && /^(TEXTAREA|INPUT|SELECT)$/.test(act.tagName) && wrap.dataset.sel === key){
+      wrap.dataset.stale = '1';
+      return;
+    }
+    flushCommsSavers();
+    wrap.dataset.sel = key;
+    wrap.dataset.stale = '';
+    if (sel.kind === 'conv') renderConvDetail(wrap, convById(sel.id), ctx);
+    else renderMatterDetail(wrap, matterById(sel.id), ctx);
+  }
+  function detailHead(ctx, kicker){
+    return (ctx.inSheet
+      ? '<div class="sheet-handle"></div><div class="cd-top"><div class="cd-kicker">' + kicker + '</div>' +
+        '<button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>'
+      : '<div class="cd-top"><div class="cd-kicker">' + kicker + '</div></div>');
+  }
+  // text fields save themselves; the pane never redraws while one is being typed in
+  function wireCommsText(wrap, ctx, el, value, save){
+    el.value = value || '';
+    var saver = autosaver(save);
+    commsSavers[Math.random().toString(36).slice(2)] = saver;
+    el.addEventListener('input', function(){ saver.schedule(el.value); });
+    el.addEventListener('blur', function(){
+      setTimeout(function(){
+        saver.flush();
+        if (wrap.dataset.stale === '1' && !wrap.contains(document.activeElement) && ctx.rerender) ctx.rerender();
+      }, 0);
+    });
+  }
+  function commsChipsHtml(field, options, current){
+    return '<div class="cd-chips" data-chips="' + field + '">' + options.map(function(o){
+      return '<button type="button" class="cd-chip' + (o.value === current ? ' sel' : '') + (o.cls ? ' ' + o.cls : '') + '" data-v="' + o.value + '"' +
+        ' aria-pressed="' + (o.value === current ? 'true' : 'false') + '">' + o.label + '</button>';
+    }).join('') + '</div>';
+  }
+  function movementListEl(entries){
+    var list = document.createElement('div');
+    list.className = 'cd-log';
+    if (!entries.length){
+      list.appendChild(commsEmpty('Nothing recorded yet. Log a message, call or note as things move.'));
+      return list;
+    }
+    entries.slice(0, 30).forEach(function(e){
+      var r = document.createElement('div');
+      r.className = 'cd-log-row k-' + e.kind;
+      r.innerHTML = '<span class="cd-log-when"></span><span class="cd-log-kind"></span><span class="cd-log-text"></span>';
+      r.children[0].textContent = friendlyDay(fmtDate(new Date(e.at)));
+      r.children[1].textContent = LOG_KIND_LABEL[e.kind] || '';
+      r.children[2].textContent = (e.who ? e.who + ' — ' : '') + e.text;
+      list.appendChild(r);
+    });
+    return list;
+  }
+  // actions created against a record, as movement — derived, never stored twice
+  function createdEntries(actions){
+    return actions.filter(function(c){ return c.createdAt; })
+      .map(function(c){ return { at: c.createdAt, kind: 'created', text: c.title }; });
+  }
+  function actionListEl(actions, emptyText){
+    var wrap = document.createElement('div');
+    var open = actions.filter(function(c){ return c.status !== 'completed'; }).sort(function(a, b){ return a.date < b.date ? -1 : 1; });
+    var done = actions.filter(function(c){ return c.status === 'completed'; }).sort(function(a, b){ return a.date < b.date ? 1 : -1; });
+    open.concat(done).forEach(function(c){ wrap.appendChild(buildCommitmentRow(c, null)); });
+    if (!actions.length) wrap.appendChild(commsEmpty(emptyText));
+    return wrap;
+  }
+  function logAdderHtml(){
+    return '<div class="cd-log-add">' +
+      commsChipsHtml('logkind', [
+        { value: 'received', label: 'Received' }, { value: 'sent', label: 'Sent' },
+        { value: 'call', label: 'Call' }, { value: 'note', label: 'Note' }], 'received') +
+      '<div class="cd-log-input"><input type="text" data-role="log-text" placeholder="What moved? e.g. Solicitor asked for ID">' +
+      '<button type="button" class="cd-log-btn" data-role="log-add" aria-label="Add to movement">' + BK_PLUS_SVG + '</button></div>' +
+    '</div>';
+  }
+  function wireLogAdder(wrap, onAdd){
+    var kind = 'received';
+    wrap.querySelectorAll('[data-chips="logkind"] .cd-chip').forEach(function(ch){
+      ch.addEventListener('click', function(){
+        kind = ch.dataset.v;
+        wrap.querySelectorAll('[data-chips="logkind"] .cd-chip').forEach(function(x){
+          x.classList.toggle('sel', x === ch); x.setAttribute('aria-pressed', x === ch ? 'true' : 'false');
+        });
+      });
+    });
+    var input = wrap.querySelector('[data-role="log-text"]');
+    function add(){
+      var t = input.value.trim();
+      if (!t) { input.focus(); return; }
+      input.value = '';
+      onAdd(kind, t);
+    }
+    wrap.querySelector('[data-role="log-add"]').addEventListener('click', add);
+    input.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); add(); } });
+  }
+
+  function renderConvDetail(wrap, v, ctx){
+    if (!v){ wrap.innerHTML = ''; return; }
+    var sel = { kind: 'conv', id: v.id };
+    var st = v.attentionState || 'needs_me';
+    var m = matterById(v.matterId);
+    var matterOpts = [{ value: '', label: 'No matter' }].concat(matters
+      .filter(function(x){ return x.status !== 'closed' || x.id === v.matterId; })
+      .map(function(x){ return { value: x.id, label: '' }; }));
+    wrap.innerHTML = detailHead(ctx, 'Conversation' + (m ? ' · <button type="button" class="cd-matter-link" data-role="open-matter"></button>' : '')) +
+      '<input class="cd-title" data-role="title" placeholder="Who is this with? e.g. Yusuf" aria-label="Conversation">' +
+      '<div class="cd-label">Who has the ball</div>' +
+      commsChipsHtml('state', ATTENTION_ORDER.filter(function(k){ return k !== 'closed'; }).map(function(k){
+        return { value: k, label: ATTENTION_LABEL[k], cls: 'a-' + k };
+      }), st) +
+      '<div class="cd-waiting"' + (convIsWaiting(v) ? '' : ' hidden') + '>' +
+        '<input data-role="waitingOn" placeholder="' + (st === 'waiting_on_third_party' ? 'Who? e.g. Solicitor' : 'Who? e.g. Yusuf') + '" aria-label="Waiting on"></div>' +
+      '<div class="cd-grid">' +
+        '<label class="cd-field"><span>Follow up</span><input type="date" data-role="followUp"></label>' +
+        '<label class="cd-field"><span>Part of</span><select data-role="matter">' +
+          matterOpts.map(function(o){ return '<option value="' + o.value + '">' + (o.value ? '' : o.label) + '</option>'; }).join('') +
+        '</select></label>' +
+      '</div>' +
+      '<label class="cd-field"><span>Current position</span><textarea data-role="summary" rows="2" placeholder="Where things stand, in a line or two"></textarea></label>' +
+      '<div class="cd-sec"><span class="sec-label">Actions</span><span class="sec-rule"></span>' +
+        '<button type="button" class="sec-link" data-role="add-action">' + BK_PLUS_SVG + 'Add action</button></div>' +
+      '<div data-role="actions"></div>' +
+      '<div class="cd-sec"><span class="sec-label">Movement</span><span class="sec-rule"></span></div>' +
+      logAdderHtml() +
+      '<div data-role="log"></div>' +
+      '<details class="cd-more"' + (v.notes || participantNames(v).length ? ' open' : '') + '><summary>People, channel and notes</summary>' +
+        '<label class="cd-field"><span>People</span><input data-role="people" placeholder="Yusuf (Client), Abi"></label>' +
+        '<label class="cd-field"><span>Channel</span><select data-role="channel">' +
+          Object.keys(CHANNEL_LABEL).map(function(k){ return '<option value="' + k + '">' + CHANNEL_LABEL[k] + '</option>'; }).join('') +
+        '</select></label>' +
+        '<label class="cd-field"><span>Notes</span><textarea data-role="notes" rows="3" placeholder="Anything worth keeping"></textarea></label>' +
+      '</details>' +
+      '<button type="button" class="btn-quiet cd-close-btn" data-role="close">' + (st === 'closed' ? 'Reopen conversation' : 'Mark conversation closed') + '</button>';
+
+    // user text as text
+    var ml = wrap.querySelector('[data-role="open-matter"]');
+    if (ml){ ml.textContent = m.title; ml.addEventListener('click', function(){ selectComms({ kind: 'matter', id: m.id }); }); }
+    var msel = wrap.querySelector('[data-role="matter"]');
+    matters.filter(function(x){ return x.status !== 'closed' || x.id === v.matterId; }).forEach(function(x, i){ msel.options[i + 1].textContent = x.title || 'Untitled matter'; });
+    msel.value = v.matterId || '';
+    msel.addEventListener('change', function(){
+      var id = msel.value || null;
+      patchConv(v.id, { matterId: id });
+      if (id) logMatter(id, 'note', 'Conversation added: ' + convName(v));
+    });
+    var close = wrap.querySelector('#sheetCloseBtn');
+    if (close) close.addEventListener('click', function(){ flushCommsSavers(); closeSheet(); });
+
+    wireCommsText(wrap, ctx, wrap.querySelector('[data-role="title"]'), v.title, function(t){ patchConv(v.id, { title: t.trim() }); });
+    wireCommsText(wrap, ctx, wrap.querySelector('[data-role="waitingOn"]'), v.waitingOn, function(t){ patchConv(v.id, { waitingOn: t.trim() }); });
+    wireCommsText(wrap, ctx, wrap.querySelector('[data-role="summary"]'), v.summary, function(t){ patchConv(v.id, { summary: t }); });
+    wireCommsText(wrap, ctx, wrap.querySelector('[data-role="people"]'), participantsText(v), function(t){ patchConv(v.id, { participants: parseParticipants(t) }); });
+    wireCommsText(wrap, ctx, wrap.querySelector('[data-role="notes"]'), v.notes, function(t){ patchConv(v.id, { notes: t }); });
+    var fu = wrap.querySelector('[data-role="followUp"]');
+    fu.value = v.nextFollowUpAt || '';
+    fu.addEventListener('change', function(){ patchConv(v.id, { nextFollowUpAt: fu.value || null }); });
+    var ch = wrap.querySelector('[data-role="channel"]');
+    ch.value = v.channel || 'other';
+    ch.addEventListener('change', function(){ patchConv(v.id, { channel: ch.value }); });
+
+    // who has the ball: one tap, saved at once, recorded as movement
+    wrap.querySelectorAll('[data-chips="state"] .cd-chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var next = chip.dataset.v;
+        if (next === (convById(v.id).attentionState || 'needs_me')) return;
+        setConvState(v.id, next, null);
+      });
+    });
+    wrap.querySelector('[data-role="close"]').addEventListener('click', function(){
+      setConvState(v.id, st === 'closed' ? 'needs_me' : 'closed', null);
+    });
+
+    wrap.querySelector('[data-role="actions"]').appendChild(actionListEl(convActions(v), 'No actions. Add one when you need to do something — waiting needs none.'));
+    wrap.querySelector('[data-role="add-action"]').addEventListener('click', function(){
+      openCommitmentSheet(null, { pickDate: true, date: todayStr(), category: 'communicate',
+        links: { matterId: v.matterId || null, conversationId: v.id }, onDone: function(){ returnToComms(sel); } });
+    });
+    wireLogAdder(wrap, function(kind, text){ logConv(v.id, kind, text); });
+    var entries = (v.log || []).concat(createdEntries(convActions(v)))
+      .sort(function(a, b){ return a.at < b.at ? 1 : -1; });
+    wrap.querySelector('[data-role="log"]').appendChild(movementListEl(entries));
+  }
+
+  // Who has the ball changes in one place, so the log and the waiting text stay honest.
+  function setConvState(id, next, waitingOn, followUp){
+    var v = convById(id);
+    if (!v) return null;
+    var patch = { attentionState: next };
+    if (waitingOn != null) patch.waitingOn = waitingOn;
+    if (next === 'waiting_on_person' && waitingOn == null && !v.waitingOn) patch.waitingOn = participantNames(v).join(' + ');
+    if (followUp !== undefined && followUp !== null) patch.nextFollowUpAt = followUp || null;
+    var after = Object.assign({}, v, patch);
+    patch.log = withLog(v, 'state', convStateLine(after));
+    return saveCommsRecord('ledger_conversations', Object.assign({}, v, patch));
+  }
+
+  function renderMatterDetail(wrap, m, ctx){
+    if (!m){ wrap.innerHTML = ''; return; }
+    var sel = { kind: 'matter', id: m.id };
+    var convs = conversations.filter(function(v){ return v.matterId === m.id; });
+    var acts = matterActions(m);
+    wrap.innerHTML = detailHead(ctx, 'Matter') +
+      '<input class="cd-title" data-role="title" placeholder="What is happening? e.g. Pinewood sale" aria-label="Matter">' +
+      commsChipsHtml('status', Object.keys(MATTER_STATUS_LABEL).map(function(k){ return { value: k, label: MATTER_STATUS_LABEL[k] }; }), m.status || 'active') +
+      '<label class="cd-field"><span>Current position</span><textarea data-role="summary" rows="2" placeholder="Where things stand, in a line or two"></textarea></label>' +
+      '<div class="cd-sec"><span class="sec-label">People &amp; conversations</span><span class="sec-rule"></span>' +
+        '<button type="button" class="sec-link" data-role="add-conv">' + BK_PLUS_SVG + 'Conversation</button></div>' +
+      '<div data-role="convs"></div>' +
+      '<div class="cd-sec"><span class="sec-label">Actions</span><span class="sec-rule"></span>' +
+        '<button type="button" class="sec-link" data-role="add-action">' + BK_PLUS_SVG + 'Add action</button></div>' +
+      '<div data-role="actions"></div>' +
+      '<div class="cd-sec"><span class="sec-label">Recent movement</span><span class="sec-rule"></span></div>' +
+      logAdderHtml() +
+      '<div data-role="log"></div>' +
+      '<details class="cd-more"><summary>Area and priority</summary>' +
+        commsChipsHtml('area', Object.keys(MATTER_AREA_LABEL).map(function(k){ return { value: k, label: MATTER_AREA_LABEL[k] }; }), m.area || 'other') +
+        '<label class="cd-field"><span>Supports priority</span><select data-role="priority"><option value="">None</option>' +
+          priorities.map(function(p){ return '<option value="' + p.id + '"></option>'; }).join('') + '</select></label>' +
+      '</details>';
+
+    var close = wrap.querySelector('#sheetCloseBtn');
+    if (close) close.addEventListener('click', function(){ flushCommsSavers(); closeSheet(); });
+    wireCommsText(wrap, ctx, wrap.querySelector('[data-role="title"]'), m.title, function(t){ patchMatter(m.id, { title: t.trim() }); });
+    wireCommsText(wrap, ctx, wrap.querySelector('[data-role="summary"]'), m.summary, function(t){ patchMatter(m.id, { summary: t }); });
+    var pSel = wrap.querySelector('[data-role="priority"]');
+    priorities.forEach(function(p, i){ pSel.options[i + 1].textContent = p.title; });
+    pSel.value = m.priorityId || '';
+    pSel.addEventListener('change', function(){ patchMatter(m.id, { priorityId: pSel.value || null }); });
+    wrap.querySelectorAll('[data-chips="status"] .cd-chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var next = chip.dataset.v;
+        if (next === (matterById(m.id).status || 'active')) return;
+        logMatter(m.id, 'state', MATTER_STATUS_LABEL[next], { status: next, closedAt: next === 'closed' ? new Date().toISOString() : null });
+      });
+    });
+    wrap.querySelectorAll('[data-chips="area"] .cd-chip').forEach(function(chip){
+      chip.addEventListener('click', function(){ patchMatter(m.id, { area: chip.dataset.v }); });
+    });
+
+    var cw = wrap.querySelector('[data-role="convs"]');
+    convs.sort(byTimeDesc).forEach(function(v){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'md-conv st-' + (v.attentionState || 'needs_me');
+      b.innerHTML = '<span class="cv-mark" aria-hidden="true"></span><span class="md-conv-name"></span><span class="md-conv-state"></span><span class="chev">' + UI_ICON.chevronRight + '</span>';
+      b.children[1].textContent = convName(v);
+      b.children[2].textContent = convStateLine(v);
+      b.addEventListener('click', function(){ selectComms({ kind: 'conv', id: v.id }); });
+      cw.appendChild(b);
+    });
+    if (!convs.length) cw.appendChild(commsEmpty('No conversations yet. Add the people this involves.'));
+    wrap.querySelector('[data-role="add-conv"]').addEventListener('click', function(){ openNewCommsSheet('conv', { matterId: m.id }); });
+
+    wrap.querySelector('[data-role="actions"]').appendChild(actionListEl(acts, 'No actions yet.'));
+    wrap.querySelector('[data-role="add-action"]').addEventListener('click', function(){
+      openCommitmentSheet(null, { pickDate: true, date: todayStr(), links: { matterId: m.id, conversationId: null },
+        onDone: function(){ returnToComms(sel); } });
+    });
+    wireLogAdder(wrap, function(kind, text){ logMatter(m.id, kind, text); });
+    // one timeline: the matter's own movement, its conversations', and its actions
+    var entries = (m.log || []).slice();
+    convs.forEach(function(v){ (v.log || []).forEach(function(e){ entries.push(Object.assign({ who: convName(v) }, e)); }); });
+    entries = entries.concat(createdEntries(acts)).sort(function(a, b){ return a.at < b.at ? 1 : -1; });
+    wrap.querySelector('[data-role="log"]').appendChild(movementListEl(entries));
+  }
+
+  // ---- creating: a name first, never an empty record ----
+  function openNewCommsSheet(kind, preset){
+    editingId = null;
+    activeSheetRefresh = null;
+    var isConv = kind === 'conv';
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead('', isConv ? 'New conversation' : 'New matter',
+        isConv ? 'Anyone you’re talking to or waiting on.' : 'The wider thing that is happening.', '') +
+      '<div class="field"><label>' + (isConv ? 'Who is it with?' : 'What is happening?') + '</label>' +
+        '<input type="text" id="f_newComms" placeholder="' + (isConv ? 'e.g. Yusuf, or Nursery office' : 'e.g. Pinewood sale, Nursery place') + '"></div>' +
+      (isConv
+        ? '<div class="field"><label>Part of</label><select id="f_newCommsMatter"><option value="">No matter</option>' +
+            matters.filter(function(m){ return m.status !== 'closed'; }).map(function(m){ return '<option value="' + m.id + '"></option>'; }).join('') +
+          '</select></div>' +
+          '<div class="field"><label>Who has the ball</label>' +
+            commsChipsHtml('newstate', ['needs_me', 'waiting_on_person', 'waiting_on_third_party'].map(function(k){ return { value: k, label: ATTENTION_LABEL[k] }; }), 'needs_me') + '</div>'
+        : '<div class="field"><label>Area</label>' +
+            commsChipsHtml('newarea', Object.keys(MATTER_AREA_LABEL).map(function(k){ return { value: k, label: MATTER_AREA_LABEL[k] }; }), 'business') + '</div>') +
+      '<div class="sheet-actionbar"><button type="button" class="btn-primary" id="newCommsSave">' + (isConv ? 'Add conversation' : 'Add matter') + '</button></div>';
+    backdrop.classList.add('open');
+    var chosen = isConv ? 'needs_me' : 'business';
+    if (isConv){
+      var ms = document.getElementById('f_newCommsMatter');
+      matters.filter(function(m){ return m.status !== 'closed'; }).forEach(function(m, i){ ms.options[i + 1].textContent = m.title || 'Untitled matter'; });
+      ms.value = preset.matterId || '';
+    }
+    sheetEl.querySelectorAll('.cd-chips .cd-chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        chosen = chip.dataset.v;
+        sheetEl.querySelectorAll('.cd-chips .cd-chip').forEach(function(x){ x.classList.toggle('sel', x === chip); });
+      });
+    });
+    var input = document.getElementById('f_newComms');
+    setTimeout(function(){ input.focus(); }, 60);
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    function create(){
+      var name = input.value.trim();
+      if (!name){ input.focus(); return; }
+      var now = new Date().toISOString();
+      var rec;
+      if (isConv){
+        var matterId = document.getElementById('f_newCommsMatter').value || null;
+        rec = { id: uid(), title: name, matterId: matterId, participants: [{ name: name, role: '' }],
+          channel: 'other', externalRef: null, attentionState: chosen, waitingOn: chosen === 'waiting_on_person' ? name : '',
+          lastActivityAt: now, nextFollowUpAt: null, summary: '', notes: '', log: [{ at: now, kind: 'state', text: 'Started · ' + ATTENTION_LABEL[chosen] }] };
+        saveCommsRecord('ledger_conversations', rec);
+        if (matterId) logMatter(matterId, 'note', 'Conversation added: ' + name);
+        closeSheet();
+        if (currentView !== 'comms') openComms(null);
+        selectComms({ kind: 'conv', id: rec.id });
+      } else {
+        rec = { id: uid(), title: name, area: chosen, status: 'active', priorityId: null, summary: '', closedAt: null,
+          log: [{ at: now, kind: 'state', text: 'Opened' }] };
+        saveCommsRecord('ledger_matters', rec);
+        closeSheet();
+        if (currentView !== 'comms') openComms('all');
+        selectComms({ kind: 'matter', id: rec.id });
+      }
+    }
+    document.getElementById('newCommsSave').addEventListener('click', create);
+    input.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); create(); } });
+  }
+
+  // ---- after a linked action is done: what happens next? One tap, nothing assumed ----
+  function openNextStepSheet(c){
+    var v = convById(c.conversationId);
+    if (!v) return;
+    var m = matterById(v.matterId);
+    editingId = null;
+    activeSheetRefresh = null;
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(CHECK_SVG, 'Done', '<span id="nsDone"></span>', '') +
+      '<p class="ns-q">What happens next with <strong id="nsWho"></strong>?</p>' +
+      '<div class="ns-opts">' +
+        '<button type="button" class="ns-opt" data-ns="waiting_on_person"><span class="ns-t">Waiting on them</span><span class="ns-s" id="nsThem"></span></button>' +
+        '<button type="button" class="ns-opt" data-ns="waiting_on_third_party"><span class="ns-t">Waiting on third party</span><span class="ns-s">Someone else has to move first</span></button>' +
+        '<div class="ns-third" id="nsThird" hidden>' +
+          '<input type="text" id="nsThirdWho" placeholder="Who? e.g. Solicitor" aria-label="Waiting on">' +
+          '<button type="button" class="btn-primary" id="nsThirdSave">Set</button></div>' +
+        '<button type="button" class="ns-opt" data-ns="no_action"><span class="ns-t">No action</span><span class="ns-s">Nothing outstanding either way</span></button>' +
+        (m && m.status !== 'closed' ? '<button type="button" class="ns-opt" data-ns="matter_complete"><span class="ns-t">Matter complete</span><span class="ns-s" id="nsMatter"></span></button>' : '') +
+      '</div>' +
+      '<label class="cd-field ns-follow"><span>Follow up (optional)</span><input type="date" id="nsFollow"></label>' +
+      '<button type="button" class="btn-quiet" id="nsKeep">Leave as it is</button>';
+    document.getElementById('nsDone').textContent = c.title;
+    document.getElementById('nsWho').textContent = convName(v);
+    document.getElementById('nsThem').textContent = participantNames(v).join(' + ') || convName(v);
+    var nm = document.getElementById('nsMatter');
+    if (nm) nm.textContent = 'Close ' + m.title;
+    backdrop.classList.add('open');
+    function follow(){ return document.getElementById('nsFollow').value || null; }
+    function finish(){ closeSheet(); showPinToast('Updated ' + convName(v), false, CHECK_SVG); }
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('nsKeep').addEventListener('click', closeSheet);
+    sheetEl.querySelectorAll('[data-ns]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var k = b.dataset.ns;
+        if (k === 'waiting_on_third_party'){
+          b.classList.add('sel');
+          document.getElementById('nsThird').hidden = false;
+          document.getElementById('nsThirdWho').focus();
+          return;
+        }
+        if (k === 'matter_complete'){
+          setConvState(v.id, 'closed', null);
+          logMatter(m.id, 'state', 'Closed', { status: 'closed', closedAt: new Date().toISOString() });
+        } else {
+          setConvState(v.id, k, null, follow());
+        }
+        finish();
+      });
+    });
+    function setThird(){
+      var who = document.getElementById('nsThirdWho').value.trim();
+      if (!who){ document.getElementById('nsThirdWho').focus(); return; }
+      setConvState(v.id, 'waiting_on_third_party', who, follow());
+      finish();
+    }
+    document.getElementById('nsThirdSave').addEventListener('click', setThird);
+    document.getElementById('nsThirdWho').addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); setThird(); } });
+  }
+
+  // ---- the Daily Handoff: attention only ----
+  function handoffCommsLines(){
+    var active = conversations.filter(convIsActive);
+    var needs = active.filter(function(v){ return v.attentionState === 'needs_me'; });
+    var waiting = active.filter(convIsWaiting).sort(byTimeAsc);
+    var due = active.filter(convFollowUpDue);
+    if (!needs.length && !waiting.length && !due.length) return [];
+    var L = ['COMMUNICATIONS ATTENTION'];
+    function parts(list){ return list.filter(function(x){ return !!x; }).join(' — '); }
+    if (needs.length){
+      L.push('Needs me:');
+      needs.forEach(function(v){
+        var next = openFirst(convActions(v));
+        L.push('- ' + parts([convName(v), matterTitle(v.matterId), next ? next.title : (v.summary || '').split('\n')[0]]));
+      });
+    }
+    if (waiting.length){
+      L.push('Waiting:');
+      waiting.forEach(function(v){
+        var who = convStateLine(v).replace(/^Waiting on /, '');
+        L.push('- ' + parts([matterTitle(v.matterId) || convName(v), who]) + (v.lastActivityAt ? ' (since ' + handoffLongDate(fmtDate(new Date(v.lastActivityAt))) + ')' : ''));
+      });
+    }
+    if (due.length){
+      L.push('Follow-up due:');
+      due.forEach(function(v){ L.push('- ' + parts([convName(v), matterTitle(v.matterId), handoffLongDate(v.nextFollowUpAt)])); });
+    }
+    L.push('');
+    return L;
   }
 
   // ============ Backlog ============
@@ -6112,7 +7262,9 @@
     '5. Avoid duplicates. Preserve categories and times where specified.',
     '6. TODAY\'S FLOW is the order Shaun means to work in, not a schedule. Keep that',
     '   sequence where practical, fit it around real calendar commitments, and never',
-    '   read the numbers as times.'
+    '   read the numbers as times.',
+    '7. COMMUNICATIONS ATTENTION is context. Waiting items are not tasks — never create',
+    '   a task to "wait". Only Needs-me items, and follow-ups now due, may need a slot.'
   ].join('\n');
 
   // What was last sent for a date, so an unchanged note is not re-flagged every
@@ -6361,6 +7513,9 @@
       notes.split('\n').forEach(function(line){ L.push(line); });
       L.push('');
     }
+
+    // 7b. Communications — only what needs attention today, never every conversation
+    if (dateStr === todayStr()) handoffCommsLines().forEach(function(line){ L.push(line); });
 
     // 8. Roadblocks
     L.push('ROADBLOCKS');
@@ -8428,6 +9583,7 @@
 
   function renderLogView(){
     renderTodayMode();
+    renderCommsSummary();
     renderMorningPrime();
     renderDayNotes();
     renderWindDown();
@@ -8501,6 +9657,7 @@
     if (currentView === 'plan') renderPlan();
     if (currentView === 'calendar') renderCalendar();
     if (currentView === 'stats') renderStats();
+    if (currentView === 'comms') renderComms();
   }
   if (WIDE_MQ.addEventListener) WIDE_MQ.addEventListener('change', onWideChange);
   else if (WIDE_MQ.addListener) WIDE_MQ.addListener(onWideChange);
@@ -10112,6 +11269,7 @@
         var bits = [categoryLabel(c.category)];
         var pt = priorityTitle(c.priorityId);
         if (pt) bits.push(pt);
+        if (matterTitle(c.matterId)) bits.push(matterTitle(c.matterId));
         if (c.minVersion && c.status !== 'completed') bits.push('Min: ' + c.minVersion);
         m.textContent = bits.join(' · ');
       }
@@ -11667,6 +12825,7 @@
   function renderAll(){
     renderHeader();
     renderLogView();
+    if (currentView === 'comms') renderComms();
     if (currentView === 'calendar') renderCalendar();
     if (currentView === 'stats') renderStats();
     if (currentView === 'focus') renderFocus();
