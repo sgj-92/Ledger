@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-30 (Plan becomes the whole-life Day Plan)
+Last updated: 2026-09-30 (plan readiness; Today gains Overview and Flow)
 
 ---
 
@@ -35,6 +35,16 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   keeps the phone layout.
 
 ### Today (the main surface)
+- **Overview / Flow** — a two-way switch under Morning Prime and Catch-up (which
+  stay visible in both). **Overview** is the editable whole day described below.
+  **Flow** is the day's execution sequence: actions and planned training in the
+  order Shaun means to work through them — a sequence, not a schedule. Numbered,
+  dense rows; tick an action, tap training to log it pre-filled from the plan;
+  drag (pointer-based, touch and mouse) or ⋯ Move up/down; completed items stay in
+  place, muted. Desktop adds a context column (intention, key tasks, next up,
+  constraints, notes). The mode is a per-device preference (`ledger_today_mode`).
+  Once Morning Prime is done, "Start the day in Flow" offers the switch; when the
+  evening routine is due, Flow shows "Evening Wind-down ready".
 - **Morning Prime** — two sections, tracked separately. **Plan** is what can be
   done from the phone before getting up (meals → three key tasks → review today's
   plan → intention); **Move** is the physical start (weigh-in, body photo,
@@ -90,7 +100,9 @@ two Morning Prime routines, the Wind-down routine and its prominence hour.
 
 ### Other tabs
 - **Plan** — Ledger's whole-life forward-planning surface (Plan = intent, Today =
-  execution). The week list gives each day a whole-day signal (`3 actions · 2 key`,
+  execution). Every day shows a readiness state — **Unplanned**, **Draft** (some
+  planning exists) or **Planned ✓** (explicitly reviewed) — in the week list, the
+  Day Plan header and the desktop pane; the primary action is "Finish planning". The week list gives each day a whole-day signal (`3 actions · 2 key`,
   its categories, training, meals, fasting, plus quiet marks for priorities
   supported and a known constraint). A day opens as the **Day Plan**: Direction
   (the Morning Prime intention + priorities the day supports), Actions (key
@@ -239,6 +251,15 @@ Conventions that should not be casually changed.
   intention is `plan.morningPrime.intention`; notes are `plan.dayNotes`;
   constraints are `plan.roadblocks`. Future days may be planned loosely —
   Morning Prime confirms the current day's key three.
+- Three orderings, three jobs: `plan.actionOrder` = sequence among actions;
+  `plan.groupOrder` = order within each category; `plan.dayFlow` = the whole-day
+  execution sequence across actions and planned training. `dayFlow` holds
+  references only (`{kind:'action', id}` / `{kind:'training', type}`); stale refs
+  are ignored and anything unlisted joins the end. Flow fills its action slots in
+  `actionOrder`, and a Flow drag that reorders actions updates `actionOrder`, so
+  actions keep one relative order across Ledger.
+- Plan readiness: `planReviewedAt` is the only "planned" signal. Editing never sets
+  or clears it; only Finish planning / Morning Prime's plan review does.
 - Ledger is one responsive app. Phone uses the bottom nav and bottom sheets;
   desktop uses the left navigation, a multi-column Today and side inspectors.
   Wider screens rearrange the same DOM with CSS (Today's and Focus's wrappers are
@@ -289,6 +310,21 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-30 — Planned is a declared state; Flow is an order, not a schedule
+**Decision:** a day's readiness is Unplanned / Draft / Planned, derived by
+`getPlanReadiness(date)` from the day's actions and plan fields, with Planned
+meaning `planReviewedAt` is set. Today gains Overview (the editable day) and Flow
+(the execution sequence), backed by `plan.dayFlow` — references to actions and
+planned training, never copies.
+**Why:** the week could not tell a considered day from a half-started one, and
+`actionOrder` could only order actions, so a workout could not sit between tasks.
+**Implications:** order arrays alone never make a day a Draft. A planned day stays
+Planned when edited. The default flow is the actions in day order, then training,
+so Flow is never empty just because it was never saved. The Daily Handoff gains
+TODAY'S FLOW ("FLOW UPDATED" when it changed since last sent), plus an
+instruction that the numbers are sequence, not times. Nothing was added that
+schedules, time-blocks or auto-orders.
 
 ### 2026-09-30 — Plan is the whole-life Day Plan, not a Health & Fitness form
 **Decision:** a selected day in Plan is a Day Plan of five sections — Direction,
@@ -787,6 +823,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-30) — Plan readiness (Unplanned / Draft / Planned ✓) across the week,
+  Day Plan and desktop pane; Today gains Overview / Flow with `plan.dayFlow`; the
+  Handoff exports the flow.
 - (2026-09-30) — Plan became the whole-life Day Plan (Direction, Actions, Health &
   fitness, Constraints, Day Notes) over shared records; whole-day week rows;
   Morning Prime step renamed "Review today's plan".

@@ -847,7 +847,7 @@
   }
   .plan-day-row:last-child { border-bottom: none; }
   .plan-day-row:active { opacity: 0.65; }
-  .pday-date { flex-shrink: 0; width: 52px; }
+  .pday-date { flex-shrink: 0; width: 64px; }
   .pday-dow { font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.16em; color: var(--text-3); }
   .pday-num { font-size: 13px; color: var(--text-2); margin-top: 3px; letter-spacing: 0.01em; }
   .pday-sep { width: 1px; align-self: stretch; background: var(--line); flex-shrink: 0; }
@@ -2465,6 +2465,107 @@
   .re-btn.on { color: var(--gold); border-color: rgba(var(--gold-rgb),0.45); }
   .re-row .drag-handle { margin-left: -4px; }
 
+  /* ---------- Today: Overview / Flow ---------- */
+  .today-mode {
+    display: flex; gap: 3px; padding: 3px; margin: var(--sp-5) 0 var(--sp-1);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 100px;
+  }
+  .today-mode button {
+    flex: 1; padding: 8px 12px; border: none; border-radius: 100px; background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; letter-spacing: 0.02em; color: var(--text-3);
+    transition: background 0.16s ease, color 0.16s ease;
+  }
+  .today-mode button.sel { background: var(--gold); color: var(--ink); }
+  /* Flow replaces the day's working body; the lifecycle area above stays */
+  #view-log.flow-mode .today-main, #view-log.flow-mode .today-side, #view-log.flow-mode .today-extra { display: none; }
+  .today-flow[hidden] { display: none; }
+  .flow-context { display: none; }
+  .flow-head { margin-top: var(--sp-5); }
+  .flow-intention { font-family: var(--serif); font-style: italic; font-size: 14.5px; color: var(--text-2); margin: -4px 0 8px; line-height: 1.45; }
+  .flow-hint { font-size: 11.5px; color: var(--text-3); margin: 0 0 10px; }
+  .flow-row {
+    display: flex; align-items: center; gap: 9px; padding: 6px 4px 6px 8px; margin-bottom: 4px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px; touch-action: pan-y;
+  }
+  .flow-row.key { border-color: rgba(var(--gold-rgb),0.3); }
+  .flow-row.training { background: var(--surface); border-style: dashed; border-color: var(--line-2); }
+  .flow-row.done .flow-title { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--text-3); }
+  .flow-row.done .flow-num { opacity: 0.5; }
+  .flow-row.dragging { position: relative; z-index: 4; border-color: rgba(var(--gold-rgb),0.45); box-shadow: var(--shadow-lift), inset 3px 0 0 var(--gold); transition: none; }
+  .flow-list.sorting .flow-row:not(.dragging) { transition: transform 0.18s ease; }
+  .flow-num { width: 16px; flex-shrink: 0; text-align: right; font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .flow-row .commitment-status-dot { width: 20px; height: 20px; }
+  .flow-train-mark {
+    width: 20px; height: 20px; flex-shrink: 0; padding: 0; border-radius: 50%; cursor: pointer;
+    border: 1.5px solid var(--line-2); background: none; color: var(--text-2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .flow-train-mark svg { width: 11px; height: 11px; display: block; }
+  .flow-train-mark.done { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .flow-body {
+    flex: 1; min-width: 0; background: none; border: none; padding: 1px 0; text-align: left; cursor: pointer;
+    display: flex; flex-direction: column; gap: 1px; font-family: var(--sans);
+  }
+  .flow-title { display: flex; align-items: baseline; gap: 6px; font-family: var(--serif); font-size: 15px; line-height: 1.25; color: var(--text); overflow-wrap: anywhere; }
+  .flow-key { color: var(--gold); flex-shrink: 0; transform: translateY(1px); }
+  .flow-key svg { width: 11px; height: 11px; display: block; }
+  .flow-meta { font-size: 11px; color: var(--text-3); overflow-wrap: anywhere; }
+  .flow-more {
+    flex-shrink: 0; width: 28px; height: 28px; padding: 0; border: none; background: none; cursor: pointer;
+    color: var(--text-3); display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  }
+  .flow-more svg { width: 15px; height: 15px; display: block; }
+  .flow-row .drag-handle { margin-left: -4px; }
+  .flow-empty p { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--text-2); margin: 8px 0 4px; }
+  .flow-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .flow-wd {
+    display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: var(--sp-5);
+    padding: 11px; border-radius: var(--r-md); border: 1px dashed rgba(var(--gold-rgb),0.35); background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--gold);
+  }
+  .flow-wd svg, .mp-flow-link svg { width: 12px; height: 12px; display: block; }
+  .mp-flow-link {
+    display: flex; align-items: center; gap: 6px; margin: 8px 2px 0 auto; padding: 4px 0;
+    background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--gold);
+  }
+  .flow-sheet-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .flow-sheet-btns button:disabled { opacity: 0.4; }
+  .flow-ctx-sec { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .flow-ctx-sec:first-child { padding-top: 4px; }
+  .flow-ctx-sec:last-child { border-bottom: none; }
+  .flow-ctx-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.18em; color: var(--text-3); margin-bottom: 8px; }
+  .flow-ctx-intention { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--text); margin: 0; line-height: 1.45; }
+  .flow-ctx-key { display: flex; align-items: baseline; gap: 8px; font-family: var(--serif); font-size: 14.5px; color: var(--text); padding: 3px 0; }
+  .flow-ctx-key svg { width: 11px; height: 11px; color: var(--gold); flex-shrink: 0; }
+  .flow-ctx-key.done span { color: var(--text-3); text-decoration: line-through; }
+  .flow-ctx-line { font-size: 13px; color: var(--text); margin: 0 0 4px; line-height: 1.45; }
+  .flow-ctx-line.quiet { color: var(--text-3); }
+  .flow-ctx-line.rb { color: rgba(var(--danger-rgb),0.9); font-size: 12.5px; }
+  .flow-ctx-notes { font-family: var(--serif); font-size: 14px; color: var(--text-2); white-space: pre-line; margin: 0 0 8px; line-height: 1.55; }
+
+  /* plan readiness: quiet labels, one restrained success mark */
+  .readiness {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-3); white-space: nowrap;
+  }
+  .readiness svg { width: 9px; height: 9px; display: block; }
+  .readiness.planned { color: var(--gold); }
+  .readiness.draft { color: var(--text-2); }
+  .readiness.unplanned { opacity: 0.7; }
+  .readiness-detail { font-size: 12px; color: var(--text-3); margin-left: 8px; font-style: normal; font-family: var(--sans); }
+  .pday-state { margin-top: 6px; }
+  .dp-readiness { display: inline-flex; align-items: center; font-style: normal; }
+  .dp-readiness .readiness { font-size: 10px; }
+  .pdp-readiness { margin-top: 6px; display: flex; align-items: center; }
+  .pdp-head-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+  .pdp-finish {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 100px; cursor: pointer;
+    border: 1px solid rgba(var(--gold-rgb),0.4); background: rgba(var(--gold-rgb),0.08); color: var(--gold);
+    font-family: var(--sans); font-size: 12px; font-weight: 500;
+  }
+  .pdp-finish svg { width: 11px; height: 11px; display: block; }
+
   /* ---------- Day Plan: the whole day, in collapsible sections ----------
      Each section shows a one-line summary while closed, so a phone can scan the
      day and open only the part being planned. */
@@ -2700,9 +2801,14 @@
     #view-log.active {
       display: grid; column-gap: 40px; align-items: start;
       grid-template-columns: minmax(0, 1.7fr) minmax(330px, 1fr);
-      grid-template-areas: "top top" "main side" "main extra";
-      grid-template-rows: auto auto 1fr;
+      grid-template-areas: "top top" "mode mode" "main side" "main extra";
+      grid-template-rows: auto auto auto 1fr;
     }
+    .today-mode { grid-area: mode; justify-self: start; width: 300px; margin: 0 0 var(--sp-4); }
+    #view-log.active.flow-mode { grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "mode" "flow"; grid-template-rows: auto auto 1fr; }
+    .today-flow { grid-area: flow; display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 340px); column-gap: 48px; align-items: start; }
+    .flow-context { display: block; position: sticky; top: 18px; border-left: 1px solid var(--line); padding-left: 28px; }
+    .flow-head { margin-top: var(--sp-2); }
     .today-top { display: block; grid-area: top; margin-bottom: var(--sp-5); }
     .today-top:has(> #catchUpBanner:empty):has(> #morningPrime:empty) { display: none; }
     .today-main { display: block; grid-area: main; min-width: 0; }
@@ -2875,8 +2981,8 @@
     /* Today gets a third column rather than longer lines */
     #view-log.active {
       grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr) minmax(290px, 0.9fr);
-      grid-template-areas: "top top top" "main side extra";
-      grid-template-rows: auto 1fr;
+      grid-template-areas: "top top top" "mode mode mode" "main side extra";
+      grid-template-rows: auto auto 1fr;
       column-gap: 36px;
     }
     .today-extra .dn-panel-head { margin-top: var(--sp-2); min-height: 32px; }
@@ -2915,6 +3021,14 @@
 
     <div id="morningPrime"></div>
     </div>
+
+    <!-- Overview is the editable day; Flow is the order it is being worked in. Morning
+         Prime and Catch-up sit above both, so lifecycle prompts show in either mode. -->
+    <div class="today-mode" id="todayModeSwitch" role="tablist" aria-label="Today view">
+      <button type="button" role="tab" data-today-mode="overview">Overview</button>
+      <button type="button" role="tab" data-today-mode="flow">Flow</button>
+    </div>
+    <div class="today-flow" id="todayFlow" hidden></div>
 
     <div class="today-main">
     <div class="sec-head actions-head">
@@ -4522,6 +4636,7 @@
     }
   }
 
+  var TODAY_MODE_KEY = 'ledger_today_mode';     // overview | flow — a per-device preference
   var ACTION_VIEW_KEY = 'ledger_actions_view';
   var ACTIONS_COLLAPSED_KEY = 'ledger_actions_collapsed';
   var ACTION_GROUPS_KEY = 'ledger_action_groups_collapsed';
@@ -4795,6 +4910,283 @@
     makeSortable(wrap, function(ids){
       saveActionOrder(dateStr, ids);   // global sequence only; group order is untouched
     });
+  }
+
+  // ============ Today: Overview and Flow ============
+  // Overview is the editable whole day. Flow is the order Shaun intends to work through
+  // it — a sequence, not a schedule: item 3 means "after 2", never "at 10:30".
+  var todayMode = lsGet(TODAY_MODE_KEY, 'overview') === 'flow' ? 'flow' : 'overview';
+  function setTodayMode(mode){
+    todayMode = mode === 'flow' ? 'flow' : 'overview';
+    lsSet(TODAY_MODE_KEY, todayMode);
+    renderTodayMode();
+    renderMorningPrime();
+  }
+  function renderTodayMode(){
+    var view = document.getElementById('view-log');
+    if (!view) return;
+    view.classList.toggle('flow-mode', todayMode === 'flow');
+    document.querySelectorAll('[data-today-mode]').forEach(function(b){
+      var on = b.dataset.todayMode === todayMode;
+      b.classList.toggle('sel', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    var flow = document.getElementById('todayFlow');
+    flow.hidden = todayMode !== 'flow';
+    if (todayMode === 'flow') renderFlow();
+  }
+  document.querySelectorAll('[data-today-mode]').forEach(function(b){
+    b.addEventListener('click', function(){ setTodayMode(b.dataset.todayMode); });
+  });
+
+  // plan.dayFlow holds references only — { kind: 'action', id } and { kind: 'training',
+  // type }. Titles, status and details stay on the records. A ref to something no longer
+  // on the day is skipped; anything on the day the stored flow has not seen joins the
+  // end, so an unsaved flow is just the default: the actions in their day order, then
+  // planned training. Actions keep one relative order across Ledger — the flow's action
+  // slots are filled in actionOrder, so dragging in Overview's Order view and in Flow
+  // agree, while training keeps the place it was given.
+  function flowKey(item){ return item.kind === 'action' ? 'a:' + item.c.id : 't:' + item.type; }
+  function dayFlowItems(dateStr){
+    var plan = getPlanForDate(dateStr);
+    var acts = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
+    var byId = {};
+    acts.forEach(function(c){ byId[c.id] = c; });
+    var types = plannedTrainingTypes(plan);
+    var listed = {}, slots = [];
+    ((plan && plan.dayFlow) || []).forEach(function(ref){
+      if (!ref) return;
+      if (ref.kind === 'action' && byId[ref.id] && !listed['a:' + ref.id]){
+        listed['a:' + ref.id] = true; slots.push(null);
+      } else if (ref.kind === 'training' && types.indexOf(ref.type) > -1 && !listed['t:' + ref.type]){
+        listed['t:' + ref.type] = true; slots.push(ref.type);
+      }
+    });
+    var order = dayActionOrder(dateStr);
+    var listedActs = sortByOrderHint(acts.filter(function(c){ return listed['a:' + c.id]; }), order);
+    var items = [], ai = 0;
+    slots.forEach(function(type){
+      items.push(type === null ? { kind: 'action', c: listedActs[ai++] } : { kind: 'training', type: type });
+    });
+    sortByOrderHint(acts.filter(function(c){ return !listed['a:' + c.id]; }), order)
+      .forEach(function(c){ items.push({ kind: 'action', c: c }); });
+    types.forEach(function(t){ if (!listed['t:' + t]) items.push({ kind: 'training', type: t }); });
+    return items;
+  }
+  function flowItemDone(item, plan){
+    if (item.kind === 'action') return item.c.status === 'completed';
+    var det = plan && plan.trainingDetails && plan.trainingDetails[item.type];
+    return !!(det && det.completed);
+  }
+  // Save a flow as references. If it moved actions past each other, actionOrder follows,
+  // so the day has one relative order of actions; moving training changes only the flow.
+  function saveDayFlow(dateStr, keys){
+    var plan = planBase(dateStr);
+    var refs = keys.map(function(k){
+      return k.charAt(0) === 'a' ? { kind: 'action', id: k.slice(2) } : { kind: 'training', type: k.slice(2) };
+    });
+    var patch = { dayFlow: refs };
+    var acts = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
+    var current = sortByOrderHint(acts, plan.actionOrder || []).map(function(c){ return c.id; });
+    var flowIds = refs.filter(function(r){ return r.kind === 'action'; }).map(function(r){ return r.id; });
+    if (flowIds.join('|') !== current.join('|')) patch.actionOrder = flowIds;
+    savePlanForDate(dateStr, Object.assign({}, plan, patch));
+  }
+  function moveFlowItem(dateStr, key, dir){
+    var keys = dayFlowItems(dateStr).map(flowKey);
+    var i = keys.indexOf(key), j = i + dir;
+    if (i < 0 || j < 0 || j >= keys.length) return;
+    keys[i] = keys[j]; keys[j] = key;
+    saveDayFlow(dateStr, keys);
+  }
+  function flowTrainingMeta(type, plan){
+    var det = (plan && plan.trainingDetails && plan.trainingDetails[type]) || {};
+    return planTrainingSub(type, det) || 'Planned';
+  }
+
+  function renderFlow(){
+    var wrap = document.getElementById('todayFlow');
+    if (!wrap || todayMode !== 'flow') return;
+    if (sortDragActive) return;   // never replace the row being dragged
+    var dateStr = viewedDate;
+    var isToday = dateStr === todayStr();
+    var plan = getPlanForDate(dateStr);
+    var items = dayFlowItems(dateStr);
+    var done = items.filter(function(it){ return flowItemDone(it, plan); }).length;
+
+    function rowHtml(it, i){
+      var key = flowKey(it);
+      var isDone = flowItemDone(it, plan);
+      var lead, cls = 'flow-row' + (isDone ? ' done' : '');
+      if (it.kind === 'action'){
+        if (it.c.isKeyTask) cls += ' key';
+        lead = '<button type="button" class="commitment-status-dot ' + it.c.status + '" data-flow-done="' + it.c.id + '"' +
+          ' aria-label="' + (isDone ? 'Reopen' : 'Complete') + '"></button>';
+      } else {
+        cls += ' training';
+        lead = '<button type="button" class="flow-train-mark' + (isDone ? ' done' : '') + '" data-flow-open="' + key + '"' +
+          ' aria-label="' + (isDone ? 'Open the recorded session' : 'Log it') + '">' + (isDone ? CHECK_SVG : TRAINING_ICON_SVG[it.type]) + '</button>';
+      }
+      return '<div class="' + cls + '" data-sort-item="' + key + '">' +
+        '<span class="flow-num">' + (i + 1) + '</span>' + lead +
+        '<button type="button" class="flow-body" data-flow-open="' + key + '">' +
+          '<span class="flow-title">' + (it.kind === 'action' && it.c.isKeyTask ? '<span class="flow-key" aria-label="Key task">' + STAR_SVG + '</span>' : '') +
+            '<span data-flow-title="' + key + '"></span></span>' +
+          '<span class="flow-meta" data-flow-meta="' + key + '"></span>' +
+        '</button>' +
+        '<button type="button" class="flow-more" data-flow-more="' + key + '" aria-label="Move or open">' +
+          '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></button>' +
+        '<button type="button" class="drag-handle" data-drag-handle aria-label="Reorder">' + UI_ICON.grip + '</button>' +
+      '</div>';
+    }
+
+    var wd = isToday ? windDownState(dateStr) : null;
+    var wdReady = !!(wd && wd.total && !wd.completedAt && new Date().getHours() >= windDownHour());
+
+    var main = '<div class="flow-main">' +
+      '<div class="sec-head flow-head"><span class="sec-label">' + (isToday ? 'Today’s flow' : 'Flow') + '</span>' +
+        '<span class="sec-rule"></span>' +
+        (items.length ? '<span class="sec-value">' + done + ' of ' + items.length + ' done</span>' : '') + '</div>' +
+      '<p class="flow-intention" id="flowIntention" hidden></p>' +
+      (items.length > 1 ? '<p class="flow-hint">The order you mean to work in — not a schedule. Drag to change it.</p>' : '') +
+      (items.length
+        ? '<div class="flow-list sort-list" id="flowList">' + items.map(rowHtml).join('') + '</div>'
+        : '<div class="flow-empty"><p>Nothing in the day yet.</p></div>') +
+      '<div class="flow-add">' +
+        '<button type="button" class="dpa-add-btn" id="flowAddAction">' + BK_PLUS_SVG + 'Add action</button>' +
+        (items.length
+          ? '<button type="button" class="dpa-add-btn quiet" id="flowAddTraining">' + TRAINING_ICON_SVG.hiit + 'Plan training</button>'
+          : '<button type="button" class="dpa-add-btn quiet" id="flowOpenOverview">Open Overview</button>') +
+      '</div>' +
+      (wdReady ? '<button type="button" class="flow-wd" id="flowWindDown">Evening Wind-down ready' + UI_ICON.arrowRight + '</button>' : '') +
+    '</div>';
+
+    // wide screens only: the day's context beside the sequence, never a second dashboard
+    var ctx = '<aside class="flow-context" aria-label="Day context">' +
+      '<div class="flow-ctx-sec"><div class="flow-ctx-label">Intention</div><p class="flow-ctx-intention" id="flowCtxIntention"></p></div>' +
+      '<div class="flow-ctx-sec"><div class="flow-ctx-label">Key tasks</div><div id="flowCtxKeys"></div></div>' +
+      '<div class="flow-ctx-sec"><div class="flow-ctx-label">Next up</div><p class="flow-ctx-line" id="flowCtxNext"></p></div>' +
+      '<div class="flow-ctx-sec" id="flowCtxRbWrap" hidden><div class="flow-ctx-label">Constraints</div><div id="flowCtxRb"></div></div>' +
+      '<div class="flow-ctx-sec"><div class="flow-ctx-label">Day notes</div><p class="flow-ctx-notes" id="flowCtxNotes"></p>' +
+        '<button type="button" class="sec-link" id="flowCtxOverview">Open Overview' + UI_ICON.arrowRight + '</button></div>' +
+    '</aside>';
+    wrap.innerHTML = main + ctx;
+
+    // user text is written as text
+    items.forEach(function(it){
+      var key = flowKey(it);
+      var t = wrap.querySelector('[data-flow-title="' + key + '"]');
+      var m = wrap.querySelector('[data-flow-meta="' + key + '"]');
+      if (it.kind === 'action'){
+        t.textContent = it.c.title;
+        var bits = [categoryLabel(it.c.category)];
+        if (it.c.status !== 'planned' && it.c.status !== 'completed') bits.push(COMMITMENT_STATUS_LABEL[it.c.status]);
+        if (it.c.minVersion && it.c.status !== 'completed') bits.push('Min: ' + it.c.minVersion);
+        m.textContent = bits.join(' · ');
+      } else {
+        t.textContent = SHORT_TYPE_LABEL[it.type] || TYPE_LABEL[it.type];
+        m.textContent = 'Training · ' + flowTrainingMeta(it.type, plan);
+      }
+    });
+    var intention = (mpIntentionValue(dateStr) || '').trim();
+    var fi = document.getElementById('flowIntention');
+    if (intention){ fi.textContent = intention; fi.hidden = false; }
+    document.getElementById('flowCtxIntention').textContent = intention || 'No intention set.';
+    var keysEl = document.getElementById('flowCtxKeys');
+    var keyActs = items.filter(function(it){ return it.kind === 'action' && it.c.isKeyTask; });
+    if (!keyActs.length) keysEl.innerHTML = '<p class="flow-ctx-line quiet">None set.</p>';
+    keyActs.forEach(function(it){
+      var r = document.createElement('div');
+      r.className = 'flow-ctx-key' + (it.c.status === 'completed' ? ' done' : '');
+      r.innerHTML = STAR_SVG + '<span></span>';
+      r.lastChild.textContent = it.c.title;
+      keysEl.appendChild(r);
+    });
+    var next = items.find(function(it){ return !flowItemDone(it, plan); });
+    document.getElementById('flowCtxNext').textContent = next
+      ? (next.kind === 'action' ? next.c.title : (TYPE_LABEL[next.type] + ' · ' + flowTrainingMeta(next.type, plan)))
+      : (items.length ? 'Everything in the flow is done.' : 'Nothing in the day yet.');
+    var rbLines = ((plan && plan.roadblocks) || '').split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return !!l; })
+      .concat(dayRoadblockActions(dateStr).map(function(c){ return c.title; }));
+    if (rbLines.length){
+      document.getElementById('flowCtxRbWrap').hidden = false;
+      var rbEl = document.getElementById('flowCtxRb');
+      rbLines.forEach(function(l){ var pEl = document.createElement('p'); pEl.className = 'flow-ctx-line rb'; pEl.textContent = l; rbEl.appendChild(pEl); });
+    }
+    var notes = dayNotesLines(getDayNotes(dateStr));
+    document.getElementById('flowCtxNotes').textContent = notes.length ? notes.slice(0, 5).join('\n') : 'No notes.';
+
+    // wiring — every control reuses what Overview already uses
+    wrap.querySelectorAll('[data-flow-done]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var c = commitments.find(function(x){ return x.id === el.dataset.flowDone; });
+        if (c) toggleCommitmentQuickStatus(c);
+      });
+    });
+    function openItem(key){
+      if (key.charAt(0) === 'a'){
+        var c = commitments.find(function(x){ return x.id === key.slice(2); });
+        if (c) openCommitmentSheet(c);
+      } else {
+        openPlanTrainingLogSheet(key.slice(2), dateStr);   // logs against the plan, pre-filled
+      }
+    }
+    wrap.querySelectorAll('[data-flow-open]').forEach(function(el){
+      el.addEventListener('click', function(){ openItem(el.dataset.flowOpen); });
+    });
+    wrap.querySelectorAll('[data-flow-more]').forEach(function(el){
+      el.addEventListener('click', function(){ openFlowItemSheet(dateStr, el.dataset.flowMore, openItem); });
+    });
+    var list = document.getElementById('flowList');
+    if (list) makeSortable(list, function(keys){ saveDayFlow(dateStr, keys); });
+    document.getElementById('flowAddAction').addEventListener('click', function(){ openCommitmentSheet(null, { date: dateStr }); });
+    var addTraining = document.getElementById('flowAddTraining');
+    if (addTraining) addTraining.addEventListener('click', function(){
+      openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'] });
+    });
+    function toOverview(){ setTodayMode('overview'); window.scrollTo(0, 0); }
+    var ov = document.getElementById('flowOpenOverview');
+    if (ov) ov.addEventListener('click', toOverview);
+    document.getElementById('flowCtxOverview').addEventListener('click', toOverview);
+    var wdBtn = document.getElementById('flowWindDown');
+    if (wdBtn) wdBtn.addEventListener('click', function(){
+      wdExpanded[dateStr] = true;
+      setTodayMode('overview');
+      renderWindDown();
+      var sec = document.getElementById('windDownSection');
+      if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // The non-drag way to reorder, and a way in to the item itself.
+  function openFlowItemSheet(dateStr, key, openItem){
+    editingId = null;
+    activeSheetRefresh = null;
+    var keys = dayFlowItems(dateStr).map(flowKey);
+    var i = keys.indexOf(key);
+    if (i < 0) return;
+    var isAction = key.charAt(0) === 'a';
+    var c = isAction ? commitments.find(function(x){ return x.id === key.slice(2); }) : null;
+    var title = isAction ? (c ? c.title : '') : TYPE_LABEL[key.slice(2)];
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead('', 'Step ' + (i + 1) + ' of ' + keys.length, '<span id="flowSheetTitle"></span>', '') +
+      '<div class="flow-sheet-btns">' +
+        '<button type="button" class="btn-secondary" id="flowUpBtn"' + (i === 0 ? ' disabled' : '') + '>Move up</button>' +
+        '<button type="button" class="btn-secondary" id="flowDownBtn"' + (i === keys.length - 1 ? ' disabled' : '') + '>Move down</button>' +
+      '</div>' +
+      '<button type="button" class="btn-primary" id="flowOpenBtn">' + (isAction ? 'Open action' : 'Log ' + (SHORT_TYPE_LABEL[key.slice(2)] || TYPE_LABEL[key.slice(2)])) + '</button>' +
+      '<button type="button" class="btn-quiet" id="flowSheetDone">Done</button>';
+    document.getElementById('flowSheetTitle').textContent = title;
+    backdrop.classList.add('open');
+    function step(dir){
+      moveFlowItem(dateStr, key, dir);
+      openFlowItemSheet(dateStr, key, openItem);   // stay put so it can be nudged again
+    }
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('flowSheetDone').addEventListener('click', closeSheet);
+    document.getElementById('flowUpBtn').addEventListener('click', function(){ step(-1); });
+    document.getElementById('flowDownBtn').addEventListener('click', function(){ step(1); });
+    document.getElementById('flowOpenBtn').addEventListener('click', function(){ closeSheet(); openItem(key); });
   }
 
   // ---- Groups view: sections, each with its own internal sequence ----
@@ -5717,7 +6109,10 @@
     '2. Complete/clear tasks Ledger says were completed.',
     '3. Reuse/reschedule moved-forward tasks rather than duplicating them.',
     '4. Then process today\'s actions and schedule.',
-    '5. Avoid duplicates. Preserve categories and times where specified.'
+    '5. Avoid duplicates. Preserve categories and times where specified.',
+    '6. TODAY\'S FLOW is the order Shaun means to work in, not a schedule. Keep that',
+    '   sequence where practical, fit it around real calendar commitments, and never',
+    '   read the numbers as times.'
   ].join('\n');
 
   // What was last sent for a date, so an unchanged note is not re-flagged every
@@ -5727,8 +6122,30 @@
     catch(e){ return null; }
   }
   function markHandoffSent(dateStr){
-    try { localStorage.setItem('ledger_handoff_notes_' + dateStr, getDayNotes(dateStr)); }
-    catch(e){}
+    try {
+      localStorage.setItem('ledger_handoff_notes_' + dateStr, getDayNotes(dateStr));
+      localStorage.setItem('ledger_handoff_flow_' + dateStr, handoffFlowLines(dateStr).join('\n'));
+    } catch(e){}
+  }
+  function handoffSentFlow(dateStr){
+    try { return localStorage.getItem('ledger_handoff_flow_' + dateStr); }
+    catch(e){ return null; }
+  }
+  // The day's flow as numbered lines: actions and planned training in the order they are
+  // meant to be done. Position only — a planned time is shown where one was set.
+  function handoffFlowLines(dateStr){
+    var plan = getPlanForDate(dateStr);
+    return dayFlowItems(dateStr).map(function(it, i){
+      if (it.kind === 'action'){
+        return (i + 1) + '. ' + it.c.title + handoffCategory(it.c) + (it.c.status === 'completed' ? ' (done)' : '');
+      }
+      var det = (plan && plan.trainingDetails && plan.trainingDetails[it.type]) || {};
+      var bits = [];
+      if (det.durationMin) bits.push(det.durationMin + ' min');
+      if (det.activityTime) bits.push('planned ' + det.activityTime);
+      return (i + 1) + '. ' + TYPE_LABEL[it.type] + ' [Training]' + (bits.length ? ' \u2014 ' + bits.join(', ') : '') +
+        (det.completed ? ' (logged)' : '');
+    });
   }
   function handoffWantsInstructions(){
     try { return localStorage.getItem('ledger_handoff_instructions') !== '0'; }
@@ -5883,6 +6300,17 @@
     if (others.length) others.forEach(function(c){ L.push('- ' + handoffActionLine(c)); });
     else L.push('- none');
     L.push('');
+
+    // 5b. Flow — the order of work across actions and training. Only worth a section
+    // when there is an order to state; re-sent after a change, it says so.
+    var flowLines = handoffFlowLines(dateStr);
+    if (flowLines.length > 1){
+      var sentFlow = handoffSentFlow(dateStr);
+      L.push(sentFlow != null && sentFlow !== flowLines.join('\n') ? 'FLOW UPDATED' : (dateStr === todayStr() ? 'TODAY\'S FLOW' : 'DAY FLOW'));
+      L.push('Preferred order of work, not a schedule.');
+      flowLines.forEach(function(line){ L.push(line); });
+      L.push('');
+    }
 
     // 6. Health & fitness plan
     L.push('HEALTH & FITNESS PLAN');
@@ -6488,8 +6916,13 @@
         '<button type="button" class="btn-primary mp-save" id="mpSaveBtn">' + (st.completedAt ? 'Update Morning Prime' : 'Save Morning Prime') + '</button>' +
         (st.complete ? '' : '<p class="mp-hint" id="mpHint">' + mpMissingLabel(st) + '</p>') +
       '</div></div>' +
-    '</div>';
+    '</div>' +
+    // finished for today: the natural next step is working the day in order
+    (st.completedAt && isToday && !expanded && todayMode === 'overview'
+      ? '<button type="button" class="mp-flow-link" id="mpFlowLink">Start the day in Flow' + UI_ICON.arrowRight + '</button>' : '');
     wrap.innerHTML = html;
+    var flowLink = document.getElementById('mpFlowLink');
+    if (flowLink) flowLink.addEventListener('click', function(){ setTodayMode('flow'); });
 
     var allStates = st.planSec.items.concat(st.moveSec.items);
     fillRoutineLabels(wrap, allStates);
@@ -7994,6 +8427,7 @@
   }
 
   function renderLogView(){
+    renderTodayMode();
     renderMorningPrime();
     renderDayNotes();
     renderWindDown();
@@ -9231,6 +9665,10 @@
         bits.push((SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]) + (det.durationMin ? ' ' + det.durationMin + ' min' : ''));
       });
     }
+    if (!acts.length) types.forEach(function(t){
+      var det = (plan.trainingDetails && plan.trainingDetails[t]) || {};
+      if (det.durationMin) bits.push(det.durationMin + ' min');
+    });
     if (meals.length) bits.push(plural(meals.length, 'meal'));
     if (plan && plan.carbLevel && !acts.length) bits.push(CARB_LEVEL_LABEL[plan.carbLevel]);
     if (plan && plan.fasting) bits.push('Fasting');
@@ -9266,13 +9704,15 @@
         '<div class="pday-date">' +
           '<div class="pday-dow">' + d.toLocaleDateString(undefined,{weekday:'short'}) + '</div>' +
           '<div class="pday-num">' + d.getDate() + ' ' + d.toLocaleDateString(undefined,{month:'short'}) + '</div>' +
+          '<div class="pday-state">' + readinessBadgeHtml(getPlanReadiness(dateStr)) + '</div>' +
         '</div>' +
         '<div class="pday-sep"></div>' +
         '<span class="pday-icon">' + sum.icon + '</span>' +
         '<div class="pday-body">' +
           '<div class="pday-title' + (sum.title === 'Nothing planned' ? ' muted' : '') + '">' +
             (isToday && sum.title === 'Nothing planned' ? 'An open day' : sum.title) + '</div>' +
-          (sum.sub ? '<div class="pday-sub">' + sum.sub + '</div>' : '<div class="pday-sub">Tap to plan</div>') +
+          (sum.sub ? '<div class="pday-sub">' + sum.sub + '</div>'
+                   : (getPlanReadiness(dateStr).state === 'unplanned' ? '<div class="pday-sub">Tap to plan</div>' : '')) +
         '</div>' +
         // quiet marks: priorities the day supports, and a known constraint
         ((sum.priorities || sum.constraint)
@@ -9366,7 +9806,12 @@
       '<div class="pdp-head"><div class="pdp-head-body">' +
         '<div class="pdp-kicker">Day plan · ' + relativeDayLabel(dateStr) + '</div>' +
         '<div class="pdp-date">' + d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }) + '</div>' +
-      '</div><button type="button" class="sec-link" data-role="pane-day">View day' + UI_ICON.arrowRight + '</button></div>' +
+        '<div class="pdp-readiness">' + readinessLineHtml(dateStr) + '</div>' +
+      '</div><div class="pdp-head-actions">' +
+        '<button type="button" class="sec-link" data-role="pane-day">View day' + UI_ICON.arrowRight + '</button>' +
+        (getPlanReadiness(dateStr).state !== 'planned'
+          ? '<button type="button" class="pdp-finish" data-role="pane-finish">' + CHECK_SVG + 'Finish planning</button>' : '') +
+      '</div></div>' +
       head('Direction') +
       '<textarea class="pdp-input pdp-intention" data-role="pane-intention" rows="1" maxlength="' + MP_INTENTION_MAX + '" placeholder="Intention for the day" aria-label="Intention"></textarea>' +
       '<div class="pdp-support" data-role="pane-support"></div>' +
@@ -9413,6 +9858,48 @@
     wireText('pane-constraints', plan && plan.roadblocks, function(v){ savePlanFields(dateStr, { roadblocks: v }); });
     wireText('pane-notes', getDayNotes(dateStr), function(v){ saveDayNotes(dateStr, v); });
     pane.querySelector('[data-role="pane-day"]').addEventListener('click', function(){ jumpToToday(dateStr); });
+    var finish = pane.querySelector('[data-role="pane-finish"]');
+    if (finish) finish.addEventListener('click', function(){
+      Object.keys(paneSavers).forEach(function(k){ paneSavers[k].flush(); });
+      savePlanFields(dateStr, { planReviewedAt: new Date().toISOString() });
+    });
+  }
+
+  // ============ Plan readiness ============
+  // Has a day been planned? Unplanned: nothing meaningful yet. Draft: something is
+  // there. Planned: the day was deliberately reviewed — planReviewedAt, the same signal
+  // Morning Prime reads. Planned is intent, never completion, and editing a planned day
+  // does not unplan it. Order arrays and other bookkeeping don't count as content.
+  function planHasContent(dateStr){
+    if (commitments.some(function(c){ return c.date === dateStr; })) return true;
+    var p = getPlanForDate(dateStr);
+    if (!p) return false;
+    return !!(p.restDay || (p.trainingTypes || []).length ||
+      getPlanMeals(p).some(function(m){ return (m.text || '').trim(); }) ||
+      p.carbLevel || p.fasting || (p.roadblocks || '').trim() || (p.dayNotes || '').trim() ||
+      (p.morningPrime && (p.morningPrime.intention || '').trim()));
+  }
+  function getPlanReadiness(dateStr){
+    var p = getPlanForDate(dateStr);
+    var reviewedAt = (p && p.planReviewedAt) || null;
+    if (reviewedAt) return { state: 'planned', reviewedAt: reviewedAt };
+    return { state: planHasContent(dateStr) ? 'draft' : 'unplanned', reviewedAt: null };
+  }
+  var READINESS_LABEL = { planned: 'Planned', draft: 'Draft', unplanned: 'Unplanned' };
+  function readinessBadgeHtml(r){
+    return '<span class="readiness ' + r.state + '">' + (r.state === 'planned' ? CHECK_SVG : '') + READINESS_LABEL[r.state] + '</span>';
+  }
+  function readinessDetail(r){
+    if (r.state === 'planned'){
+      var at = new Date(r.reviewedAt);
+      var day = relativeDayLabel(fmtDate(at));
+      return 'Reviewed ' + mpTimeLabel(r.reviewedAt) + ' ' + (day === 'Today' || day === 'Yesterday' ? day.toLowerCase() : day);
+    }
+    return r.state === 'draft' ? 'Some planning added' : 'Start shaping the day';
+  }
+  function readinessLineHtml(dateStr){
+    var r = getPlanReadiness(dateStr);
+    return readinessBadgeHtml(r) + '<span class="readiness-detail">' + readinessDetail(r) + '</span>';
   }
 
   // ============ Day Plan ============
@@ -9712,7 +10199,7 @@
 
     function buildHtml(){
       var html = '<div class="sheet-handle"></div>' +
-        sheetHead('', niceDate(d), 'Day plan · what you intend for this day', '') +
+        sheetHead('', niceDate(d), '<span class="dp-readiness" id="dpReadiness">' + readinessLineHtml(dateStr) + '</span>', '') +
         secHtml('direction',
           '<div class="field"><label for="dpIntention">Intention</label>' +
             '<textarea id="dpIntention" class="dp-intention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea></div>' +
@@ -9736,7 +10223,8 @@
         secHtml('notes',
           '<textarea id="dpNotes" class="dn-sheet-area dp-notes" placeholder="Anything worth remembering about this day"></textarea>' +
           '<span class="dn-saved" id="dpNotesSaved"></span>') +
-        '<button class="save-btn" id="savePlanBtn">Save day plan</button>' +
+        // declaring the day planned is its own act — editing alone never does it
+        '<button class="save-btn" id="savePlanBtn">' + (getPlanReadiness(dateStr).state === 'planned' ? 'Update plan' : 'Finish planning') + '</button>' +
         (mpNeedsAttention(dateStr)
           ? '<button type="button" class="btn-quiet" id="planToMpBtn">Return to Morning Prime</button>'
           : '') +
@@ -9783,6 +10271,8 @@
     }
     function refreshLive(){
       if (!document.getElementById('dpActions')) return;
+      var rd = document.getElementById('dpReadiness');
+      if (rd) rd.innerHTML = readinessLineHtml(dateStr);
       renderDayActions(document.getElementById('dpActions'), dateStr, {
         onOpen: function(c){ stash(); openCommitmentSheet(c, { onDone: function(){ reopen(); } }); },
         onAdd: function(){ stash(); openCommitmentSheet(null, { date: dateStr, onDone: function(){ reopen(); } }); },
