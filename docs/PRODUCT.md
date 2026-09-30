@@ -34,7 +34,8 @@ reason the security posture is what it is — see
 Plan → Do → Track → Review → Adjust
 ```
 
-- **Plan** — decide what the day contains: meals, training, key tasks, actions.
+- **Plan** — decide what the day contains: direction, actions and key outcomes,
+  health & fitness, constraints and notes. Plan is intent; Today executes it.
 - **Do** — execute from Today, the day's working surface.
 - **Track** — record what actually happened as real evidence, not self-report.
 - **Review** — close the day honestly, including the parts that did not happen.
@@ -49,7 +50,7 @@ These are the journeys that must always work. They are the basis of the
 release checklist and of any future automated smoke suite.
 
 1. **Prime the morning.** Open Today, run Morning Prime: **Plan** (acknowledge
-   meals, choose three key tasks, finish health & fitness, set an intention)
+   meals, choose three key tasks, review today's plan, set an intention)
    and **Move** (the physical morning routine).
 2. **Work the day.** Read Today, work the action list in order, complete
    actions, add new ones as they arrive.
@@ -101,7 +102,7 @@ casually.
 
 | Surface | Purpose |
 | --- | --- |
-| **Plan** | The week ahead: per-day summaries and the meal ideas library. |
+| **Plan** | What I intend over the coming days. Whole-day week summaries; each day opens as a Day Plan (Direction, Actions, Health & fitness, Constraints, Day Notes) over the same records as Today. Meal ideas library. |
 | **Today** | The execution surface. Morning Prime (Plan, Move), Actions, Health & fitness, Day Notes, Quick Log, Evening Wind-down, Recorded Activity, Backlog, Catch-up, Daily Handoff. |
 | **Calendar** | What actually happened. Month view with an activity filter, day detail (Planned, Recorded, Outcome), day status. |
 | **Progress** | Am I moving there? Towards your focus, weekly chart, health and training stats, stat detail. |

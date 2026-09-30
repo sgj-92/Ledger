@@ -2465,6 +2465,104 @@
   .re-btn.on { color: var(--gold); border-color: rgba(var(--gold-rgb),0.45); }
   .re-row .drag-handle { margin-left: -4px; }
 
+  /* ---------- Day Plan: the whole day, in collapsible sections ----------
+     Each section shows a one-line summary while closed, so a phone can scan the
+     day and open only the part being planned. */
+  .dp-sec { border-top: 1px solid var(--line); }
+  .dp-sec:last-of-type { border-bottom: 1px solid var(--line); margin-bottom: var(--sp-5); }
+  .dp-head {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    background: none; border: none; padding: 15px 2px; cursor: pointer; text-align: left;
+    font-family: var(--sans); color: var(--text);
+  }
+  .dp-head-label {
+    flex-shrink: 0; font-size: 10.5px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.2em; color: var(--text-3);
+  }
+  .dp-sec.open .dp-head-label { color: var(--gold); }
+  .dp-head-sum {
+    flex: 1; min-width: 0; text-align: right; font-size: 12.5px; color: var(--text-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dp-head-chev { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-3); transition: transform 0.2s ease; }
+  .dp-head-chev svg { width: 100%; height: 100%; display: block; }
+  .dp-sec.open .dp-head-chev { transform: rotate(180deg); }
+  .dp-body { display: none; padding: 2px 0 var(--sp-5); }
+  .dp-sec.open .dp-body { display: block; }
+  .dp-quiet { font-size: 12.5px; color: var(--text-3); margin: 4px 0 10px; line-height: 1.45; }
+  .dp-sublabel { font-size: 10px; color: var(--text-3); margin: 2px 0 8px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.18em; }
+  .dp-intention { min-height: 0; font-family: var(--serif); font-size: 15.5px; line-height: 1.45; }
+  .dp-support { display: flex; align-items: baseline; gap: 9px; padding: 5px 0; font-size: 13.5px; }
+  .dp-support-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0; transform: translateY(-2px); }
+  .dp-support-title { font-family: var(--serif); font-size: 15px; color: var(--text); min-width: 0; overflow-wrap: anywhere; }
+  .dp-support-via { margin-left: auto; flex-shrink: 0; font-size: 11.5px; color: var(--text-3); }
+  .dp-notes { min-height: 110px; }
+
+  .dpa-group {
+    display: flex; align-items: center; gap: 10px; margin: 12px 0 6px;
+    font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.18em; color: var(--text-3);
+  }
+  .dpa-group:first-child { margin-top: 2px; }
+  .dpa-group.key { color: var(--gold); }
+  .dpa-group-n { margin-left: auto; letter-spacing: 0.06em; text-transform: none; font-size: 11px; color: var(--text-3); }
+  .dpa-row {
+    display: flex; align-items: center; gap: 11px; padding: 8px 10px 8px 11px; margin-bottom: 5px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px;
+  }
+  .dpa-row.key { border-color: rgba(var(--gold-rgb),0.35); }
+  .dpa-row .commitment-status-dot { width: 19px; height: 19px; }
+  .dpa-cat-ic { width: 19px; flex-shrink: 0; display: flex; justify-content: center; color: var(--text-3); }
+  .dpa-cat-ic svg { width: 14px; height: 14px; display: block; }
+  .dpa-body {
+    flex: 1; min-width: 0; background: none; border: none; padding: 0; text-align: left; cursor: pointer;
+    display: flex; flex-direction: column; gap: 2px; font-family: var(--sans);
+  }
+  .dpa-title { font-family: var(--serif); font-size: 15px; line-height: 1.28; color: var(--text); overflow-wrap: anywhere; }
+  .dpa-row.done .dpa-title { color: var(--text-2); text-decoration: line-through; text-decoration-color: var(--text-3); }
+  .dpa-meta { font-size: 11px; color: var(--text-3); overflow-wrap: anywhere; }
+  .dpa-star {
+    flex-shrink: 0; width: 32px; height: 32px; margin: -4px -4px -4px 0; border-radius: 50%;
+    background: none; border: none; cursor: pointer; color: var(--text-3); opacity: 0.55;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dpa-star svg { width: 15px; height: 15px; display: block; }
+  .dpa-star.on { color: var(--gold); opacity: 1; }
+  .dpa-star:disabled { opacity: 0.18; cursor: default; }
+  .dpa-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .dpa-add-btn {
+    display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: 100px;
+    border: 1px solid rgba(var(--gold-rgb),0.32); background: none; color: var(--gold); cursor: pointer;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+  }
+  .dpa-add-btn svg { width: 13px; height: 13px; display: block; }
+  .dpa-add-btn.quiet { border-color: var(--line-2); color: var(--text-2); }
+  .dp-rb-action {
+    display: flex; align-items: flex-start; gap: 8px; width: 100%; margin-top: 6px; padding: 6px 2px;
+    background: none; border: none; cursor: pointer; text-align: left;
+    font-family: var(--sans); font-size: 12.5px; color: rgba(var(--danger-rgb),0.9);
+  }
+  .dp-rb-action .rb-ic svg { width: 14px; height: 14px; display: block; }
+
+  /* the week list's quiet marks */
+  .pday-marks { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; color: var(--text-3); font-size: 11px; }
+  .pday-prio, .pday-rb { display: inline-flex; align-items: center; gap: 3px; }
+  .pday-prio svg, .pday-rb svg { width: 12px; height: 12px; display: block; }
+  .pday-prio { color: rgba(var(--gold-rgb),0.8); }
+  .pday-rb { color: rgba(var(--danger-rgb),0.7); }
+
+  /* the desktop day pane's in-place fields */
+  .pdp-input {
+    display: block; width: 100%; resize: vertical;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+    padding: 10px 12px; color: var(--text); font-family: var(--sans); font-size: 13.5px; line-height: 1.5;
+  }
+  .pdp-input:focus { outline: none; border-color: rgba(var(--gold-rgb),0.4); }
+  .pdp-input::placeholder { color: var(--text-3); }
+  .pdp-intention { font-family: var(--serif); font-size: 15px; resize: none; overflow: hidden; }
+  .pdp-notes { font-family: var(--serif); font-size: 14.5px; line-height: 1.6; min-height: 110px; }
+  .pdp-support { margin: 8px 0 2px; }
+  .plan-day-pane .today-plan-widget { margin: var(--sp-5) 0 0; }
+
   /* ==========================================================
      Wider screens — one app, one URL.
      Phones never reach anything below the first block. Everything here
@@ -2680,7 +2778,6 @@
     .pdp-head-body { flex: 1; min-width: 0; }
     .pdp-kicker { font-size: 10px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-3); }
     .pdp-date { font-family: var(--serif); font-size: clamp(21px, 1.8vw, 26px); color: var(--text); margin-top: 5px; line-height: 1.1; }
-    .plan-day-pane .today-plan-widget { margin: 0 0 var(--sp-6); }
     .pdp-sec { display: flex; align-items: center; gap: 14px; margin: var(--sp-5) 0 var(--sp-3); }
     .pdp-notes { font-family: var(--serif); font-size: 14.5px; line-height: 1.6; color: var(--text-2); white-space: pre-line; }
     .pdp-empty { font-size: 13px; color: var(--text-3); font-style: italic; }
@@ -3325,6 +3422,8 @@
         .onSnapshot(function(snap){
           commitments = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
           renderLogView();
+          // Plan reads the same actions: its week rows and day pane follow them
+          if (currentView === 'plan') renderPlan();
           tryHandleDeepLink();
         }, function(err){ console.error('commitments snapshot error', err); });
       dbRef.collection('ledger_day_status')
@@ -3604,7 +3703,7 @@
   }
 
   // Opens the shared activity form in "plan" mode to add/edit optional planning detail for a training type.
-  function openTrainingDetailSheet(type, dateStr){
+  function openTrainingDetailSheet(type, dateStr, back){
     var plan = getPlanForDate(dateStr);
     var details = (plan && plan.trainingDetails && plan.trainingDetails[type]) || {};
     var seed = Object.assign({ type: type, date: dateStr }, details);
@@ -3612,7 +3711,10 @@
       mode: 'plan',
       planDate: dateStr,
       // reopen with the plan the detail sheet just saved, never an older read
-      onDone: function(saved){ openPlanSheet(dateStr, saved || getPlanForDate(dateStr)); }
+      onDone: function(saved){
+        if (back) back(saved);
+        else openPlanSheet(dateStr, saved || getPlanForDate(dateStr));
+      }
     });
   }
 
@@ -3763,6 +3865,7 @@
     }
     localSaveCommitments();
     renderLogView();
+    if (currentView === 'plan') renderPlan();
   }
 
   async function deleteCommitment(id){
@@ -3773,6 +3876,7 @@
     commitments = commitments.filter(function(c){ return c.id !== id; });
     localSaveCommitments();
     renderLogView();
+    if (currentView === 'plan') renderPlan();
   }
 
   // Best-effort: a completed action's pinned reminder has done its job. We don't (and per
@@ -4752,10 +4856,15 @@
     });
   }
 
-  function openCommitmentSheet(existing){
+  // opts.date: the day a new action is for (Plan passes the planned day).
+  // opts.onDone: where to go once the editor closes — Plan returns to its Day Plan.
+  function openCommitmentSheet(existing, opts){
+    opts = opts || {};
     editingId = null;
     activeSheetRefresh = null;
     var isEditing = !!existing;
+    var newDate = opts.date || viewedDate;
+    function done(){ closeSheet(); if (opts.onDone) opts.onDone(); }
     var statusVal = existing ? existing.status : 'planned';
     var disruptionVal = existing ? (existing.disruptionReason || null) : null;
 
@@ -4795,7 +4904,8 @@
       } else {
         // Three lightweight outcomes for a freshly typed action, per the "Call dentist" example:
         // save it as a Today action, push it to the phone right now, or both — no second form.
-        html += '<div class="btn-row"><button class="btn-primary" id="saveCommitBtn">Add to Today</button></div>' +
+        html += '<div class="btn-row"><button class="btn-primary" id="saveCommitBtn">' +
+            (opts.date && opts.date !== todayStr() ? 'Add to ' + shortDayLabel(opts.date) : 'Add to Today') + '</button></div>' +
           '<div class="btn-row pin-outcome-row">' +
             '<button type="button" class="btn-secondary pin-action-btn" id="pinOnlyBtn"><span class="pin-btn-icon">' + PIN_ICON_SVG + '</span>Pin now</button>' +
             '<button type="button" class="btn-secondary pin-action-btn" id="pinBothBtn"><span class="pin-btn-icon">' + PIN_ICON_SVG + '</span>Both</button>' +
@@ -4812,7 +4922,7 @@
     // (isKeyTask, originalDate, movedFromBacklogAt) must survive an edit
     function buildCommitOut(title){
       var dateEl = document.getElementById('f_commitDate');
-      var nextDate = dateEl && dateEl.value ? dateEl.value : (existing ? existing.date : viewedDate);
+      var nextDate = dateEl && dateEl.value ? dateEl.value : (existing ? existing.date : newDate);
       var out = Object.assign({}, existing || {}, {
         date: nextDate,
         title: title,
@@ -4831,7 +4941,7 @@
     }
 
     function wireSheet(){
-      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      document.getElementById('sheetCloseBtn').addEventListener('click', done);
       if (isEditing){
         document.querySelectorAll('#commitStatusGrid .status-btn').forEach(function(btn){
           btn.addEventListener('click', function(){
@@ -4842,7 +4952,7 @@
         });
         document.getElementById('deleteCommitBtn').addEventListener('click', function(){
           deleteCommitment(existing.id);
-          closeSheet();
+          done();
         });
         document.getElementById('pinExistingBtn').addEventListener('click', function(){
           pinNow(existing.title, '', existing.id, existing.date);
@@ -4850,7 +4960,7 @@
       }
       document.getElementById('saveCommitBtn').addEventListener('click', function(){
         var title = document.getElementById('f_commitTitle').value.trim();
-        if (!title) { closeSheet(); return; }
+        if (!title) { done(); return; }
         var out = buildCommitOut(title);
         if (isEditing && out.status === 'completed') cleanupPinsForCompletedAction(out.id);
         // leaving a section gives up its place in that section's order; with no hint in
@@ -4859,7 +4969,7 @@
           dropFromGroupOrder(existing.date, actionCategoryKey(existing), existing.id);
         }
         saveCommitment(out);
-        closeSheet();
+        done();
       });
       if (!isEditing){
         document.getElementById('pinOnlyBtn').addEventListener('click', function(){
@@ -5290,7 +5400,7 @@
     var compact = !!opts.compact;
     // the shelf names the state; the reason behind it belongs to the full Backlog
     var state = compact ? backlogStateLabel(c).split(' · ')[0] : backlogStateLabel(c);
-    var addLabel = 'Add to today';
+    var addLabel = opts.addLabel || 'Add to today';
     var dayLabel = compact ? 'Choose a day' : (opts.longLabels ? 'Pick a day' : 'Choose day');
     var metaBits = [];
     if (compact) metaBits.push(categoryLabel(c.category));
@@ -5312,7 +5422,7 @@
       '<span class="bk-actions">' +
         (moved
           ? '<span class="bk-btn moved"' + (compact ? ' aria-label="Added to today" title="Added to today"' : '') + '>' +
-              CHECK_SVG + (compact ? '' : 'Added to today') +
+              CHECK_SVG + (compact ? '' : (opts.addLabel ? opts.addLabel.replace(/^Add to/, 'Added to') : 'Added to today')) +
             '</span>'
           : '<button type="button" class="bk-btn gold" data-bk-today="' + c.id + '"' +
               (compact ? ' aria-label="' + addLabel + '" title="' + addLabel + '"' : '') + '>' +
@@ -5332,7 +5442,7 @@
       root.querySelectorAll('[data-bk-title="' + c.id + '"]').forEach(function(el){ el.textContent = c.title; });
     });
   }
-  function wireBacklogRows(root, onChange){
+  function wireBacklogRows(root, onChange, targetDate){
     root.querySelectorAll('[data-bk-open]').forEach(function(el){
       el.addEventListener('click', function(e){
         e.stopPropagation();
@@ -5345,7 +5455,7 @@
         e.stopPropagation();
         var c = commitments.find(function(x){ return x.id === el.dataset.bkToday; });
         if (!c) return;
-        moveActionToDate(c, todayStr());
+        moveActionToDate(c, targetDate || todayStr());
         if (onChange) onChange(c.id);
       });
     });
@@ -5393,7 +5503,12 @@
   var bkCollapsed = {};       // group key -> collapsed
   var bkJustMoved = {};       // id -> true, so a moved row confirms itself before it leaves
 
-  function openBacklogSheet(){
+  // opts.targetDate: opened from Plan — "Add" moves the item onto that day instead of today.
+  // opts.onClose: where to return. (Also used directly as a click handler, hence the guard.)
+  function openBacklogSheet(opts){
+    opts = (opts && (opts.targetDate || opts.onClose)) ? opts : {};
+    var target = opts.targetDate || null;
+    var targetLabel = target ? (target === todayStr() ? 'today' : shortDayLabel(target)) : null;
     editingId = null;
     bkJustMoved = {};
 
@@ -5446,7 +5561,7 @@
           '<button class="circ-btn" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button>' +
           '<div class="bk-sheet-center">' +
             '<div class="sheet-title">Backlog</div>' +
-            '<div class="sheet-sub">Unfinished tasks from earlier days.</div>' +
+            '<div class="sheet-sub">' + (target ? 'Move an unfinished task onto ' + targetLabel + '.' : 'Unfinished tasks from earlier days.') + '</div>' +
           '</div>' +
           '<div class="bk-sheet-quote"><span>Nothing falls through.</span><i></i></div>' +
         '</div>';
@@ -5496,7 +5611,8 @@
             '</button>' +
             '<div class="bk-group-rows' + (collapsed ? ' collapsed' : '') + '">' +
               g.items.map(function(c){
-                return backlogRowHtml(c, { check: true, longLabels: true, hideDate: bkSort === 'date', moved: !!bkJustMoved[c.id] });
+                return backlogRowHtml(c, { check: true, longLabels: true, hideDate: bkSort === 'date', moved: !!bkJustMoved[c.id],
+                  addLabel: target ? 'Add to ' + targetLabel : null });
               }).join('') +
             '</div>' +
           '</div>';
@@ -5514,7 +5630,10 @@
     function render(){
       sheetEl.innerHTML = build();
       fillBacklogTitles(sheetEl, commitments);
-      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      document.getElementById('sheetCloseBtn').addEventListener('click', function(){
+        closeSheet();
+        if (opts.onClose) opts.onClose();
+      });
       sheetEl.querySelectorAll('[data-bk-sort]').forEach(function(el){
         el.addEventListener('click', function(){ bkSort = el.dataset.bkSort; render(); });
       });
@@ -5530,7 +5649,7 @@
           render();
         });
       });
-      wireBacklogRows(sheetEl, function(id){ bkJustMoved[id] = true; render(); });
+      wireBacklogRows(sheetEl, function(id){ bkJustMoved[id] = true; render(); }, target);
     }
 
     render();
@@ -5828,7 +5947,7 @@
     L.push('- Morning Prime ' + (st.completedAt
       ? 'completed at ' + mpTimeLabel(st.completedAt)
       : st.doneCount + ' of ' + st.total + ' steps complete'));
-    L.push('- Health & fitness plan ' + (st.planDone ? 'reviewed' : 'not yet reviewed'));
+    L.push('- Day plan ' + (st.planDone ? 'reviewed' : 'not yet reviewed'));
     if (actionable.length){
       var doneCount = actionable.filter(function(c){ return c.status === 'completed'; }).length;
       L.push('- Actions ' + doneCount + ' of ' + actionable.length + ' complete');
@@ -5973,7 +6092,7 @@
     plan: [
       { id: 'plan-meals',     key: 'meals',     label: 'Plan main meals',         enabled: true },
       { id: 'plan-keys',      key: 'keys',      label: 'Set 3 key tasks',         enabled: true },
-      { id: 'plan-plan',      key: 'plan',      label: 'Finish health & fitness', enabled: true },
+      { id: 'plan-plan',      key: 'plan',      label: 'Review today\'s plan',    enabled: true },
       { id: 'plan-intention', key: 'intention', label: 'One-line intention',      enabled: true }
     ],
     move: [
@@ -6003,7 +6122,12 @@
     var defs = DEFAULT_ROUTINES[section] || [];
     var stored = routineConfig()[section];
     if (!stored || !stored.length) return defs.map(function(it){ return Object.assign({}, it); });
-    var out = stored.map(function(it){ return Object.assign({}, it); });
+    var out = stored.map(function(it){
+      var copy = Object.assign({}, it);
+      // the plan step once only covered health & fitness; a label never renamed follows the default
+      if (copy.id === 'plan-plan' && copy.label === 'Finish health & fitness') copy.label = 'Review today\'s plan';
+      return copy;
+    });
     defs.forEach(function(d){
       if (!out.some(function(it){ return it.id === d.id; })) out.push(Object.assign({}, d));
     });
@@ -6150,7 +6274,7 @@
     var k = item.key;
     if (k === 'meals'){ openPlanMealsSheet(dateStr); return true; }
     if (k === 'keys'){ openKeyTasksSheet(dateStr); return true; }
-    if (k === 'plan'){ openPlanSheet(dateStr, getPlanForDate(dateStr), { returnToMorningPrime: true }); return true; }
+    if (k === 'plan'){ openPlanSheet(dateStr, getPlanForDate(dateStr), { returnToMorningPrime: true, sections: ['actions', 'health'] }); return true; }
     if (k === 'intention'){ openIntentionSheet(dateStr); return true; }
     if (k === 'weighIn'){
       openSheet('weight', sessions.find(function(x){ return x.type === 'weight' && x.date === dateStr; }) || null, dateStr);
@@ -6490,6 +6614,18 @@
     activeSheetRefresh = render;
   }
 
+  // A day has at most three key tasks. Morning Prime and Plan both go through here,
+  // so there is one isKeyTask flag and one limit, wherever it is set.
+  var KEY_TASK_MAX = 3;
+  function keyTaskCount(dateStr){
+    return commitments.filter(function(x){ return x.date === dateStr && x.isKeyTask && x.category !== 'roadblock'; }).length;
+  }
+  function setKeyTask(c, on){
+    if (on && !c.isKeyTask && keyTaskCount(c.date) >= KEY_TASK_MAX) return false;
+    saveCommitment(Object.assign({}, c, { isKeyTask: !!on }));
+    return true;
+  }
+
   // ---- step 2: key tasks. Ordinary actions flagged isKeyTask — no parallel task type. ----
   function openKeyTasksSheet(dateStr){
     editingId = null;
@@ -6566,9 +6702,7 @@
     function toggleKeyTask(id){
       var c = commitments.find(function(x){ return x.id === id; });
       if (!c) return;
-      var selected = commitments.filter(function(x){ return x.date === dateStr && x.isKeyTask && x.category !== 'roadblock'; }).length;
-      if (!c.isKeyTask && selected >= 3) return;
-      saveCommitment(Object.assign({}, c, { isKeyTask: !c.isKeyTask }));
+      setKeyTask(c, !c.isKeyTask);
       render();
     }
 
@@ -9026,13 +9160,13 @@
     }
 
     wrap.querySelector('[data-role="plan-edit"]').addEventListener('click', function(){
-      openPlanSheet(dateStr, getPlanForDate(dateStr));
+      openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'] });
     });
     wrap.querySelector('[data-role="share"]').addEventListener('click', function(){ openShareDaySheet(dateStr); });
     wrap.querySelectorAll('[data-plan-edit]').forEach(function(el){
       el.addEventListener('click', function(e){
         e.stopPropagation();
-        openPlanSheet(dateStr, getPlanForDate(dateStr));
+        openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'] });
       });
     });
     // training: the card records what actually happened, pre-filled from the plan
@@ -9062,28 +9196,48 @@
   }
 
   // One editorial row per day; the current day expands into the week's one
-  // featured panel, as in the reference comps.
-  function planDaySummary(plan, dayCommitments, meals){
+  // featured panel, as in the reference comps. The row answers "what kind of day
+  // have I planned?": its actions (and how many are key), their categories, the
+  // training, meals and diet — never the tasks themselves.
+  function planDaySummary(plan, dayCommitments, meals, dateStr){
+    var acts = dayCommitments.filter(function(c){ return c.category !== 'roadblock'; });
+    var key = acts.filter(function(c){ return c.isKeyTask; }).length;
+    var types = plannedTrainingTypes(plan);
     var title = 'Nothing planned';
     var icon = '';
-    if (plan && plan.restDay){ title = 'Rest day'; icon = UI_ICON.leaf; }
-    else if (plan && plan.trainingTypes && plan.trainingTypes.length){
-      title = plan.trainingTypes.map(function(t){ return SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]; }).join(' · ');
-      icon = TRAINING_ICON_SVG[plan.trainingTypes[0]];
-    } else if (dayCommitments.length){
-      var cats = {};
-      dayCommitments.forEach(function(c){ if (c.category) cats[c.category] = true; });
-      title = cats.work ? 'Deep work' : (cats.family ? 'Family time' : 'Planned day');
-      icon = cats.family ? UI_ICON.people : UI_ICON.laptop;
+    if (acts.length){
+      title = plural(acts.length, 'action') + (key ? ' · ' + key + ' key' : '');
+      var cats = [];
+      acts.slice().sort(function(a, b){ return categoryOrder(a.category) - categoryOrder(b.category); })
+        .forEach(function(c){ if (cats.indexOf(c.category) === -1) cats.push(c.category); });
+      icon = types.length ? TRAINING_ICON_SVG[types[0]] : categoryIcon(cats[0]);
+    } else if (plan && plan.restDay){ title = 'Rest day'; icon = UI_ICON.leaf; }
+    else if (types.length){
+      title = types.map(function(t){ return SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]; }).join(' · ');
+      icon = TRAINING_ICON_SVG[types[0]];
     } else if (meals.length){ title = 'Meals planned'; icon = UI_ICON.cutlery; }
 
     var bits = [];
-    if (dayCommitments.length) bits.push(dayCommitments.length + ' action' + (dayCommitments.length===1?'':'s'));
-    if (meals.length) bits.push(meals.length + ' meal' + (meals.length===1?'':'s'));
-    if (plan && plan.carbLevel) bits.push(CARB_LEVEL_LABEL[plan.carbLevel]);
+    var catLine = '';
+    if (acts.length){
+      var labels = [];
+      acts.slice().sort(function(a, b){ return categoryOrder(a.category) - categoryOrder(b.category); })
+        .forEach(function(c){ var l = categoryLabel(c.category); if (labels.indexOf(l) === -1) labels.push(l); });
+      catLine = labels.slice(0, 3).join(' · ');
+      bits.push(catLine);
+      if (plan && plan.restDay) bits.push('Rest day');
+      types.forEach(function(t){
+        var det = (plan.trainingDetails && plan.trainingDetails[t]) || {};
+        bits.push((SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]) + (det.durationMin ? ' ' + det.durationMin + ' min' : ''));
+      });
+    }
+    if (meals.length) bits.push(plural(meals.length, 'meal'));
+    if (plan && plan.carbLevel && !acts.length) bits.push(CARB_LEVEL_LABEL[plan.carbLevel]);
     if (plan && plan.fasting) bits.push('Fasting');
     if (!bits.length && plan && plan.restDay) bits.push('Recovery');
-    return { title: title, icon: icon, sub: bits.join(' · ') };
+    var supported = dateStr ? dayPrioritySupport(dateStr, types).length : 0;
+    return { title: title, icon: icon, sub: bits.join(' · '), cats: catLine, priorities: supported,
+             constraint: !!(plan && plan.roadblocks) || dayCommitments.some(function(c){ return c.category === 'roadblock'; }) };
   }
 
   function renderPlan(){
@@ -9102,7 +9256,9 @@
       var isToday = dateStr === today;
       var dayCommitments = commitments.filter(function(c){ return c.date === dateStr; });
       var meals = getPlanMeals(plan);
-      var sum = planDaySummary(plan, dayCommitments, meals);
+      var sum = planDaySummary(plan, dayCommitments, meals, dateStr);
+      // today's row carries its own strip of training, diet and meals below
+      if (isToday && sum.cats) sum.sub = sum.cats;
 
       var row = document.createElement('div');
       row.className = 'plan-day-row' + (isToday ? ' today' : '') + (wide && dateStr === paneDate ? ' selected' : '');
@@ -9118,6 +9274,13 @@
             (isToday && sum.title === 'Nothing planned' ? 'An open day' : sum.title) + '</div>' +
           (sum.sub ? '<div class="pday-sub">' + sum.sub + '</div>' : '<div class="pday-sub">Tap to plan</div>') +
         '</div>' +
+        // quiet marks: priorities the day supports, and a known constraint
+        ((sum.priorities || sum.constraint)
+          ? '<span class="pday-marks">' +
+              (sum.priorities ? '<span class="pday-prio" title="Supports ' + plural(sum.priorities, 'priority', 'priorities') + '">' + UI_ICON.target + sum.priorities + '</span>' : '') +
+              (sum.constraint ? '<span class="pday-rb" title="Constraint noted">' + UI_ICON.mountain + '</span>' : '') +
+            '</span>'
+          : '') +
         '<span class="chev">' + UI_ICON.chevronRight + '</span>';
 
       if (isToday){
@@ -9161,7 +9324,7 @@
           if (typeEl){ openPlanTrainingLogSheet(typeEl.dataset.type, ds); return; }
           // wide: choose the day for the pane; its Edit plan opens the same editor
           if (isWide()){ renderPlan(); return; }
-          openPlanSheet(ds, p);
+          openPlanSheet(ds, getPlanForDate(ds));
         };
       }(dateStr, plan));
       list.appendChild(row);
@@ -9178,38 +9341,337 @@
     return (t >= start && t <= end) ? t : start;
   }
 
-  // The selected day, in full: the same Health & fitness cards as Today, the day's actions
-  // and its notes. Every control reuses the existing editors and records.
+  // The selected day, in full, on wide screens: the same sections as the Day Plan sheet,
+  // editable in place. The intention, constraints and notes save as you type; actions open
+  // the standard editor in the inspector; Health & fitness opens the Day Plan at that section.
+  var paneSavers = {};
   function renderPlanDayPane(dateStr){
     var pane = document.getElementById('planDayPane');
     if (!pane) return;
+    // never redraw under the cursor; catch up once the field is left
+    var act = document.activeElement;
+    if (act && pane.contains(act) && /^(TEXTAREA|INPUT)$/.test(act.tagName) && pane.dataset.date === dateStr){
+      pane.dataset.stale = '1';
+      return;
+    }
+    Object.keys(paneSavers).forEach(function(k){ paneSavers[k].flush(); });
+    pane.dataset.date = dateStr;
+    pane.dataset.stale = '';
     var d = new Date(dateStr + 'T00:00:00');
+    var plan = getPlanForDate(dateStr);
+    function head(label, extra){
+      return '<div class="pdp-sec"><span class="sec-label">' + label + '</span><span class="sec-rule"></span>' + (extra || '') + '</div>';
+    }
     pane.innerHTML =
       '<div class="pdp-head"><div class="pdp-head-body">' +
-        '<div class="pdp-kicker">' + relativeDayLabel(dateStr) + '</div>' +
+        '<div class="pdp-kicker">Day plan · ' + relativeDayLabel(dateStr) + '</div>' +
         '<div class="pdp-date">' + d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }) + '</div>' +
       '</div><button type="button" class="sec-link" data-role="pane-day">View day' + UI_ICON.arrowRight + '</button></div>' +
-      '<div class="today-plan-widget" data-role="pane-widget"></div>' +
-      '<div class="pdp-sec"><span class="sec-label">Actions</span><span class="sec-rule"></span><span class="sec-value" data-role="pane-count"></span></div>' +
+      head('Direction') +
+      '<textarea class="pdp-input pdp-intention" data-role="pane-intention" rows="1" maxlength="' + MP_INTENTION_MAX + '" placeholder="Intention for the day" aria-label="Intention"></textarea>' +
+      '<div class="pdp-support" data-role="pane-support"></div>' +
+      head('Actions', '<span class="sec-value" data-role="pane-count"></span>') +
       '<div data-role="pane-actions"></div>' +
-      '<div class="pdp-sec"><span class="sec-label">Day notes</span><span class="sec-rule"></span></div>' +
-      '<div class="pdp-notes" data-role="pane-notes"></div>';
+      '<div class="today-plan-widget" data-role="pane-widget"></div>' +
+      head('Constraints') +
+      '<textarea class="pdp-input" data-role="pane-constraints" rows="2" placeholder="Client meeting 14:00–16:00, dinner out, travel day" aria-label="Constraints"></textarea>' +
+      '<div data-role="pane-rb-actions"></div>' +
+      head('Day notes') +
+      '<textarea class="pdp-input pdp-notes" data-role="pane-notes" rows="4" placeholder="Anything worth remembering about this day" aria-label="Day notes"></textarea>';
+
+    renderDaySupport(pane.querySelector('[data-role="pane-support"]'), dateStr, plannedTrainingTypes(plan));
+    var acts = dayActions(dateStr);
+    var keyN = acts.filter(function(c){ return c.isKeyTask; }).length;
+    pane.querySelector('[data-role="pane-count"]').textContent = acts.length ? acts.length + (keyN ? ' \u00b7 ' + keyN + ' key' : '') : '';
+    renderDayActions(pane.querySelector('[data-role="pane-actions"]'), dateStr, {
+      onOpen: function(c){ openCommitmentSheet(c); },
+      onAdd: function(){ openCommitmentSheet(null, { date: dateStr }); },
+      onBacklog: function(){ openBacklogSheet({ targetDate: dateStr }); }
+    });
     renderPlanWidget(pane.querySelector('[data-role="pane-widget"]'), dateStr, { primary: false });
-    var acts = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
-    pane.querySelector('[data-role="pane-count"]').textContent = acts.length ? String(acts.length) : '';
-    var list = pane.querySelector('[data-role="pane-actions"]');
-    if (!acts.length){
-      list.innerHTML = '<p class="pdp-empty">No actions for this day.</p>';
-    } else {
-      acts.forEach(function(c){ list.appendChild(buildCommitmentRow(c, dateStr)); });
+    renderDayRoadblockActions(pane.querySelector('[data-role="pane-rb-actions"]'), dateStr, function(c){ openCommitmentSheet(c); });
+
+    // user text goes in as values
+    function wireText(role, value, save){
+      var el = pane.querySelector('[data-role="' + role + '"]');
+      el.value = value || '';
+      var saver = paneSavers[role] = autosaver(save);
+      // short fields grow with what is written instead of clipping it
+      function fit(){ if (el.classList.contains('pdp-notes')) return; el.style.height = 'auto'; el.style.height = el.scrollHeight + 2 + 'px'; }
+      requestAnimationFrame(fit);
+      el.addEventListener('input', function(){ saver.schedule(el.value); fit(); });
+      // during blur focus hasn't landed yet; saving a tick later lets the redraw guard see
+      // the field being moved to, so clicking from one field to the next never loses it
+      el.addEventListener('blur', function(){
+        setTimeout(function(){
+          saver.flush();
+          if (pane.dataset.stale === '1' && !pane.contains(document.activeElement)) renderPlanDayPane(dateStr);
+        }, 0);
+      });
     }
-    var notes = pane.querySelector('[data-role="pane-notes"]');
-    var text = getDayNotes(dateStr).trim();
-    if (text) notes.textContent = text;
-    else notes.innerHTML = '<span class="pdp-empty">No notes for this day.</span>';
+    wireText('pane-intention', mpIntentionValue(dateStr), function(v){ saveDayIntention(dateStr, v); });
+    wireText('pane-constraints', plan && plan.roadblocks, function(v){ savePlanFields(dateStr, { roadblocks: v }); });
+    wireText('pane-notes', getDayNotes(dateStr), function(v){ saveDayNotes(dateStr, v); });
     pane.querySelector('[data-role="pane-day"]').addEventListener('click', function(){ jumpToToday(dateStr); });
   }
 
+  // ============ Day Plan ============
+  // Plan is forward intent for the whole day; Today executes it. The Day Plan owns no
+  // records of its own. Actions are ordinary ledger_commitments dated that day, key
+  // outcomes are their isKeyTask flag, priorities come through each action's
+  // priorityId, the intention is Morning Prime's, and training, meals, constraints
+  // (plan.roadblocks) and Day Notes are fields on the same plan record Today reads.
+
+  var DP_SECTIONS = ['direction', 'actions', 'health', 'constraints', 'notes'];
+  var DP_LABEL = { direction: 'Direction', actions: 'Actions', health: 'Health & fitness', constraints: 'Constraints', notes: 'Day notes' };
+
+  // save a few plan fields, building on the record so nothing else on the day is touched
+  function savePlanFields(dateStr, patch){
+    var cur = getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
+    return savePlanForDate(dateStr, Object.assign({}, cur, patch));
+  }
+  // the intention is Morning Prime's own field — Plan writes the same value
+  function saveDayIntention(dateStr, text){
+    delete mpIntentionDraft[dateStr];
+    return patchMorningPrime(dateStr, { intention: (text || '').trim().slice(0, MP_INTENTION_MAX) });
+  }
+  // A text field that saves itself shortly after typing stops, and on demand.
+  function autosaver(save){
+    var timer = null, pending = null;
+    return {
+      schedule: function(v){ pending = v; if (timer) clearTimeout(timer); timer = setTimeout(this.flush, 600); },
+      flush: function(){
+        if (timer){ clearTimeout(timer); timer = null; }
+        if (pending === null) return;
+        var v = pending; pending = null;
+        save(v);
+      }
+    };
+  }
+
+  function dayActions(dateStr){
+    var order = dayActionOrder(dateStr);
+    return commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; })
+      .sort(function(a, b){
+        var ia = order.indexOf(a.id), ib = order.indexOf(b.id);
+        if (ia !== ib) return (ia === -1 ? 1e6 : ia) - (ib === -1 ? 1e6 : ib);
+        return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1;
+      });
+  }
+  function dayRoadblockActions(dateStr){
+    return commitments.filter(function(c){ return c.date === dateStr && c.category === 'roadblock'; });
+  }
+  function priorityTitle(id){
+    var p = id && priorities.find(function(x){ return x.id === id; });
+    return p ? p.title : '';
+  }
+
+  // Priorities a day supports, derived and never stored: actions carrying a priorityId,
+  // and planned training that a priority counts as its evidence.
+  function dayPrioritySupport(dateStr, trainingTypes){
+    var out = [], byId = {};
+    function entry(p){
+      if (!byId[p.id]){ byId[p.id] = { p: p, actions: 0, training: [] }; out.push(byId[p.id]); }
+      return byId[p.id];
+    }
+    dayActions(dateStr).forEach(function(c){
+      var p = c.priorityId && priorities.find(function(x){ return x.id === c.priorityId; });
+      if (p) entry(p).actions++;
+    });
+    (trainingTypes || []).forEach(function(t){
+      priorities.forEach(function(p){
+        if (evidenceSupports(p.evidenceType, t)){
+          var e = entry(p), lbl = SHORT_TYPE_LABEL[t] || TYPE_LABEL[t];
+          if (e.training.indexOf(lbl) === -1) e.training.push(lbl);
+        }
+      });
+    });
+    return out;
+  }
+  function plannedTrainingTypes(plan){
+    return (plan && !plan.restDay && plan.trainingTypes) || [];
+  }
+
+  // ---- one-line summaries, shown on a collapsed section and in the week list ----
+  function dpActionsSummary(dateStr){
+    var acts = dayActions(dateStr);
+    if (!acts.length) return 'No actions yet';
+    var key = acts.filter(function(c){ return c.isKeyTask; }).length;
+    var cats = [];
+    acts.slice().sort(function(a, b){ return categoryOrder(a.category) - categoryOrder(b.category); })
+      .forEach(function(c){ var l = categoryLabel(c.category); if (cats.indexOf(l) === -1) cats.push(l); });
+    return plural(acts.length, 'action') + (key ? ' · ' + key + ' key' : '') + ' · ' + cats.slice(0, 3).join(' · ');
+  }
+  function dpHealthSummary(p){
+    if (!p) return 'Nothing planned';
+    var bits = [];
+    if (p.restDay) bits.push('Rest day');
+    else (p.trainingTypes || []).forEach(function(t){
+      var det = (p.trainingDetails && p.trainingDetails[t]) || {};
+      bits.push((SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]) + (det.durationMin ? ' ' + det.durationMin + ' min' : ''));
+    });
+    var meals = (p.meals || []).filter(function(m){ return planMealText(m).trim(); }).length;
+    if (meals) bits.push(plural(meals, 'meal'));
+    if (p.carbLevel) bits.push(CARB_LEVEL_LABEL[p.carbLevel]);
+    if (p.fasting) bits.push('Fasting');
+    return bits.length ? bits.join(' · ') : 'Nothing planned';
+  }
+  function dpDirectionSummary(intention, support){
+    var bits = [];
+    if (intention) bits.push('Intention set');
+    if (support.length) bits.push(support.length === 1 ? 'Supports 1 priority' : 'Supports ' + support.length + ' priorities');
+    return bits.length ? bits.join(' · ') : 'No intention yet';
+  }
+  function dpConstraintsSummary(text, dateStr){
+    var first = (text || '').split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return !!l; })[0];
+    var rb = dayRoadblockActions(dateStr).length;
+    if (first) return first + (rb ? ' · +' + rb : '');
+    return rb ? plural(rb, 'roadblock') : 'None noted';
+  }
+  function dpNotesSummary(text){
+    var lines = dayNotesLines(text);
+    if (!lines.length) return 'No notes';
+    return lines[0] + (lines.length > 1 ? ' · ' + lines.length + ' lines' : '');
+  }
+
+  // ---- Direction: the intention and the priorities the day supports ----
+  function renderDaySupport(wrap, dateStr, trainingTypes){
+    var support = dayPrioritySupport(dateStr, trainingTypes);
+    wrap.innerHTML = '';
+    if (!support.length){
+      var e = document.createElement('p');
+      e.className = 'dp-quiet';
+      e.textContent = priorities.length
+        ? 'No priorities linked yet — link one from an action.'
+        : 'Set priorities in Focus to see what a day supports.';
+      wrap.appendChild(e);
+      return support;
+    }
+    support.forEach(function(s){
+      var row = document.createElement('div');
+      row.className = 'dp-support';
+      row.innerHTML = '<span class="dp-support-dot"></span><span class="dp-support-title"></span><span class="dp-support-via"></span>';
+      row.children[1].textContent = s.p.title;
+      var via = [];
+      if (s.actions) via.push(plural(s.actions, 'action'));
+      via = via.concat(s.training);
+      row.children[2].textContent = via.join(' · ');
+      wrap.appendChild(row);
+    });
+    return support;
+  }
+
+  // ---- Actions: the day's ordinary Ledger actions. Key outcomes first, then by
+  // category. The star is the same isKeyTask Morning Prime sets (three at most);
+  // a row opens the standard action editor. Past and present days can be ticked;
+  // a future day's action is intent, so it shows its category instead. ----
+  function renderDayActions(wrap, dateStr, opts){
+    opts = opts || {};
+    var acts = dayActions(dateStr);
+    var key = acts.filter(function(c){ return c.isKeyTask; });
+    var rest = acts.filter(function(c){ return !c.isKeyTask; });
+    var atCap = key.length >= KEY_TASK_MAX;
+    var canTick = dateStr <= todayStr();
+    var backlogN = backlogActions().length;
+
+    function rowHtml(c){
+      var done = c.status === 'completed';
+      return '<div class="dpa-row' + (done ? ' done' : '') + (c.isKeyTask ? ' key' : '') + '">' +
+        (canTick
+          ? '<button type="button" class="commitment-status-dot ' + c.status + '" data-dpa-done="' + c.id + '" aria-label="' + (done ? 'Reopen' : 'Complete') + '"></button>'
+          : '<span class="dpa-cat-ic" aria-hidden="true">' + categoryIcon(c.category) + '</span>') +
+        '<button type="button" class="dpa-body" data-dpa-open="' + c.id + '">' +
+          '<span class="dpa-title" data-dpa-title="' + c.id + '"></span>' +
+          '<span class="dpa-meta" data-dpa-meta="' + c.id + '"></span>' +
+        '</button>' +
+        '<button type="button" class="dpa-star' + (c.isKeyTask ? ' on' : '') + '" data-dpa-key="' + c.id + '"' +
+          ' aria-pressed="' + (c.isKeyTask ? 'true' : 'false') + '"' +
+          (!c.isKeyTask && atCap ? ' disabled title="Three key tasks already"' : '') +
+          ' aria-label="' + (c.isKeyTask ? 'Remove key task' : 'Make key task') + '">' + STAR_SVG + '</button>' +
+      '</div>';
+    }
+
+    var html = '';
+    if (key.length){
+      html += '<div class="dpa-group key"><span>Key outcomes</span><span class="dpa-group-n">' + key.length + ' of ' + KEY_TASK_MAX + '</span></div>' +
+        key.map(rowHtml).join('');
+    }
+    var groups = {};
+    var order = [];
+    rest.forEach(function(c){
+      var k = actionCategoryKey(c);
+      if (!groups[k]){ groups[k] = []; order.push(k); }
+      groups[k].push(c);
+    });
+    order.sort(function(a, b){ return categoryOrder(a) - categoryOrder(b); });
+    order.forEach(function(k){
+      html += '<div class="dpa-group"><span>' + actionCategoryLabel(k) + '</span></div>' + groups[k].map(rowHtml).join('');
+    });
+    if (!acts.length){
+      html += '<p class="dp-quiet">Nothing yet. A day can be planned loosely — Morning Prime settles the key three on the day.</p>';
+    }
+    html += '<div class="dpa-add">' +
+      '<button type="button" class="dpa-add-btn" data-dpa-add>' + BK_PLUS_SVG + 'Add action</button>' +
+      (backlogN ? '<button type="button" class="dpa-add-btn quiet" data-dpa-backlog>' + UI_ICON.box + 'From backlog (' + backlogN + ')</button>' : '') +
+    '</div>';
+    wrap.innerHTML = html;
+
+    // user text is written as text
+    acts.forEach(function(c){
+      var t = wrap.querySelector('[data-dpa-title="' + c.id + '"]');
+      if (t) t.textContent = c.title;
+      var m = wrap.querySelector('[data-dpa-meta="' + c.id + '"]');
+      if (m){
+        var bits = [categoryLabel(c.category)];
+        var pt = priorityTitle(c.priorityId);
+        if (pt) bits.push(pt);
+        if (c.minVersion && c.status !== 'completed') bits.push('Min: ' + c.minVersion);
+        m.textContent = bits.join(' · ');
+      }
+    });
+    wrap.querySelectorAll('[data-dpa-open]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var c = commitments.find(function(x){ return x.id === el.dataset.dpaOpen; });
+        if (c && opts.onOpen) opts.onOpen(c);
+      });
+    });
+    wrap.querySelectorAll('[data-dpa-done]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var c = commitments.find(function(x){ return x.id === el.dataset.dpaDone; });
+        if (c) toggleCommitmentQuickStatus(c);
+      });
+    });
+    wrap.querySelectorAll('[data-dpa-key]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var c = commitments.find(function(x){ return x.id === el.dataset.dpaKey; });
+        if (c) setKeyTask(c, !c.isKeyTask);
+      });
+    });
+    var addBtn = wrap.querySelector('[data-dpa-add]');
+    if (addBtn) addBtn.addEventListener('click', function(){ if (opts.onAdd) opts.onAdd(); });
+    var bkBtn = wrap.querySelector('[data-dpa-backlog]');
+    if (bkBtn) bkBtn.addEventListener('click', function(){ if (opts.onBacklog) opts.onBacklog(); });
+  }
+
+  // roadblock-category actions belong with the day's constraints
+  function renderDayRoadblockActions(wrap, dateStr, onOpen){
+    var rbs = dayRoadblockActions(dateStr);
+    wrap.innerHTML = '';
+    rbs.forEach(function(c){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'dp-rb-action';
+      b.innerHTML = '<span class="rb-ic">' + UI_ICON.mountain + '</span><span></span>';
+      b.lastChild.textContent = c.title;
+      b.addEventListener('click', function(){ onOpen(c); });
+      wrap.appendChild(b);
+    });
+  }
+
+  // ---- the Day Plan sheet (the inspector on desktop) ----
+  // opts.sections: which sections open expanded. Health & fitness keeps its explicit
+  // Save (it marks the plan reviewed for Morning Prime); the intention and Day Notes save
+  // as you type, exactly as they do on Today; actions are records and save themselves.
   function openPlanSheet(dateStr, existing, opts){
     opts = opts || {};
     editingId = null;
@@ -9222,32 +9684,116 @@
     var trainingDetailsState = Object.assign({}, p.trainingDetails || {});
     var mealsState = getPlanMeals(existing);
     if (!mealsState.length) mealsState = [{ id: uid(), text: '', completed: false, completedAt: null, nutritionEntryId: null }];
+    var roadblocksVal = p.roadblocks || '';
+    var intentionVal = mpIntentionValue(dateStr) || '';
+    var notesVal = getDayNotes(dateStr);
+    var open = {};
+    (opts.sections || ['actions']).forEach(function(k){ open[k] = true; });
+
+    var intentionSaver = autosaver(function(v){ saveDayIntention(dateStr, v); });
+    var notesSaver = autosaver(function(v){
+      saveDayNotes(dateStr, v).then(function(){
+        var el = document.getElementById('dpNotesSaved');
+        if (el) el.textContent = 'Saved';
+      });
+    });
+    function flushText(){ intentionSaver.flush(); notesSaver.flush(); }
+
+    function secHtml(key, body){
+      return '<section class="dp-sec' + (open[key] ? ' open' : '') + '" data-dp-sec="' + key + '">' +
+        '<button type="button" class="dp-head" data-dp-toggle="' + key + '" aria-expanded="' + (open[key] ? 'true' : 'false') + '">' +
+          '<span class="dp-head-label">' + DP_LABEL[key] + '</span>' +
+          '<span class="dp-head-sum" data-dp-sum="' + key + '"></span>' +
+          '<span class="dp-head-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
+        '</button>' +
+        '<div class="dp-body">' + body + '</div>' +
+      '</section>';
+    }
 
     function buildHtml(){
       var html = '<div class="sheet-handle"></div>' +
-        '<div class="sheet-head"><div class="sheet-title">' + niceDate(d) + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
-        '<button type="button" class="rest-day-toggle' + (restDay ? ' sel' : '') + '" id="restDayToggle">' + (restDay ? '✓ Rest day' : 'Mark as rest day') + '</button>' +
-        '<div id="trainingSection" style="' + (restDay ? 'display:none' : '') + '">' +
-          '<div class="field"><label>Training planned</label><div class="plan-type-grid" id="planTypeGrid">' +
-            planTypeGridHtml() +
-          '</div><div class="plan-type-hint">Tap to select. Use Details to add more.</div></div>' +
-        '</div>' +
-        fieldSelect('f_carbLevel', 'Diet', [{value:'',label:'Not set'}].concat(Object.keys(CARB_LEVEL_LABEL).map(function(k){ return {value:k,label:CARB_LEVEL_LABEL[k]}; })), carbLevel || '') +
-        fieldYesNo('f_fasting', 'Fasting', fasting) +
-        '<div class="field"><label>Meals</label><div id="planMealRows"></div>' +
-          '<button type="button" class="add-exercise-btn" id="addPlanMealBtn">+ Add meal</button></div>' +
-        '<div class="field"><label>Roadblocks</label><textarea id="f_roadblocks" placeholder="e.g. work dinner, travel day">' + (p.roadblocks||'') + '</textarea></div>' +
-        '<button class="save-btn" id="savePlanBtn">Save plan</button>' +
+        sheetHead('', niceDate(d), 'Day plan · what you intend for this day', '') +
+        secHtml('direction',
+          '<div class="field"><label for="dpIntention">Intention</label>' +
+            '<textarea id="dpIntention" class="dp-intention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea></div>' +
+          '<div class="dp-sublabel">Supports</div><div id="dpSupport"></div>') +
+        secHtml('actions', '<div id="dpActions"></div>') +
+        secHtml('health',
+          '<button type="button" class="rest-day-toggle' + (restDay ? ' sel' : '') + '" id="restDayToggle">' + (restDay ? '✓ Rest day' : 'Mark as rest day') + '</button>' +
+          '<div id="trainingSection" style="' + (restDay ? 'display:none' : '') + '">' +
+            '<div class="field"><label>Training planned</label><div class="plan-type-grid" id="planTypeGrid">' +
+              planTypeGridHtml() +
+            '</div><div class="plan-type-hint">Tap to select. Use Details to add more.</div></div>' +
+          '</div>' +
+          fieldSelect('f_carbLevel', 'Diet', [{value:'',label:'Not set'}].concat(Object.keys(CARB_LEVEL_LABEL).map(function(k){ return {value:k,label:CARB_LEVEL_LABEL[k]}; })), carbLevel || '') +
+          fieldYesNo('f_fasting', 'Fasting', fasting) +
+          '<div class="field"><label>Meals</label><div id="planMealRows"></div>' +
+            '<button type="button" class="add-exercise-btn" id="addPlanMealBtn">+ Add meal</button></div>') +
+        secHtml('constraints',
+          '<div class="field"><label for="f_roadblocks">Constraints &amp; roadblocks</label>' +
+            '<textarea id="f_roadblocks" placeholder="Client meeting 14:00–16:00, dinner out, kids home early, travel day"></textarea></div>' +
+          '<div id="dpRoadblockActions"></div>') +
+        secHtml('notes',
+          '<textarea id="dpNotes" class="dn-sheet-area dp-notes" placeholder="Anything worth remembering about this day"></textarea>' +
+          '<span class="dn-saved" id="dpNotesSaved"></span>') +
+        '<button class="save-btn" id="savePlanBtn">Save day plan</button>' +
         (mpNeedsAttention(dateStr)
           ? '<button type="button" class="btn-quiet" id="planToMpBtn">Return to Morning Prime</button>'
           : '') +
-        (existing ? '<button class="delete-btn" id="deletePlanBtn">Clear plan</button>' : '');
+        (existing ? '<button class="delete-btn" id="deletePlanBtn">Clear health &amp; fitness</button>' : '');
       return html;
     }
 
-    sheetEl.innerHTML = buildHtml();
+    function render(){
+      sheetEl.innerHTML = buildHtml();
+      wireSheet();
+    }
+    render();
     backdrop.classList.add('open');
-    wireSheet();
+    // actions and priorities are live records: when they change, refresh those parts in place
+    activeSheetRefresh = refreshLive;
+
+    // where a sub-editor comes back to: this day plan, same sections open, nothing lost
+    function reopen(sections){
+      openPlanSheet(dateStr, getPlanForDate(dateStr), Object.assign({}, opts, {
+        sections: sections || DP_SECTIONS.filter(function(k){ return open[k]; })
+      }));
+    }
+    // before leaving for another editor, keep what has been typed here
+    function stash(){
+      flushText();
+      savePlanForDate(dateStr, collectPlanData());
+    }
+
+    function currentPlanish(){
+      return { restDay: restDay, trainingTypes: restDay ? [] : trainingTypes, trainingDetails: trainingDetailsState,
+               meals: mealsState, carbLevel: carbLevel, fasting: fasting };
+    }
+    function setSum(key, text){
+      var el = sheetEl.querySelector('[data-dp-sum="' + key + '"]');
+      if (el) el.textContent = text;
+    }
+    function refreshSummaries(){
+      var support = dayPrioritySupport(dateStr, restDay ? [] : trainingTypes);
+      setSum('direction', dpDirectionSummary(intentionVal.trim(), support));
+      setSum('actions', dpActionsSummary(dateStr));
+      setSum('health', dpHealthSummary(currentPlanish()));
+      setSum('constraints', dpConstraintsSummary(roadblocksVal, dateStr));
+      setSum('notes', dpNotesSummary(notesVal));
+    }
+    function refreshLive(){
+      if (!document.getElementById('dpActions')) return;
+      renderDayActions(document.getElementById('dpActions'), dateStr, {
+        onOpen: function(c){ stash(); openCommitmentSheet(c, { onDone: function(){ reopen(); } }); },
+        onAdd: function(){ stash(); openCommitmentSheet(null, { date: dateStr, onDone: function(){ reopen(); } }); },
+        onBacklog: function(){ stash(); openBacklogSheet({ targetDate: dateStr, onClose: function(){ reopen(); } }); }
+      });
+      renderDaySupport(document.getElementById('dpSupport'), dateStr, restDay ? [] : trainingTypes);
+      renderDayRoadblockActions(document.getElementById('dpRoadblockActions'), dateStr, function(c){
+        stash(); openCommitmentSheet(c, { onDone: function(){ reopen(); } });
+      });
+      refreshSummaries();
+    }
 
     // The card itself is the toggle; "Details" is a separate affordance so a
     // selected activity can always be removed again.
@@ -9275,6 +9821,8 @@
       if (!grid) return;
       grid.innerHTML = planTypeGridHtml();
       wireTypeGrid();
+      refreshSummaries();
+      renderDaySupport(document.getElementById('dpSupport'), dateStr, restDay ? [] : trainingTypes);
     }
 
     function plannedDetailSummary(t){
@@ -9323,8 +9871,12 @@
         btn.addEventListener('click', function(e){
           e.stopPropagation();
           var t = btn.dataset.details;
-          savePlanForDate(dateStr, collectPlanData());
-          openTrainingDetailSheet(t, dateStr);
+          stash();
+          openTrainingDetailSheet(t, dateStr, function(saved){
+            openPlanSheet(dateStr, saved || getPlanForDate(dateStr), Object.assign({}, opts, {
+              sections: DP_SECTIONS.filter(function(k){ return open[k]; })
+            }));
+          });
         });
       });
     }
@@ -9333,18 +9885,18 @@
       var finalTypes = restDay ? [] : trainingTypes;
       var prunedDetails = {};
       finalTypes.forEach(function(t){ if (trainingDetailsState[t]) prunedDetails[t] = trainingDetailsState[t]; });
-      // Morning Prime and anything else already on this date's plan travel with it —
-      // this form owns only the fields it actually shows.
+      // Morning Prime, Day Notes, the orders and anything else already on this date's
+      // plan travel with it — this form owns only the fields it actually shows.
       return Object.assign({}, getPlanForDate(dateStr) || {}, {
         restDay: restDay,
         trainingTypes: finalTypes,
         trainingDetails: prunedDetails,
-        carbLevel: document.getElementById('f_carbLevel').value || null,
+        carbLevel: carbLevel,
         fasting: fasting,
         meals: mealsState
           .map(function(m){ return { id: m.id, text: (m.text||'').trim(), completed: m.completed, completedAt: m.completedAt, nutritionEntryId: m.nutritionEntryId }; })
           .filter(function(m){ return m.text; }),
-        roadblocks: document.getElementById('f_roadblocks').value
+        roadblocks: roadblocksVal
       });
     }
 
@@ -9355,25 +9907,68 @@
         var row = document.createElement('div');
         row.className = 'simple-row';
         row.innerHTML =
-          '<input placeholder="…" value="'+(m.text||'').replace(/"/g,'&quot;')+'">' +
+          '<input placeholder="…">' +
           '<button type="button" class="ex-rm">✕</button>';
         var input = row.querySelector('input');
-        input.addEventListener('input', function(){ mealsState[i].text = input.value; });
+        input.value = m.text || '';
+        input.addEventListener('input', function(){ mealsState[i].text = input.value; refreshSummaries(); });
         row.querySelector('.ex-rm').addEventListener('click', function(){
           mealsState.splice(i,1);
           if (!mealsState.length) mealsState.push({ id: uid(), text: '', completed: false, completedAt: null, nutritionEntryId: null });
           renderMealRows();
+          refreshSummaries();
         });
         wrap.appendChild(row);
       });
     }
 
+    function finishToMorningPrime(){
+      if (viewedDate !== dateStr) jumpToToday(dateStr);
+      mpExpanded[dateStr] = true;
+      renderMorningPrime();
+      var card = document.querySelector('.mp-card');
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     function wireSheet(){
-      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      document.getElementById('sheetCloseBtn').addEventListener('click', function(){ flushText(); closeSheet(); });
+      sheetEl.querySelectorAll('[data-dp-toggle]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var k = btn.dataset.dpToggle;
+          open[k] = !open[k];
+          btn.parentNode.classList.toggle('open', open[k]);
+          btn.setAttribute('aria-expanded', open[k] ? 'true' : 'false');
+        });
+      });
+
+      // user text is set as values, never as markup
+      var intentionEl = document.getElementById('dpIntention');
+      intentionEl.value = intentionVal;
+      intentionEl.addEventListener('input', function(){
+        intentionVal = intentionEl.value;
+        intentionSaver.schedule(intentionVal);
+        refreshSummaries();
+      });
+      var rbEl = document.getElementById('f_roadblocks');
+      rbEl.value = roadblocksVal;
+      rbEl.addEventListener('input', function(){ roadblocksVal = rbEl.value; refreshSummaries(); });
+      var notesEl = document.getElementById('dpNotes');
+      var notesSaved = document.getElementById('dpNotesSaved');
+      notesEl.value = notesVal;
+      notesEl.addEventListener('input', function(){
+        notesVal = notesEl.value;
+        if (notesSaved) notesSaved.textContent = '';
+        notesSaver.schedule(notesVal);
+        refreshSummaries();
+      });
+
       document.getElementById('restDayToggle').addEventListener('click', function(){
         restDay = !restDay;
-        sheetEl.innerHTML = buildHtml();
-        wireSheet();
+        render();
+      });
+      document.getElementById('f_carbLevel').addEventListener('change', function(){
+        carbLevel = this.value || null;
+        refreshSummaries();
       });
       wireTypeGrid();
       document.querySelectorAll('#f_fastingToggle button').forEach(function(b){
@@ -9381,6 +9976,7 @@
           fasting = (b.dataset.v === 'yes');
           document.querySelectorAll('#f_fastingToggle button').forEach(function(x){ x.classList.remove('sel'); });
           b.classList.add('sel');
+          refreshSummaries();
         });
       });
       renderMealRows();
@@ -9390,34 +9986,30 @@
       });
       document.getElementById('savePlanBtn').addEventListener('click', function(){
         // reviewing and saving the plan is the completion signal — it doesn't demand
-        // that every field be filled, only that the day has been thought about
+        // that every section be filled, only that the day has been thought about
+        flushText();
         var out = collectPlanData();
         out.planReviewedAt = new Date().toISOString();
         savePlanForDate(dateStr, out);
         closeSheet();
-        if (opts.returnToMorningPrime){
-          mpExpanded[dateStr] = true;
-          renderMorningPrime();
-          var card = document.querySelector('.mp-card');
-          if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        if (opts.returnToMorningPrime) finishToMorningPrime();
       });
       var planToMp = document.getElementById('planToMpBtn');
       if (planToMp) planToMp.addEventListener('click', function(){
-        savePlanForDate(dateStr, collectPlanData());
+        stash();
         closeSheet();
-        if (viewedDate !== dateStr) jumpToToday(dateStr);
-        mpExpanded[dateStr] = true;
-        renderMorningPrime();
-        var card = document.querySelector('.mp-card');
-        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        finishToMorningPrime();
       });
       if (existing){
+        // clears what this section plans, never the day: notes, intention, Morning Prime
+        // and the action orders all live on the same record
         document.getElementById('deletePlanBtn').addEventListener('click', function(){
-          deletePlanForDate(dateStr);
+          flushText();
+          savePlanFields(dateStr, { restDay: false, trainingTypes: [], trainingDetails: {}, carbLevel: null, fasting: false, meals: [] });
           closeSheet();
         });
       }
+      refreshLive();
     }
   }
 

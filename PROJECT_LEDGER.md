@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-30 (desktop Calendar layout stability)
+Last updated: 2026-09-30 (Plan becomes the whole-life Day Plan)
 
 ---
 
@@ -36,8 +36,8 @@ The same page adapts by viewport width; there is no desktop build, route or flag
 
 ### Today (the main surface)
 - **Morning Prime** — two sections, tracked separately. **Plan** is what can be
-  done from the phone before getting up (meals → three key tasks → finish health
-  & fitness → intention); **Move** is the physical start (weigh-in, body photo,
+  done from the phone before getting up (meals → three key tasks → review today's
+  plan → intention); **Move** is the physical start (weigh-in, body photo,
   supplements, water, stretch). Header reads `Plan ✓ · Move 3/5`, and collapses
   to "Completed at HH:MM" once both are complete. Stored as `plan.morningPrime`;
   manual ticks in `plan.morningPrime.checks[section]`.
@@ -89,7 +89,16 @@ reached from **Focus → Settings**, holding Appearance (Dark/Light/System), the
 two Morning Prime routines, the Wind-down routine and its prominence hour.
 
 ### Other tabs
-- **Plan** — 7-day week list with per-day summaries; meal ideas library.
+- **Plan** — Ledger's whole-life forward-planning surface (Plan = intent, Today =
+  execution). The week list gives each day a whole-day signal (`3 actions · 2 key`,
+  its categories, training, meals, fasting, plus quiet marks for priorities
+  supported and a known constraint). A day opens as the **Day Plan**: Direction
+  (the Morning Prime intention + priorities the day supports), Actions (key
+  outcomes, then by category; add, star, edit, pull from Backlog), Health &
+  fitness (the previous plan form), Constraints (`plan.roadblocks` + roadblock
+  actions) and Day Notes. On a phone these are collapsible sections with one-line
+  summaries; on desktop the day pane shows them all, editable in place.
+  Meal ideas library unchanged.
 The three reflective tabs have one job each: **Focus** — where am I going?
 **Progress** — am I moving there? **Calendar** — what actually happened?
 - **Calendar** — month grid with an activity filter (All, Training, Padel,
@@ -224,6 +233,12 @@ Conventions that should not be casually changed.
   duplicate task/meal systems.
 - Morning Prime key tasks are normal actions with a key-task marker.
 - Morning Prime and Health & fitness must share the same underlying data.
+- Plan owns no records. Actions planned there are ordinary `ledger_commitments`
+  dated that day; key outcomes are `isKeyTask` (max three, one shared rule with
+  Morning Prime); priority context comes from each action's `priorityId`; the
+  intention is `plan.morningPrime.intention`; notes are `plan.dayNotes`;
+  constraints are `plan.roadblocks`. Future days may be planned loosely —
+  Morning Prime confirms the current day's key three.
 - Ledger is one responsive app. Phone uses the bottom nav and bottom sheets;
   desktop uses the left navigation, a multi-column Today and side inspectors.
   Wider screens rearrange the same DOM with CSS (Today's and Focus's wrappers are
@@ -274,6 +289,26 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-30 — Plan is the whole-life Day Plan, not a Health & Fitness form
+**Decision:** a selected day in Plan is a Day Plan of five sections — Direction,
+Actions, Health & fitness, Constraints, Day Notes — over the same records Today
+uses. No schema was added: actions are `ledger_commitments`, key outcomes are
+`isKeyTask`, priorities come via `priorityId`, and intention, notes and
+constraints are the existing plan fields. Morning Prime's plan step is now
+"Review today's plan" and opens the Day Plan at Actions and Health & fitness;
+saving it still sets `planReviewedAt`.
+**Why:** the rest of Ledger already plans work, family, communication and
+success; Plan only showed food and exercise.
+**Implications:** Health & fitness keeps its explicit Save; the intention and
+Day Notes save as you type (as they do on Today); actions save as records.
+"Clear plan" became "Clear health & fitness" and clears only those fields — it
+used to delete the whole day record, taking notes, intention and Morning Prime
+with it. Backlog can move an item onto the planned day (same record, original
+date kept). Plan now refreshes when actions change (it previously went stale).
+The action editor takes a target date and a return path; the Backlog sheet takes
+a target date. A stored Morning Prime label still reading "Finish health &
+fitness" shows the new wording; a renamed one is left alone.
 
 ### 2026-09-30 — Desktop Calendar: the day pane cannot move the month
 **Decision:** from 1024px the Calendar is `minmax(0, 1fr)` + a day-pane column of
@@ -752,6 +787,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-30) — Plan became the whole-life Day Plan (Direction, Actions, Health &
+  fitness, Constraints, Day Notes) over shared records; whole-day week rows;
+  Morning Prime step renamed "Review today's plan".
 - (2026-09-30) — Responsive desktop/laptop/ultrawide layout on the same URL:
   sidebar, shallow header, Today workspace with inline Day Notes, right-hand
   inspector, Plan and Calendar split panes, Progress grid, two-column Focus.
