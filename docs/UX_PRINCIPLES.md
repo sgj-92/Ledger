@@ -81,6 +81,12 @@ One way to expand a section. One way to reorder. One way to open an editor.
 One shape of confirmation. A second pattern for the same job is
 inconsistency, even when each pattern is individually fine.
 
+Choosing from options is one such job. Primary user-facing selection controls
+use Ledger-styled pickers, segmented controls or chips — never a visible
+browser-native select. Two or three mutually exclusive options are a
+segmented control or chips; a small list is the Ledger picker; a long list is
+the picker with search. See `docs/DESIGN_SYSTEM.md` §6.
+
 ## 10. Safe by default
 
 Potentially destructive actions should be difficult to trigger accidentally

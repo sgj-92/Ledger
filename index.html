@@ -2664,6 +2664,95 @@
   .pdp-support { margin: 8px 0 2px; }
   .plan-day-pane .today-plan-widget { margin: var(--sp-5) 0 0; }
 
+  /* ---------- Ledger picker: the one selection control ----------
+     A select renders as a Ledger field; choosing opens a bottom sheet (phone) or a
+     compact popover anchored to the field (desktop). The native select stays hidden
+     as the value holder. */
+  .lp-native { display: none !important; }
+  .lp-trigger {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 12px 14px 14px; color: var(--text); cursor: pointer; text-align: left;
+    font-family: var(--sans); font-size: 15px; line-height: 1.25;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .lp-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lp-trigger.lp-empty .lp-value { color: var(--text-2); }
+  .lp-chev { flex-shrink: 0; display: flex; color: var(--text-3); transition: transform 0.16s ease, color 0.16s ease; }
+  .lp-chev svg { width: 15px; height: 15px; display: block; }
+  .lp-trigger:active { background: var(--surface-3); }
+  .lp-trigger[aria-expanded="true"] { border-color: rgba(var(--gold-rgb),0.5); }
+  .lp-trigger[aria-expanded="true"] .lp-chev { color: var(--gold); transform: rotate(90deg); }
+  .lp-trigger:disabled { opacity: 0.45; cursor: default; }
+  .cd-field .lp-trigger { padding: 11px 11px 11px 13px; font-size: 14px; line-height: 1.45; }
+  .lp-trigger.lp-compact { flex: 0 0 74px; width: 74px; gap: 4px; padding: 12px 7px 12px 10px; border-radius: 10px; font-size: 13px; }
+  .lp-compact .lp-chev svg { width: 12px; height: 12px; }
+
+  .lp-layer {
+    position: fixed; inset: 0; z-index: 70;
+    display: flex; align-items: flex-end; justify-content: center; background: var(--backdrop);
+  }
+  .lp-layer.lp-pop-layer { display: block; background: none; }
+  .lp-sheet {
+    display: flex; flex-direction: column; width: 100%; max-width: 560px; max-height: 76vh; max-height: 76dvh;
+    background: var(--surface); border-top: 1px solid var(--line-2); border-radius: 24px 24px 0 0;
+    padding: 12px 14px calc(14px + env(safe-area-inset-bottom)); box-shadow: var(--shadow-raised);
+    animation: sheet-up 0.22s cubic-bezier(.2,.9,.3,1);
+  }
+  .lp-title { font-family: var(--serif); font-size: 22px; letter-spacing: -0.01em; color: var(--text); padding: 4px 10px 12px; }
+  .lp-pop {
+    position: fixed; display: flex; flex-direction: column;
+    background: var(--surface-2); border: 1px solid var(--line-2); border-radius: var(--r-md);
+    box-shadow: var(--shadow-pop); padding: 5px; animation: lp-pop-in 0.14s ease-out;
+  }
+  .lp-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .lp-opt {
+    display: flex; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 12px 10px;
+    background: none; border: none; border-bottom: 1px solid var(--line); border-radius: 0;
+    color: var(--text); font-family: var(--sans); font-size: 15px; text-align: left; cursor: pointer;
+  }
+  .lp-list .lp-opt:last-child { border-bottom: none; }
+  .lp-opt[hidden] { display: none; }
+  .lp-opt:disabled { opacity: 0.4; cursor: default; }
+  .lp-opt:active { background: var(--surface-2); }
+  .lp-opt:focus-visible { outline: 2px solid rgba(var(--gold-rgb),0.75); outline-offset: -2px; border-radius: var(--r-sm); }
+  .lp-opt-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .lp-opt-label { overflow-wrap: anywhere; }
+  .lp-opt-hint { font-size: 12px; color: var(--text-3); }
+  .lp-opt-none .lp-opt-label { color: var(--text-2); }
+  .lp-opt.sel { background: rgba(var(--gold-rgb),0.07); }
+  .lp-opt.sel .lp-opt-label { color: var(--text); font-weight: 500; }
+  .lp-check { flex-shrink: 0; width: 16px; height: 16px; color: var(--gold); visibility: hidden; }
+  .lp-check svg { width: 100%; height: 100%; display: block; }
+  .lp-opt.sel .lp-check { visibility: visible; }
+  .lp-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .lp-opt > svg { width: 15px; height: 15px; flex-shrink: 0; display: block; }
+  .lp-opt-action, .lp-opt-action .lp-opt-label { color: var(--gold); }
+  .lp-pop .lp-opt { min-height: 38px; padding: 8px 10px; font-size: 13.5px; border-bottom: none; border-radius: var(--r-sm); }
+  .lp-pop .lp-opt:active { background: var(--surface-3); }
+  .lp-pop .lp-opt.sel { background: rgba(var(--gold-rgb),0.09); }
+  .lp-search {
+    display: flex; align-items: center; gap: 9px; margin: 0 2px 6px; padding: 9px 11px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+  }
+  .lp-pop .lp-search { background: var(--surface); }
+  .lp-search:focus-within { border-color: rgba(var(--gold-rgb),0.4); }
+  .lp-search svg { width: 14px; height: 14px; color: var(--text-3); flex-shrink: 0; display: block; }
+  .lp-search input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: var(--text); font-family: var(--sans); font-size: 14px; }
+  .lp-search input::placeholder { color: var(--text-3); }
+  .lp-new { border-top: 1px solid var(--line-2); margin-top: 4px; padding-top: 4px; }
+  .lp-new .lp-opt { border-bottom: none; }
+  .lp-new-btn[hidden], .lp-new-form[hidden] { display: none; }
+  .lp-new-form { display: flex; gap: 8px; padding: 6px 2px 2px; }
+  .lp-new-form input {
+    flex: 1; min-width: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 11px 12px; color: var(--text); font-family: var(--sans); font-size: 14px;
+  }
+  .lp-pop .lp-new-form input { background: var(--surface); }
+  .lp-new-form input:focus { outline: none; border-color: rgba(var(--gold-rgb),0.5); }
+  .lp-new-form .btn-primary { width: auto; padding: 0 18px; font-size: 14px; }
+  @keyframes lp-pop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
   /* ---------- Communications: who has the ball ---------- */
   /* attention colours are marks only — a dot or an edge, never a fill */
   .st-needs_me { --att: var(--gold); }
@@ -2910,6 +2999,11 @@
     .cs-stat:hover, .cd-chip:hover:not(.sel) { border-color: rgba(var(--gold-rgb),0.3); }
     .cv-row.sel:hover, .mt-row.sel:hover { background: rgba(var(--gold-rgb),0.07); }
     .comms-filter button:not(.sel):hover { color: var(--text-2); }
+    .lp-trigger:hover:not(:disabled):not([aria-expanded="true"]) { border-color: var(--line-2); }
+    .lp-trigger:hover .lp-chev { color: var(--text-2); }
+    .lp-opt:hover:not(:disabled) { background: var(--surface-2); }
+    .lp-pop .lp-opt:hover:not(:disabled) { background: var(--surface-3); }
+    .lp-opt.sel:hover { background: rgba(var(--gold-rgb),0.11); }
     .focus-item:hover, .plan-day-row:hover, .fe-row.clickable:hover,
     .stat-card-clickable:hover { background: rgba(var(--gold-rgb),0.035); }
     .cal-cell:not(.empty):not(.selected):hover { border-color: var(--line-2); }
@@ -5573,7 +5667,7 @@
         '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit action' : 'New action') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
         '<div class="field"><label>Action</label><input type="text" id="f_commitTitle" placeholder="e.g. Resistance training" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
         fieldSelect('f_commitCategory', 'Category',
-          [{value:'', label:'No category'}].concat(QUICK_CAPTURE_CATEGORIES.map(function(c){ return {value:c.key, label:c.label}; })),
+          [{value:'', label:'No category'}].concat(QUICK_CAPTURE_CATEGORIES.map(function(c){ return {value:c.key, label:c.label, dot:c.color}; })),
           existing ? (existing.category || '') : (opts.category || qcLastCategory)) +
         fieldSelect('f_commitPriority', 'Linked priority', priorityOptions, existing ? (existing.priorityId||'') : '') +
         commsLinkFieldsHtml() +
@@ -6556,7 +6650,7 @@
         '<input data-role="waitingOn" placeholder="' + (st === 'waiting_on_third_party' ? 'Who? e.g. Solicitor' : 'Who? e.g. Yusuf') + '" aria-label="Waiting on"></div>' +
       '<div class="cd-grid">' +
         '<label class="cd-field"><span>Follow up</span><input type="date" data-role="followUp"></label>' +
-        '<label class="cd-field"><span>Part of</span><select data-role="matter">' +
+        '<label class="cd-field"><span>Part of</span><select data-role="matter" data-picker-new="matter">' +
           matterOpts.map(function(o){ return '<option value="' + o.value + '">' + (o.value ? '' : o.label) + '</option>'; }).join('') +
         '</select></label>' +
       '</div>' +
@@ -6719,7 +6813,7 @@
       '<div class="field"><label>' + (isConv ? 'Who is it with?' : 'What is happening?') + '</label>' +
         '<input type="text" id="f_newComms" placeholder="' + (isConv ? 'e.g. Yusuf, or Nursery office' : 'e.g. Pinewood sale, Nursery place') + '"></div>' +
       (isConv
-        ? '<div class="field"><label>Part of</label><select id="f_newCommsMatter"><option value="">No matter</option>' +
+        ? '<div class="field"><label>Part of</label><select id="f_newCommsMatter" data-picker-new="matter"><option value="">No matter</option>' +
             matters.filter(function(m){ return m.status !== 'closed'; }).map(function(m){ return '<option value="' + m.id + '"></option>'; }).join('') +
           '</select></div>' +
           '<div class="field"><label>Who has the ball</label>' +
@@ -12113,6 +12207,259 @@
   var backdrop = document.getElementById('sheetBackdrop');
   var sheetEl = document.getElementById('sheet');
 
+  // ============ Ledger picker ============
+  // One selection control for the whole app. Every <select> is upgraded, wherever it is
+  // rendered, into a Ledger field that opens a picker: a bottom sheet on phones, a compact
+  // popover anchored to the field on desktop. The native select stays in the DOM, hidden,
+  // as the value holder — so every form keeps reading .value and listening for 'change'
+  // exactly as before. Options may carry data-dot (a colour) and data-hint; a select may
+  // carry data-picker-title, and data-picker-new naming an entry in PICKER_NEW to offer
+  // "+ New …". A select marked data-native is left alone.
+  var PICKER_NEW = {
+    matter: {
+      label: 'New matter', placeholder: 'e.g. Pinewood sale',
+      create: function(name){
+        var now = new Date().toISOString();
+        var rec = { id: uid(), title: name, area: 'other', status: 'active', priorityId: null, summary: '', closedAt: null,
+          log: [{ at: now, kind: 'state', text: 'Opened' }] };
+        saveCommsRecord('ledger_matters', rec);
+        return rec.id;
+      }
+    }
+  };
+  var SELECT_VALUE = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+  var SELECT_INDEX = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'selectedIndex');
+  var pickerState = null;   // { layer, anchor, restore } while a picker is open
+
+  function pickerTitleFor(sel){
+    if (sel.dataset.pickerTitle) return sel.dataset.pickerTitle;
+    var f = sel.closest('.field, .cd-field');
+    var l = f && (f.querySelector(':scope > label') || f.querySelector(':scope > span'));
+    return l ? l.textContent.trim() : (sel.getAttribute('aria-label') || '');
+  }
+
+  function enhanceSelect(sel){
+    if (sel.dataset.lp || sel.hasAttribute('data-native')) return;
+    sel.dataset.lp = '1';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'lp-trigger' + (sel.classList.contains('ex-unit') ? ' lp-compact' : '');
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.innerHTML = '<span class="lp-value"></span><span class="lp-chev" aria-hidden="true">' + UI_ICON.chevronRight + '</span>';
+    // before the select, so a wrapping <label> activates the picker, not the hidden select
+    sel.parentNode.insertBefore(btn, sel);
+    sel.classList.add('lp-native');
+    sel.tabIndex = -1;
+    sel.setAttribute('aria-hidden', 'true');
+    function sync(){
+      var o = sel.options[SELECT_INDEX.get.call(sel)];
+      var text = o ? o.textContent : '';
+      var title = pickerTitleFor(sel);
+      btn.querySelector('.lp-value').textContent = text;
+      btn.classList.toggle('lp-empty', !SELECT_VALUE.get.call(sel));
+      btn.setAttribute('aria-label', (title ? title + ': ' : '') + (text || 'not set'));
+      btn.disabled = sel.disabled;
+    }
+    sel._lpSync = sync;
+    // code that sets .value or .selectedIndex directly keeps the field in step
+    Object.defineProperty(sel, 'value', { configurable: true,
+      get: function(){ return SELECT_VALUE.get.call(sel); },
+      set: function(v){ SELECT_VALUE.set.call(sel, v); sync(); } });
+    Object.defineProperty(sel, 'selectedIndex', { configurable: true,
+      get: function(){ return SELECT_INDEX.get.call(sel); },
+      set: function(v){ SELECT_INDEX.set.call(sel, v); sync(); } });
+    sel.addEventListener('change', sync);
+    btn.addEventListener('click', function(){ openSelectPicker(sel, btn); });
+    btn.addEventListener('keydown', function(e){
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); openSelectPicker(sel, btn); }
+    });
+    sync();
+  }
+
+  function openSelectPicker(sel, btn){
+    if (sel.disabled) return;
+    var neu = sel.dataset.pickerNew && PICKER_NEW[sel.dataset.pickerNew];
+    openPicker({
+      title: pickerTitleFor(sel),
+      anchor: btn,
+      value: sel.value,
+      options: Array.prototype.map.call(sel.options, function(o){
+        return { value: o.value, label: o.textContent, dot: o.dataset.dot || '', hint: o.dataset.hint || '',
+          action: o.value === '__new__', disabled: o.disabled };
+      }),
+      newItem: neu ? { label: neu.label, placeholder: neu.placeholder, create: function(name){
+        var id = neu.create(name);
+        var opt = document.createElement('option');
+        opt.value = id; opt.textContent = name;
+        sel.appendChild(opt);
+        return id;
+      } } : null,
+      onPick: function(v){
+        if (v === sel.value) return;
+        sel.value = v;
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        // a save that redraws its record replaces this field — keep keyboard focus on its successor
+        var key = sel.id ? '#' + sel.id : (sel.dataset.role ? 'select[data-role="' + sel.dataset.role + '"]' : '');
+        [0, 80, 300].forEach(function(ms){
+          setTimeout(function(){
+            var a = document.activeElement;
+            if (!key || document.body.contains(btn) || (a && a !== document.body)) return;
+            var next = document.querySelector(key);
+            var t = next && next.previousElementSibling;
+            if (t && t.classList.contains('lp-trigger')) t.focus({ preventScroll: true });
+          }, ms);
+        });
+      }
+    });
+  }
+
+  function closePicker(restoreFocus){
+    if (!pickerState) return;
+    var st = pickerState;
+    pickerState = null;
+    st.layer.remove();
+    document.removeEventListener('keydown', st.onKey, true);
+    document.removeEventListener('scroll', st.onScroll, true);
+    window.removeEventListener('resize', st.onResize);
+    if (st.anchor){
+      st.anchor.setAttribute('aria-expanded', 'false');
+      if (restoreFocus && document.body.contains(st.anchor)) st.anchor.focus({ preventScroll: true });
+    }
+  }
+
+  // cfg: { title, value, options: [{ value, label, dot, hint, action, disabled }], anchor, onPick(value),
+  //        newItem: { label, placeholder, create(name) -> value }, search }
+  function openPicker(cfg){
+    closePicker(false);
+    var pop = isWide() && !!cfg.anchor;
+    var search = cfg.search != null ? cfg.search : cfg.options.length > 8;
+    var layer = document.createElement('div');
+    layer.className = 'lp-layer' + (pop ? ' lp-pop-layer' : '');
+    var panel = document.createElement('div');
+    panel.className = pop ? 'lp-pop' : 'lp-sheet';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', cfg.title || 'Choose');
+    panel.innerHTML = (pop ? '' : '<div class="sheet-handle"></div><div class="lp-title"></div>') +
+      (search ? '<div class="lp-search">' + UI_ICON.search + '<input type="text" placeholder="Search" aria-label="Search options" autocomplete="off"></div>' : '') +
+      '<div class="lp-list" role="listbox"></div>' +
+      (cfg.newItem ? '<div class="lp-new"><button type="button" class="lp-opt lp-opt-action lp-new-btn">' + BK_PLUS_SVG + '<span class="lp-opt-label"></span></button>' +
+        '<div class="lp-new-form" hidden><input type="text" autocomplete="off"><button type="button" class="btn-primary">Add</button></div></div>' : '');
+    if (!pop) panel.querySelector('.lp-title').textContent = cfg.title || 'Choose';
+    var list = panel.querySelector('.lp-list');
+    list.setAttribute('aria-label', cfg.title || 'Options');
+    layer.appendChild(panel);
+    document.body.appendChild(layer);
+
+    function pick(v){ closePicker(true); if (cfg.onPick) cfg.onPick(v); }
+    var rows = cfg.options.map(function(o){
+      var b = document.createElement('button');
+      b.type = 'button';
+      var selected = o.value === cfg.value;
+      b.className = 'lp-opt' + (selected ? ' sel' : '') + (o.action ? ' lp-opt-action' : '') + (o.value === '' ? ' lp-opt-none' : '');
+      b.setAttribute('role', 'option');
+      b.setAttribute('aria-selected', selected ? 'true' : 'false');
+      b.tabIndex = -1;
+      if (o.disabled) b.disabled = true;
+      b.innerHTML = (o.action ? BK_PLUS_SVG : (o.dot ? '<span class="lp-dot"></span>' : '')) +
+        '<span class="lp-opt-body"><span class="lp-opt-label"></span>' + (o.hint ? '<span class="lp-opt-hint"></span>' : '') + '</span>' +
+        '<span class="lp-check" aria-hidden="true">' + CHECK_SVG + '</span>';
+      if (o.dot) b.querySelector('.lp-dot').style.background = o.dot;
+      b.querySelector('.lp-opt-label').textContent = o.action ? o.label.replace(/^\+\s*/, '') : o.label;
+      if (o.hint) b.querySelector('.lp-opt-hint').textContent = o.hint;
+      b.addEventListener('click', function(){ pick(o.value); });
+      b._label = o.label.toLowerCase();
+      list.appendChild(b);
+      return b;
+    });
+    function visibleRows(){ return rows.filter(function(r){ return !r.hidden && !r.disabled; }); }
+    function focusRow(r){ if (!r) return; rows.forEach(function(x){ x.tabIndex = -1; }); r.tabIndex = 0; r.focus({ preventScroll: true }); r.scrollIntoView({ block: 'nearest' }); }
+
+    var searchInput = panel.querySelector('.lp-search input');
+    if (searchInput){
+      searchInput.addEventListener('input', function(){
+        var q = searchInput.value.trim().toLowerCase();
+        rows.forEach(function(r){ r.hidden = !!q && r._label.indexOf(q) < 0; });
+      });
+      searchInput.addEventListener('keydown', function(e){
+        if (e.key === 'ArrowDown'){ e.preventDefault(); focusRow(visibleRows()[0]); }
+        if (e.key === 'Enter'){ var v = visibleRows(); if (v.length === 1){ e.preventDefault(); v[0].click(); } }
+      });
+    }
+    if (cfg.newItem){
+      var nb = panel.querySelector('.lp-new-btn'), nf = panel.querySelector('.lp-new-form'), ni = nf.querySelector('input');
+      nb.querySelector('.lp-opt-label').textContent = cfg.newItem.label;
+      ni.placeholder = cfg.newItem.placeholder || '';
+      ni.setAttribute('aria-label', cfg.newItem.label);
+      nb.addEventListener('click', function(){ nb.hidden = true; nf.hidden = false; ni.focus(); });
+      function create(){
+        var name = ni.value.trim();
+        if (!name){ ni.focus(); return; }
+        pick(cfg.newItem.create(name));
+      }
+      nf.querySelector('.btn-primary').addEventListener('click', create);
+      ni.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); create(); } });
+    }
+
+    // keyboard: arrows, Home/End, type-ahead; Escape closes without leaking to the sheet beneath
+    function onKey(e){
+      if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closePicker(true); return; }
+      if (!panel.contains(document.activeElement) || document.activeElement.tagName === 'INPUT') return;
+      var vis = visibleRows(), i = vis.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown'){ e.preventDefault(); focusRow(vis[Math.min(vis.length - 1, i + 1)]); }
+      else if (e.key === 'ArrowUp'){ e.preventDefault(); if (i <= 0 && searchInput) searchInput.focus(); else focusRow(vis[Math.max(0, i - 1)]); }
+      else if (e.key === 'Home'){ e.preventDefault(); focusRow(vis[0]); }
+      else if (e.key === 'End'){ e.preventDefault(); focusRow(vis[vis.length - 1]); }
+      else if (e.key === 'Tab'){ e.preventDefault(); }
+      else if (e.key.length === 1 && /\S/.test(e.key) && !e.metaKey && !e.ctrlKey){
+        var hit = vis.filter(function(r){ return r._label.charAt(0) === e.key.toLowerCase(); });
+        if (hit.length) focusRow(hit[(hit.indexOf(document.activeElement) + 1) % hit.length]);
+      }
+    }
+    function onScroll(e){ if (pop && !panel.contains(e.target)) closePicker(false); }
+    function onResize(){ closePicker(false); }
+    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onResize);
+    layer.addEventListener('click', function(e){ if (e.target === layer) closePicker(true); });
+    pickerState = { layer: layer, anchor: cfg.anchor || null, onKey: onKey, onScroll: onScroll, onResize: onResize };
+    if (cfg.anchor) cfg.anchor.setAttribute('aria-expanded', 'true');
+
+    if (pop){
+      // anchored to the field: its width (220–460px), below it, or above if there is no room
+      var r = cfg.anchor.getBoundingClientRect();
+      var w = Math.min(460, Math.max(220, r.width));
+      panel.style.width = w + 'px';
+      panel.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+      var below = window.innerHeight - r.bottom - 12, above = r.top - 12;
+      var h = Math.min(panel.offsetHeight, 380);
+      var down = below >= h || below >= above;
+      panel.style.maxHeight = Math.min(380, down ? below : above) + 'px';
+      if (down) panel.style.top = (r.bottom + 6) + 'px';
+      else panel.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+    }
+    var start = rows.filter(function(x){ return x.classList.contains('sel'); })[0] || visibleRows()[0];
+    if (searchInput && pop) searchInput.focus();
+    else if (start) focusRow(start);
+  }
+
+  // upgrade every select as it appears, and keep upgraded ones in step with option changes
+  function enhanceSelectsIn(root){
+    if (root.tagName === 'SELECT') enhanceSelect(root);
+    else if (root.querySelectorAll) Array.prototype.forEach.call(root.querySelectorAll('select'), enhanceSelect);
+  }
+  new MutationObserver(function(records){
+    records.forEach(function(rec){
+      Array.prototype.forEach.call(rec.addedNodes, function(n){ if (n.nodeType === 1) enhanceSelectsIn(n); });
+      var t = rec.target.nodeType === 1 ? rec.target : rec.target.parentNode;
+      var s = t && t.closest && t.closest('select[data-lp]');
+      if (s && s._lpSync) s._lpSync();
+    });
+  }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  enhanceSelectsIn(document.body);
+  if (WIDE_MQ.addEventListener) WIDE_MQ.addEventListener('change', function(){ closePicker(false); });
+
   function closeSheet(){
     backdrop.classList.remove('open');
     editingId = null;
@@ -12150,7 +12497,8 @@
     var opts = options.map(function(o){
       var v = typeof o === 'object' ? o.value : o;
       var l = typeof o === 'object' ? o.label : o;
-      return '<option value="'+v+'"' + (v===value?' selected':'') + '>'+l+'</option>';
+      var dot = typeof o === 'object' && o.dot ? ' data-dot="' + o.dot + '"' : '';
+      return '<option value="'+v+'"' + dot + (v===value?' selected':'') + '>'+l+'</option>';
     }).join('');
     return '<div class="field"><label>'+label+'</label><select id="'+id+'">'+opts+'</select></div>';
   }
@@ -12614,7 +12962,7 @@
             '<input placeholder="Sets" type="number" value="'+(ex.sets||'')+'" style="max-width:56px">' +
             '<input placeholder="Reps" type="number" value="'+(ex.reps||'')+'" style="max-width:56px">' +
             '<input placeholder="Value" type="number" value="'+(ex.value||'')+'" style="max-width:64px">' +
-            '<select class="ex-unit">'+unitOptsHtml+'</select>' +
+            '<select class="ex-unit" data-picker-title="Unit">'+unitOptsHtml+'</select>' +
             '<button type="button" class="ex-rm">✕</button>';
           var inputs = row.querySelectorAll('input');
           inputs[0].addEventListener('input', function(){ exerciseState[i].name = inputs[0].value; });

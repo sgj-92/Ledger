@@ -216,6 +216,40 @@ Textareas default to `min-height: 64px`; the food diary to `190px` and
 
 `font-variant-numeric: tabular-nums` is applied to date and time inputs.
 
+### Selection controls (the Ledger picker)
+
+**Rule.** Primary user-facing selection controls must use Ledger-styled
+pickers, segmented controls or chips. Raw browser-native selects should not be
+visible in premium flows. Choose by option count:
+
+| Options | Control |
+| --- | --- |
+| 2–3, mutually exclusive | Segmented control or chips (`.seg-toggle`, `.cd-chips`, Yes/No) |
+| A small list | Ledger picker |
+| A long list (more than 8) | Ledger picker with search |
+
+Do not use a native select just because it is easy. The Calendar filter chips
+and other existing chip or segmented controls stay as they are.
+
+**How the picker works.** Every `<select>`, wherever it is rendered, is
+upgraded automatically: a `.lp-trigger` field (surface-2, hairline border,
+12px radius, the value, a chevron) is inserted before it and the select is
+hidden as the value holder, so forms keep reading `.value` and listening for
+`change`. Choosing opens a bottom sheet (`.lp-sheet`: serif title, 50px rows,
+hairline dividers, gold tick on the selected row) below 1024px, or a compact
+popover anchored to the field (`.lp-pop`, the field's width, 220–460px) on
+desktop. Options may carry `data-dot` (a colour mark, e.g. action categories)
+and `data-hint`; a `__new__` value renders as a gold "+" row. A select may
+carry `data-picker-title`, `data-picker-new` (a `PICKER_NEW` entry that adds
+an inline "+ New …" row, e.g. `matter`) or `data-native` (leave it alone —
+nothing uses this today). `.lp-compact` is the dense variant for inline units.
+For choices that are not a select, call `openPicker()` directly.
+
+Keyboard: Enter, Space or an arrow key opens it; arrows, Home and End move;
+typing a letter jumps to the next option starting with it; Enter picks; Escape
+closes the picker only, never the sheet beneath. Focus returns to the field,
+including when the save redraws the record the field belongs to.
+
 ---
 
 ## 7. Pills, chips and badges
@@ -416,7 +450,8 @@ Recorded as observed facts:
 
 - `aria-expanded` ×25, `aria-label` ×14, `aria-controls` ×6, `aria-pressed`
   ×3, `aria-hidden` ×2, `aria-disabled` ×2. Disclosure is well covered.
-- **No `role` attributes** anywhere.
+- `role` attributes only on the Ledger picker (`dialog`, `listbox`, `option`,
+  with `aria-selected`; its field carries `aria-haspopup` and `aria-expanded`).
 - **No `:focus-visible` styles** anywhere. `outline: none` is set on inputs
   and replaced with a border colour change; other controls have no visible
   keyboard focus at all.

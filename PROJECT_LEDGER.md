@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-30 (Communications Centre, Phase 1)
+Last updated: 2026-09-30 (Ledger picker replaces native dropdowns)
 
 ---
 
@@ -341,6 +341,18 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-09-30 — One selection control: the Ledger picker
+**Decision:** raw browser-native selects are no longer visible anywhere in
+Ledger. Every `<select>` is upgraded, wherever it is rendered, into a Ledger
+field that opens a bottom sheet on phones or a compact anchored popover on
+desktop; the hidden select stays as the value holder. Selection UI now follows
+one app-wide pattern: segmented controls or chips for 2–3 options, the picker
+for a small list, the picker with search for a long one.
+**Why:** native selects brought browser bevels, arrows, radii and colours that
+broke the design language and ignored the light theme.
+**Implications:** no stored value, schema or save path changed — forms still
+read `.value` and listen for `change`. New selects need no extra code.
 
 ### 2026-09-30 — Communications: who has the ball, not another inbox
 **Decision:** Phase 1 of the Communications Centre models Matter → Conversation →
@@ -875,6 +887,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-09-30) — Native dropdowns replaced by the reusable Ledger picker across
+  actions, Plan (Diet), training forms, Communications, symptoms, priorities
+  and Focus.
 - (2026-09-30) — Communications Centre Phase 1: Matters and Conversations with
   attention states, linked Actions, the "What happens next?" step on completion,
   Today summary, Centre (phone sheet / desktop split), Handoff attention section.
