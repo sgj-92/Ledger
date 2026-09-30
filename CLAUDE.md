@@ -53,6 +53,26 @@ Rules:
 
 ---
 
+# UX standard
+
+`docs/UX_PLAYBOOK.md` is the authoritative UX standard for Ledger. Read it before
+UI work; it is not repeated here.
+
+- Check every new UI, UX, navigation, interaction and visual change against it.
+- Functionally complete is not product-complete. Use the playbook's Definition of
+  Done, not "it works".
+- Ledger should feel like a polished, modern 2026 consumer app — never a
+  prototype or an admin dashboard.
+- If an implementation choice conflicts with the playbook, flag the conflict in
+  the report; never silently ignore the playbook.
+- For substantial UI work, run a separate UX/polish review (playbook §35) after
+  the functional work passes.
+- Reuse established components and interaction patterns (sheets, drag handles,
+  completion controls, section headers, empty states) rather than creating
+  one-off behaviours.
+
+---
+
 # GitHub is the backlog
 
 Issues are the canonical backlog for discrete work. `PROJECT_LEDGER.md` is
@@ -65,6 +85,7 @@ in it. Reference Issue numbers instead.
 | GitHub Project ("Ledger — Road to Shippable") | Workflow status and Priority |
 | `PROJECT_LEDGER.md` | Current state, durable decisions, current task, handoffs |
 | `docs/PRODUCT.md` | Durable product definition |
+| `docs/UX_PLAYBOOK.md` | Authoritative UX standard and Definition of Done |
 | `docs/UX_PRINCIPLES.md` | Interaction philosophy |
 | `docs/DESIGN_SYSTEM.md` | Visual/component system (an audit of what exists) |
 | `docs/ROAD_TO_SHIPPABLE.md` | Quality framework — what to examine, not what to do |
