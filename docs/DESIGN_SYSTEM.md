@@ -268,6 +268,26 @@ classes despite the vocabulary being used in conversation.
 
 ---
 
+## 7b. Capsules and the timeline
+
+A **capsule** (`.cap`, `capsuleHtml()`) is how an item says what it is: the
+category or training-type colour as a ~15% tint on an opaque base, a 1px border at
+~32%, and the coloured icon. Done, it fills with the colour and shows a tick. It
+extends the "accents are marks, never fills" rule by exactly this one shape.
+Sizes: 32px round in action rows, 30px in the Day Plan, 28–32px in the Inbox,
+40px wide on the timeline, where a timed item's capsule grows with its duration
+(40–112px).
+
+Every action row shares one anatomy: capsule · serif title (with a gold star for a
+key task) and a sans meta line (time range · state · category · matter) · the
+completion circle on the trailing edge. The capsule is the drag handle where a row
+can be reordered: mouse drags straight away, touch needs a short hold so a tap or a
+swipe never reorders.
+
+The **timeline** (Flow) is unboxed: a 40px time column, a 2px hairline rail through
+the capsules, the text, and the tick. Free time between timed items is an italic
+serif note on a dashed stretch of rail; "now" is a gold dot, time and fading line.
+
 ## 8. Sheets and modals
 
 One pattern, and it is the strongest component in the system.

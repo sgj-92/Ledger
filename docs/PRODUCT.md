@@ -103,7 +103,7 @@ casually.
 | Surface | Purpose |
 | --- | --- |
 | **Plan** | What I intend over the coming days. Whole-day week summaries; each day opens as a Day Plan (Direction, Actions, Health & fitness, Constraints, Day Notes) over the same records as Today. Meal ideas library. |
-| **Today** | The execution surface, in two modes: **Overview** (the editable day) and **Flow** (the day's actions and training in the order they will be worked — a sequence, not a schedule). Morning Prime (Plan, Move), Actions, Health & fitness, Day Notes, Quick Log, Evening Wind-down, Recorded Activity, Backlog, Catch-up, Daily Handoff. |
+| **Today** | The execution surface, in two modes: **Overview** (the editable day) and **Flow** (the day's timeline: actions and training in the order they will be worked; untimed items are a sequence, timed items sit at their time). Morning Prime (Plan, Move), Actions, Health & fitness, Day Notes, Quick Log, Evening Wind-down, Recorded Activity, Backlog, Catch-up, Daily Handoff. |
 | **Calendar** | What actually happened. Month view with an activity filter, day detail (Planned, Recorded, Outcome), day status. |
 | **Progress** | Am I moving there? Towards your focus, weekly chart, health and training stats, stat detail. |
 | **Focus** | Where am I going? Player card, priorities (optionally linked to evidence), active focus, target weight, Settings. |
@@ -122,7 +122,10 @@ Today is the centre of the product. Everything else supports it.
 - **Two orderings.** Order view holds one global execution sequence for the
   day; Groups view holds an order within each category. They answer different
   questions and must never overwrite each other.
-- **Backlog.** Unfinished past actions surface as a recovery layer derived at
+- **Optional times.** An action or planned session may be given a time and a
+  duration; most are not. Untimed work is an order, timed work sits at its time,
+  and Ledger never sets or moves a time by itself.
+- **Inbox (Backlog).** Unfinished past actions surface as a recovery layer derived at
   read time. Nothing ever moves to an active day on its own.
 - **Exposure vs symptoms.** A suspected gluten exposure belongs to the date
   the food was eaten. A symptom episode belongs to the date the symptoms were

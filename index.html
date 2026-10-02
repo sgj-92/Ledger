@@ -438,6 +438,31 @@
   .commitment-title.completed { color: var(--text-2); }
   .commitment-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; letter-spacing: 0.01em; }
   .commitment-minver { font-size: 11px; color: rgba(var(--gold-rgb),0.75); margin-top: 2px; }
+  .commitment-meta:empty { display: none; }
+  .commitment-meta .commitment-matter { color: var(--text-3); }
+  .commitment-item.done .commitment-title { color: var(--text-2); }
+
+  /* ---------- capsules: what an item is, at a glance ----------
+     The category (or training type) colour as a soft tint with a coloured icon;
+     filled, with a tick, once done. Used by the timeline, every action row, the
+     Day Plan and the Inbox. */
+  .cap {
+    flex-shrink: 0; width: 32px; height: var(--cap-h, 32px); border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-2); border: 1px solid var(--line-2); color: var(--cap, var(--text-2));
+    /* the tint sits on an opaque base, so the timeline's rail never shows through */
+    background: linear-gradient(color-mix(in srgb, var(--cap, var(--text-3)) 15%, transparent), color-mix(in srgb, var(--cap, var(--text-3)) 15%, transparent)), var(--cap-base, var(--bg));
+    border-color: color-mix(in srgb, var(--cap, var(--text-3)) 32%, transparent);
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  .cap svg { width: 15px; height: 15px; display: block; }
+  .commitment-item, .bk-row { --cap-base: var(--surface); }
+  .dpa-row { --cap-base: var(--surface-2); }
+  .cap.done { background: var(--cap, var(--gold)); border-color: var(--cap, var(--gold)); color: var(--surface); }
+  .cap.done svg { width: 14px; height: 14px; }
+  .cap[data-drag-handle] { cursor: grab; touch-action: none; }
+  .cap[data-drag-handle]:active { cursor: grabbing; }
   .commitment-when { font-size: 11.5px; color: var(--text-3); flex-shrink: 0; letter-spacing: 0.01em; }
   .commitment-train-link {
     flex-shrink: 0; background: none; border: 1px solid var(--line); color: var(--text-3);
@@ -504,14 +529,6 @@
     font-size: 11px; font-variant-numeric: tabular-nums; letter-spacing: 0;
   }
   .key-task .ord-num { border-color: rgba(var(--gold-rgb),0.4); color: rgba(var(--gold-rgb),0.85); }
-  .commitment-cat .commitment-train-link { margin-left: auto; }
-  .commitment-cat {
-    display: flex; align-items: center; gap: 6px; margin-top: 5px;
-    font-size: 9.5px; font-weight: 500; letter-spacing: 0.16em;
-    text-transform: uppercase; color: var(--text-3);
-  }
-  .commitment-cat-ic { display: flex; color: var(--text-3); }
-  .commitment-cat-ic svg { width: 12px; height: 12px; display: block; }
 
   .drag-handle {
     flex-shrink: 0; width: 28px; height: 30px; padding: 0; border: none; background: none;
@@ -851,8 +868,11 @@
   .pday-dow { font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.16em; color: var(--text-3); }
   .pday-num { font-size: 13px; color: var(--text-2); margin-top: 3px; letter-spacing: 0.01em; }
   .pday-sep { width: 1px; align-self: stretch; background: var(--line); flex-shrink: 0; }
-  .pday-icon { flex-shrink: 0; width: 21px; color: var(--text-2); display: flex; align-items: center; justify-content: center; }
-  .pday-icon svg { width: 20px; height: 20px; display: block; }
+  .pday-icon {
+    flex-shrink: 0; width: 34px; height: 34px; border-radius: 17px; display: flex; align-items: center; justify-content: center;
+    color: var(--gold); background: rgba(var(--gold-rgb),0.1); border: 1px solid rgba(var(--gold-rgb),0.22);
+  }
+  .pday-icon svg { width: 16px; height: 16px; display: block; }
   .pday-body { flex: 1; min-width: 0; }
   .pday-title { font-family: var(--serif); font-size: 17px; font-weight: 400; color: var(--text); letter-spacing: -0.005em; }
   .pday-title.muted { color: var(--text-2); font-style: italic; }
@@ -2124,8 +2144,8 @@
     background: linear-gradient(90deg, rgba(var(--gold-rgb),0.09), rgba(var(--gold-rgb),0) 42%), var(--surface-2);
   }
   .key-star {
-    flex-shrink: 0; width: 12px; height: 12px; margin-right: -3px;
-    color: var(--gold); display: flex; align-items: center;
+    display: inline-flex; width: 11px; height: 11px; margin-right: 6px; vertical-align: 0;
+    color: var(--gold);
   }
   .key-star svg { width: 100%; height: 100%; display: block; }
   .key-pill {
@@ -2149,8 +2169,7 @@
     padding: 12px 13px; border-bottom: 1px solid var(--line);
   }
   .bk-row:last-of-type { border-bottom: none; }
-  .bk-ic { flex-shrink: 0; width: 20px; color: var(--text-2); display: flex; }
-  .bk-ic svg { width: 20px; height: 20px; display: block; }
+  .bk-row > .cap { width: 32px; height: 32px; }
   .bk-body {
     flex: 1; min-width: 0; background: none; border: none; padding: 0;
     font-family: var(--sans); text-align: left; color: var(--text); cursor: pointer;
@@ -2205,8 +2224,8 @@
   .bk-compact .bk-row {
     align-items: center; gap: 10px; padding: 8px 11px;
   }
-  .bk-compact .bk-ic { width: 17px; }
-  .bk-compact .bk-ic svg { width: 17px; height: 17px; }
+  .bk-compact .bk-row > .cap { width: 28px; height: 28px; }
+  .bk-compact .bk-row > .cap svg { width: 13px; height: 13px; }
   .bk-compact .bk-title { font-size: 14.5px; line-height: 1.28; }
   .bk-compact .bk-meta {
     font-size: 10.5px; margin-top: 3px;
@@ -2482,40 +2501,61 @@
   .flow-context { display: none; }
   .flow-head { margin-top: var(--sp-5); }
   .flow-intention { font-family: var(--serif); font-style: italic; font-size: 14.5px; color: var(--text-2); margin: -4px 0 8px; line-height: 1.45; }
-  .flow-hint { font-size: 11.5px; color: var(--text-3); margin: 0 0 10px; }
-  .flow-row {
-    display: flex; align-items: center; gap: 9px; padding: 6px 4px 6px 8px; margin-bottom: 4px;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 12px; touch-action: pan-y;
+  /* ---------- the timeline (Flow): calm, one line, nothing boxed ----------
+     Time on the left, a capsule on a hairline rail, what it is, and a tick. Free
+     time between timed items and the current time sit on the same rail. */
+  .tl-list { position: relative; margin-top: 2px; }
+  .tl-row, .tl-now, .tl-gap {
+    display: grid; grid-template-columns: 40px 40px minmax(0, 1fr) auto auto;
+    column-gap: 12px; align-items: center; position: relative;
   }
-  .flow-row.key { border-color: rgba(var(--gold-rgb),0.3); }
-  .flow-row.training { background: var(--surface); border-style: dashed; border-color: var(--line-2); }
-  .flow-row.done .flow-title { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--text-3); }
-  .flow-row.done .flow-num { opacity: 0.5; }
-  .flow-row.dragging { position: relative; z-index: 4; border-color: rgba(var(--gold-rgb),0.45); box-shadow: var(--shadow-lift), inset 3px 0 0 var(--gold); transition: none; }
-  .flow-list.sorting .flow-row:not(.dragging) { transition: transform 0.18s ease; }
-  .flow-num { width: 16px; flex-shrink: 0; text-align: right; font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
-  .flow-row .commitment-status-dot { width: 20px; height: 20px; }
-  .flow-train-mark {
-    width: 20px; height: 20px; flex-shrink: 0; padding: 0; border-radius: 50%; cursor: pointer;
-    border: 1.5px solid var(--line-2); background: none; color: var(--text-2);
-    display: flex; align-items: center; justify-content: center;
+  .tl-row { padding: 6px 0; min-height: 56px; touch-action: pan-y; border-radius: var(--r-md); }
+  .tl-time { align-self: start; padding-top: 12px; text-align: right; font-size: 11.5px; color: var(--text-3); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+  .tl-rail { position: relative; align-self: stretch; display: flex; justify-content: center; align-items: flex-start; }
+  .tl-rail::before {
+    content: ''; position: absolute; left: 50%; top: -6px; bottom: -6px; width: 2px; margin-left: -1px;
+    background: var(--line-2); border-radius: 1px;
   }
-  .flow-train-mark svg { width: 11px; height: 11px; display: block; }
-  .flow-train-mark.done { background: var(--gold); border-color: var(--gold); color: var(--ink); }
-  .flow-body {
-    flex: 1; min-width: 0; background: none; border: none; padding: 1px 0; text-align: left; cursor: pointer;
-    display: flex; flex-direction: column; gap: 1px; font-family: var(--sans);
+  .tl-list > :first-child .tl-rail::before { top: 50%; }
+  .tl-list > :last-child .tl-rail::before { bottom: 50%; }
+  .tl-list > :only-child .tl-rail::before { display: none; }
+  .tl-rail .cap { position: relative; z-index: 1; width: 40px; height: var(--cap-h, 40px); border-radius: 20px; }
+  .tl-rail .cap svg { width: 17px; height: 17px; }
+  .tl-body {
+    min-width: 0; background: none; border: none; padding: 2px 0; text-align: left; cursor: pointer;
+    display: flex; flex-direction: column; gap: 2px; font-family: var(--sans); align-self: start; margin-top: 3px;
   }
-  .flow-title { display: flex; align-items: baseline; gap: 6px; font-family: var(--serif); font-size: 15px; line-height: 1.25; color: var(--text); overflow-wrap: anywhere; }
+  .tl-row:not(.timed) .tl-body { align-self: center; margin-top: 0; }
+  .tl-when { font-size: 11.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .tl-when:empty, .tl-meta:empty { display: none; }
+  .tl-title { display: flex; align-items: baseline; gap: 6px; font-family: var(--serif); font-size: 16px; line-height: 1.25; color: var(--text); overflow-wrap: anywhere; }
+  .tl-meta { font-size: 11.5px; color: var(--text-3); overflow-wrap: anywhere; }
+  .tl-row.done .tl-title { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--text-3); }
+  .tl-row.done .tl-when, .tl-row.done .tl-meta { opacity: 0.7; }
+  .tl-row .commitment-status-dot { width: 22px; height: 22px; margin-right: 2px; }
+  .tl-row.timed .commitment-status-dot { align-self: start; margin-top: 9px; }
+  .tl-more {
+    width: 28px; height: 28px; padding: 0; border: none; background: none; cursor: pointer; border-radius: 50%;
+    color: var(--text-3); display: flex; align-items: center; justify-content: center; opacity: 0;
+    transition: opacity 0.14s ease;
+  }
+  .tl-more svg { width: 15px; height: 15px; display: block; }
+  .tl-more:focus-visible { opacity: 1; }
+  @media (hover: none) { .tl-more { display: none; } }
+  .tl-row.dragging { z-index: 4; background: var(--surface); box-shadow: var(--shadow-lift); transition: none; }
+  .tl-list.sorting .tl-row:not(.dragging) { transition: transform 0.18s ease; }
+  .tl-gap { min-height: 30px; }
+  .tl-gap .tl-rail::before { top: 0; bottom: 0; background: repeating-linear-gradient(to bottom, var(--line-2) 0 3px, transparent 3px 7px); }
+  .tl-gap-text { grid-column: 3 / -1; font-family: var(--serif); font-style: italic; font-size: 13px; color: var(--text-3); }
+  .tl-now { min-height: 22px; }
+  .tl-now .tl-time { align-self: center; padding-top: 0; color: var(--gold); font-weight: 500; }
+  .tl-now .tl-rail { align-items: center; }
+  .tl-now .tl-rail::before { top: 0; bottom: 0; }
+  .tl-now-dot { position: relative; z-index: 1; width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 3px var(--bg); }
+  .tl-now-line { grid-column: 3 / -1; height: 1px; background: linear-gradient(90deg, rgba(var(--gold-rgb),0.6), rgba(var(--gold-rgb),0)); }
+  .flow-sheet-note { font-size: 13.5px; color: var(--text-2); margin: 0 0 var(--sp-4); }
   .flow-key { color: var(--gold); flex-shrink: 0; transform: translateY(1px); }
   .flow-key svg { width: 11px; height: 11px; display: block; }
-  .flow-meta { font-size: 11px; color: var(--text-3); overflow-wrap: anywhere; }
-  .flow-more {
-    flex-shrink: 0; width: 28px; height: 28px; padding: 0; border: none; background: none; cursor: pointer;
-    color: var(--text-3); display: flex; align-items: center; justify-content: center; border-radius: 50%;
-  }
-  .flow-more svg { width: 15px; height: 15px; display: block; }
-  .flow-row .drag-handle { margin-left: -4px; }
   .flow-empty p { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--text-2); margin: 8px 0 4px; }
   .flow-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .flow-wd {
@@ -2612,8 +2652,8 @@
   }
   .dpa-row.key { border-color: rgba(var(--gold-rgb),0.35); }
   .dpa-row .commitment-status-dot { width: 19px; height: 19px; }
-  .dpa-cat-ic { width: 19px; flex-shrink: 0; display: flex; justify-content: center; color: var(--text-3); }
-  .dpa-cat-ic svg { width: 14px; height: 14px; display: block; }
+  .dpa-row .cap { width: 30px; height: 30px; border-radius: 15px; }
+  .dpa-row .cap svg { width: 14px; height: 14px; }
   .dpa-body {
     flex: 1; min-width: 0; background: none; border: none; padding: 0; text-align: left; cursor: pointer;
     display: flex; flex-direction: column; gap: 2px; font-family: var(--sans);
@@ -2945,9 +2985,6 @@
   .md-conv.st-needs_me .md-conv-state { color: var(--gold); }
 
   /* an action's wider matter, quietly */
-  .commitment-cat .commitment-matter { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .commitment-cat .commitment-matter::before { content: '· '; }
-  .commitment-body > .commitment-matter { display: block; margin-top: 4px; font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* after a linked action: what happens next? */
   .ns-q { font-size: 14px; color: var(--text-2); margin: 0 0 var(--sp-3); }
@@ -2999,6 +3036,10 @@
     .cs-stat:hover, .cd-chip:hover:not(.sel) { border-color: rgba(var(--gold-rgb),0.3); }
     .cv-row.sel:hover, .mt-row.sel:hover { background: rgba(var(--gold-rgb),0.07); }
     .comms-filter button:not(.sel):hover { color: var(--text-2); }
+    .tl-row:hover .tl-more { opacity: 1; }
+    .tl-body:hover .tl-title { color: var(--text); }
+    .tl-row:hover:not(.dragging) { background: rgba(var(--gold-rgb),0.025); }
+    .cap[data-drag-handle]:hover { border-color: color-mix(in srgb, var(--cap, var(--text-3)) 55%, transparent); }
     .lp-trigger:hover:not(:disabled):not([aria-expanded="true"]) { border-color: var(--line-2); }
     .lp-trigger:hover .lp-chev { color: var(--text-2); }
     .lp-opt:hover:not(:disabled) { background: var(--surface-2); }
@@ -3147,7 +3188,6 @@
     .commitment-body { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 14px; row-gap: 2px; }
     .commitment-title { flex: 1 1 240px; min-width: 0; font-size: 15px; }
     .commitment-meta, .commitment-minver { margin-top: 0; }
-    .commitment-cat { margin-top: 0; flex-shrink: 0; }
     .sec-add {
       width: auto; height: 30px; margin: 0; padding: 0 12px 0 10px; gap: 6px;
       border: 1px solid rgba(var(--gold-rgb),0.3); border-radius: 100px; color: var(--gold);
@@ -5055,10 +5095,53 @@
     var p = getPlanForDate(dateStr);
     return (p && p.groupOrder && p.groupOrder[key]) || [];
   }
+  // ---- time: optional on an action (time 'HH:MM', durationMin) and on planned training
+  // (activityTime, durationMin). Untimed items keep their place in the order; timed items
+  // keep the places timed items hold in it, sorted by time among themselves — so an
+  // order and a time never disagree, and nothing untimed is ever moved.
+  function hhmm(t){ return typeof t === 'string' && /^\d{2}:\d{2}$/.test(t) ? t : null; }
+  function actionTime(c){ return c ? hhmm(c.time) : null; }
+  function timeToMin(t){ return Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5)); }
+  function minToTime(m){
+    m = ((m % 1440) + 1440) % 1440;
+    return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2);
+  }
+  function fmtDuration(min){
+    min = Number(min) || 0;
+    if (!min) return '';
+    var h = Math.floor(min / 60), m = min % 60;
+    return h ? h + ' h' + (m ? ' ' + m + ' min' : '') : m + ' min';
+  }
+  function timeRangeLabel(start, dur){ return Number(dur) ? start + '–' + minToTime(timeToMin(start) + Number(dur)) : start; }
+  function applyTimeOrder(items, timeOf){
+    var slots = [], timed = [];
+    items.forEach(function(x, i){ var t = timeOf(x); if (t){ slots.push(i); timed.push({ x: x, t: t, i: i }); } });
+    if (timed.length < 2) return items;
+    timed.sort(function(a, b){ return a.t === b.t ? a.i - b.i : (a.t < b.t ? -1 : 1); });
+    var out = items.slice();
+    slots.forEach(function(pos, k){ out[pos] = timed[k].x; });
+    return out;
+  }
+
+  // ---- capsules: an item's colour and icon, the way the timeline shows it. Category
+  // colours stay accents — a soft tint and a coloured icon, filled only once done. ----
+  var TRAINING_COLOR = { padel: 'var(--padel)', resistance: 'var(--resistance)', cardio: 'var(--cardio)', hiit: 'var(--hiit)', yoga: 'var(--yoga)' };
+  function actionCapColor(c){
+    if (c && c.category === 'roadblock') return 'var(--danger)';
+    var m = c && QUICK_CAPTURE_CATEGORY_MAP[c.category];
+    return m ? m.color : 'var(--text-3)';
+  }
+  function actionCapIcon(c){ return c && c.category === 'roadblock' ? UI_ICON.mountain : categoryIcon(c && c.category); }
+  function capsuleHtml(color, icon, o){
+    o = o || {};
+    return '<span class="cap' + (o.done ? ' done' : '') + '" style="--cap:' + color + (o.h ? ';--cap-h:' + o.h + 'px' : '') + '"' +
+      (o.attrs || ' aria-hidden="true"') + '>' + (o.done ? CHECK_SVG : icon) + '</span>';
+  }
+
   function sortByOrderHint(items, orderIds){
     var idx = {};
     (orderIds || []).forEach(function(id, i){ idx[id] = i; });
-    return items.slice().sort(function(a, b){
+    return applyTimeOrder(items.slice().sort(function(a, b){
       var ai = idx[a.id], bi = idx[b.id];
       if (ai != null && bi != null) return ai - bi;
       if (ai != null) return -1;          // anything explicitly placed outranks
@@ -5066,7 +5149,7 @@
       var ac = a.createdAt || '', bc = b.createdAt || '';
       if (ac !== bc) return ac < bc ? -1 : 1;
       return (a.id || '') < (b.id || '') ? -1 : 1;
-    });
+    }), actionTime);
   }
   function planBase(dateStr){
     return getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
@@ -5099,8 +5182,32 @@
       handle.addEventListener('pointerdown', function(e){
         var row = handle.closest('[data-sort-item]');
         if (!row) return;
+        // A handle marked data-drag-hold is also something you tap (a capsule), so on touch
+        // it waits for a short hold before it lifts; a tap or a swipe never reorders.
+        if (e.pointerType === 'touch' && handle.hasAttribute('data-drag-hold')){
+          var sx = e.clientX, sy = e.clientY;
+          var timer = setTimeout(function(){ disarm(); begin(e, true); }, 320);
+          var watchMove = function(ev){ if (Math.abs(ev.clientX - sx) > 8 || Math.abs(ev.clientY - sy) > 8) disarm(); };
+          var disarm = function(){
+            clearTimeout(timer);
+            window.removeEventListener('pointermove', watchMove);
+            window.removeEventListener('pointerup', disarm);
+            window.removeEventListener('pointercancel', disarm);
+          };
+          window.addEventListener('pointermove', watchMove);
+          window.addEventListener('pointerup', disarm);
+          window.addEventListener('pointercancel', disarm);
+          return;
+        }
         e.preventDefault();
         e.stopPropagation();
+        begin(e, false);
+      });
+      function begin(e, held){
+        var row = handle.closest('[data-sort-item]');
+        if (held && navigator.vibrate) navigator.vibrate(8);
+        var before = siblings().map(function(el){ return el.dataset.sortItem; }).join('|');
+        var moved = held;
 
         var startY = e.clientY, offset = 0;
         sortDragActive = true;
@@ -5127,6 +5234,7 @@
         function onMove(ev){
           lastY = ev.clientY;
           offset = ev.clientY - startY;
+          if (Math.abs(offset) > 4) moved = true;
           row.style.transform = 'translateY(' + offset + 'px)';
           var rect = row.getBoundingClientRect();
           var mid = rect.top + rect.height / 2;
@@ -5150,57 +5258,67 @@
           row.classList.remove('dragging');
           container.classList.remove('sorting');
           sortDragActive = false;
-          onCommit(siblings().map(function(el){ return el.dataset.sortItem; }));
+          // a handle that is also tappable must not open what was just dragged
+          if (moved){
+            var swallow = function(ev){ ev.stopPropagation(); ev.preventDefault(); };
+            window.addEventListener('click', swallow, true);
+            setTimeout(function(){ window.removeEventListener('click', swallow, true); }, 80);
+          }
+          var after = siblings().map(function(el){ return el.dataset.sortItem; });
+          if (after.join('|') !== before) onCommit(after);   // a tap is not a reorder
         }
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', finish);
         window.addEventListener('pointercancel', finish);
-      });
+      }
     });
   }
 
   function buildCommitmentRow(c, contextDate, opts){
     opts = opts || {};
     var isRoadblock = c.category === 'roadblock';
+    var done = c.status === 'completed';
+    var t = actionTime(c);
     var row = document.createElement('div');
     row.className = 'commitment-item' + (isRoadblock ? ' roadblock' : '') + (c.isKeyTask ? ' key-task' : '') +
-      (opts.drag ? ' sortable' : '');
+      (done ? ' done' : '') + (opts.drag ? ' sortable' : '');
     if (opts.drag) row.dataset.sortItem = c.id;
-    var metaParts = [];
-    if (c.status !== 'planned' && c.status !== 'completed') metaParts.push(COMMITMENT_STATUS_LABEL[c.status]);
-    if (c.status === 'disrupted' && c.disruptionReason) metaParts.push(c.disruptionReason);
-    var showMinVer = c.minVersion && c.status !== 'completed';
+    // the capsule is the row's handle — hold and drag. A timed action sits at its time instead.
+    var handle = opts.drag && !t ? ' data-drag-handle data-drag-hold role="button" aria-label="Hold and drag to reorder"' : '';
     row.innerHTML =
-      // Morning Prime picks the day's three; Today has to make them obvious at a glance,
-      // without lifting them out of the group they belong to.
-      (opts.seq ? '<span class="ord-num">' + opts.seq + '</span>' : '') +
-      (c.isKeyTask ? '<span class="key-star" aria-hidden="true">' + STAR_SVG + '</span>' : '') +
-      '<span class="commitment-status-dot ' + (isRoadblock ? 'roadblock' : c.status) + '"></span>' +
+      capsuleHtml(actionCapColor(c), actionCapIcon(c), { done: done, attrs: handle || null }) +
       '<div class="commitment-body">' +
-        '<div class="commitment-title' + (c.status==='completed'?' completed':'') + '">' + c.title + '</div>' +
-        (metaParts.length ? '<div class="commitment-meta">' + metaParts.join(' · ') + '</div>' : '') +
-        (showMinVer ? '<div class="commitment-minver">Minimum: ' + c.minVersion + '</div>' : '') +
-        (opts.showCategory
-          ? '<div class="commitment-cat"><span class="commitment-cat-ic">' + categoryIcon(c.category) + '</span>' +
-            actionCategoryLabel(actionCategoryKey(c)) + '</div>'
-          : '') +
+        '<div class="commitment-title' + (done ? ' completed' : '') + '">' +
+          // Morning Prime picks the day's three; a small star keeps them obvious at a glance
+          (c.isKeyTask ? '<span class="key-star" aria-label="Key task">' + STAR_SVG + '</span>' : '') +
+          '<span class="ct-text"></span></div>' +
+        '<div class="commitment-meta"></div>' +
+        (c.minVersion && !done ? '<div class="commitment-minver"></div>' : '') +
       '</div>' +
       // the day label only earns its place when it isn't the day you're looking at —
       // on Today every row would otherwise read "Today" and steal width from the title
       (c.date === (contextDate || viewedDate) ? '' : '<span class="commitment-when">' + relativeDayLabel(c.date) + '</span>') +
-      (c.isKeyTask ? '<span class="key-pill">Key</span>' : '') +
-      (opts.drag
-        ? '<button type="button" class="drag-handle" data-drag-handle aria-label="Reorder">' + UI_ICON.grip + '</button>'
-        : '<span class="chev">' + UI_ICON.chevronRight + '</span>');
-    // the wider matter an action belongs to, quietly — written as text
+      (isRoadblock ? '' : '<button type="button" class="commitment-status-dot ' + c.status + '" aria-label="' + (done ? 'Reopen' : 'Complete') + '"></button>');
+    // user text is written as text
+    row.querySelector('.ct-text').textContent = c.title;
+    var bits = [];
+    if (t) bits.push(timeRangeLabel(t, c.durationMin));
+    else if (c.durationMin) bits.push(fmtDuration(c.durationMin));
+    if (c.status !== 'planned' && c.status !== 'completed') bits.push(COMMITMENT_STATUS_LABEL[c.status]);
+    if (c.status === 'disrupted' && c.disruptionReason) bits.push(c.disruptionReason);
+    if (opts.showCategory) bits.push(actionCategoryLabel(actionCategoryKey(c)));
+    var meta = row.querySelector('.commitment-meta');
+    meta.textContent = bits.join(' · ');
+    // the wider matter an action belongs to, quietly
     var mt = matterTitle(c.matterId);
     if (mt){
-      var host = row.querySelector('.commitment-cat') || row.querySelector('.commitment-body');
       var ms = document.createElement('span');
       ms.className = 'commitment-matter';
-      ms.textContent = mt;
-      host.appendChild(ms);
+      ms.textContent = (bits.length ? ' · ' : '') + mt;
+      meta.appendChild(ms);
     }
+    var mv = row.querySelector('.commitment-minver');
+    if (mv) mv.textContent = 'Minimum: ' + c.minVersion;
     row.addEventListener('click', function(){ openCommitmentSheet(c); });
     if (!isRoadblock){
       row.querySelector('.commitment-status-dot').addEventListener('click', function(e){
@@ -5217,9 +5335,7 @@
         e.stopPropagation();
         expandQuickLog();
       });
-      var catLine = row.querySelector('.commitment-cat');
-      if (catLine) catLine.appendChild(trainBtn);
-      else row.insertBefore(trainBtn, row.querySelector('.key-pill') || row.querySelector('.drag-handle') || row.querySelector('.chev'));
+      row.insertBefore(trainBtn, row.querySelector('.commitment-status-dot'));
     }
     return row;
   }
@@ -5266,7 +5382,7 @@
     if (toolbar){
       toolbar.hidden = actionable.length < 2;
       hint.textContent = actionsViewMode === 'order'
-        ? (dateStr === todayStr() ? 'Your plan for today. Drag to reorder.' : 'Day order. Drag to reorder.')
+        ? (dateStr === todayStr() ? 'Your plan for today. Hold an icon and drag to reorder.' : 'Day order. Hold an icon and drag to reorder.')
         : 'Grouped by category.';
       toolbar.querySelectorAll('[data-view]').forEach(function(b){
         b.classList.toggle('sel', b.dataset.view === actionsViewMode);
@@ -5311,8 +5427,9 @@
   }
 
   // ============ Today: Overview and Flow ============
-  // Overview is the editable whole day. Flow is the order Shaun intends to work through
-  // it — a sequence, not a schedule: item 3 means "after 2", never "at 10:30".
+  // Overview is the editable whole day. Flow is the timeline Shaun works through: untimed
+  // items are a sequence (item 3 means "after 2", never "at 10:30"); an item given a
+  // time sits at its time.
   var todayMode = lsGet(TODAY_MODE_KEY, 'overview') === 'flow' ? 'flow' : 'overview';
   function setTodayMode(mode){
     todayMode = mode === 'flow' ? 'flow' : 'overview';
@@ -5369,7 +5486,10 @@
     sortByOrderHint(acts.filter(function(c){ return !listed['a:' + c.id]; }), order)
       .forEach(function(c){ items.push({ kind: 'action', c: c }); });
     types.forEach(function(t){ if (!listed['t:' + t]) items.push({ kind: 'training', type: t }); });
-    return items;
+    return applyTimeOrder(items, function(it){
+      if (it.kind === 'action') return actionTime(it.c);
+      return hhmm(((plan && plan.trainingDetails && plan.trainingDetails[it.type]) || {}).activityTime);
+    });
   }
   function flowItemDone(item, plan){
     if (item.kind === 'action') return item.c.status === 'completed';
@@ -5412,46 +5532,81 @@
     var items = dayFlowItems(dateStr);
     var done = items.filter(function(it){ return flowItemDone(it, plan); }).length;
 
-    function rowHtml(it, i){
+    function trainDet(type){ return (plan && plan.trainingDetails && plan.trainingDetails[type]) || {}; }
+    function itemTime(it){ return it.kind === 'action' ? actionTime(it.c) : hhmm(trainDet(it.type).activityTime); }
+    function itemDur(it){ return Number(it.kind === 'action' ? it.c.durationMin : trainDet(it.type).durationMin) || 0; }
+
+    // a row on the timeline: its time, its capsule on the line, what it is, and a tick.
+    // A timed capsule grows with its duration; an untimed one is held and dragged.
+    function rowHtml(it){
       var key = flowKey(it);
       var isDone = flowItemDone(it, plan);
-      var lead, cls = 'flow-row' + (isDone ? ' done' : '');
-      if (it.kind === 'action'){
-        if (it.c.isKeyTask) cls += ' key';
-        lead = '<button type="button" class="commitment-status-dot ' + it.c.status + '" data-flow-done="' + it.c.id + '"' +
-          ' aria-label="' + (isDone ? 'Reopen' : 'Complete') + '"></button>';
-      } else {
-        cls += ' training';
-        lead = '<button type="button" class="flow-train-mark' + (isDone ? ' done' : '') + '" data-flow-open="' + key + '"' +
-          ' aria-label="' + (isDone ? 'Open the recorded session' : 'Log it') + '">' + (isDone ? CHECK_SVG : TRAINING_ICON_SVG[it.type]) + '</button>';
-      }
+      var t = itemTime(it), dur = itemDur(it);
+      var color = it.kind === 'action' ? actionCapColor(it.c) : (TRAINING_COLOR[it.type] || 'var(--gold)');
+      var icon = it.kind === 'action' ? actionCapIcon(it.c) : TRAINING_ICON_SVG[it.type];
+      var h = t && dur ? Math.round(Math.min(112, Math.max(40, 40 + (dur - 15) * 0.8))) : 0;
+      var cls = 'tl-row' + (isDone ? ' done' : '') + (t ? ' timed' : '') + (it.kind === 'training' ? ' training' : '') +
+        (it.kind === 'action' && it.c.isKeyTask ? ' key' : '');
+      var check = it.kind === 'action'
+        ? '<button type="button" class="commitment-status-dot ' + it.c.status + '" data-flow-done="' + it.c.id + '"' +
+            ' aria-label="' + (isDone ? 'Reopen' : 'Complete') + '"></button>'
+        : '<button type="button" class="commitment-status-dot' + (isDone ? ' completed' : '') + '" data-flow-open="' + key + '"' +
+            ' aria-label="' + (isDone ? 'Open the recorded session' : 'Log it') + '"></button>';
       return '<div class="' + cls + '" data-sort-item="' + key + '">' +
-        '<span class="flow-num">' + (i + 1) + '</span>' + lead +
-        '<button type="button" class="flow-body" data-flow-open="' + key + '">' +
-          '<span class="flow-title">' + (it.kind === 'action' && it.c.isKeyTask ? '<span class="flow-key" aria-label="Key task">' + STAR_SVG + '</span>' : '') +
+        '<span class="tl-time">' + (t || '') + '</span>' +
+        // tapping the capsule opens the item, like its text; holding an untimed one lifts it
+        '<span class="tl-rail">' + capsuleHtml(color, icon, { done: isDone, h: h,
+          attrs: ' data-flow-open="' + key + '" aria-hidden="true"' + (t ? '' : ' data-drag-handle data-drag-hold') }) + '</span>' +
+        '<button type="button" class="tl-body" data-flow-open="' + key + '">' +
+          '<span class="tl-when" data-flow-when="' + key + '"></span>' +
+          '<span class="tl-title">' + (it.kind === 'action' && it.c.isKeyTask ? '<span class="flow-key" aria-label="Key task">' + STAR_SVG + '</span>' : '') +
             '<span data-flow-title="' + key + '"></span></span>' +
-          '<span class="flow-meta" data-flow-meta="' + key + '"></span>' +
+          '<span class="tl-meta" data-flow-meta="' + key + '"></span>' +
         '</button>' +
-        '<button type="button" class="flow-more" data-flow-more="' + key + '" aria-label="Move or open">' +
+        '<button type="button" class="tl-more" data-flow-more="' + key + '" aria-label="Move or open">' +
           '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></button>' +
-        '<button type="button" class="drag-handle" data-drag-handle aria-label="Reorder">' + UI_ICON.grip + '</button>' +
+        check +
       '</div>';
     }
+    // the line between rows: free time between two timed items, and where now is
+    var nowMin = isToday ? new Date().getHours() * 60 + new Date().getMinutes() : null;
+    function nowHtml(){
+      return '<div class="tl-now" aria-label="Now ' + minToTime(nowMin) + '"><span class="tl-time">' + minToTime(nowMin) + '</span>' +
+        '<span class="tl-rail"><span class="tl-now-dot"></span></span><span class="tl-now-line"></span></div>';
+    }
+    var parts = [], prevEnd = null, nowPlaced = !isToday || !items.some(itemTime);
+    items.forEach(function(it){
+      var t = itemTime(it);
+      if (t){
+        var start = timeToMin(t);
+        if (!nowPlaced && nowMin < start){ parts.push(nowHtml()); nowPlaced = true; }
+        if (prevEnd != null && start - prevEnd >= 30){
+          parts.push('<div class="tl-gap"><span class="tl-time"></span><span class="tl-rail"></span>' +
+            '<span class="tl-gap-text">' + fmtDuration(start - prevEnd) + ' free</span></div>');
+        }
+        prevEnd = itemDur(it) ? start + itemDur(it) : null;
+      } else {
+        prevEnd = null;
+      }
+      parts.push(rowHtml(it));
+    });
+    if (!nowPlaced) parts.push(nowHtml());
 
     var wd = isToday ? windDownState(dateStr) : null;
     var wdReady = !!(wd && wd.total && !wd.completedAt && new Date().getHours() >= windDownHour());
+    var inboxN = isToday ? backlogActions().length : 0;
 
     var main = '<div class="flow-main">' +
       '<div class="sec-head flow-head"><span class="sec-label">' + (isToday ? 'Today’s flow' : 'Flow') + '</span>' +
         '<span class="sec-rule"></span>' +
         (items.length ? '<span class="sec-value">' + done + ' of ' + items.length + ' done</span>' : '') + '</div>' +
       '<p class="flow-intention" id="flowIntention" hidden></p>' +
-      (items.length > 1 ? '<p class="flow-hint">The order you mean to work in — not a schedule. Drag to change it.</p>' : '') +
       (items.length
-        ? '<div class="flow-list sort-list" id="flowList">' + items.map(rowHtml).join('') + '</div>'
+        ? '<div class="tl-list sort-list" id="flowList">' + parts.join('') + '</div>'
         : '<div class="flow-empty"><p>Nothing in the day yet.</p></div>') +
       '<div class="flow-add">' +
         '<button type="button" class="dpa-add-btn" id="flowAddAction">' + BK_PLUS_SVG + 'Add action</button>' +
+        (inboxN ? '<button type="button" class="dpa-add-btn quiet" id="flowInbox">' + UI_ICON.box + 'Inbox · ' + inboxN + '</button>' : '') +
         (items.length
           ? '<button type="button" class="dpa-add-btn quiet" id="flowAddTraining">' + TRAINING_ICON_SVG.hiit + 'Plan training</button>'
           : '<button type="button" class="dpa-add-btn quiet" id="flowOpenOverview">Open Overview</button>') +
@@ -5475,6 +5630,9 @@
       var key = flowKey(it);
       var t = wrap.querySelector('[data-flow-title="' + key + '"]');
       var m = wrap.querySelector('[data-flow-meta="' + key + '"]');
+      var w = wrap.querySelector('[data-flow-when="' + key + '"]');
+      var tm = itemTime(it), dur = itemDur(it);
+      w.textContent = tm ? timeRangeLabel(tm, dur) + (dur ? ' · ' + fmtDuration(dur) : '') : (dur ? fmtDuration(dur) : '');
       if (it.kind === 'action'){
         t.textContent = it.c.title;
         var bits = [categoryLabel(it.c.category)];
@@ -5484,7 +5642,9 @@
         m.textContent = bits.join(' · ');
       } else {
         t.textContent = SHORT_TYPE_LABEL[it.type] || TYPE_LABEL[it.type];
-        m.textContent = 'Training · ' + flowTrainingMeta(it.type, plan);
+        // time and duration are already on the line above
+        var sub = planTrainingSub(it.type, Object.assign({}, trainDet(it.type), { activityTime: null, durationMin: trainDet(it.type).completed ? trainDet(it.type).durationMin : null }));
+        m.textContent = 'Training' + (sub ? ' · ' + sub : '');
       }
     });
     var intention = (mpIntentionValue(dateStr) || '').trim();
@@ -5539,6 +5699,8 @@
     var list = document.getElementById('flowList');
     if (list) makeSortable(list, function(keys){ saveDayFlow(dateStr, keys); });
     document.getElementById('flowAddAction').addEventListener('click', function(){ openCommitmentSheet(null, { date: dateStr }); });
+    var inboxBtn = document.getElementById('flowInbox');
+    if (inboxBtn) inboxBtn.addEventListener('click', function(){ openBacklogSheet(); });
     var addTraining = document.getElementById('flowAddTraining');
     if (addTraining) addTraining.addEventListener('click', function(){
       openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'] });
@@ -5567,12 +5729,17 @@
     var isAction = key.charAt(0) === 'a';
     var c = isAction ? commitments.find(function(x){ return x.id === key.slice(2); }) : null;
     var title = isAction ? (c ? c.title : '') : TYPE_LABEL[key.slice(2)];
+    // a timed item sits at its time; it moves when its time changes
+    var pl = getPlanForDate(dateStr);
+    var at = isAction ? actionTime(c) : hhmm(((pl && pl.trainingDetails && pl.trainingDetails[key.slice(2)]) || {}).activityTime);
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
       sheetHead('', 'Step ' + (i + 1) + ' of ' + keys.length, '<span id="flowSheetTitle"></span>', '') +
-      '<div class="flow-sheet-btns">' +
-        '<button type="button" class="btn-secondary" id="flowUpBtn"' + (i === 0 ? ' disabled' : '') + '>Move up</button>' +
-        '<button type="button" class="btn-secondary" id="flowDownBtn"' + (i === keys.length - 1 ? ' disabled' : '') + '>Move down</button>' +
-      '</div>' +
+      (at
+        ? '<p class="flow-sheet-note">At ' + at + ' — change its time to move it.</p>'
+        : '<div class="flow-sheet-btns">' +
+            '<button type="button" class="btn-secondary" id="flowUpBtn"' + (i === 0 ? ' disabled' : '') + '>Move up</button>' +
+            '<button type="button" class="btn-secondary" id="flowDownBtn"' + (i === keys.length - 1 ? ' disabled' : '') + '>Move down</button>' +
+          '</div>') +
       '<button type="button" class="btn-primary" id="flowOpenBtn">' + (isAction ? 'Open action' : 'Log ' + (SHORT_TYPE_LABEL[key.slice(2)] || TYPE_LABEL[key.slice(2)])) + '</button>' +
       '<button type="button" class="btn-quiet" id="flowSheetDone">Done</button>';
     document.getElementById('flowSheetTitle').textContent = title;
@@ -5583,8 +5750,10 @@
     }
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
     document.getElementById('flowSheetDone').addEventListener('click', closeSheet);
-    document.getElementById('flowUpBtn').addEventListener('click', function(){ step(-1); });
-    document.getElementById('flowDownBtn').addEventListener('click', function(){ step(1); });
+    if (!at){
+      document.getElementById('flowUpBtn').addEventListener('click', function(){ step(-1); });
+      document.getElementById('flowDownBtn').addEventListener('click', function(){ step(1); });
+    }
     document.getElementById('flowOpenBtn').addEventListener('click', function(){ closeSheet(); openItem(key); });
   }
 
@@ -5669,6 +5838,7 @@
         fieldSelect('f_commitCategory', 'Category',
           [{value:'', label:'No category'}].concat(QUICK_CAPTURE_CATEGORIES.map(function(c){ return {value:c.key, label:c.label, dot:c.color}; })),
           existing ? (existing.category || '') : (opts.category || qcLastCategory)) +
+        whenFieldsHtml() +
         fieldSelect('f_commitPriority', 'Linked priority', priorityOptions, existing ? (existing.priorityId||'') : '') +
         commsLinkFieldsHtml() +
         '<div class="field"><label>Minimum version</label><input type="text" id="f_commitMinVer" placeholder="e.g. 20-minute home workout" value="' + (existing && existing.minVersion ? existing.minVersion.replace(/"/g,'&quot;') : '') + '"></div>';
@@ -5709,6 +5879,21 @@
       return html;
     }
 
+    // An optional time and duration. Untimed, an action keeps its place in the day's order;
+    // timed, it sits at its time on the timeline.
+    function whenFieldsHtml(){
+      var t = existing ? (actionTime(existing) || '') : (hhmm(opts.time) || '');
+      var dur = existing && existing.durationMin ? String(existing.durationMin) : '';
+      var durs = ['15', '30', '45', '60', '90', '120', '180'];
+      if (dur && durs.indexOf(dur) === -1) durs.push(dur);
+      return '<div class="field-row commit-when">' +
+        '<div class="field"><label>Time</label><input type="time" id="f_commitTime" value="' + t + '"></div>' +
+        fieldSelect('f_commitDuration', 'Duration', [{ value: '', label: 'No duration' }].concat(durs.map(function(d){
+          return { value: d, label: fmtDuration(Number(d)) };
+        })), dur) +
+      '</div>';
+    }
+
     // Matter / Conversation links. Offered only once there is something to link to;
     // a closed record stays selectable when it is already the link.
     var linkMatter = existing ? (existing.matterId || '') : ((opts.links && opts.links.matterId) || '');
@@ -5741,6 +5926,8 @@
         status: isEditing ? statusVal : 'planned',
         disruptionReason: (isEditing && statusVal === 'disrupted') ? (document.getElementById('f_disruptionReason').value || null) : null,
         category: document.getElementById('f_commitCategory').value || null,
+        time: hhmm(document.getElementById('f_commitTime').value),
+        durationMin: Number(document.getElementById('f_commitDuration').value) || null,
         createdAt: existing ? existing.createdAt : new Date().toISOString()
       });
       // links: from the form when it shows them, otherwise whatever the record already had
@@ -7046,7 +7233,7 @@
     return '<div class="bk-row' + (moved ? ' moved' : '') + '" data-bk-row="' + c.id + '">' +
       (opts.check
         ? '<button type="button" class="bk-check' + (moved ? ' done' : '') + '" data-bk-open="' + c.id + '" aria-label="Open action">' + CHECK_SVG + '</button>'
-        : '<span class="bk-ic">' + categoryIcon(c.category) + '</span>') +
+        : capsuleHtml(actionCapColor(c), actionCapIcon(c))) +
       '<button type="button" class="bk-body" data-bk-open="' + c.id + '">' +
         (opts.kicker ? '<span class="bk-kicker">' + categoryLabel(c.category) + '</span>' : '') +
         '<span class="bk-title" data-bk-title="' + c.id + '"></span>' +
@@ -7117,14 +7304,14 @@
 
     wrap.innerHTML =
       '<div class="sec-head">' +
-        '<span class="sec-label">Backlog</span>' +
+        '<span class="sec-label">Inbox</span>' +
         '<span class="sec-rule"></span>' +
         '<span class="sec-value backlog-sec-note">Unfinished from earlier days</span>' +
         '<span class="sec-value">' + items.length + '</span>' +
       '</div>' +
       '<div class="bk-panel bk-compact">' +
         preview.map(function(c){ return backlogRowHtml(c, { compact: true }); }).join('') +
-        '<button type="button" class="bk-more" id="backlogMoreBtn">View all backlog tasks (' + items.length + ')' + UI_ICON.chevronRight + '</button>' +
+        '<button type="button" class="bk-more" id="backlogMoreBtn">Open Inbox (' + items.length + ')' + UI_ICON.chevronRight + '</button>' +
       '</div>';
 
     fillBacklogTitles(wrap, preview);
@@ -7196,7 +7383,7 @@
         '<div class="bk-sheet-head">' +
           '<button class="circ-btn" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button>' +
           '<div class="bk-sheet-center">' +
-            '<div class="sheet-title">Backlog</div>' +
+            '<div class="sheet-title">Inbox</div>' +
             '<div class="sheet-sub">' + (target ? 'Move an unfinished task onto ' + targetLabel + '.' : 'Unfinished tasks from earlier days.') + '</div>' +
           '</div>' +
           '<div class="bk-sheet-quote"><span>Nothing falls through.</span><i></i></div>' +
@@ -7322,7 +7509,7 @@
       '</div></div>' +
       fieldDate('f_pickDay', 'Or choose a date', offsetDate(1)) +
       '<button type="button" class="btn-primary" id="pdConfirmBtn">Move action</button>' +
-      '<button type="button" class="btn-quiet" id="pdCancelBtn">' + (fromBacklog ? 'Leave in backlog' : 'Cancel') + '</button>';
+      '<button type="button" class="btn-quiet" id="pdCancelBtn">' + (fromBacklog ? 'Leave in Inbox' : 'Cancel') + '</button>';
     backdrop.classList.add('open');
     document.getElementById('pdTitle').textContent = c.title;
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
@@ -7354,9 +7541,10 @@
     '3. Reuse/reschedule moved-forward tasks rather than duplicating them.',
     '4. Then process today\'s actions and schedule.',
     '5. Avoid duplicates. Preserve categories and times where specified.',
-    '6. TODAY\'S FLOW is the order Shaun means to work in, not a schedule. Keep that',
-    '   sequence where practical, fit it around real calendar commitments, and never',
-    '   read the numbers as times.',
+    '6. TODAY\'S FLOW is the order Shaun means to work in. A line that starts with a',
+    '   time is fixed at that time; untimed lines are a sequence — keep it where',
+    '   practical, fit it around real calendar commitments, and never read the',
+    '   numbers as times.',
     '7. COMMUNICATIONS ATTENTION is context. Waiting items are not tasks — never create',
     '   a task to "wait". Only Needs-me items, and follow-ups now due, may need a slot.'
   ].join('\n');
@@ -7383,14 +7571,14 @@
     var plan = getPlanForDate(dateStr);
     return dayFlowItems(dateStr).map(function(it, i){
       if (it.kind === 'action'){
-        return (i + 1) + '. ' + it.c.title + handoffCategory(it.c) + (it.c.status === 'completed' ? ' (done)' : '');
+        var at = actionTime(it.c);
+        return (i + 1) + '. ' + (at ? timeRangeLabel(at, it.c.durationMin) + ' ' : '') + it.c.title + handoffCategory(it.c) +
+          (!at && it.c.durationMin ? ' \u2014 ' + it.c.durationMin + ' min' : '') + (it.c.status === 'completed' ? ' (done)' : '');
       }
       var det = (plan && plan.trainingDetails && plan.trainingDetails[it.type]) || {};
-      var bits = [];
-      if (det.durationMin) bits.push(det.durationMin + ' min');
-      if (det.activityTime) bits.push('planned ' + det.activityTime);
-      return (i + 1) + '. ' + TYPE_LABEL[it.type] + ' [Training]' + (bits.length ? ' \u2014 ' + bits.join(', ') : '') +
-        (det.completed ? ' (logged)' : '');
+      var tt = hhmm(det.activityTime);
+      return (i + 1) + '. ' + (tt ? timeRangeLabel(tt, det.durationMin) + ' ' : '') + TYPE_LABEL[it.type] + ' [Training]' +
+        (!tt && det.durationMin ? ' \u2014 ' + det.durationMin + ' min' : '') + (det.completed ? ' (logged)' : '');
     });
   }
   function handoffWantsInstructions(){
@@ -7415,7 +7603,8 @@
       var p = priorities.find(function(x){ return x.id === c.priorityId; });
       if (p) extras.push('priority: ' + p.title);
     }
-    if (c.time) extras.push('time: ' + c.time);
+    if (actionTime(c)) extras.push('time: ' + timeRangeLabel(actionTime(c), c.durationMin));
+    else if (c.durationMin) extras.push('duration: ' + c.durationMin + ' min');
     if (c.status && c.status !== 'planned' && c.status !== 'completed'){
       extras.push(COMMITMENT_STATUS_LABEL[c.status].toLowerCase());
     }
@@ -7553,7 +7742,7 @@
     if (flowLines.length > 1){
       var sentFlow = handoffSentFlow(dateStr);
       L.push(sentFlow != null && sentFlow !== flowLines.join('\n') ? 'FLOW UPDATED' : (dateStr === todayStr() ? 'TODAY\'S FLOW' : 'DAY FLOW'));
-      L.push('Preferred order of work, not a schedule.');
+      L.push('Preferred order of work. Times are fixed where given; the rest is a sequence.');
       flowLines.forEach(function(line){ L.push(line); });
       L.push('');
     }
@@ -8160,7 +8349,7 @@
           '<button type="button" class="mp-backlog" id="mpBacklogBtn">' +
             '<span class="mp-backlog-ic">' + UI_ICON.box + '</span>' +
             '<span class="mp-backlog-text">' + backlogCount + ' unfinished item' + (backlogCount === 1 ? '' : 's') + ' from earlier days</span>' +
-            '<span class="mp-backlog-link">Review backlog</span>' +
+            '<span class="mp-backlog-link">Open Inbox</span>' +
           '</button>' : '') +
         '<button type="button" class="btn-primary mp-save" id="mpSaveBtn">' + (st.completedAt ? 'Update Morning Prime' : 'Save Morning Prime') + '</button>' +
         (st.complete ? '' : '<p class="mp-hint" id="mpHint">' + mpMissingLabel(st) + '</p>') +
@@ -11189,12 +11378,12 @@
 
   function dayActions(dateStr){
     var order = dayActionOrder(dateStr);
-    return commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; })
+    return applyTimeOrder(commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; })
       .sort(function(a, b){
         var ia = order.indexOf(a.id), ib = order.indexOf(b.id);
         if (ia !== ib) return (ia === -1 ? 1e6 : ia) - (ib === -1 ? 1e6 : ib);
         return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1;
-      });
+      }), actionTime);
   }
   function dayRoadblockActions(dateStr){
     return commitments.filter(function(c){ return c.date === dateStr && c.category === 'roadblock'; });
@@ -11315,9 +11504,7 @@
     function rowHtml(c){
       var done = c.status === 'completed';
       return '<div class="dpa-row' + (done ? ' done' : '') + (c.isKeyTask ? ' key' : '') + '">' +
-        (canTick
-          ? '<button type="button" class="commitment-status-dot ' + c.status + '" data-dpa-done="' + c.id + '" aria-label="' + (done ? 'Reopen' : 'Complete') + '"></button>'
-          : '<span class="dpa-cat-ic" aria-hidden="true">' + categoryIcon(c.category) + '</span>') +
+        capsuleHtml(actionCapColor(c), actionCapIcon(c), { done: done }) +
         '<button type="button" class="dpa-body" data-dpa-open="' + c.id + '">' +
           '<span class="dpa-title" data-dpa-title="' + c.id + '"></span>' +
           '<span class="dpa-meta" data-dpa-meta="' + c.id + '"></span>' +
@@ -11326,6 +11513,8 @@
           ' aria-pressed="' + (c.isKeyTask ? 'true' : 'false') + '"' +
           (!c.isKeyTask && atCap ? ' disabled title="Three key tasks already"' : '') +
           ' aria-label="' + (c.isKeyTask ? 'Remove key task' : 'Make key task') + '">' + STAR_SVG + '</button>' +
+        // past and present days can be ticked; a future day's action is intent
+        (canTick ? '<button type="button" class="commitment-status-dot ' + c.status + '" data-dpa-done="' + c.id + '" aria-label="' + (done ? 'Reopen' : 'Complete') + '"></button>' : '') +
       '</div>';
     }
 
@@ -11350,7 +11539,7 @@
     }
     html += '<div class="dpa-add">' +
       '<button type="button" class="dpa-add-btn" data-dpa-add>' + BK_PLUS_SVG + 'Add action</button>' +
-      (backlogN ? '<button type="button" class="dpa-add-btn quiet" data-dpa-backlog>' + UI_ICON.box + 'From backlog (' + backlogN + ')</button>' : '') +
+      (backlogN ? '<button type="button" class="dpa-add-btn quiet" data-dpa-backlog>' + UI_ICON.box + 'From Inbox (' + backlogN + ')</button>' : '') +
     '</div>';
     wrap.innerHTML = html;
 
@@ -11360,7 +11549,11 @@
       if (t) t.textContent = c.title;
       var m = wrap.querySelector('[data-dpa-meta="' + c.id + '"]');
       if (m){
-        var bits = [categoryLabel(c.category)];
+        var bits = [];
+        var at = actionTime(c);
+        if (at) bits.push(timeRangeLabel(at, c.durationMin));
+        else if (c.durationMin) bits.push(fmtDuration(c.durationMin));
+        bits.push(categoryLabel(c.category));
         var pt = priorityTitle(c.priorityId);
         if (pt) bits.push(pt);
         if (matterTitle(c.matterId)) bits.push(matterTitle(c.matterId));

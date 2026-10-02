@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-09-30 (Ledger picker replaces native dropdowns)
+Last updated: 2026-10-02 (Structured-inspired timeline: optional times, capsules, Inbox)
 
 ---
 
@@ -39,11 +39,13 @@ The same page adapts by viewport width; there is no desktop build, route or flag
 ### Today (the main surface)
 - **Overview / Flow** — a two-way switch under Morning Prime and Catch-up (which
   stay visible in both). **Overview** is the editable whole day described below.
-  **Flow** is the day's execution sequence: actions and planned training in the
-  order Shaun means to work through them — a sequence, not a schedule. Numbered,
-  dense rows; tick an action, tap training to log it pre-filled from the plan;
-  drag (pointer-based, touch and mouse) or ⋯ Move up/down; completed items stay in
-  place, muted. Desktop adds a context column (intention, key tasks, next up,
+  **Flow** is the day's timeline (inspired by Structured): actions and planned
+  training on a hairline rail, each as a coloured icon capsule, a tick on the right.
+  Untimed items are a sequence; an item with a time shows it on the left and its
+  capsule grows with its duration. Quiet "free" gaps between timed items and a gold
+  "now" marker sit on the rail. Tap the capsule or text to open; hold an untimed
+  capsule and drag to reorder (mouse: drag straight away; ⋯ Move up/down on hover);
+  completed items stay in place, filled and muted. Desktop adds a context column (intention, key tasks, next up,
   constraints, notes). The mode is a per-device preference (`ledger_today_mode`).
   Once Morning Prime is done, "Start the day in Flow" offers the switch; when the
   evening routine is due, Flow shows "Evening Wind-down ready".
@@ -67,7 +69,8 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   marked in both views with a gold star, gold left edge and a `Key` pill.
 - **Add action** — a `+` in the Actions section header; it opens a panel
   under the list holding Quick add and Detailed add.
-- **Backlog** — unfinished actions from past dates. On Today it is a compact
+- **Inbox** (labelled Backlog until 2026-10-02; the code and Handoff still say
+  backlog) — unfinished actions from past dates. On Today it is a compact
   3-row shelf (category · added date · state on one meta line, icon controls for
   Add to today and Choose a day). The full sheet stays spacious and labelled
   (sort by Group/Date, filter, Add to today, Pick a day).
@@ -289,6 +292,12 @@ Conventions that should not be casually changed.
   are ignored and anything unlisted joins the end. Flow fills its action slots in
   `actionOrder`, and a Flow drag that reorders actions updates `actionOrder`, so
   actions keep one relative order across Ledger.
+- Times are optional: an action may carry `time` ('HH:MM', the field the Handoff
+  already read) and `durationMin`; planned training already has `activityTime` and
+  `durationMin`. Ordering rule, applied everywhere an order is read
+  (`applyTimeOrder`): untimed items keep their positions; the positions held by
+  timed items are filled by those items in time order. So a time never fights the
+  order, and nothing untimed moves. Timed items are not dragged — change the time.
 - Plan readiness: `planReviewedAt` is the only "planned" signal. Editing never sets
   or clears it; only Finish planning / Morning Prime's plan review does.
 - Ledger is one responsive app. Phone uses the bottom nav and bottom sheets;
@@ -341,6 +350,24 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-02 — Optional times; the timeline takes Structured's calm
+**Decision:** Shaun chose, from Structured (the daily planner), optional times,
+a clean timeline with icon capsules, and an Inbox, for Today and Plan. Actions may
+now carry a time and duration; timed items sit at their time, untimed items keep
+their order. Every action row (Today, Plan, Communications, Calendar day) uses one
+anatomy: capsule · title and a meta line (time · state · category · matter) ·
+tick. Backlog is presented as the Inbox.
+**Supersedes:** the 2026-09-30 decision that Flow is "an order, not a schedule"
+and that nothing time-blocks — in part. Untimed items are still a sequence; Ledger
+still never assigns or moves a time on its own.
+**Why:** Shaun wanted Structured's uncluttered, non-distracting timeline, with times
+where he chooses to give them.
+**Implications:** no new collections; two optional fields on actions. The Handoff
+leads timed lines with their time range and instruction 6 explains timed vs
+untimed lines. Overview's Order view no longer numbers rows or shows a grip — the
+capsule is the handle. Not taken: the week strip and per-action colour/icon
+choice (colour comes from the category).
 
 ### 2026-09-30 — One selection control: the Ledger picker
 **Decision:** raw browser-native selects are no longer visible anywhere in
@@ -887,6 +914,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-02) — Structured-inspired pass: optional action times and durations,
+  Flow as a time-aware capsule timeline (now marker, free gaps, hold-to-drag),
+  capsule rows across Today and Plan, Backlog presented as Inbox, Handoff times.
 - (2026-09-30) — Native dropdowns replaced by the reusable Ledger picker across
   actions, Plan (Diet), training forms, Communications, symptoms, priorities
   and Focus.
