@@ -314,6 +314,24 @@ Applied app-wide; check new UI against it.
   obvious control are gone (Actions hint, Communications tagline, Focus hints once
   their lists have content, "Tap to plan").
 
+## 7e. Today section headers and affordances (2026-10-03)
+
+Backlog, Actions, Communications and Health & fitness share one header (`.tsec`):
+title (Inter 600, 15px; Actions 17px) · status or count (Inter 13px, `--text-3`,
+right-aligned, one line) · chevron (15px, `--text-3`) · a reserved 32px extra slot
+(`+` on Actions, share on Health & fitness, empty elsewhere), so every chevron
+sits at the same x. Chevron right opens another surface; chevron down expands in
+place and turns over when open. No text verbs ("Open", "Edit"); no empty-state
+copy under a header. Communications carries at most two attention counts in its
+header (needs you, then follow-ups due, then waiting) so it stays one line on a
+phone; the full set is in its accessible label and in the Centre.
+
+Utility rows (Day notes, Quick log, Recorded activity) stay plain 14px rows with a
+hairline above. Evening Wind-down uses Morning Prime's card and head — mark,
+title, status, chevron — a step quieter: an outline instead of a fill, and a muted
+mark that turns gold when the evening routine is due. It comes after Recorded
+activity, closing the page above "Share day for Claude".
+
 ## 7d. Today type roles (2026-10-03)
 
 | Role | Use | Treatment |

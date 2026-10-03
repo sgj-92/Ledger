@@ -777,7 +777,7 @@
   }
   .section-toggle-label::after { content: ''; flex: 1; }
   /* the day's secondary sections: a short list of quiet rows, each opening in place */
-  #quickLogToggle, #recordedToggle, #wdToggle, .dn-row {
+  #quickLogToggle, #recordedToggle, .dn-row {
     margin-top: 0; min-height: 48px; border-top: 1px solid var(--line);
   }
   .section-toggle-chevron { width: 14px; height: 14px; color: var(--text-3); flex-shrink: 0; transition: transform 0.24s ease; }
@@ -2407,8 +2407,14 @@
   .wd-panel .mp-step-row:last-of-type { border-bottom: none; }
   .wd-note { font-size: 11.5px; color: var(--text-3); margin: 12px 0 0; line-height: 1.5; }
   .wd-close { margin-top: 13px; padding: 13px 14px; font-size: 14.5px; border-radius: var(--r-md); }
-  .section-toggle.wd-due .section-toggle-label { color: var(--gold); }
-  .section-toggle.wd-due .section-toggle-chevron { color: var(--gold); }
+  /* Evening Wind-down: Morning Prime's card, a step quieter — an outline, a muted mark */
+  .wd-card { background: none; border-color: var(--line); margin: var(--sp-5) 0 var(--sp-2); }
+  .wd-card .mp-mark { border-color: var(--line-2); color: var(--text-2); }
+  .wd-card.wd-due { border-color: rgba(var(--gold-rgb),0.3); }
+  .wd-card.wd-due .mp-mark { border-color: rgba(var(--gold-rgb),0.4); color: var(--gold); }
+  .wd-card .wd-body { margin: 0 13px 13px; }
+  .wd-card .wd-body.collapsed { margin-bottom: 0; }
+  .wd-card .wd-panel { background: none; border: none; border-radius: 0; padding: 0 2px; }
   .wd-closed-val { color: rgba(var(--gold-rgb),0.85); }
 
   /* ---- Settings ---- */
@@ -2790,15 +2796,8 @@
   body.in-comms nav.tabbar .tab-btn[data-view="log"] { color: var(--gold); font-weight: 500; }
   body.in-comms nav.tabbar .tab-btn[data-view="log"] .tab-icon { opacity: 1; }
 
-  /* Today's Communications: one line of attention, what needs you leads */
-  .cs-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
-  .cs-stat {
-    padding: 2px 0; cursor: pointer; text-align: left; background: none; border: none;
-    font-family: var(--sans); font-size: 14px; color: var(--text-2);
-  }
-  .cs-stat:active { opacity: 0.6; }
-  .cs-n { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
-  .cs-stat.needs, .cs-stat.needs .cs-n { color: var(--gold); }
+  /* Today's Communications: attention in the header — what needs you leads */
+  .cs-needs { color: var(--gold); }
   .cs-sep { color: var(--text-3); }
 
   /* the Centre: search, a filter, compact rows */
@@ -3001,7 +3000,6 @@
   #view-log .sec-label {
     font-size: 15px; font-weight: 600; letter-spacing: -0.005em; text-transform: none; color: var(--text);
   }
-  #view-log .actions-head .sec-label { font-size: 17px; }
   #view-log .sec-rule { background: none; }
   #view-log .sec-head, #view-log .today-plan-widget-head { margin-top: var(--sp-7); margin-bottom: var(--sp-2); }
   #view-log .sec-link { font-size: 13px; }
@@ -3018,7 +3016,8 @@
   #view-log .icon-btn svg { width: 14px; height: 14px; }
   .actions-summary { margin-top: -2px; }
   /* Backlog leads straight into the day */
-  #view-log #backlogSection:not(:empty) + .actions-head { margin-top: var(--sp-3); }
+  #view-log #backlogSection:not(:empty) + .actions-head { margin-top: 0; }
+  #backlogSection .tsec { margin-top: var(--sp-4); }
   /* done work steps back: a quiet tick, a dimmed capsule */
   .commitment-item.done .commitment-status-dot.completed, .tl-row.done .commitment-status-dot.completed,
   .dpa-row.done .commitment-status-dot.completed { background: none; border-color: var(--line-2); }
@@ -3033,15 +3032,38 @@
   .today-mode button { padding: 5px 15px; font-size: 12px; color: var(--text-3); }
   .today-mode button.sel { background: var(--surface-3); color: var(--text); }
 
-  /* Backlog: a row with a count until it is opened */
-  .bk-toggle {
-    display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; margin-top: var(--sp-4);
-    padding: 0; background: none; border: none; cursor: pointer; text-align: left; font-family: var(--sans);
+  /* ---------- Today section header: one shape everywhere ----------
+     title (left) · status or count (right, muted) · chevron · an optional extra slot.
+     The extra slot is always reserved, so chevrons line up down the page.
+     Chevron right opens another surface; chevron down expands in place. */
+  .tsec { display: flex; align-items: center; gap: 6px; min-height: 46px; margin-top: var(--sp-4); }
+  .tsec-main, .tsec-right {
+    display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0; min-width: 0;
+    background: none; border: none; cursor: pointer; text-align: left; font-family: var(--sans); color: inherit;
   }
-  .bk-toggle-label { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.005em; }
-  .bk-toggle-count { font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
-  .bk-toggle .section-toggle-chevron { margin-left: auto; }
-  .bk-toggle[aria-expanded="true"] .section-toggle-chevron { transform: rotate(180deg); }
+  .tsec-main { flex: 1; }
+  .tsec-right { margin-left: auto; }
+  .tsec-main:active, .tsec-right:active, .tsec-title:active { opacity: 0.6; }
+  .tsec-title {
+    flex-shrink: 0; display: flex; align-items: center; padding: 0; background: none; border: none; cursor: pointer; text-align: left;
+    font-family: var(--sans); font-size: 15px; font-weight: 600; letter-spacing: -0.005em; color: var(--text); min-height: 46px;
+  }
+  .actions-head .tsec-title { font-size: 17px; }
+  .tsec-status {
+    margin-left: auto; min-width: 0; font-size: 13px; color: var(--text-3); text-align: right;
+    font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .tsec-chev { flex-shrink: 0; width: 15px; height: 15px; color: var(--text-3); display: flex; transition: transform 0.22s ease; }
+  .tsec-chev svg { width: 100%; height: 100%; display: block; }
+  .tsec-main[aria-expanded="true"] .tsec-expand { transform: rotate(180deg); }
+  .tsec:has(#actionsToggle[aria-expanded="true"]) .tsec-expand { transform: rotate(180deg); }
+  .tsec-extra { flex: 0 0 32px; display: flex; justify-content: center; align-items: center; }
+  .tsec-extra .sec-add { margin: 0; width: 32px; height: 32px; }
+  /* sections whose content is a summary sit close under their header */
+  #view-log #todayPlanWidget.today-plan-widget { margin: 0; }
+  #view-log #commsSummary .tsec, #view-log #todayPlanWidget .tsec { margin-top: var(--sp-3); }
+  .hf-lines { margin-top: -6px; padding-bottom: var(--sp-2); }
+  .tsec .view-switch { margin-left: 4px; }
   #backlogBody[hidden] { display: none; }
   .bk-all {
     display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 0; padding: 8px 0;
@@ -3241,7 +3263,7 @@
     .today-extra { display: block; grid-area: extra; min-width: 0; }
     .today-main > .actions-head:first-child { margin-top: var(--sp-2); }
     .today-main > #backlogSection:empty + .actions-head { margin-top: var(--sp-2); }
-    .today-main > #backlogSection .bk-toggle { margin-top: 0; }
+    .today-main > #backlogSection .tsec { margin-top: 0; }
     #view-log .today-side .today-plan-widget-head { margin-top: var(--sp-2); }
     .today-side > .today-plan-widget { margin: 0 0 var(--sp-6); }
     .today-side .today-plan-widget-head { margin: var(--sp-2) 0 var(--sp-3); min-height: 32px; }
@@ -3263,6 +3285,9 @@
       font-family: var(--sans); font-size: 12px; font-weight: 500; letter-spacing: 0.01em;
     }
     .sec-add-label { display: inline; }
+    /* in a Today section header the add control is the same icon in the same slot as on a phone */
+    .tsec-extra .sec-add { width: 32px; height: 32px; padding: 0; border-color: transparent; color: var(--text-3); }
+    .tsec-extra .sec-add-label { display: none; }
     .sec-add[aria-expanded="true"] { transform: none; background: rgba(var(--gold-rgb),0.08); }
     .sec-add[aria-expanded="true"] svg { transform: rotate(45deg); }
     .sec-add svg { transition: transform 0.2s ease; }
@@ -3479,18 +3504,18 @@
     <!-- Backlog first: a quick look at unfinished earlier work before the day itself -->
     <div id="backlogSection"></div>
 
-    <div class="sec-head actions-head">
-      <button type="button" class="sec-head-toggle actions-head-toggle" id="actionsToggle" aria-expanded="true" aria-controls="actionsBody">
-        <span class="sec-label">Actions</span>
-        <span class="sec-head-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg></span>
-        <span class="sec-rule"></span>
-      </button>
-      <span class="sec-value" id="actionsCount"></span>
+    <!-- one header shape for every Today section: title · status · chevron · optional extra -->
+    <div class="tsec actions-head">
+      <button type="button" class="tsec-title" id="actionsToggle" aria-expanded="true" aria-controls="actionsBody">Actions</button>
       <div class="view-switch" id="actionsViewSwitch">
         <button type="button" data-view="order">Order</button>
         <button type="button" data-view="groups">Groups</button>
       </div>
-      <button type="button" class="sec-add" id="addActionToggle" aria-expanded="false" aria-controls="addActionBody" aria-label="Add action" title="Add action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg><span class="sec-add-label">Add action</span></button>
+      <button type="button" class="tsec-right" id="actionsToggleRight" tabindex="-1" aria-hidden="true">
+        <span class="tsec-status" id="actionsCount"></span>
+        <span class="tsec-chev tsec-expand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+      </button>
+      <span class="tsec-extra"><button type="button" class="sec-add" id="addActionToggle" aria-expanded="false" aria-controls="addActionBody" aria-label="Add action" title="Add action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg><span class="sec-add-label">Add action</span></button></span>
     </div>
     <div class="actions-summary" id="actionsSummary" hidden></div>
     <div id="actionsBody">
@@ -3564,7 +3589,6 @@
       </button>
     </div>
 
-    <div class="wd-wrap" id="windDownSection"></div>
 
     <button type="button" class="section-toggle" id="recordedToggle" aria-expanded="false" aria-controls="recordedBody">
       <span class="section-toggle-label has-value">Recorded activity</span>
@@ -3575,6 +3599,9 @@
       <div id="todayList"></div>
       <button class="btn-link" id="viewHistoryBtn">View history in Calendar →</button>
     </div>
+    <!-- the day's last ritual closes the page, after the evidence of the day -->
+    <div class="wd-wrap" id="windDownSection"></div>
+
     <button type="button" class="btn-link day-share-link" id="shareDayFootBtn">Share day for Claude →</button>
     <p class="sync-note" id="syncNote"></p>
     </div>
@@ -3755,6 +3782,7 @@
   var STAR_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 3.4l2.55 5.62 6.15.66-4.58 4.13 1.26 6.05L12 16.8l-5.38 3.06 1.26-6.05L3.3 9.68l6.15-.66z"/></svg>';
   var CLOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="6.5" y1="6.5" x2="17.5" y2="17.5"/><line x1="17.5" y1="6.5" x2="6.5" y2="17.5"/></svg>';
   var SHORT_TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance', cardio: 'Cardio', hiit: 'HIIT', yoga: 'Mobility' };
+  var MOON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/></svg>';
   var CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   // Icons for the non-training session types, shown as the same icon-wrap treatment
   // used for training types (Recorded Activity cards, Quick Log tiles).
@@ -5418,7 +5446,7 @@
     list.innerHTML = '';
 
     var countEl = document.getElementById('actionsCount');
-    if (countEl) countEl.textContent = actionable.length ? String(actionable.length) : '';
+    if (countEl) countEl.textContent = String(actionable.length);
 
     // header collapse + the one-line read you get while it's shut
     var toggle = document.getElementById('actionsToggle');
@@ -5437,10 +5465,7 @@
           addBody.classList.add('collapsed');
         }
       }
-      summary.hidden = !actionsCollapsed || !todays.length;
-      summary.textContent = actionable.length
-        ? actionable.length + ' action' + (actionable.length === 1 ? '' : 's') + ' · ' + doneCount + ' complete'
-        : 'Nothing planned yet';
+      summary.hidden = true;   // the count in the header says it
     }
 
     // Order / Groups sits in the header; it only appears when there is something to arrange
@@ -5456,7 +5481,7 @@
     if (!todays.length){
       var e = document.createElement('div');
       e.className = 'empty-state tight';
-      e.textContent = dateStr === todayStr() ? 'Nothing planned yet' : 'No actions recorded';
+      e.textContent = dateStr === todayStr() ? 'No actions yet' : 'No actions recorded';
       list.appendChild(e);
       return;
     }
@@ -6568,20 +6593,27 @@
     if (!wrap) return;
     if (viewedDate !== todayStr()){ wrap.innerHTML = ''; return; }
     var n = commsCounts();
-    var head = '<div class="sec-head"><span class="sec-label">Communications</span><span class="sec-rule"></span>' +
-      '<button type="button" class="sec-link" data-comms-open="">Open' + UI_ICON.arrowRight + '</button></div>';
-    // Today carries attention only — what needs you leads; nothing at all is one quiet line
-    function stat(key, num, one, many){
-      return '<button type="button" class="cs-stat' + (key === 'needs' ? ' needs' : '') + '" data-comms-open="' + key + '">' +
-        '<span class="cs-n">' + num + '</span> ' + (num === 1 ? one : many) + '</button>';
+    // Today carries attention only, in the header itself; with nothing to attend to, the
+    // header stands alone. The row opens the Centre where the attention is.
+    function stat(cls, num, one, many){
+      return '<span class="' + cls + '">' + num + ' ' + (num === 1 ? one : many) + '</span>';
     }
+    // most urgent first; the header carries two at most so it stays one line on a phone
     var parts = [];
-    if (n.needs) parts.push(stat('needs', n.needs, 'needs you', 'need you'));
-    if (n.waiting) parts.push(stat('waiting', n.waiting, 'waiting', 'waiting'));
-    if (n.due) parts.push(stat('follow', n.due, 'follow-up due', 'follow-ups due'));
-    wrap.innerHTML = head + (parts.length
-      ? '<div class="cs-row">' + parts.join('<span class="cs-sep" aria-hidden="true">·</span>') + '</div>'
-      : '<p class="today-quiet">Nothing needs attention</p>');
+    if (n.needs) parts.push(stat('cs-needs', n.needs, 'needs you', 'need you'));
+    if (n.due) parts.push(stat('', n.due, 'due', 'due'));
+    if (n.waiting) parts.push(stat('', n.waiting, 'waiting', 'waiting'));
+    var target = n.needs ? 'needs' : n.due ? 'follow' : n.waiting ? 'waiting' : '';
+    var spoken = parts.join(', ').replace(/<[^>]+>/g, '').replace(/(\d+) due/, '$1 follow-up due');
+    if (parts.length > 2) parts = parts.slice(0, 2);
+    wrap.innerHTML = '<div class="tsec">' +
+      '<button type="button" class="tsec-main" data-comms-open="' + target + '" aria-label="Communications' + (spoken ? ': ' + spoken : '') + '">' +
+        '<span class="tsec-title">Communications</span>' +
+        '<span class="tsec-status">' + parts.join('<span class="cs-sep" aria-hidden="true"> · </span>') + '</span>' +
+        '<span class="tsec-chev">' + UI_ICON.chevronRight + '</span>' +
+      '</button>' +
+      '<span class="tsec-extra"></span>' +
+    '</div>';
     wrap.querySelectorAll('[data-comms-open]').forEach(function(el){
       el.addEventListener('click', function(){ openComms(el.dataset.commsOpen || null); });
     });
@@ -7375,11 +7407,14 @@
 
     // awareness, not takeover: one row with a count until it is opened
     wrap.innerHTML =
-      '<button type="button" class="bk-toggle" id="backlogToggle" aria-expanded="' + (backlogOpen ? 'true' : 'false') + '" aria-controls="backlogBody">' +
-        '<span class="bk-toggle-label">Backlog</span>' +
-        '<span class="bk-toggle-count" title="Unfinished from earlier days">' + items.length + '</span>' +
-        '<span class="section-toggle-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
-      '</button>' +
+      '<div class="tsec">' +
+        '<button type="button" class="tsec-main" id="backlogToggle" aria-expanded="' + (backlogOpen ? 'true' : 'false') + '" aria-controls="backlogBody">' +
+          '<span class="tsec-title">Backlog</span>' +
+          '<span class="tsec-status" title="Unfinished from earlier days">' + items.length + '</span>' +
+          '<span class="tsec-chev tsec-expand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
+        '</button>' +
+        '<span class="tsec-extra"></span>' +
+      '</div>' +
       '<div id="backlogBody"' + (backlogOpen ? '' : ' hidden') + '>' +
         '<div class="bk-panel bk-compact">' +
           preview.map(function(c){ return backlogRowHtml(c, { compact: true }); }).join('') +
@@ -9900,12 +9935,16 @@
       ? 'Closed at ' + mpTimeLabel(st.completedAt)
       : st.done + ' of ' + st.total + ' complete';
 
+    // Morning Prime's evening sibling: the same card and head, a step quieter
     wrap.innerHTML =
-      '<button type="button" class="section-toggle' + (due && !st.completedAt ? ' wd-due' : '') + '"' +
-        ' id="wdToggle" aria-expanded="' + (expanded ? 'true' : 'false') + '" aria-controls="wdBody">' +
-        '<span class="section-toggle-label has-value">Evening Wind-down</span>' +
-        '<span class="section-toggle-value' + (st.completedAt ? ' wd-closed-val' : '') + '">' + value + '</span>' +
-        '<span class="section-toggle-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
+      '<div class="mp-card wd-card' + (st.completedAt ? ' done' : '') + (due && !st.completedAt ? ' wd-due' : '') + '">' +
+      '<button type="button" class="mp-head" id="wdToggle" aria-expanded="' + (expanded ? 'true' : 'false') + '" aria-controls="wdBody">' +
+        '<span class="mp-mark' + (st.completedAt ? ' filled' : '') + '">' + (st.completedAt ? CHECK_SVG : MOON_SVG) + '</span>' +
+        '<span class="mp-head-body">' +
+          '<span class="mp-title">Evening Wind-down</span>' +
+          '<span class="mp-sub">' + value + '</span>' +
+        '</span>' +
+        '<span class="mp-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
       '</button>' +
       '<div class="wd-body' + (expanded ? '' : ' collapsed') + '" id="wdBody">' +
         '<div class="wd-panel">' +
@@ -9919,6 +9958,7 @@
                 : '<p class="wd-note">' + (st.total - st.done) + ' left. Whatever you don\'t finish tonight, ' +
                   'Catch-up will pick up tomorrow.</p>')) +
         '</div>' +
+      '</div>' +
       '</div>';
 
     fillRoutineLabels(wrap, st.items);
@@ -9986,7 +10026,7 @@
     if (recSummary){
       recSummary.textContent = daysSessions.length
         ? daysSessions.map(function(s){ return SHORT_TYPE_LABEL[s.type] || TYPE_LABEL[s.type]; }).join(' · ')
-        : (isToday ? 'Nothing logged yet' : 'Nothing logged');
+        : '';
     }
 
     if (activeSheetRefresh) activeSheetRefresh();
@@ -10053,6 +10093,8 @@
     lsSet(ACTIONS_COLLAPSED_KEY, actionsCollapsed ? '1' : '0');
     renderCommitments();
   });
+  // the count and chevron are part of the same target, for the thumb
+  document.getElementById('actionsToggleRight').addEventListener('click', function(){ document.getElementById('actionsToggle').click(); });
   document.getElementById('actionsViewSwitch').querySelectorAll('[data-view]').forEach(function(btn){
     btn.addEventListener('click', function(){
       actionsViewMode = btn.dataset.view;
@@ -11072,13 +11114,21 @@
     var label = 'Health & fitness';
     var planActionLabel = hasAnyContent ? 'Edit plan' : (isToday ? 'Plan today' : 'Plan this day');
 
-    var html = '<div class="today-plan-widget-head">' +
-      '<span class="sec-label">' + label + '</span>' +
-      '<span class="sec-rule"></span>' +
-      '<button type="button" class="icon-btn" data-role="share"' + idAttr('shareDayBtn') + ' aria-label="Share day">' + UI_ICON.share + '</button>' +
-      '<button type="button" class="sec-link" data-role="plan-edit"' + idAttr('planTodayBtn') + '>' +
-        (opts.primary ? (hasAnyContent ? 'Edit' : 'Plan') : planActionLabel) + UI_ICON.arrowRight + '</button>' +
-    '</div>';
+    var html = opts.primary
+      ? '<div class="tsec">' +
+          '<button type="button" class="tsec-main" data-role="plan-edit" id="planTodayBtn" aria-label="Health & fitness: ' + (hasAnyContent ? 'edit the plan' : 'plan the day') + '">' +
+            '<span class="tsec-title">' + label + '</span>' +
+            '<span class="tsec-status"></span>' +
+            '<span class="tsec-chev">' + UI_ICON.chevronRight + '</span>' +
+          '</button>' +
+          '<span class="tsec-extra"><button type="button" class="icon-btn" data-role="share" id="shareDayBtn" aria-label="Share day">' + UI_ICON.share + '</button></span>' +
+        '</div>'
+      : '<div class="today-plan-widget-head">' +
+          '<span class="sec-label">' + label + '</span>' +
+          '<span class="sec-rule"></span>' +
+          '<button type="button" class="icon-btn" data-role="share"' + idAttr('shareDayBtn') + ' aria-label="Share day">' + UI_ICON.share + '</button>' +
+          '<button type="button" class="sec-link" data-role="plan-edit"' + idAttr('planTodayBtn') + '>' + planActionLabel + UI_ICON.arrowRight + '</button>' +
+        '</div>';
 
     if (opts.primary){
       // Today summarises: a line or two, each opening the same place its card did
@@ -11103,7 +11153,8 @@
         var mealsEaten = meals.filter(function(m){ return m.completed; }).length;
         food.push(plural(meals.length, 'meal') + (mealsEaten ? ' (' + mealsEaten + ' eaten)' : ''));
       }
-      if (plan && plan.carbLevel) food.push(CARB_LEVEL_LABEL[plan.carbLevel]);
+      // "Normal" alone means nothing; the diet always says what it is
+      if (plan && plan.carbLevel) food.push(plan.carbLevel === 'normal' ? 'Normal diet' : CARB_LEVEL_LABEL[plan.carbLevel]);
       if (plan && plan.fasting) food.push('Fasting');
       if (food.length){
         lines.push('<button type="button" class="hf-line" ' + (meals.length ? 'data-meals-open="1"' : 'data-plan-edit="1"') + '>' + food.join(' · ') + '</button>');
@@ -11112,7 +11163,7 @@
         lines.push('<button type="button" class="hf-line rb" data-role="rb-card" id="planRoadblockCard">' + UI_ICON.mountain +
           '<span class="hf-rb-text clamped" data-role="rb-text" id="planRoadblockText"></span></button>');
       }
-      html += lines.length ? '<div class="hf-lines">' + lines.join('') + '</div>' : '<p class="today-quiet">Nothing planned</p>';
+      if (lines.length) html += '<div class="hf-lines">' + lines.join('') + '</div>';   // empty: the header alone
     } else if (cards.length){
       html += '<div class="plan-cards">' + cards.join('') + '</div>';
     } else {

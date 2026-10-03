@@ -779,6 +779,26 @@ while still keeping them in control.
 
 Ledger's intelligence should appear through reduced friction, not added complexity.
 
+## 41. Section interaction language (added 2026-10-03)
+
+One icon, one meaning, everywhere:
+
+- `>` (chevron right) — opens another surface: a sheet, a detail, another view.
+- `˅` (chevron down) — expands or collapses in place.
+- `+` — adds or creates something.
+- Share icon — shares or exports.
+
+Do not add text verbs such as "Open", "Edit" or "View" where the icon and its
+position already say what happens. A section header is: title on the left;
+status or count (muted) on the right; then the chevron; then an optional extra
+control (add, share) in a reserved slot, so chevrons line up down the page.
+
+Empty sections generally collapse to their header. Do not write explanatory
+empty-state copy ("Nothing needs attention", "Nothing planned") just to fill the
+space — the absence of a summary already says it. A very small muted line is
+acceptable only where a section has been opened and the user expects content
+("No actions yet").
+
 ## Definition of Done — 2026 Standard
 
 A Ledger feature is not complete merely because it works.

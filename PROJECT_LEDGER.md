@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-03 (Today hierarchy; Backlog restored, above Actions)
+Last updated: 2026-10-03 (Today section headers unified; Wind-down closes the day)
 
 ---
 
@@ -55,7 +55,8 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   supplements, water, stretch). Header reads `Plan ✓ · Move 3/5`, and collapses
   to "Completed at HH:MM" once both are complete. Stored as `plan.morningPrime`;
   manual ticks in `plan.morningPrime.checks[section]`.
-- **Evening Wind-down** — a compact collapsible section that closes today while
+- **Evening Wind-down** — Morning Prime's quieter sibling card (moon mark, title,
+  progress, chevron) at the foot of Today, after Recorded activity. It closes today while
   it is still today: finish food log, review food/day status, review suspected
   gluten exposure, accountability check-in, review tomorrow. Most items derive
   their state from real records. Closing writes `windDown.completedAt` and
@@ -354,6 +355,21 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-03 — One section language on Today; Wind-down closes the day
+**Decision:** Today's sections share one header — title, muted status/count,
+chevron, reserved extra slot — and one icon language: `>` opens another surface,
+`˅` expands in place, `+` adds, share shares; no "Open"/"Edit"/"View" text. Empty
+sections collapse to their header (no "Nothing needs attention", "Nothing planned",
+"Nothing logged yet"). Evening Wind-down moves below Recorded activity and becomes
+a quieter sibling of the Morning Prime card. Recorded in UX_PLAYBOOK §41 and
+DESIGN_SYSTEM §7e.
+**Why:** headers mixed verbs, arrows and chevrons, and empty sections spent space
+saying they were empty.
+**Implications:** Today order: Morning Prime, Overview/Flow, Backlog, Actions,
+Communications, Health & fitness, Day notes, Quick log, Recorded activity, Evening
+Wind-down, Share day for Claude. Health & fitness never shows a bare diet word
+("Normal diet", "3 meals · Normal diet · Fasting"). No data or behaviour changed.
 
 ### 2026-10-03 — Backlog is Backlog; Inbox is reserved; Today has one hierarchy
 **Decision:** the Today section briefly called Inbox is Backlog again: Actions
@@ -951,6 +967,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-03) — Today section consistency: shared headers and icon language, no
+  filler empty states, diet summary fixed, Wind-down below Recorded activity as
+  Morning Prime's quieter sibling.
 - (2026-10-03) — Today hierarchy pass: type roles, headings without rules,
   quiet empty states, summary-only Communications and Health & fitness; Backlog
   renamed back from Inbox, moved above Actions, collapsed by default.
