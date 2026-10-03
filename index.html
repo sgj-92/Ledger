@@ -212,7 +212,7 @@
   .sec-link {
     background: none; border: none; padding: 0; cursor: pointer;
     font-family: var(--sans); font-size: 12.5px; font-weight: 500;
-    color: var(--gold); display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text-2); display: inline-flex; align-items: center; gap: 6px;
     letter-spacing: 0.01em;
   }
   .sec-link svg { width: 12px; height: 12px; display: block; }
@@ -404,15 +404,16 @@
   .commitment-group-title:first-child { margin-top: 0; }
   .commitment-group-title.roadblock { color: rgba(var(--danger-rgb),0.85); }
 
+  /* a list row, not a card: a hairline between rows, the capsule and the tick at the edges */
   .commitment-item {
     display: flex; align-items: center; gap: 12px;
-    padding: 11px 13px; background: var(--surface);
-    border: 1px solid var(--line); border-radius: 13px; margin-bottom: 6px;
+    padding: 11px 2px; background: none;
+    border: none; border-bottom: 1px solid var(--line); border-radius: 0;
     cursor: pointer; transition: background 0.12s ease;
   }
-  .commitment-item:last-child { margin-bottom: 0; }
-  .commitment-item:active { background: var(--surface-2); }
-  .commitment-item.roadblock { box-shadow: inset 2px 0 0 rgba(var(--danger-rgb),0.5); }
+  .commitment-item:last-child { border-bottom: none; }
+  .commitment-item:active { background: var(--surface); }
+  .commitment-item.done .commitment-body { opacity: 0.6; }
   .commitment-status-dot {
     width: 21px; height: 21px; flex-shrink: 0; border-radius: 50%;
     border: 1.5px solid var(--line-2); background: none;
@@ -457,8 +458,7 @@
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
   }
   .cap svg { width: 15px; height: 15px; display: block; }
-  .commitment-item, .bk-row { --cap-base: var(--surface); }
-  .dpa-row { --cap-base: var(--surface-2); }
+  .commitment-item, .bk-row, .dpa-row { --cap-base: transparent; }
   .cap.done { background: var(--cap, var(--gold)); border-color: var(--cap, var(--gold)); color: var(--surface); }
   .cap.done svg { width: 14px; height: 14px; }
   .cap[data-drag-handle] { cursor: grab; touch-action: none; }
@@ -511,16 +511,15 @@
     flex: 1; min-width: 0; font-size: 11.5px; color: var(--text-3);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .view-switch {
-    flex-shrink: 0; display: flex; gap: 3px; padding: 3px;
-    background: var(--surface-2); border: 1px solid var(--line); border-radius: 100px;
-  }
+  /* two words, the chosen one lit — no pill */
+  .view-switch { flex-shrink: 0; display: flex; gap: 2px; }
+  .view-switch[hidden] { display: none; }
   .view-switch button {
-    padding: 6px 13px; border: none; border-radius: 100px; background: none;
-    font-family: var(--sans); font-size: 11.5px; font-weight: 500; color: var(--text-3);
-    cursor: pointer; transition: background 0.16s ease, color 0.16s ease;
+    padding: 6px 7px; border: none; background: none;
+    font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text-3);
+    cursor: pointer; transition: color 0.16s ease;
   }
-  .view-switch button.sel { background: var(--gold); color: var(--ink); }
+  .view-switch button.sel { color: var(--text); }
 
   .ord-num {
     flex-shrink: 0; width: 21px; height: 21px; border-radius: 50%;
@@ -541,9 +540,8 @@
   .sort-list { position: relative; }
   .commitment-item.sortable { touch-action: pan-y; }
   .commitment-item.dragging {
-    position: relative; z-index: 4;
-    border-color: rgba(var(--gold-rgb),0.45);
-    box-shadow: var(--shadow-lift), inset 3px 0 0 var(--gold);
+    position: relative; z-index: 4; background: var(--surface); border-radius: 12px;
+    border-bottom-color: transparent; box-shadow: var(--shadow-lift);
     transition: none;
   }
   .sort-list.sorting .commitment-item:not(.dragging) { transition: transform 0.18s ease; }
@@ -618,35 +616,37 @@
   .meal-dot.done::after { opacity: 1; }
   .plan-empty-prompt { margin: 0; }
 
-  /* ---- today's plan: two columns of contained cards ---- */
-  .plan-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; }
+  /* ---- the day's health & fitness: a short list, one line per thing ---- */
+  .plan-cards { display: flex; flex-direction: column; }
   .plan-cards > * { min-width: 0; }
   .plan-card {
     display: flex; align-items: flex-start; gap: 12px; width: 100%;
-    padding: 14px 13px; text-align: left;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 10px 2px; text-align: left;
+    background: none; border: none; border-bottom: 1px solid var(--line); border-radius: 0;
     font-family: var(--sans); cursor: pointer;
     transition: background 0.12s ease;
   }
-  .plan-card:active { background: var(--surface-2); }
-  .plan-card.done { border-color: rgba(var(--gold-rgb),0.28); }
+  .plan-cards > .plan-card:last-child { border-bottom: none; }
+  .plan-card:active { background: var(--surface); }
   /* compact in the grid as the comp shows; tapping gives it the full width so the
      note is always readable rather than clipped into a half-width column */
   .roadblock-card.expanded { grid-column: 1 / -1; }
-  .plan-card-ic { flex-shrink: 0; color: var(--text-2); display: flex; margin-top: 1px; }
-  .plan-card-ic svg { width: 21px; height: 21px; display: block; }
-  .plan-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .plan-card-ic { flex-shrink: 0; color: var(--text-3); display: flex; margin-top: 2px; }
+  .plan-card-ic svg { width: 17px; height: 17px; display: block; }
+  /* label then value on one line — the label is a column, the value carries the meaning */
+  .plan-card-body { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; }
   .plan-card-title {
-    font-family: var(--serif); font-size: 16.5px; font-weight: 400; color: var(--text);
-    line-height: 1.2; letter-spacing: -0.005em;
+    flex: 0 0 84px; font-family: var(--sans); font-size: 12.5px; font-weight: 400; color: var(--text-3);
+    line-height: 1.5;
   }
-  .plan-card-sub { font-size: 12.5px; color: var(--text-2); line-height: 1.5; overflow-wrap: anywhere; }
+  .plan-card-sub { flex: 1 1 160px; min-width: 0; font-size: 14px; color: var(--text); line-height: 1.5; overflow-wrap: anywhere; }
   .plan-card-sub.clamped { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .plan-card-sub .tick { display: inline-flex; width: 11px; height: 11px; color: var(--gold); margin-right: 5px; vertical-align: -1px; }
   .plan-card-sub .tick svg { width: 100%; height: 100%; display: block; }
   .plan-card .chev { align-self: flex-start; margin-top: 2px; }
   .plan-card .chev.flip { transform: rotate(90deg); }
-  .plan-card.done .plan-card-sub { color: var(--text-3); }
+  .plan-card.done .plan-card-sub { color: var(--text-2); }
+  .plan-card .chev { opacity: 0.6; }
 
   /* meals: one card, a head row and a divided list of named meals */
   .meals-card { flex-direction: column; gap: 0; padding: 0; cursor: default; }
@@ -775,10 +775,13 @@
   .section-toggle:active { opacity: 0.65; }
   .section-toggle-label {
     display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;
-    font-size: 10.5px; font-weight: 500; color: var(--text-3);
-    text-transform: uppercase; letter-spacing: 0.2em;
+    font-size: 14px; font-weight: 400; color: var(--text-2);
   }
-  .section-toggle-label::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .section-toggle-label::after { content: ''; flex: 1; }
+  /* the day's secondary sections: a short list of quiet rows, each opening in place */
+  #quickLogToggle, #recordedToggle, #wdToggle, .dn-row {
+    margin-top: 0; min-height: 48px; border-top: 1px solid var(--line);
+  }
   .section-toggle-chevron { width: 14px; height: 14px; color: var(--text-3); flex-shrink: 0; transition: transform 0.24s ease; }
   .section-toggle-chevron svg { width: 100%; height: 100%; display: block; }
   .section-toggle[aria-expanded="true"] .section-toggle-chevron { transform: rotate(180deg); }
@@ -867,7 +870,7 @@
   .pday-date { flex-shrink: 0; width: 64px; }
   .pday-dow { font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.16em; color: var(--text-3); }
   .pday-num { font-size: 13px; color: var(--text-2); margin-top: 3px; letter-spacing: 0.01em; }
-  .pday-sep { width: 1px; align-self: stretch; background: var(--line); flex-shrink: 0; }
+  .pday-sep { display: none; }
   .pday-icon {
     flex-shrink: 0; width: 34px; height: 34px; border-radius: 17px; display: flex; align-items: center; justify-content: center;
     color: var(--gold); background: rgba(var(--gold-rgb),0.1); border: 1px solid rgba(var(--gold-rgb),0.22);
@@ -875,34 +878,27 @@
   .pday-icon svg { width: 16px; height: 16px; display: block; }
   .pday-body { flex: 1; min-width: 0; }
   .pday-title { font-family: var(--serif); font-size: 17px; font-weight: 400; color: var(--text); letter-spacing: -0.005em; }
-  .pday-title.muted { color: var(--text-2); font-style: italic; }
+  .pday-title.muted { color: var(--text-3); font-style: italic; font-size: 15px; }
+  /* an open day is quiet: no icon, no prompt — the row itself is the way in */
+  .plan-day-row.empty .pday-icon { visibility: hidden; }
+  .plan-day-row.empty { padding-top: 11px; padding-bottom: 11px; }
   .pday-sub { font-size: 12.5px; color: var(--text-2); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .plan-day-row.today {
-    background: var(--surface); border: 1px solid var(--line-2);
-    border-radius: var(--r-lg); padding: 16px 15px; margin: 10px 0;
-    flex-wrap: wrap; box-shadow: var(--shadow-card);
-  }
+  /* today is marked by its gold date, not by a card */
+  .plan-day-row.today { flex-wrap: wrap; }
   .plan-day-row.today .pday-sub { white-space: normal; overflow: visible; }
   .plan-day-row.today .pday-dow, .plan-day-row.today .pday-num { color: var(--gold); }
   .plan-day-row.today .pday-num { font-weight: 500; }
+  /* today's shortcuts: one quiet line of icon + word, aligned with the summary */
   .pday-strip {
-    display: flex; align-items: stretch; width: 100%;
-    margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--line);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; width: 100%;
+    margin-top: 8px; padding-left: 126px;
   }
-  .pstrip-item {
-    flex: 1; min-width: 0; display: flex; flex-direction: column;
-    align-items: center; gap: 7px; padding: 0 3px; text-align: center;
-    border-right: 1px solid var(--line);
-  }
-  .pstrip-item:last-child { border-right: none; }
-  .pstrip-icon { color: var(--text-2); display: flex; align-items: center; justify-content: center; height: 22px; }
-  .pstrip-icon svg { width: 19px; height: 19px; display: block; }
+  .pstrip-item { min-width: 0; display: inline-flex; align-items: center; gap: 6px; }
+  .pstrip-icon { color: var(--text-3); display: flex; align-items: center; }
+  .pstrip-icon svg { width: 13px; height: 13px; display: block; }
   .pstrip-icon.done { color: var(--gold); }
-  .pstrip-label { font-size: 9.5px; color: var(--text-2); line-height: 1.35; letter-spacing: 0.01em; }
-  .pstrip-item.rb .pstrip-label {
-    background: var(--surface-2); border-radius: 6px; padding: 4px 6px;
-    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
+  .pstrip-label { font-size: 12px; color: var(--text-2); line-height: 1.35; }
+  .pstrip-item.rb .pstrip-label { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .plan-empty-row { color: var(--text-3); font-family: var(--serif); font-style: italic; font-size: 14.5px; }
 
   /* grouped panel (meal ideas, form groups) */
@@ -985,23 +981,21 @@
   .cal-day-section-title:first-child { margin-top: 0; }
   .cal-day-outcome { font-size: 13px; color: var(--text-2); }
   .cal-day-outcome strong { color: var(--text); font-weight: 500; }
-  .cal-summary {
-    border: 1px solid var(--line); border-radius: var(--r-lg);
-    background: var(--surface); padding: 17px 18px; margin-bottom: var(--sp-6);
-    display: flex; gap: 20px;
-  }
-  .cal-day-log-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: var(--sp-3); }
+  /* the month's two numbers, set on the page — the grid is the subject here */
+  .cal-summary { padding: 0 2px; margin-bottom: var(--sp-5); display: flex; gap: 28px; }
+  /* logging for a day: a wrap of light chips rather than a grid of tiles */
+  .cal-day-log-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--sp-3); }
   .cal-day-log-btn {
-    display: flex; flex-direction: column; align-items: center; gap: 7px;
-    padding: 12px 4px; border-radius: var(--r-sm);
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 12px; border-radius: 100px;
     border: 1px solid var(--line); background: none; cursor: pointer;
-    font-family: var(--sans); font-size: 10px; font-weight: 500; color: var(--text-2);
+    font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text-2);
   }
   .cal-day-log-btn:active { background: var(--surface-2); }
-  .cal-day-log-btn .dot { width: 14px; height: 14px; border-radius: 5px; }
+  .cal-day-log-btn .dot { width: 6px; height: 6px; border-radius: 50%; }
 
   /* ---------- Progress ---------- */
-  #statsCards { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); padding: 0 17px; }
+  #statsCards { padding: 0 2px; }
   .stat-card {
     background: none; border: none; border-radius: 0;
     border-bottom: 1px solid var(--line); padding: 19px 0; margin: 0;
@@ -1010,10 +1004,14 @@
   .stat-card-clickable { border-radius: 0; }
   .stat-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: var(--sp-4); }
   .stat-card-head .dot { width: 6px; height: 6px; }
-  .stat-card-head .name {
-    font-size: 10.5px; font-weight: 500; text-transform: uppercase;
-    letter-spacing: 0.2em; color: var(--text-3);
-  }
+  .stat-card-head .name { font-size: 14px; font-weight: 400; color: var(--text-2); }
+  /* one primary number per group; the rest are supporting detail */
+  .stat-num + .stat-num .val { font-size: 19px; color: var(--text-2); padding-top: 9px; }
+  .stat-card.quiet { padding: 13px 0; }
+  .stat-card.quiet .stat-card-head { margin-bottom: 0; }
+  .stat-card.quiet .name { color: var(--text-3); }
+  .stat-card-none { margin-left: auto; font-size: 12.5px; color: var(--text-3); }
+  .stat-card-none + .stat-card-chevron { margin-left: 8px; }
   .stat-card-clickable { cursor: pointer; transition: opacity 0.12s ease; }
   .stat-card-clickable:active { opacity: 0.65; }
   .stat-card-chevron { margin-left: auto; color: var(--text-3); display: flex; }
@@ -1089,6 +1087,8 @@
   .focus-note { font-family: var(--sans); font-size: 12.5px; color: var(--text-2); margin-top: 4px; line-height: 1.45; }
   .focus-item { align-items: center; }
   .section-hint { font-size: 12px; color: var(--text-3); margin: calc(-1 * var(--sp-2)) 0 var(--sp-2); line-height: 1.45; }
+  /* the explanation is for an empty list; once there is something in it, it goes */
+  .section-hint:has(+ div > :not(.empty-state)) { display: none; }
   .prio-signal { display: flex; align-items: baseline; gap: 7px; font-size: 12.5px; color: var(--text); margin-top: 7px; line-height: 1.4; font-variant-numeric: tabular-nums; }
   .prio-signal .dot { width: 5px; height: 5px; background: var(--gold); transform: translateY(-1px); }
   .prio-signal.quiet { color: var(--text-2); }
@@ -1148,17 +1148,13 @@
     font-size: 12.5px; color: var(--text-2); line-height: 1.45; margin: 2px 0 0;
   }
   .cu-resolved .cu-ev-tick { flex-shrink: 0; }
-  .catchup-banner.cu-banner-done {
-    display: flex; align-items: center; gap: 9px;
-    color: var(--text-2); border-color: rgba(var(--gold-rgb),0.24);
-  }
+  .catchup-banner.cu-banner-done { display: flex; align-items: center; gap: 9px; color: var(--text-3); }
   .cu-banner-tick { flex-shrink: 0; width: 15px; height: 15px; color: var(--gold); display: flex; }
   .cu-banner-tick svg { width: 100%; height: 100%; display: block; }
 
   .catchup-banner {
-    border: 1px solid var(--line); border-radius: var(--r-md);
-    background: var(--surface); padding: 14px 15px; margin-bottom: var(--sp-5);
-    font-size: 13.5px; color: var(--text); cursor: pointer;
+    padding: 2px 0; margin-bottom: var(--sp-4);
+    font-size: 13px; color: var(--text-2); cursor: pointer;
   }
   .catchup-day-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -1915,11 +1911,12 @@
   /* ============ Morning Prime ============
      A daily setup ritual: useful before completion, quiet after it. */
   .mp-card {
-    background: var(--surface); border: 1px solid var(--line);
+    background: var(--surface); border: 1px solid transparent;
     border-radius: var(--r-lg); overflow: hidden; margin-bottom: var(--sp-2);
-    transition: border-color 0.18s ease;
+    transition: border-color 0.18s ease, background 0.18s ease;
   }
-  .mp-card.done { border-color: rgba(var(--gold-rgb),0.22); background: rgba(var(--gold-rgb),0.025); }
+  /* done, the ritual steps back to a single quiet line */
+  .mp-card.done { background: none; border-color: var(--line); }
   .mp-head {
     display: flex; align-items: center; gap: 12px; width: 100%;
     padding: 11px 13px; background: none; border: none; text-align: left;
@@ -2134,15 +2131,7 @@
   /* key tasks read as the day's spine — a whisper of gold, not a badge */
   /* A key task keeps its group and its shape — it gains a gold edge, a small star in
      the gutter and a Key pill, and keeps all three once completed. */
-  .commitment-item.key-task {
-    box-shadow: inset 3px 0 0 var(--gold);
-    border-color: rgba(var(--gold-rgb),0.34);
-    background: linear-gradient(90deg, rgba(var(--gold-rgb),0.055), rgba(var(--gold-rgb),0) 42%), var(--surface);
-    padding-left: 9px;
-  }
-  .commitment-item.key-task:active {
-    background: linear-gradient(90deg, rgba(var(--gold-rgb),0.09), rgba(var(--gold-rgb),0) 42%), var(--surface-2);
-  }
+  /* a key task is marked by its star alone — gold is for importance, used once */
   .key-star {
     display: inline-flex; width: 11px; height: 11px; margin-right: 6px; vertical-align: 0;
     color: var(--gold);
@@ -2154,16 +2143,16 @@
     border: 1px solid rgba(var(--gold-rgb),0.42); border-radius: 100px;
     padding: 4px 8px; line-height: 1;
   }
-  /* completion dims the task, never its standing as one of the three */
-  .commitment-item.key-task .commitment-title.completed { color: var(--text-2); }
 
   /* ============ Backlog ============
      A recovery layer for unfinished history — never a second task list.
      Nothing returns to an active day unless it is pulled forward by hand. */
-  .bk-panel {
-    background: var(--surface); border: 1px solid var(--line);
-    border-radius: var(--r-lg); overflow: hidden;
-  }
+  .bk-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+  /* on Today the shelf is just rows — no panel, no boxed buttons */
+  .bk-panel.bk-compact { background: none; border: none; border-radius: 0; }
+  .bk-compact .bk-row { padding-left: 2px; padding-right: 0; }
+  .bk-compact .bk-btn { border-color: transparent; color: var(--text-2); }
+  .bk-compact .bk-btn.gold { border-color: transparent; }
   .bk-row {
     display: flex; align-items: center; gap: 11px;
     padding: 12px 13px; border-bottom: 1px solid var(--line);
@@ -2385,11 +2374,8 @@
     min-height: 34px; text-align: left;
   }
   .dn-row:active { opacity: 0.65; }
-  .dn-label {
-    font-size: 10.5px; font-weight: 500; color: var(--text-3);
-    text-transform: uppercase; letter-spacing: 0.2em; white-space: nowrap;
-  }
-  .dn-rule { flex: 1; height: 1px; background: var(--line); min-width: 10px; }
+  .dn-label { font-size: 14px; font-weight: 400; color: var(--text-2); white-space: nowrap; }
+  .dn-rule { flex: 1; min-width: 10px; }
   .dn-value {
     font-family: var(--serif); font-size: 13.5px; color: var(--text-2);
     max-width: 58%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -2486,11 +2472,11 @@
 
   /* ---------- Today: Overview / Flow ---------- */
   .today-mode {
-    display: flex; gap: 3px; padding: 3px; margin: var(--sp-5) 0 var(--sp-1);
+    display: flex; width: max-content; gap: 2px; padding: 3px; margin: var(--sp-5) 0 var(--sp-1);
     background: var(--surface-2); border: 1px solid var(--line); border-radius: 100px;
   }
   .today-mode button {
-    flex: 1; padding: 8px 12px; border: none; border-radius: 100px; background: none; cursor: pointer;
+    flex: 1; padding: 6px 18px; border: none; border-radius: 100px; background: none; cursor: pointer;
     font-family: var(--sans); font-size: 12.5px; font-weight: 500; letter-spacing: 0.02em; color: var(--text-3);
     transition: background 0.16s ease, color 0.16s ease;
   }
@@ -2586,13 +2572,13 @@
   /* plan readiness: quiet labels, one restrained success mark */
   .readiness {
     display: inline-flex; align-items: center; gap: 4px;
-    font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em;
+    font-size: 11px; font-weight: 400; letter-spacing: 0.01em;
     color: var(--text-3); white-space: nowrap;
   }
   .readiness svg { width: 9px; height: 9px; display: block; }
   .readiness.planned { color: var(--gold); }
   .readiness.draft { color: var(--text-2); }
-  .readiness.unplanned { opacity: 0.7; }
+  .readiness.unplanned { opacity: 0.6; }
   .readiness-detail { font-size: 12px; color: var(--text-3); margin-left: 8px; font-style: normal; font-family: var(--sans); }
   .pday-state { margin-top: 6px; }
   .dp-readiness { display: inline-flex; align-items: center; font-style: normal; }
@@ -2647,10 +2633,11 @@
   .dpa-group.key { color: var(--gold); }
   .dpa-group-n { margin-left: auto; letter-spacing: 0.06em; text-transform: none; font-size: 11px; color: var(--text-3); }
   .dpa-row {
-    display: flex; align-items: center; gap: 11px; padding: 8px 10px 8px 11px; margin-bottom: 5px;
-    background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px;
+    display: flex; align-items: center; gap: 11px; padding: 9px 2px;
+    border-bottom: 1px solid var(--line);
   }
-  .dpa-row.key { border-color: rgba(var(--gold-rgb),0.35); }
+  .dpa-row:last-of-type, .dpa-row:has(+ .dpa-group), .dpa-row:has(+ .dpa-add), .dpa-row:has(+ .dp-quiet) { border-bottom: none; }
+  .dpa-row.done .dpa-body { opacity: 0.6; }
   .dpa-row .commitment-status-dot { width: 19px; height: 19px; }
   .dpa-row .cap { width: 30px; height: 30px; border-radius: 15px; }
   .dpa-row .cap svg { width: 14px; height: 14px; }
@@ -2807,28 +2794,25 @@
   body.in-comms nav.tabbar .tab-btn[data-view="log"] .tab-icon { opacity: 1; }
 
   /* Today's summary: three numbers, each a way in */
-  .cs-row { display: flex; gap: 8px; }
+  /* one line of numbers: what needs you leads, the rest recedes */
+  .cs-row { display: flex; flex-wrap: wrap; column-gap: 20px; row-gap: 4px; }
   .cs-stat {
-    flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
-    padding: 11px 13px 10px; border-radius: var(--r-md); cursor: pointer; text-align: left;
-    background: var(--surface); border: 1px solid var(--line); color: var(--text-3);
-    font-family: var(--sans); transition: border-color 0.14s ease, background 0.14s ease;
+    display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 0; cursor: pointer; text-align: left;
+    background: none; border: none; color: var(--text-3); font-family: var(--sans);
   }
-  .cs-stat:active { background: var(--surface-2); }
-  .cs-n { font-family: var(--serif); font-size: 22px; line-height: 1; color: var(--text-3); font-variant-numeric: tabular-nums; }
-  .cs-l { font-size: 11px; line-height: 1.3; letter-spacing: 0.01em; }
+  .cs-stat:active { opacity: 0.6; }
+  .cs-n { font-family: var(--serif); font-size: 20px; line-height: 1; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .cs-l { font-size: 12.5px; line-height: 1.3; }
   .cs-stat.on .cs-n { color: var(--text); }
   .cs-stat.on .cs-l { color: var(--text-2); }
-  .cs-stat.needs { border-color: rgba(var(--gold-rgb),0.3); }
   .cs-stat.needs .cs-n { color: var(--gold); }
   .cs-empty {
-    display: block; width: 100%; padding: 12px 14px; border-radius: var(--r-md); cursor: pointer; text-align: left;
-    background: none; border: 1px dashed var(--line-2); color: var(--text-3);
+    display: block; width: 100%; padding: 2px 0; cursor: pointer; text-align: left;
+    background: none; border: none; color: var(--text-3);
     font-family: var(--sans); font-size: 12.5px; line-height: 1.5;
   }
 
   /* the Centre: search, a filter, compact rows */
-  .comms-intro { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--text-2); margin: var(--sp-2) 0 var(--sp-4); }
   .comms-search {
     display: flex; align-items: center; gap: 10px; margin-bottom: var(--sp-3);
     background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 13px;
@@ -2857,13 +2841,14 @@
   .comms-pane:empty { display: none; }
   .comms-empty { font-size: 13px; line-height: 1.5; color: var(--text-3); padding: 14px 2px; }
 
+  /* rows on the page: a hairline between them, the selected one softly lit */
   .cv-row, .mt-row {
-    display: flex; align-items: center; gap: 11px; width: 100%; margin-bottom: 4px; padding: 10px 12px;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    display: flex; align-items: center; gap: 11px; width: 100%; padding: 11px 8px;
+    background: none; border: none; border-bottom: 1px solid var(--line); border-radius: 0;
     cursor: pointer; text-align: left; font-family: var(--sans); color: var(--text);
   }
-  .cv-row:active, .mt-row:active { background: var(--surface-2); }
-  .cv-row.sel, .mt-row.sel { background: rgba(var(--gold-rgb),0.05); border-color: rgba(var(--gold-rgb),0.3); }
+  .cv-row:active, .mt-row:active { background: var(--surface); }
+  .cv-row.sel, .mt-row.sel { background: rgba(var(--gold-rgb),0.06); border-radius: 10px; border-bottom-color: transparent; }
   .cv-mark { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--att, var(--text-3)); }
   .st-no_action .cv-mark, .st-closed .cv-mark { background: none; border: 1.5px solid var(--text-3); width: 6px; height: 6px; }
   .cv-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -2880,12 +2865,13 @@
   .cv-when:empty { display: none; }
   .cv-row.st-closed .cv-title, .mt-row.st-closed .mt-title { color: var(--text-3); }
 
-  .mt-row { flex-direction: column; align-items: flex-start; gap: 3px; background: none; border-color: var(--line-2); }
+  .mt-row { flex-direction: column; align-items: flex-start; gap: 2px; padding-top: 14px; }
   .mt-title { font-family: var(--serif); font-size: 16.5px; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .mt-sub { font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); }
+  .mt-sub { font-size: 11.5px; color: var(--text-3); }
   .mt-row.st-on_hold .mt-sub { color: var(--day-neutral); }
-  .mt-group { margin-bottom: var(--sp-4); }
-  .mt-group > .cv-row { margin-left: 14px; width: calc(100% - 14px); }
+  .mt-group { margin-bottom: var(--sp-2); }
+  .mt-group > .mt-row { border-bottom: none; padding-bottom: 4px; }
+  .mt-group > .cv-row { padding-left: 22px; }
   .mt-group-label, .comms-closed-toggle {
     display: block; margin: var(--sp-5) 0 var(--sp-2); padding: 0;
     font-family: var(--sans); font-size: 10.5px; font-weight: 500; text-transform: uppercase;
@@ -2966,6 +2952,17 @@
   }
   .cd-log-btn svg { width: 15px; height: 15px; display: block; }
   .cd-more { margin-top: var(--sp-6); border-top: 1px solid var(--line); padding-top: var(--sp-3); }
+  .more-fields { margin: -6px 0 var(--sp-5); border-top: none; padding-top: 0; }
+  /* the action itself is the headline of its editor: large, unboxed, still a field */
+  .field:has(> #f_commitTitle) > label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .field > #f_commitTitle {
+    background: none; border: none; border-bottom: 1px solid var(--line); border-radius: 0;
+    padding: 6px 0 10px; font-family: var(--serif); font-size: 21px; line-height: 1.3;
+  }
+  .field > #f_commitTitle:focus { border-bottom-color: rgba(var(--gold-rgb),0.5); }
+  .more-fields[open] > summary { margin-bottom: var(--sp-4); }
   .cd-more > summary {
     list-style: none; cursor: pointer; padding: 6px 0; margin-bottom: var(--sp-3);
     font-size: 12.5px; font-weight: 500; color: var(--text-2);
@@ -3049,7 +3046,8 @@
     .stat-card-clickable:hover { background: rgba(var(--gold-rgb),0.035); }
     .cal-cell:not(.empty):not(.selected):hover { border-color: var(--line-2); }
     .section-toggle:hover .section-toggle-label, .sec-head-toggle:hover .sec-label { color: var(--text-2); }
-    .sec-link:hover, .prio-link:hover, .btn-link:hover { opacity: 0.8; }
+    .sec-link:hover { color: var(--text); }
+    .prio-link:hover, .btn-link:hover { opacity: 0.8; }
     .circ-btn:hover { color: var(--text); border-color: rgba(var(--gold-rgb),0.35); }
     .drag-handle { cursor: grab; }
   }
@@ -3163,7 +3161,7 @@
       grid-template-areas: "top top" "mode mode" "main side" "main extra";
       grid-template-rows: auto auto auto 1fr;
     }
-    .today-mode { grid-area: mode; justify-self: start; width: 300px; margin: 0 0 var(--sp-4); }
+    .today-mode { grid-area: mode; justify-self: start; margin: 0 0 var(--sp-4); }
     #view-log.active.flow-mode { grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "mode" "flow"; grid-template-rows: auto auto 1fr; }
     .today-flow { grid-area: flow; display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 340px); column-gap: 48px; align-items: start; }
     .flow-context { display: block; position: sticky; top: 18px; border-left: 1px solid var(--line); padding-left: 28px; }
@@ -3205,7 +3203,7 @@
     /* Health & fitness: a planned session takes the grid's full width so its line
        reads in one go, and its saved detail earns a line beneath */
     .today-plan-widget .plan-card[data-train-open] { grid-column: 1 / -1; }
-    .plan-card-more {
+    .plan-card-more { flex-basis: 100%;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
       font-size: 12px; line-height: 1.45; color: var(--text-3); margin-top: 4px; white-space: pre-line;
     }
@@ -3237,7 +3235,7 @@
       background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
       padding: 22px 24px 24px; overscroll-behavior: contain;
     }
-    .plan-day-row.selected { background: rgba(var(--gold-rgb),0.05); box-shadow: inset 2px 0 0 var(--gold); }
+    .plan-day-row.selected { background: rgba(var(--gold-rgb),0.05); box-shadow: inset 2px 0 0 var(--gold); padding-left: 14px; padding-right: 10px; }
     .pdp-head { display: flex; align-items: flex-end; gap: 12px; margin-bottom: var(--sp-5); }
     .pdp-head-body { flex: 1; min-width: 0; }
     .pdp-kicker { font-size: 10px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-3); }
@@ -3308,6 +3306,8 @@
       background: var(--surface); padding: 18px 20px;
     }
     #statsCards .stat-row { flex-wrap: wrap; row-gap: 16px; }
+    /* groups with nothing yet collect at the end as short, quiet cards */
+    #statsCards .stat-card.quiet { order: 10; align-self: start; padding: 13px 20px; background: none; }
     #statsCards .stat-num { flex: 1 1 100px; }
     .weekbar-bars { height: 150px; gap: 12px; }
     .weekbar-stack { max-width: 40px; }
@@ -3412,17 +3412,14 @@
         <span class="sec-rule"></span>
       </button>
       <span class="sec-value" id="actionsCount"></span>
+      <div class="view-switch" id="actionsViewSwitch">
+        <button type="button" data-view="order">Order</button>
+        <button type="button" data-view="groups">Groups</button>
+      </div>
       <button type="button" class="sec-add" id="addActionToggle" aria-expanded="false" aria-controls="addActionBody" aria-label="Add action" title="Add action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg><span class="sec-add-label">Add action</span></button>
     </div>
     <div class="actions-summary" id="actionsSummary" hidden></div>
     <div id="actionsBody">
-      <div class="actions-toolbar" id="actionsToolbar">
-        <span class="actions-hint" id="actionsHint"></span>
-        <div class="view-switch" id="actionsViewSwitch">
-          <button type="button" data-view="order">Order</button>
-          <button type="button" data-view="groups">Groups</button>
-        </div>
-      </div>
       <div id="commitmentsList"></div>
     </div>
     <div class="add-action collapsed" id="addActionBody">
@@ -3568,7 +3565,6 @@
 
   <section class="view" id="view-comms">
     <div class="comms-list-col">
-      <p class="comms-intro">Who has the ball, across everything in motion.</p>
       <label class="comms-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><line x1="16" y1="16" x2="20.5" y2="20.5"/></svg><input type="search" id="commsSearch" placeholder="Search matters and people" aria-label="Search communications" autocomplete="off"></label>
       <div class="comms-filter" id="commsFilter" role="tablist" aria-label="Show">
         <button type="button" role="tab" data-comms-filter="needs">Needs me<span class="cf-n"></span></button>
@@ -5377,15 +5373,13 @@
         : 'Nothing planned yet';
     }
 
-    var toolbar = document.getElementById('actionsToolbar');
-    var hint = document.getElementById('actionsHint');
-    if (toolbar){
-      toolbar.hidden = actionable.length < 2;
-      hint.textContent = actionsViewMode === 'order'
-        ? (dateStr === todayStr() ? 'Your plan for today. Hold an icon and drag to reorder.' : 'Day order. Hold an icon and drag to reorder.')
-        : 'Grouped by category.';
-      toolbar.querySelectorAll('[data-view]').forEach(function(b){
+    // Order / Groups sits in the header; it only appears when there is something to arrange
+    var viewSwitch = document.getElementById('actionsViewSwitch');
+    if (viewSwitch){
+      viewSwitch.hidden = actionable.length < 2 || actionsCollapsed;
+      viewSwitch.querySelectorAll('[data-view]').forEach(function(b){
         b.classList.toggle('sel', b.dataset.view === actionsViewMode);
+        b.setAttribute('aria-pressed', b.dataset.view === actionsViewMode ? 'true' : 'false');
       });
     }
 
@@ -5839,9 +5833,12 @@
           [{value:'', label:'No category'}].concat(QUICK_CAPTURE_CATEGORIES.map(function(c){ return {value:c.key, label:c.label, dot:c.color}; })),
           existing ? (existing.category || '') : (opts.category || qcLastCategory)) +
         whenFieldsHtml() +
-        fieldSelect('f_commitPriority', 'Linked priority', priorityOptions, existing ? (existing.priorityId||'') : '') +
-        commsLinkFieldsHtml() +
-        '<div class="field"><label>Minimum version</label><input type="text" id="f_commitMinVer" placeholder="e.g. 20-minute home workout" value="' + (existing && existing.minVersion ? existing.minVersion.replace(/"/g,'&quot;') : '') + '"></div>';
+        // the rest of the detail waits behind one line, open whenever it already holds something
+        '<details class="cd-more more-fields"' + (moreHasValue() ? ' open' : '') + '><summary>Priority, links and minimum version</summary>' +
+          fieldSelect('f_commitPriority', 'Linked priority', priorityOptions, existing ? (existing.priorityId||'') : '') +
+          commsLinkFieldsHtml() +
+          '<div class="field"><label>Minimum version</label><input type="text" id="f_commitMinVer" placeholder="e.g. 20-minute home workout" value="' + (existing && existing.minVersion ? existing.minVersion.replace(/"/g,'&quot;') : '') + '"></div>' +
+        '</details>';
 
       if (!isEditing && opts.pickDate){
         html += fieldDate('f_commitDate', 'For', newDate);
@@ -5879,6 +5876,11 @@
       return html;
     }
 
+    function moreHasValue(){
+      var src = existing || {};
+      return !!(src.priorityId || src.minVersion || src.matterId || src.conversationId ||
+        (!existing && opts.links && (opts.links.matterId || opts.links.conversationId)));
+    }
     // An optional time and duration. Untimed, an action keeps its place in the day's order;
     // timed, it sits at its time on the timeline.
     function whenFieldsHtml(){
@@ -6500,7 +6502,7 @@
       '<button type="button" class="sec-link" data-comms-open="">Open' + UI_ICON.arrowRight + '</button></div>';
     if (!n.total){
       wrap.innerHTML = head + '<button type="button" class="cs-empty" data-comms-open="all">' +
-        'Keep track of who you’re waiting on — clients, family, anyone. Start a conversation or matter.</button>';
+        'Nothing tracked yet — start a conversation.</button>';
     } else {
       function stat(key, num, one, many){
         return '<button type="button" class="cs-stat' + (num ? ' on' : '') + (key === 'needs' && num ? ' needs' : '') + '" data-comms-open="' + key + '">' +
@@ -7306,12 +7308,11 @@
       '<div class="sec-head">' +
         '<span class="sec-label">Inbox</span>' +
         '<span class="sec-rule"></span>' +
-        '<span class="sec-value backlog-sec-note">Unfinished from earlier days</span>' +
-        '<span class="sec-value">' + items.length + '</span>' +
+        '<span class="sec-value" title="Unfinished from earlier days">' + items.length + '</span>' +
+        '<button type="button" class="sec-link" id="backlogMoreBtn">Open' + UI_ICON.chevronRight + '</button>' +
       '</div>' +
       '<div class="bk-panel bk-compact">' +
         preview.map(function(c){ return backlogRowHtml(c, { compact: true }); }).join('') +
-        '<button type="button" class="bk-more" id="backlogMoreBtn">Open Inbox (' + items.length + ')' + UI_ICON.chevronRight + '</button>' +
       '</div>';
 
     fillBacklogTitles(wrap, preview);
@@ -10480,8 +10481,16 @@
     card.className = 'stat-card stat-card-clickable';
     var head = document.createElement('div');
     head.className = 'stat-card-head';
-    head.innerHTML = '<span class="dot ' + type + '"></span><span class="name">' + TYPE_LABEL[type] + '</span><span class="stat-card-chevron">›</span>';
+    // nothing to show this month: one quiet line instead of a row of zeros
+    var empty = nums.every(function(n){ return n.val === 0 || n.val === '0' || n.val === '—' || n.val === '' || n.val == null; });
+    head.innerHTML = '<span class="dot ' + type + '"></span><span class="name">' + TYPE_LABEL[type] + '</span>' +
+      (empty ? '<span class="stat-card-none">Nothing yet</span>' : '') + '<span class="stat-card-chevron">›</span>';
     card.appendChild(head);
+    if (empty){
+      card.classList.add('quiet');
+      card.addEventListener('click', function(){ openStatDetailSheet(type); });
+      return card;
+    }
     var row = document.createElement('div');
     row.className = 'stat-row';
     nums.forEach(function(n){
@@ -11139,7 +11148,7 @@
       if (isToday && sum.cats) sum.sub = sum.cats;
 
       var row = document.createElement('div');
-      row.className = 'plan-day-row' + (isToday ? ' today' : '') + (wide && dateStr === paneDate ? ' selected' : '');
+      row.className = 'plan-day-row' + (isToday ? ' today' : '') + (sum.title === 'Nothing planned' ? ' empty' : '') + (wide && dateStr === paneDate ? ' selected' : '');
       var html =
         '<div class="pday-date">' +
           '<div class="pday-dow">' + d.toLocaleDateString(undefined,{weekday:'short'}) + '</div>' +
@@ -11151,8 +11160,7 @@
         '<div class="pday-body">' +
           '<div class="pday-title' + (sum.title === 'Nothing planned' ? ' muted' : '') + '">' +
             (isToday && sum.title === 'Nothing planned' ? 'An open day' : sum.title) + '</div>' +
-          (sum.sub ? '<div class="pday-sub">' + sum.sub + '</div>'
-                   : (getPlanReadiness(dateStr).state === 'unplanned' ? '<div class="pday-sub">Tap to plan</div>' : '')) +
+          (sum.sub ? '<div class="pday-sub">' + sum.sub + '</div>' : '') +
         '</div>' +
         // quiet marks: priorities the day supports, and a known constraint
         ((sum.priorities || sum.constraint)

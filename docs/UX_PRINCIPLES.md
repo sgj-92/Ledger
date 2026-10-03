@@ -117,6 +117,18 @@ a cosmetic one.
 
 ---
 
+## 12b. Notice only what matters now
+
+"Everything I need is here, but I only notice what matters right now." Lists are
+rows separated by hairlines, not stacks of cards; a box is reserved for genuinely
+important summary information. Typography, spacing and dividers come before
+another container. Metadata is smaller and quieter than what it describes.
+Gold marks importance, selection or a meaningful action — not every link.
+Secondary sections are quiet rows that open in place. An explanation disappears
+once its list has content, and an empty state is a single quiet line. Done and
+inactive things recede. Before adding anything to a screen, ask what the single
+most important thing on it is, and whether the addition competes with it.
+
 ## Derived from agreed Ledger decisions
 
 These follow directly from decisions already recorded in `PROJECT_LEDGER.md`

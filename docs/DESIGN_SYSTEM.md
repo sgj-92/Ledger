@@ -288,6 +288,32 @@ The **timeline** (Flow) is unboxed: a 40px time column, a 2px hairline rail thro
 the capsules, the text, and the tick. Free time between timed items is an italic
 serif note on a dashed stretch of rail; "now" is a gold dot, time and fading line.
 
+## 7c. Visual weight (simplification pass, 2026-10-03)
+
+Applied app-wide; check new UI against it.
+
+- **Rows, not cards.** Action rows, Day Plan rows, the Today Inbox shelf,
+  Health & fitness, Communications lists and Progress groups are rows divided by
+  `--line` hairlines on the page, with no background or border of their own.
+  Selected and dragged rows get a soft fill; that is the only box a row grows.
+- **Boxes that remain:** Morning Prime (a ritual), the Communications filter and
+  the Overview/Flow switch (selection), sheets and the desktop inspector/panes,
+  desktop Progress cards and Towards your focus (summary).
+- **Headings:** uppercase small-caps labels are for primary sections only.
+  Secondary sections (Day notes, Quick log, Evening Wind-down, Recorded activity)
+  are 14px sentence-case rows. Progress group names, readiness labels and
+  matter meta lines are sentence case.
+- **Gold:** importance (key-task star, needs-me count, planned), selection and
+  primary actions. Section links (`.sec-link`) are `--text-2`, brightening on hover.
+  Key tasks lose the gold card edge; the star carries it.
+- **Recede:** completed rows fade their text; Progress groups with nothing to show
+  collapse to one line ("Nothing yet") and, on desktop, sort to the end.
+- **Disclosure:** the action editor keeps title, category and time in view;
+  priority, matter/conversation links and minimum version sit behind one line,
+  open whenever they already hold something. Hints and taglines that explain an
+  obvious control are gone (Actions hint, Communications tagline, Focus hints once
+  their lists have content, "Tap to plan").
+
 ## 8. Sheets and modals
 
 One pattern, and it is the strongest component in the system.

@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-02 (Structured-inspired timeline: optional times, capsules, Inbox)
+Last updated: 2026-10-03 (visual simplification phase)
 
 ---
 
@@ -350,6 +350,19 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-03 — Lower cognitive load: rows, quiet secondary sections, gold for meaning
+**Decision:** a simplification pass across every screen, taking principles (not
+looks) from Things 3, Linear, Sunsama, Structured, Apple Health, Superhuman and Bear:
+lists are hairline-divided rows rather than cards; secondary sections are quiet
+sentence-case rows; gold is kept for importance, selection and primary actions;
+explanatory text goes once a control is obvious; empty and done things recede;
+secondary editor fields sit behind one disclosure. Recorded as UX principle 12b and
+DESIGN_SYSTEM §7c.
+**Why:** Ledger has enough capability; the problem had become seeing what matters.
+**Implications:** no function, data or schema changed. Measured on the realistic
+seed: Today on a phone went from 19 boxed containers to 3, 11 uppercase labels to
+7, 13 gold marks to 4, and shows all 6 actions on the first screen instead of 4.
 
 ### 2026-10-02 — Optional times; the timeline takes Structured's calm
 **Decision:** Shaun chose, from Structured (the daily planner), optional times,
@@ -914,6 +927,8 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-03) — Visual simplification phase across Today, Flow, Plan, Calendar,
+  Progress, Focus, Communications and the action editor (see Decisions Log).
 - (2026-10-02) — Structured-inspired pass: optional action times and durations,
   Flow as a time-aware capsule timeline (now marker, free gaps, hold-to-drag),
   capsule rows across Today and Plan, Backlog presented as Inbox, Handoff times.
