@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-03 (visual simplification phase)
+Last updated: 2026-10-03 (Today hierarchy; Backlog restored, above Actions)
 
 ---
 
@@ -69,13 +69,17 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   marked in both views with a gold star, gold left edge and a `Key` pill.
 - **Add action** — a `+` in the Actions section header; it opens a panel
   under the list holding Quick add and Detailed add.
-- **Inbox** (labelled Backlog until 2026-10-02; the code and Handoff still say
-  backlog) — unfinished actions from past dates. On Today it is a compact
-  3-row shelf (category · added date · state on one meta line, icon controls for
-  Add to today and Choose a day). The full sheet stays spacious and labelled
-  (sort by Group/Date, filter, Add to today, Pick a day).
-- **Health & fitness** — 2×2 card grid (Training / Meals / Roadblock / Diet),
-  with a share control for Daily Handoff. Called **Today's Plan** until
+- **Backlog** — Actions intentionally assigned to an earlier date and not
+  completed (not started, partial, disrupted, not done). On Today it sits above
+  Actions as a collapsed row ("Backlog  5"), closed whenever Ledger opens; opened,
+  it shows up to three compact rows (category · original date · state, quiet
+  Add-to-today and Choose-a-day icons) and "Open Backlog" for the full sheet
+  (sort by Group/Date, filter, Add to today, Pick a day). Briefly labelled Inbox
+  on 2026-10-02; restored on 2026-10-03. **Inbox** is reserved for a future
+  unprocessed-capture concept and is not built.
+- **Health & fitness** — on Today a short summary (one line per planned session,
+  one for meals and diet, a quiet roadblock line) with Edit/Plan and a share
+  control for Daily Handoff; the Plan pane keeps the fuller list. Called **Today's Plan** until
   2026-09-22.
 - **Day Notes** — freeform text for one date, one compact row on Today between
   Health & fitness and Quick Log; opens a sheet with autosave. Context and
@@ -350,6 +354,26 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-03 — Backlog is Backlog; Inbox is reserved; Today has one hierarchy
+**Decision:** the Today section briefly called Inbox is Backlog again: Actions
+assigned to an earlier date and not completed. "Inbox" is reserved for a future
+concept — something captured but not yet decided (what it is, which date, whether
+it is an Action, Matter or note); no Inbox data model exists and none was built.
+Backlog moves above Actions and is collapsed by default, as quick triage before
+the day. Today's typography uses a small set of roles: display serif for the
+date, accent serif italic for the quote only, sans 600 headings (Actions 17px,
+other sections 15px) in sentence case without rules, sans 15px action titles,
+sans 12px meta, quiet sans empty states. Communications and Health & fitness on
+Today are short summaries; done rows recede.
+**Supersedes:** the Inbox naming in the 2026-10-02 decision.
+**Why:** headings were weaker than the rows beneath them, empty states were the
+loudest text on an empty day, and unfinished old work was taking space before
+being asked for.
+**Implications:** no data or behaviour changed beyond Backlog's position and
+collapsed default. Today order: Morning Prime, Overview/Flow, Backlog, Actions,
+Communications, Health & fitness, Day notes, Quick log, Evening Wind-down,
+Recorded activity.
 
 ### 2026-10-03 — Lower cognitive load: rows, quiet secondary sections, gold for meaning
 **Decision:** a simplification pass across every screen, taking principles (not
@@ -927,6 +951,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-03) — Today hierarchy pass: type roles, headings without rules,
+  quiet empty states, summary-only Communications and Health & fitness; Backlog
+  renamed back from Inbox, moved above Actions, collapsed by default.
 - (2026-10-03) — Visual simplification phase across Today, Flow, Plan, Calendar,
   Progress, Focus, Communications and the action editor (see Decisions Log).
 - (2026-10-02) — Structured-inspired pass: optional action times and durations,

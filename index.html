@@ -433,12 +433,11 @@
   .commitment-status-dot.roadblock { border-color: rgba(var(--danger-rgb),0.6); }
   .commitment-body { flex: 1; min-width: 0; }
   .commitment-title {
-    font-family: var(--serif); font-size: 15.5px; font-weight: 400; line-height: 1.25;
+    font-family: var(--sans); font-size: 15px; font-weight: 400; line-height: 1.35;
     color: var(--text); letter-spacing: -0.005em;
   }
   .commitment-title.completed { color: var(--text-2); }
-  .commitment-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; letter-spacing: 0.01em; }
-  .commitment-minver { font-size: 11px; color: rgba(var(--gold-rgb),0.75); margin-top: 2px; }
+  .commitment-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
   .commitment-meta:empty { display: none; }
   .commitment-meta .commitment-matter { color: var(--text-3); }
   .commitment-item.done .commitment-title { color: var(--text-2); }
@@ -446,7 +445,7 @@
   /* ---------- capsules: what an item is, at a glance ----------
      The category (or training type) colour as a soft tint with a coloured icon;
      filled, with a tick, once done. Used by the timeline, every action row, the
-     Day Plan and the Inbox. */
+     Day Plan and the Backlog. */
   .cap {
     flex-shrink: 0; width: 32px; height: var(--cap-h, 32px); border-radius: 16px;
     display: flex; align-items: center; justify-content: center;
@@ -465,10 +464,9 @@
   .cap[data-drag-handle]:active { cursor: grabbing; }
   .commitment-when { font-size: 11.5px; color: var(--text-3); flex-shrink: 0; letter-spacing: 0.01em; }
   .commitment-train-link {
-    flex-shrink: 0; background: none; border: 1px solid var(--line); color: var(--text-3);
-    font-family: var(--sans); font-size: 10.5px; font-weight: 400; letter-spacing: 0.06em;
-    text-transform: uppercase; padding: 4px 9px; border-radius: 100px; cursor: pointer;
-    line-height: 1;
+    flex-shrink: 0; background: none; border: none; color: var(--text-3);
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+    padding: 6px 4px; cursor: pointer; line-height: 1;
   }
   .commitment-train-link:active { background: var(--surface-2); }
 
@@ -1895,7 +1893,6 @@
     color-scheme: light;
   }
   /* light-only legibility corrections: alpha-gold text is too faint on paper */
-  html[data-theme="light"] .commitment-minver,
   html[data-theme="light"] .key-task .ord-num,
   html[data-theme="light"] .mp-card.done .mp-sub,
   html[data-theme="light"] .mp-step.done .mp-step-val,
@@ -1925,8 +1922,8 @@
   .mp-head:active { background: var(--surface-2); }
   .mp-head-body { flex: 1; min-width: 0; }
   .mp-title {
-    display: block; font-family: var(--serif); font-size: 16px; font-weight: 400;
-    line-height: 1.25; color: var(--text); letter-spacing: -0.005em;
+    display: block; font-family: var(--sans); font-size: 15px; font-weight: 600;
+    line-height: 1.3; color: var(--text); letter-spacing: -0.005em;
   }
   .mp-sub {
     display: block; font-size: 11.5px; color: var(--text-3);
@@ -2169,10 +2166,10 @@
     letter-spacing: 0.18em; color: var(--text-3); margin-bottom: 3px;
   }
   .bk-title {
-    display: block; font-family: var(--serif); font-size: 15.5px; font-weight: 400;
-    line-height: 1.25; color: var(--text); letter-spacing: -0.005em;
+    display: block; font-family: var(--sans); font-size: 15px; font-weight: 400;
+    line-height: 1.35; color: var(--text); letter-spacing: -0.005em;
   }
-  .bk-meta { display: block; font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .bk-meta { display: block; font-size: 12px; color: var(--text-3); margin-top: 2px; }
   .bk-meta .bk-state { color: rgba(var(--gold-rgb),0.72); }
   .bk-actions { display: flex; gap: 6px; flex-shrink: 0; }
   .bk-btn {
@@ -2514,7 +2511,7 @@
   .tl-row:not(.timed) .tl-body { align-self: center; margin-top: 0; }
   .tl-when { font-size: 11.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
   .tl-when:empty, .tl-meta:empty { display: none; }
-  .tl-title { display: flex; align-items: baseline; gap: 6px; font-family: var(--serif); font-size: 16px; line-height: 1.25; color: var(--text); overflow-wrap: anywhere; }
+  .tl-title { display: flex; align-items: baseline; gap: 6px; font-family: var(--sans); font-size: 15px; line-height: 1.35; color: var(--text); overflow-wrap: anywhere; }
   .tl-meta { font-size: 11.5px; color: var(--text-3); overflow-wrap: anywhere; }
   .tl-row.done .tl-title { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--text-3); }
   .tl-row.done .tl-when, .tl-row.done .tl-meta { opacity: 0.7; }
@@ -2542,7 +2539,7 @@
   .flow-sheet-note { font-size: 13.5px; color: var(--text-2); margin: 0 0 var(--sp-4); }
   .flow-key { color: var(--gold); flex-shrink: 0; transform: translateY(1px); }
   .flow-key svg { width: 11px; height: 11px; display: block; }
-  .flow-empty p { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--text-2); margin: 8px 0 4px; }
+  .flow-empty p { font-size: 13px; color: var(--text-3); margin: 6px 0 4px; }
   .flow-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .flow-wd {
     display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: var(--sp-5);
@@ -2645,7 +2642,7 @@
     flex: 1; min-width: 0; background: none; border: none; padding: 0; text-align: left; cursor: pointer;
     display: flex; flex-direction: column; gap: 2px; font-family: var(--sans);
   }
-  .dpa-title { font-family: var(--serif); font-size: 15px; line-height: 1.28; color: var(--text); overflow-wrap: anywhere; }
+  .dpa-title { font-family: var(--sans); font-size: 15px; line-height: 1.35; color: var(--text); overflow-wrap: anywhere; }
   .dpa-row.done .dpa-title { color: var(--text-2); text-decoration: line-through; text-decoration-color: var(--text-3); }
   .dpa-meta { font-size: 11px; color: var(--text-3); overflow-wrap: anywhere; }
   .dpa-star {
@@ -2793,24 +2790,16 @@
   body.in-comms nav.tabbar .tab-btn[data-view="log"] { color: var(--gold); font-weight: 500; }
   body.in-comms nav.tabbar .tab-btn[data-view="log"] .tab-icon { opacity: 1; }
 
-  /* Today's summary: three numbers, each a way in */
-  /* one line of numbers: what needs you leads, the rest recedes */
-  .cs-row { display: flex; flex-wrap: wrap; column-gap: 20px; row-gap: 4px; }
+  /* Today's Communications: one line of attention, what needs you leads */
+  .cs-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
   .cs-stat {
-    display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 0; cursor: pointer; text-align: left;
-    background: none; border: none; color: var(--text-3); font-family: var(--sans);
+    padding: 2px 0; cursor: pointer; text-align: left; background: none; border: none;
+    font-family: var(--sans); font-size: 14px; color: var(--text-2);
   }
   .cs-stat:active { opacity: 0.6; }
-  .cs-n { font-family: var(--serif); font-size: 20px; line-height: 1; color: var(--text-3); font-variant-numeric: tabular-nums; }
-  .cs-l { font-size: 12.5px; line-height: 1.3; }
-  .cs-stat.on .cs-n { color: var(--text); }
-  .cs-stat.on .cs-l { color: var(--text-2); }
-  .cs-stat.needs .cs-n { color: var(--gold); }
-  .cs-empty {
-    display: block; width: 100%; padding: 2px 0; cursor: pointer; text-align: left;
-    background: none; border: none; color: var(--text-3);
-    font-family: var(--sans); font-size: 12.5px; line-height: 1.5;
-  }
+  .cs-n { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+  .cs-stat.needs, .cs-stat.needs .cs-n { color: var(--gold); }
+  .cs-sep { color: var(--text-3); }
 
   /* the Centre: search, a filter, compact rows */
   .comms-search {
@@ -3002,6 +2991,85 @@
   .ns-third .btn-primary { width: auto; padding: 0 20px; }
   html[data-theme="light"] .cd-field input[type="date"], html[data-theme="light"] .ns-follow input { color-scheme: light; }
 
+  /* ---------- Today: one page, a small set of type roles ----------
+     Display serif — the date. Accent serif italic — the header quote only.
+     Heading — sans 600: Actions 17px, every other section 15px, in sentence case,
+       with no rule beside it; spacing separates the regions instead.
+     Body — sans 15px: action titles and content. Meta — sans 12px, --text-3.
+     Utility rows — sans 14px, --text-2. Links — sans 13px 500, --text-2.
+     Empty — sans 13px, --text-3, never italic. */
+  #view-log .sec-label {
+    font-size: 15px; font-weight: 600; letter-spacing: -0.005em; text-transform: none; color: var(--text);
+  }
+  #view-log .actions-head .sec-label { font-size: 17px; }
+  #view-log .sec-rule { background: none; }
+  #view-log .sec-head, #view-log .today-plan-widget-head { margin-top: var(--sp-7); margin-bottom: var(--sp-2); }
+  #view-log .sec-link { font-size: 13px; }
+  #view-log .sec-link svg { width: 11px; height: 11px; opacity: 0.7; }
+  #view-log .sec-value { font-size: 12.5px; }
+  #view-log .sec-head-chev { margin-left: -4px; }
+  #view-log .empty-state, .today-quiet {
+    font-family: var(--sans); font-style: normal; font-size: 13px; color: var(--text-3);
+    padding: 2px 0; margin: 0; line-height: 1.5;
+  }
+  #view-log .dn-value { font-family: var(--sans); font-size: 13px; }
+  #view-log .dn-row.empty .dn-value { font-style: normal; }
+  #view-log .icon-btn { border-color: transparent; width: 28px; height: 28px; }
+  #view-log .icon-btn svg { width: 14px; height: 14px; }
+  .actions-summary { margin-top: -2px; }
+  /* Backlog leads straight into the day */
+  #view-log #backlogSection:not(:empty) + .actions-head { margin-top: var(--sp-3); }
+  /* done work steps back: a quiet tick, a dimmed capsule */
+  .commitment-item.done .commitment-status-dot.completed, .tl-row.done .commitment-status-dot.completed,
+  .dpa-row.done .commitment-status-dot.completed { background: none; border-color: var(--line-2); }
+  .commitment-item.done .commitment-status-dot.completed::after, .tl-row.done .commitment-status-dot.completed::after,
+  .dpa-row.done .commitment-status-dot.completed::after { border-color: var(--text-3); }
+  .commitment-item.done .cap.done, .dpa-row.done .cap.done { opacity: 0.55; }
+  /* the utility rows are one list — no gaps between them */
+  #view-log .wd-wrap { margin-top: 0; }
+
+  /* the mode switch: two words in a slim track, the chosen one raised */
+  .today-mode { padding: 2px; background: none; border-color: var(--line); }
+  .today-mode button { padding: 5px 15px; font-size: 12px; color: var(--text-3); }
+  .today-mode button.sel { background: var(--surface-3); color: var(--text); }
+
+  /* Backlog: a row with a count until it is opened */
+  .bk-toggle {
+    display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; margin-top: var(--sp-4);
+    padding: 0; background: none; border: none; cursor: pointer; text-align: left; font-family: var(--sans);
+  }
+  .bk-toggle-label { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.005em; }
+  .bk-toggle-count { font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .bk-toggle .section-toggle-chevron { margin-left: auto; }
+  .bk-toggle[aria-expanded="true"] .section-toggle-chevron { transform: rotate(180deg); }
+  #backlogBody[hidden] { display: none; }
+  .bk-all {
+    display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 0; padding: 8px 0;
+    background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--text-2);
+  }
+  .bk-all svg { width: 11px; height: 11px; display: block; opacity: 0.7; }
+  /* the title leads; its controls stay quiet until wanted */
+  .bk-compact .bk-row > .cap { width: 26px; height: 26px; opacity: 0.85; }
+  .bk-compact .bk-row > .cap svg { width: 12px; height: 12px; }
+  .bk-compact .bk-btn, .bk-compact .bk-btn.gold { color: var(--text-3); }
+  .bk-compact .bk-btn svg, .bk-compact .bk-btn.gold svg { color: var(--text-3); }
+
+  /* Health & fitness on Today: a summary of a line or two */
+  .hf-lines { display: flex; flex-direction: column; }
+  .hf-line {
+    display: flex; align-items: center; gap: 8px; width: 100%; padding: 3px 0; text-align: left;
+    background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 14px; color: var(--text); line-height: 1.5;
+  }
+  div.hf-line { cursor: default; }
+  .hf-line:active { opacity: 0.6; }
+  .hf-line .tick { display: inline-flex; width: 12px; height: 12px; color: var(--gold); }
+  .hf-line .tick svg { width: 100%; height: 100%; display: block; }
+  .hf-line.done { color: var(--text-2); }
+  .hf-line.rb { color: var(--text-3); font-size: 13px; align-items: flex-start; }
+  .hf-line.rb > svg { width: 13px; height: 13px; flex-shrink: 0; margin-top: 3px; }
+  .hf-rb-text { min-width: 0; overflow-wrap: anywhere; }
+  .hf-rb-text.clamped { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   /* ==========================================================
      Wider screens — one app, one URL.
      Phones never reach anything below the first block. Everything here
@@ -3172,6 +3240,9 @@
     .today-side { display: block; grid-area: side; min-width: 0; }
     .today-extra { display: block; grid-area: extra; min-width: 0; }
     .today-main > .actions-head:first-child { margin-top: var(--sp-2); }
+    .today-main > #backlogSection:empty + .actions-head { margin-top: var(--sp-2); }
+    .today-main > #backlogSection .bk-toggle { margin-top: 0; }
+    #view-log .today-side .today-plan-widget-head { margin-top: var(--sp-2); }
     .today-side > .today-plan-widget { margin: 0 0 var(--sp-6); }
     .today-side .today-plan-widget-head { margin: var(--sp-2) 0 var(--sp-3); min-height: 32px; }
 
@@ -3185,7 +3256,7 @@
     .commitment-item { padding: 9px 13px; gap: 12px; }
     .commitment-body { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 14px; row-gap: 2px; }
     .commitment-title { flex: 1 1 240px; min-width: 0; font-size: 15px; }
-    .commitment-meta, .commitment-minver { margin-top: 0; }
+    .commitment-meta { margin-top: 0; }
     .sec-add {
       width: auto; height: 30px; margin: 0; padding: 0 12px 0 10px; gap: 6px;
       border: 1px solid rgba(var(--gold-rgb),0.3); border-radius: 100px; color: var(--gold);
@@ -3405,6 +3476,9 @@
     <div class="today-flow" id="todayFlow" hidden></div>
 
     <div class="today-main">
+    <!-- Backlog first: a quick look at unfinished earlier work before the day itself -->
+    <div id="backlogSection"></div>
+
     <div class="sec-head actions-head">
       <button type="button" class="sec-head-toggle actions-head-toggle" id="actionsToggle" aria-expanded="true" aria-controls="actionsBody">
         <span class="sec-label">Actions</span>
@@ -3436,8 +3510,6 @@
     </div>
 
     <div id="accountabilityMsg"></div>
-
-    <div id="backlogSection"></div>
 
     <div id="commsSummary"></div>
     </div>
@@ -5289,7 +5361,6 @@
           (c.isKeyTask ? '<span class="key-star" aria-label="Key task">' + STAR_SVG + '</span>' : '') +
           '<span class="ct-text"></span></div>' +
         '<div class="commitment-meta"></div>' +
-        (c.minVersion && !done ? '<div class="commitment-minver"></div>' : '') +
       '</div>' +
       // the day label only earns its place when it isn't the day you're looking at —
       // on Today every row would otherwise read "Today" and steal width from the title
@@ -5303,6 +5374,7 @@
     if (c.status !== 'planned' && c.status !== 'completed') bits.push(COMMITMENT_STATUS_LABEL[c.status]);
     if (c.status === 'disrupted' && c.disruptionReason) bits.push(c.disruptionReason);
     if (opts.showCategory) bits.push(actionCategoryLabel(actionCategoryKey(c)));
+    if (c.minVersion && !done) bits.push('Min: ' + c.minVersion);
     var meta = row.querySelector('.commitment-meta');
     meta.textContent = bits.join(' · ');
     // the wider matter an action belongs to, quietly
@@ -5313,8 +5385,6 @@
       ms.textContent = (bits.length ? ' · ' : '') + mt;
       meta.appendChild(ms);
     }
-    var mv = row.querySelector('.commitment-minver');
-    if (mv) mv.textContent = 'Minimum: ' + c.minVersion;
     row.addEventListener('click', function(){ openCommitmentSheet(c); });
     if (!isRoadblock){
       row.querySelector('.commitment-status-dot').addEventListener('click', function(e){
@@ -5588,7 +5658,7 @@
 
     var wd = isToday ? windDownState(dateStr) : null;
     var wdReady = !!(wd && wd.total && !wd.completedAt && new Date().getHours() >= windDownHour());
-    var inboxN = isToday ? backlogActions().length : 0;
+    var flowBacklogN = isToday ? backlogActions().length : 0;
 
     var main = '<div class="flow-main">' +
       '<div class="sec-head flow-head"><span class="sec-label">' + (isToday ? 'Today’s flow' : 'Flow') + '</span>' +
@@ -5600,7 +5670,7 @@
         : '<div class="flow-empty"><p>Nothing in the day yet.</p></div>') +
       '<div class="flow-add">' +
         '<button type="button" class="dpa-add-btn" id="flowAddAction">' + BK_PLUS_SVG + 'Add action</button>' +
-        (inboxN ? '<button type="button" class="dpa-add-btn quiet" id="flowInbox">' + UI_ICON.box + 'Inbox · ' + inboxN + '</button>' : '') +
+        (flowBacklogN ? '<button type="button" class="dpa-add-btn quiet" id="flowBacklog">' + UI_ICON.box + 'Backlog · ' + flowBacklogN + '</button>' : '') +
         (items.length
           ? '<button type="button" class="dpa-add-btn quiet" id="flowAddTraining">' + TRAINING_ICON_SVG.hiit + 'Plan training</button>'
           : '<button type="button" class="dpa-add-btn quiet" id="flowOpenOverview">Open Overview</button>') +
@@ -5693,8 +5763,8 @@
     var list = document.getElementById('flowList');
     if (list) makeSortable(list, function(keys){ saveDayFlow(dateStr, keys); });
     document.getElementById('flowAddAction').addEventListener('click', function(){ openCommitmentSheet(null, { date: dateStr }); });
-    var inboxBtn = document.getElementById('flowInbox');
-    if (inboxBtn) inboxBtn.addEventListener('click', function(){ openBacklogSheet(); });
+    var flowBacklogBtn = document.getElementById('flowBacklog');
+    if (flowBacklogBtn) flowBacklogBtn.addEventListener('click', function(){ openBacklogSheet(); });
     var addTraining = document.getElementById('flowAddTraining');
     if (addTraining) addTraining.addEventListener('click', function(){
       openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'] });
@@ -6500,20 +6570,18 @@
     var n = commsCounts();
     var head = '<div class="sec-head"><span class="sec-label">Communications</span><span class="sec-rule"></span>' +
       '<button type="button" class="sec-link" data-comms-open="">Open' + UI_ICON.arrowRight + '</button></div>';
-    if (!n.total){
-      wrap.innerHTML = head + '<button type="button" class="cs-empty" data-comms-open="all">' +
-        'Nothing tracked yet — start a conversation.</button>';
-    } else {
-      function stat(key, num, one, many){
-        return '<button type="button" class="cs-stat' + (num ? ' on' : '') + (key === 'needs' && num ? ' needs' : '') + '" data-comms-open="' + key + '">' +
-          '<span class="cs-n">' + num + '</span><span class="cs-l">' + (num === 1 ? one : many) + '</span></button>';
-      }
-      wrap.innerHTML = head + '<div class="cs-row">' +
-        stat('needs', n.needs, 'needs you', 'need you') +
-        stat('waiting', n.waiting, 'waiting', 'waiting') +
-        stat('follow', n.due, 'follow-up due', 'follow-ups due') +
-      '</div>';
+    // Today carries attention only — what needs you leads; nothing at all is one quiet line
+    function stat(key, num, one, many){
+      return '<button type="button" class="cs-stat' + (key === 'needs' ? ' needs' : '') + '" data-comms-open="' + key + '">' +
+        '<span class="cs-n">' + num + '</span> ' + (num === 1 ? one : many) + '</button>';
     }
+    var parts = [];
+    if (n.needs) parts.push(stat('needs', n.needs, 'needs you', 'need you'));
+    if (n.waiting) parts.push(stat('waiting', n.waiting, 'waiting', 'waiting'));
+    if (n.due) parts.push(stat('follow', n.due, 'follow-up due', 'follow-ups due'));
+    wrap.innerHTML = head + (parts.length
+      ? '<div class="cs-row">' + parts.join('<span class="cs-sep" aria-hidden="true">·</span>') + '</div>'
+      : '<p class="today-quiet">Nothing needs attention</p>');
     wrap.querySelectorAll('[data-comms-open]').forEach(function(el){
       el.addEventListener('click', function(){ openComms(el.dataset.commsOpen || null); });
     });
@@ -7295,6 +7363,7 @@
 
   // ---- Today: a bounded preview, never the whole list ----
   var BACKLOG_PREVIEW_MAX = 3;
+  var backlogOpen = false;   // starts collapsed each time Ledger opens
   function renderBacklogSection(){
     var wrap = document.getElementById('backlogSection');
     if (!wrap) return;
@@ -7304,20 +7373,28 @@
     if (!items.length){ wrap.innerHTML = ''; return; }
     var preview = items.slice(0, BACKLOG_PREVIEW_MAX);
 
+    // awareness, not takeover: one row with a count until it is opened
     wrap.innerHTML =
-      '<div class="sec-head">' +
-        '<span class="sec-label">Inbox</span>' +
-        '<span class="sec-rule"></span>' +
-        '<span class="sec-value" title="Unfinished from earlier days">' + items.length + '</span>' +
-        '<button type="button" class="sec-link" id="backlogMoreBtn">Open' + UI_ICON.chevronRight + '</button>' +
-      '</div>' +
-      '<div class="bk-panel bk-compact">' +
-        preview.map(function(c){ return backlogRowHtml(c, { compact: true }); }).join('') +
+      '<button type="button" class="bk-toggle" id="backlogToggle" aria-expanded="' + (backlogOpen ? 'true' : 'false') + '" aria-controls="backlogBody">' +
+        '<span class="bk-toggle-label">Backlog</span>' +
+        '<span class="bk-toggle-count" title="Unfinished from earlier days">' + items.length + '</span>' +
+        '<span class="section-toggle-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
+      '</button>' +
+      '<div id="backlogBody"' + (backlogOpen ? '' : ' hidden') + '>' +
+        '<div class="bk-panel bk-compact">' +
+          preview.map(function(c){ return backlogRowHtml(c, { compact: true }); }).join('') +
+        '</div>' +
+        '<button type="button" class="bk-all" id="backlogMoreBtn">' +
+          (items.length > preview.length ? 'All ' + items.length + ' in Backlog' : 'Open Backlog') + UI_ICON.chevronRight + '</button>' +
       '</div>';
 
     fillBacklogTitles(wrap, preview);
     wireBacklogRows(wrap, null);
     document.getElementById('backlogMoreBtn').addEventListener('click', openBacklogSheet);
+    document.getElementById('backlogToggle').addEventListener('click', function(){
+      backlogOpen = !backlogOpen;
+      renderBacklogSection();
+    });
   }
 
   // ---- the full Backlog view ----
@@ -7384,7 +7461,7 @@
         '<div class="bk-sheet-head">' +
           '<button class="circ-btn" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button>' +
           '<div class="bk-sheet-center">' +
-            '<div class="sheet-title">Inbox</div>' +
+            '<div class="sheet-title">Backlog</div>' +
             '<div class="sheet-sub">' + (target ? 'Move an unfinished task onto ' + targetLabel + '.' : 'Unfinished tasks from earlier days.') + '</div>' +
           '</div>' +
           '<div class="bk-sheet-quote"><span>Nothing falls through.</span><i></i></div>' +
@@ -7510,7 +7587,7 @@
       '</div></div>' +
       fieldDate('f_pickDay', 'Or choose a date', offsetDate(1)) +
       '<button type="button" class="btn-primary" id="pdConfirmBtn">Move action</button>' +
-      '<button type="button" class="btn-quiet" id="pdCancelBtn">' + (fromBacklog ? 'Leave in Inbox' : 'Cancel') + '</button>';
+      '<button type="button" class="btn-quiet" id="pdCancelBtn">' + (fromBacklog ? 'Leave in backlog' : 'Cancel') + '</button>';
     backdrop.classList.add('open');
     document.getElementById('pdTitle').textContent = c.title;
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
@@ -8350,7 +8427,7 @@
           '<button type="button" class="mp-backlog" id="mpBacklogBtn">' +
             '<span class="mp-backlog-ic">' + UI_ICON.box + '</span>' +
             '<span class="mp-backlog-text">' + backlogCount + ' unfinished item' + (backlogCount === 1 ? '' : 's') + ' from earlier days</span>' +
-            '<span class="mp-backlog-link">Open Inbox</span>' +
+            '<span class="mp-backlog-link">Review backlog</span>' +
           '</button>' : '') +
         '<button type="button" class="btn-primary mp-save" id="mpSaveBtn">' + (st.completedAt ? 'Update Morning Prime' : 'Save Morning Prime') + '</button>' +
         (st.complete ? '' : '<p class="mp-hint" id="mpHint">' + mpMissingLabel(st) + '</p>') +
@@ -10999,10 +11076,44 @@
       '<span class="sec-label">' + label + '</span>' +
       '<span class="sec-rule"></span>' +
       '<button type="button" class="icon-btn" data-role="share"' + idAttr('shareDayBtn') + ' aria-label="Share day">' + UI_ICON.share + '</button>' +
-      '<button type="button" class="sec-link" data-role="plan-edit"' + idAttr('planTodayBtn') + '>' + planActionLabel + UI_ICON.arrowRight + '</button>' +
+      '<button type="button" class="sec-link" data-role="plan-edit"' + idAttr('planTodayBtn') + '>' +
+        (opts.primary ? (hasAnyContent ? 'Edit' : 'Plan') : planActionLabel) + UI_ICON.arrowRight + '</button>' +
     '</div>';
 
-    if (cards.length){
+    if (opts.primary){
+      // Today summarises: a line or two, each opening the same place its card did
+      var lines = [];
+      if (plan && plan.restDay){
+        lines.push('<div class="hf-line">Rest day</div>');
+      } else if (plan && plan.trainingTypes){
+        plan.trainingTypes.forEach(function(t){
+          var det = (plan.trainingDetails && plan.trainingDetails[t]) || {};
+          var bits = [SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]];
+          if (det.completed) bits.push('Recorded');
+          else {
+            if (hhmm(det.activityTime)) bits.push(det.activityTime);
+            if (det.durationMin) bits.push(det.durationMin + ' min');
+          }
+          lines.push('<button type="button" class="hf-line' + (det.completed ? ' done' : '') + '" data-train-open="' + t + '">' +
+            (det.completed ? '<span class="tick">' + CHECK_SVG + '</span>' : '') + bits.join(' · ') + '</button>');
+        });
+      }
+      var food = [];
+      if (meals.length){
+        var mealsEaten = meals.filter(function(m){ return m.completed; }).length;
+        food.push(plural(meals.length, 'meal') + (mealsEaten ? ' (' + mealsEaten + ' eaten)' : ''));
+      }
+      if (plan && plan.carbLevel) food.push(CARB_LEVEL_LABEL[plan.carbLevel]);
+      if (plan && plan.fasting) food.push('Fasting');
+      if (food.length){
+        lines.push('<button type="button" class="hf-line" ' + (meals.length ? 'data-meals-open="1"' : 'data-plan-edit="1"') + '>' + food.join(' · ') + '</button>');
+      }
+      if (plan && plan.roadblocks){
+        lines.push('<button type="button" class="hf-line rb" data-role="rb-card" id="planRoadblockCard">' + UI_ICON.mountain +
+          '<span class="hf-rb-text clamped" data-role="rb-text" id="planRoadblockText"></span></button>');
+      }
+      html += lines.length ? '<div class="hf-lines">' + lines.join('') + '</div>' : '<p class="today-quiet">Nothing planned</p>';
+    } else if (cards.length){
       html += '<div class="plan-cards">' + cards.join('') + '</div>';
     } else {
       html += '<p class="empty-state plan-empty-prompt">' + (isToday ? 'Nothing planned for today yet.' : 'Nothing planned for this day yet.') + '</p>';
@@ -11017,7 +11128,8 @@
       rbCard.addEventListener('click', function(){
         var nowClamped = rbEl.classList.toggle('clamped');
         rbCard.classList.toggle('expanded', !nowClamped);
-        wrap.querySelector('[data-role="rb-chev"]').classList.toggle('flip', !nowClamped);
+        var rbChev = wrap.querySelector('[data-role="rb-chev"]');
+        if (rbChev) rbChev.classList.toggle('flip', !nowClamped);
       });
     }
 
@@ -11035,10 +11147,12 @@
         if (det.notes) more.push(det.notes);
         more = more.filter(function(x){ return !!x; });
         if (!more.length) return;
+        var cardBody = card.querySelector('.plan-card-body');
+        if (!cardBody) return;   // Today's summary lines carry no detail
         var el = document.createElement('span');
         el.className = 'plan-card-more';
         el.textContent = more.join('\n');
-        card.querySelector('.plan-card-body').appendChild(el);
+        cardBody.appendChild(el);
       });
     }
 
@@ -11547,7 +11661,7 @@
     }
     html += '<div class="dpa-add">' +
       '<button type="button" class="dpa-add-btn" data-dpa-add>' + BK_PLUS_SVG + 'Add action</button>' +
-      (backlogN ? '<button type="button" class="dpa-add-btn quiet" data-dpa-backlog>' + UI_ICON.box + 'From Inbox (' + backlogN + ')</button>' : '') +
+      (backlogN ? '<button type="button" class="dpa-add-btn quiet" data-dpa-backlog>' + UI_ICON.box + 'From backlog (' + backlogN + ')</button>' : '') +
     '</div>';
     wrap.innerHTML = html;
 

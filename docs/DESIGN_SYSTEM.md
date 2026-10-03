@@ -274,7 +274,7 @@ A **capsule** (`.cap`, `capsuleHtml()`) is how an item says what it is: the
 category or training-type colour as a ~15% tint on an opaque base, a 1px border at
 ~32%, and the coloured icon. Done, it fills with the colour and shows a tick. It
 extends the "accents are marks, never fills" rule by exactly this one shape.
-Sizes: 32px round in action rows, 30px in the Day Plan, 28–32px in the Inbox,
+Sizes: 32px round in action rows, 30px in the Day Plan, 26–32px in the Backlog,
 40px wide on the timeline, where a timed item's capsule grows with its duration
 (40–112px).
 
@@ -292,7 +292,7 @@ serif note on a dashed stretch of rail; "now" is a gold dot, time and fading lin
 
 Applied app-wide; check new UI against it.
 
-- **Rows, not cards.** Action rows, Day Plan rows, the Today Inbox shelf,
+- **Rows, not cards.** Action rows, Day Plan rows, the Today Backlog shelf,
   Health & fitness, Communications lists and Progress groups are rows divided by
   `--line` hairlines on the page, with no background or border of their own.
   Selected and dragged rows get a soft fill; that is the only box a row grows.
@@ -313,6 +313,23 @@ Applied app-wide; check new UI against it.
   open whenever they already hold something. Hints and taglines that explain an
   obvious control are gone (Actions hint, Communications tagline, Focus hints once
   their lists have content, "Tap to plan").
+
+## 7d. Today type roles (2026-10-03)
+
+| Role | Use | Treatment |
+| --- | --- | --- |
+| Display | The date | Playfair 400, ~30–36px |
+| Accent | The header quote only | Playfair italic 12–13px, `--text-2` |
+| Heading | Section names | Inter 600, sentence case, `--text`; Actions 17px, others 15px; no rule beside it |
+| Body | Action titles, content | Inter 400 15px, `--text` |
+| Meta | Time, category, state, counts | Inter 400 12px, `--text-3` |
+| Utility row | Day notes, Quick log, Wind-down, Recorded | Inter 400 14px, `--text-2`, hairline above |
+| Link | Open, Edit, Plan | Inter 500 13px, `--text-2` |
+| Empty | Nothing needs attention, Nothing planned | Inter 400 13px, `--text-3`, never italic |
+
+Serif is for the date and deliberate editorial moments; it is not used to dress
+up empty states. Completed rows recede: the tick turns to a quiet outline and the
+capsule dims.
 
 ## 8. Sheets and modals
 

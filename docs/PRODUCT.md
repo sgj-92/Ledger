@@ -125,8 +125,11 @@ Today is the centre of the product. Everything else supports it.
 - **Optional times.** An action or planned session may be given a time and a
   duration; most are not. Untimed work is an order, timed work sits at its time,
   and Ledger never sets or moves a time by itself.
-- **Inbox (Backlog).** Unfinished past actions surface as a recovery layer derived at
+- **Backlog.** Actions assigned to an earlier date and not completed surface as a recovery layer derived at
   read time. Nothing ever moves to an active day on its own.
+- **Inbox (reserved).** The future home for unprocessed capture — something noted
+  but not yet decided (what it is, when, whether it is an action, matter or note).
+  Not built; the word is not used for Backlog.
 - **Exposure vs symptoms.** A suspected gluten exposure belongs to the date
   the food was eaten. A symptom episode belongs to the date the symptoms were
   noticed. Any link between them is recorded and worded as *possible*, never
