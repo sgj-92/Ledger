@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-04 (Health & fitness: Strength, one-row training, Nutrition Plan, Enter-to-add meals)
+Last updated: 2026-10-04 (Key tasks up to three; Morning Prime skip; inline Action entry; light theme refinement)
 
 ---
 
@@ -50,11 +50,17 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   Once Morning Prime is done, "Start the day in Flow" offers the switch; when the
   evening routine is due, Flow shows "Evening Wind-down ready".
 - **Morning Prime** — two sections, tracked separately. **Plan** is what can be
-  done from the phone before getting up (meals → three key tasks → review today's
+  done from the phone before getting up (meals → choose key tasks → review today's
   plan → intention); **Move** is the physical start (weigh-in, body photo,
   supplements, water, stretch). Header reads `Plan ✓ · Move 3/5`, and collapses
   to "Completed at HH:MM" once both are complete. Stored as `plan.morningPrime`;
-  manual ticks in `plan.morningPrime.checks[section]`.
+  manual ticks in `plan.morningPrime.checks[section]`. Key tasks are up to three:
+  Done in the Key Tasks sheet sets `morningPrime.keysReviewedAt` and completes the
+  step at 0–3 ("None today", "2 selected"). Any step can be **skipped for the day**
+  ("Skip a step for today" in the expanded card, then Skip per open step; Undo on the
+  row): `morningPrime.skipped[itemId] = { at, reason }`. Skipped is resolved but not
+  evidence — a dash and "Skipped today", never the gold check — and real evidence
+  or a tick outranks it.
 - **Evening Wind-down** — Morning Prime's quieter sibling card (moon mark, title,
   progress, chevron) at the foot of Today, after Recorded activity. It closes today while
   it is still today: finish food log, review food/day status, review suspected
@@ -66,10 +72,14 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   - **Groups view**: collapsible category sections, each with its own internal order.
   - Orders stored separately as `plan.actionOrder` and `plan.groupOrder[category]`.
   - Reordering is pointer-event based (HTML5 drag-and-drop does not work on touch).
-- **Key tasks** — Morning Prime's three; normal actions flagged `isKeyTask`,
+- **Key tasks** — up to three, chosen in Morning Prime; normal actions flagged `isKeyTask`,
   marked in both views with a gold star, gold left edge and a `Key` pill.
-- **Add action** — a `+` in the Actions section header; it opens a panel
-  under the list holding Quick add and Detailed add.
+- **Add action** — a `+` in the Actions section header opens one inline field
+  under the list ("What needs doing?"). Return creates a plain action for the day
+  (remembered category, default Work) and keeps the field focused for the next;
+  empty Return does nothing; Escape or × closes. Details are edited afterwards by
+  tapping the row. The Quick add / Detailed add choice is gone from Today (the
+  global Quick add sheet remains on other tabs).
 - **Backlog** — Actions intentionally assigned to an earlier date and not
   completed (not started, partial, disrupted, not done). On Today it sits above
   Actions as a collapsed row ("Backlog  5"), closed whenever Ledger opens; opened,
@@ -292,7 +302,7 @@ Conventions that should not be casually changed.
   Morning Prime); priority context comes from each action's `priorityId`; the
   intention is `plan.morningPrime.intention`; notes are `plan.dayNotes`;
   constraints are `plan.roadblocks`. Future days may be planned loosely —
-  Morning Prime confirms the current day's key three.
+  Morning Prime confirms the current day's key tasks (up to three).
 - Communications has three nouns and no second task system: a **Matter** is the
   wider ongoing piece of life or work; a **Conversation** is the communication
   thread and its context; an **Action** is the existing executable commitment,
@@ -365,6 +375,31 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-04 — Key tasks are up to three; Morning Prime steps can be skipped for the day
+**Decision:** key tasks are "up to three", not exactly three. The Key Tasks step is
+complete when it has been intentionally reviewed — Done (or "No key tasks today")
+in the sheet sets `morningPrime.keysReviewedAt` — at any count 0–3; zero shows
+"None today". A full three also counts (nothing is left to choose; keeps earlier
+days complete). Any Morning Prime routine item, custom ones included, may be
+skipped for a date: `morningPrime.skipped[itemId] = { at, reason: null }`.
+Skipped resolves the step (counts toward Plan/Move and completion) but is not
+evidence: no record is created, it shows as a muted dash with "Skipped today" and
+Undo, and real evidence or a tick outranks it (a tick also clears the skip).
+Wind-down does not skip. Today's Actions `+` opens one inline field: Return
+creates a plain action and stays ready for the next; full details are edited after
+creation by tapping the row. The Quick add / Detailed add split is removed from
+Today. The light theme had a hierarchy/contrast refinement (tokens only, plus a
+lifted card and raised mode tab in light); dark is unchanged.
+**Why:** exactly-three made a deliberate lighter day look failed; Morning Prime
+done late or partly had no honest state; choosing between two add modes was
+friction; light cards disappeared into the page.
+**Implications:** Handoff notes skips once ("completed at 07:07 (3 skipped)" or
+"5 of 9 steps complete, 2 skipped"). New actions sort last by creation (order hints
+are sparse), so no order is written. Light tokens: bg `#f2eadd`, surface
+`#fdfaf4`, surface-2 `#ece3d4`, surface-3 `#e2d7c4`, lines 0.12/0.23, text
+`#261d16`/`#5a4d3e`/`#73624d`; hero less sepia. Plan's "+ Add action" still opens
+the editor; it can reuse `createQuickAction` later.
 
 ### 2026-10-04 — Strength, one training row, one Nutrition Plan, meals as a list
 **Decision:** "Resistance training" displays as **Strength** everywhere (Plan,
@@ -1017,6 +1052,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-04) — Key tasks up to three with an explicit review (`keysReviewedAt`,
+  "None today"); per-day Morning Prime skip with undo; inline rapid Action entry on
+  Today replacing Quick add / Detailed add; light theme contrast/hierarchy pass.
 - (2026-10-04) — Health & fitness refinement: Resistance training displays as
   Strength, all five training cards on one mobile row, Diet + Fasting replaced by
   one Nutrition Plan picker (fasting/carbLevel kept), Enter-to-add meals.

@@ -23,7 +23,7 @@
     el.setAttribute('data-theme', resolved);
     el.setAttribute('data-theme-pref', pref);
     var m = document.querySelector('meta[name="theme-color"]');
-    if (m) m.setAttribute('content', resolved === 'light' ? '#f5efe4' : '#0e0b08');
+    if (m) m.setAttribute('content', resolved === 'light' ? '#f2eadd' : '#0e0b08');
   } catch(e){ document.documentElement.setAttribute('data-theme', 'dark'); }
 })();
 </script>
@@ -1815,17 +1815,19 @@
      Same product, different hour: the evening journal becomes a paper one.
      Only tokens change — no component knows which theme it is in. */
   html[data-theme="light"] {
-    --bg: #f5efe4;             /* parchment */
-    --surface: #fcf8f1;        /* soft cream card */
-    --surface-2: #f1e9dc;      /* field / pressed — deeper, not lighter */
-    --surface-3: #e9dfcd;      /* raised / featured stone */
+    /* 2026-10-04: a touch deeper page, a cleaner card, a clearer stone — so a card
+       reads as paper laid on paper rather than beige on beige */
+    --bg: #f2eadd;             /* parchment */
+    --surface: #fdfaf4;        /* ivory card */
+    --surface-2: #ece3d4;      /* field / pressed — warm stone */
+    --surface-3: #e2d7c4;      /* raised / featured stone */
 
-    --line: rgba(74,56,36,0.10);
-    --line-2: rgba(74,56,36,0.20);
+    --line: rgba(74,56,36,0.12);
+    --line-2: rgba(74,56,36,0.23);
 
-    --text: #2b211a;           /* deep espresso */
-    --text-2: #665949;         /* muted taupe — 5.9:1 on parchment */
-    --text-3: #7a6a55;         /* faint taupe — 4.6:1, the AA floor */
+    --text: #261d16;           /* deep espresso */
+    --text-2: #5a4d3e;         /* taupe — 7.0:1 on parchment */
+    --text-3: #73624d;         /* faint taupe — 4.9:1, clear of the AA floor */
 
     --gold: #866325;           /* antique gold — 4.8:1 as text, 5.3:1 as a fill */
     --gold-rgb: 134,99,37;
@@ -1861,7 +1863,7 @@
     --danger: #a4452e;
     --danger-rgb: 164,69,46;
 
-    --shadow-card: 0 1px 2px rgba(76,58,36,0.07);
+    --shadow-card: 0 1px 2px rgba(76,58,36,0.07), 0 6px 18px -12px rgba(76,58,36,0.24);
     --shadow-raised: 0 -18px 50px -26px rgba(76,58,36,0.34);
     --shadow-lift: 0 14px 30px -14px rgba(76,58,36,0.30);
     --shadow-fab: 0 12px 26px -14px rgba(76,58,36,0.38);
@@ -1870,19 +1872,19 @@
 
     --tint-raise: rgba(76,58,36,0.022);
     --backdrop: rgba(58,44,28,0.34);
-    --bar: rgba(250,245,236,0.90);
-    --header-fade: rgba(245,239,228,0.82);
-    --header-fade-0: rgba(245,239,228,0);
-    /* pressed into the paper rather than lit from behind */
-    --hero-opacity: 0.42;
-    --hero-filter: grayscale(0.1) sepia(0.7) brightness(1.3) contrast(0.6) saturate(0.9);
+    --bar: rgba(253,250,244,0.94);
+    --header-fade: rgba(242,234,221,0.82);
+    --header-fade-0: rgba(242,234,221,0);
+    /* pressed into the paper rather than lit from behind — less sepia haze, a firmer ridge */
+    --hero-opacity: 0.44;
+    --hero-filter: grayscale(0.3) sepia(0.4) brightness(1.18) contrast(0.82) saturate(0.85);
     --hero-h: 100%;
     --hero-size: 142% auto;
     --hero-pos: 50% 52%;
     --hero-mask: linear-gradient(180deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,1) 30%, rgba(0,0,0,0.55) 62%, rgba(0,0,0,0) 97%);
     --hero-scrim:
-      radial-gradient(120% 80% at 50% 34%, rgba(245,239,228,0.58) 0%, rgba(245,239,228,0.29) 55%, rgba(245,239,228,0.08) 100%),
-      linear-gradient(180deg, rgba(245,239,228,0.35) 0%, rgba(245,239,228,0.15) 40%, rgba(245,239,228,0.72) 100%);
+      radial-gradient(120% 80% at 50% 34%, rgba(242,234,221,0.6) 0%, rgba(242,234,221,0.3) 55%, rgba(242,234,221,0.08) 100%),
+      linear-gradient(180deg, rgba(242,234,221,0.35) 0%, rgba(242,234,221,0.15) 40%, rgba(242,234,221,0.74) 100%);
     color-scheme: light;
   }
   /* light-only legibility corrections: alpha-gold text is too faint on paper */
@@ -1897,6 +1899,24 @@
   html[data-theme="light"] .cal-cell.today { color: var(--gold-2); }
   html[data-theme="light"] .view-switch button:not(.sel),
   html[data-theme="light"] .theme-switch button:not(.sel) { color: var(--text-2); }
+  /* Light needs edges that dark gets from luminance: a card is lifted, never outlined
+     heavily. Dark is untouched by all of this. */
+  html[data-theme="light"] .mp-card:not(.done),
+  html[data-theme="light"] .player-card,
+  html[data-theme="light"] #focusEvidence,
+  html[data-theme="light"] .bk-panel { border-color: var(--line); box-shadow: var(--shadow-card); }
+  /* the chosen mode is a raised ivory tab in a stone track */
+  html[data-theme="light"] .today-mode { background: var(--surface-2); border-color: transparent; }
+  html[data-theme="light"] .today-mode button { color: var(--text-2); }
+  html[data-theme="light"] .today-mode button.sel {
+    background: var(--surface); color: var(--text);
+    box-shadow: 0 1px 2px rgba(76,58,36,0.16), inset 0 0 0 1px rgba(74,56,36,0.10);
+  }
+  /* the tab bar is a sheet of ivory over the page; inactive tabs stay legible */
+  html[data-theme="light"] nav.tabbar { border-top-color: var(--line-2); }
+  html[data-theme="light"] nav.tabbar button { color: var(--text-2); }
+  html[data-theme="light"] nav.tabbar button .tab-icon { opacity: 0.8; }
+  html[data-theme="light"] nav.tabbar button.active { color: var(--gold-2); }
 
   /* ============ Morning Prime ============
      A daily setup ritual: useful before completion, quiet after it. */
@@ -2002,6 +2022,23 @@
   }
   .mp-step.done .mp-step-val { color: rgba(var(--gold-rgb),0.8); }
   .mp-step .chev { flex-shrink: 0; }
+  /* skipped for today: resolved, but muted and never the gold check — it is not evidence */
+  .mp-step-row.skipped .mp-step-label, .mp-step-row.skipped .mp-step-num,
+  .mp-step-row.skipped .mp-step-val, .mp-step-row.skipped > .mp-step-ic { color: var(--text-3); }
+  .mp-tick.skip { border-style: dashed; color: var(--text-3); }
+  .mp-tick.skip svg { width: 11px; height: 11px; }
+  .mp-skip-btn {
+    flex-shrink: 0; background: none; border: none; padding: 12px 0 12px 4px; cursor: pointer;
+    font-family: var(--sans); font-size: 12px; font-weight: 500; letter-spacing: 0.01em; color: var(--text-2);
+  }
+  .mp-skip-btn:active { opacity: 0.6; }
+  .mp-skip-toggle {
+    display: block; margin: 10px 0 0 auto; padding: 6px 0; background: none; border: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12px; letter-spacing: 0.01em; color: var(--text-3);
+  }
+  .mp-skip-toggle[aria-pressed="true"] { color: var(--gold); font-weight: 500; }
+  .kt-done { margin-top: var(--sp-4); }
+  .kt-none { display: block; margin: 4px auto 0; }
 
   .mp-intention-wrap { padding-top: 13px; }
   .mp-intention-wrap textarea {
@@ -2088,35 +2125,26 @@
   .pm-row.done .pm-body { color: var(--text-2); }
   .pm-row .chev { flex-shrink: 0; }
 
-  /* ============ Add action panel ============
-     The trigger lives in the Actions section header; this is only what it opens. */
+  /* ============ Add action: one inline field ============
+     The trigger lives in the Actions section header. What it opens reads as the next
+     row of the list — a faint ring where the capsule will be, and a quiet underline. */
   .add-action {
-    border: 1px solid var(--line); border-radius: var(--r-lg);
-    background: var(--surface); overflow: hidden; margin-top: 10px;
-    max-height: 260px; opacity: 1;
-    transition: max-height 0.24s ease, opacity 0.2s ease, margin-top 0.24s ease;
+    overflow: hidden; max-height: 72px; opacity: 1;
+    transition: max-height 0.22s ease, opacity 0.18s ease;
   }
-  .add-action.collapsed {
-    max-height: 0; opacity: 0; margin-top: 0; border-width: 0; visibility: hidden;
+  .add-action.collapsed { max-height: 0; opacity: 0; visibility: hidden; }
+  .aa-row { display: flex; align-items: center; gap: 14px; padding: 6px 0 8px; }
+  .aa-ring {
+    flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+    border: 1px dashed var(--line-2); box-sizing: border-box;
   }
-  .add-action-body-inner {
-    padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  .aa-input {
+    flex: 1; min-width: 0; height: 42px; padding: 0 2px;
+    background: none; border: none; border-bottom: 1px solid var(--line-2); border-radius: 0;
+    font-family: var(--sans); font-size: 15px; color: var(--text); outline: none;
   }
-  .add-option {
-    display: flex; align-items: center; gap: 13px; width: 100%;
-    padding: 13px 13px; margin-top: 12px;
-    background: var(--surface-2); border: 1px solid var(--line);
-    border-radius: var(--r-md);
-    font-family: var(--sans); text-align: left; color: var(--text); cursor: pointer;
-  }
-  .add-option:active { background: var(--surface-3); }
-  .add-action-body-inner > .add-option + .add-option { margin-top: 0; }
-  .add-option-ic { flex-shrink: 0; width: 20px; color: var(--text-2); display: flex; }
-  .add-option-ic svg { width: 20px; height: 20px; display: block; }
-  .add-option.gold .add-option-ic { color: var(--gold); }
-  .add-option-body { flex: 1; min-width: 0; }
-  .add-option-title { display: block; font-size: 14.5px; font-weight: 500; line-height: 1.25; }
-  .add-option-sub { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
+  .aa-input::placeholder { color: var(--text-3); }
+  .aa-input:focus { border-bottom-color: rgba(var(--gold-rgb),0.55); }
 
   /* key tasks read as the day's spine — a whisper of gold, not a badge */
   /* A key task keeps its group and its shape — it gains a gold edge, a small star in
@@ -3160,7 +3188,7 @@
   /* hover only where there is a real pointer, so touch never sticks */
   @media (hover: hover) and (pointer: fine) {
     .commitment-item:hover, .session-item:hover, .plan-card:hover, .bk-row:hover,
-    .mp-head:hover, .quicklog-card:hover, .cal-day-log-btn:hover, .add-option:hover,
+    .mp-head:hover, .quicklog-card:hover, .cal-day-log-btn:hover,
     .dn-row:hover, .panel-row:hover, .cv-row:hover, .mt-row:hover, .ns-opt:hover { background: var(--surface-2); }
     .md-conv:hover { background: rgba(var(--gold-rgb),0.035); }
     .cs-stat:hover, .cd-chip:hover:not(.sel) { border-color: rgba(var(--gold-rgb),0.3); }
@@ -3566,16 +3594,11 @@
     <div id="actionsBody">
       <div id="commitmentsList"></div>
     </div>
+    <!-- one field: type, Return, type. Details come later, from the row itself. -->
     <div class="add-action collapsed" id="addActionBody">
-      <div class="add-action-body-inner">
-        <button type="button" class="add-option gold" id="quickCaptureBtn">
-          <span class="add-option-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 4.5 13.5 11 13.5 10 22 19 10 12.5 10"/></svg></span>
-          <span class="add-option-body"><span class="add-option-title">Quick add</span><span class="add-option-sub">Capture a thought quickly</span></span>
-        </button>
-        <button type="button" class="add-option" id="addCommitmentBtn">
-          <span class="add-option-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2.2"/><line x1="8.5" y1="9" x2="15.5" y2="9"/><line x1="8.5" y1="13" x2="15.5" y2="13"/><line x1="8.5" y1="17" x2="12.5" y2="17"/></svg></span>
-          <span class="add-option-body"><span class="add-option-title">Detailed add</span><span class="add-option-sub">Add with full options</span></span>
-        </button>
+      <div class="aa-row">
+        <span class="aa-ring" aria-hidden="true"></span>
+        <input type="text" id="aaInput" class="aa-input" placeholder="What needs doing?" enterkeyhint="enter" autocomplete="off" aria-label="New action" maxlength="200">
       </div>
     </div>
 
@@ -5185,7 +5208,7 @@
   // 'dark' | 'light' | 'system'. The resolved value lands on <html data-theme>, which is
   // the only thing any component reads — via tokens, never directly.
   var THEME_KEY = 'ledger_theme';
-  var THEME_COLOR = { dark: '#0e0b08', light: '#f5efe4' };
+  var THEME_COLOR = { dark: '#0e0b08', light: '#f2eadd' };
   var lightMQ = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
 
   function themePref(){
@@ -6171,7 +6194,26 @@
     }
   }
 
-  document.getElementById('addCommitmentBtn').addEventListener('click', function(){ setAddActionOpen(false); openCommitmentSheet(null); });
+  // One plain action for a day, from a title alone: the remembered category, no other
+  // detail. It lands at the end of both orderings by creation (the order hints are
+  // sparse) and is edited like any action — tap the row for the full editor.
+  function createQuickAction(dateStr, title){
+    var item = {
+      id: uid(),
+      date: dateStr,
+      originalDate: dateStr,
+      title: title,
+      priorityId: null,
+      minVersion: null,
+      status: 'planned',
+      disruptionReason: null,
+      category: qcLastCategory || 'work',
+      createdAt: new Date().toISOString()
+    };
+    commitments.push(item);   // optimistic, so the row appears before the save returns
+    saveCommitment(item);
+    return item;
+  }
 
   // ---------- quick capture (batch, low-friction, date-aware) ----------
   var qcRowSeq = 0;
@@ -6352,7 +6394,6 @@
     toPin.forEach(function(item){ pinNow(item.title, '', item.id, item.date); });
   }
 
-  document.getElementById('quickCaptureBtn').addEventListener('click', function(){ setAddActionOpen(false); openQuickCaptureSheet(viewedDate); });
   document.getElementById('globalFabBtn').addEventListener('click', function(){ openQuickCaptureSheet(fabTargetDate()); });
   // Today has its own Add action control; a floating duplicate would only cover content
   function syncGlobalFab(){
@@ -7991,9 +8032,11 @@
 
     // 9. Status / notes
     L.push('STATUS / NOTES');
+    // a skipped step is not done work, so the count says so — once, briefly
+    var mpSkipNote = st.skippedCount ? st.skippedCount + ' skipped' : '';
     L.push('- Morning Prime ' + (st.completedAt
-      ? 'completed at ' + mpTimeLabel(st.completedAt)
-      : st.doneCount + ' of ' + st.total + ' steps complete'));
+      ? 'completed at ' + mpTimeLabel(st.completedAt) + (mpSkipNote ? ' (' + mpSkipNote + ')' : '')
+      : st.doneCount + ' of ' + st.total + ' steps complete' + (mpSkipNote ? ', ' + mpSkipNote : '')));
     L.push('- Day plan ' + (st.planDone ? 'reviewed' : 'not yet reviewed'));
     if (actionable.length){
       var doneCount = actionable.filter(function(c){ return c.status === 'completed'; }).length;
@@ -8100,7 +8143,7 @@
   }
 
   // ============ Morning Prime ============
-  // A compact daily setup ritual: plan meals, pick three key tasks, set an intention.
+  // A compact daily setup ritual: plan meals, choose up to three key tasks, set an intention.
   // It leans on the systems already here — key tasks are ordinary actions flagged
   // isKeyTask, meals are the day's plan.meals — so nothing here is a parallel record.
   var MP_INTENTION_MAX = 200;
@@ -8138,7 +8181,7 @@
   var DEFAULT_ROUTINES = {
     plan: [
       { id: 'plan-meals',     key: 'meals',     label: 'Plan main meals',         enabled: true },
-      { id: 'plan-keys',      key: 'keys',      label: 'Set 3 key tasks',         enabled: true },
+      { id: 'plan-keys',      key: 'keys',      label: 'Choose key tasks',        enabled: true },
       { id: 'plan-plan',      key: 'plan',      label: 'Review today\'s plan',    enabled: true },
       { id: 'plan-intention', key: 'intention', label: 'One-line intention',      enabled: true }
     ],
@@ -8173,6 +8216,8 @@
       var copy = Object.assign({}, it);
       // the plan step once only covered health & fitness; a label never renamed follows the default
       if (copy.id === 'plan-plan' && copy.label === 'Finish health & fitness') copy.label = 'Review today\'s plan';
+      // key tasks became "up to three"; a label never renamed follows the default
+      if (copy.id === 'plan-keys' && copy.label === 'Set 3 key tasks') copy.label = 'Choose key tasks';
       return copy;
     });
     defs.forEach(function(d){
@@ -8230,7 +8275,31 @@
     var sec = Object.assign({}, all[section] || {});
     if (on) sec[itemId] = new Date().toISOString(); else delete sec[itemId];
     all[section] = sec;
-    await patchMorningPrime(dateStr, { checks: all });
+    var patch = { checks: all };
+    // doing the step after all replaces having skipped it
+    if (on && mp.skipped && mp.skipped[itemId]){
+      patch.skipped = Object.assign({}, mp.skipped);
+      delete patch.skipped[itemId];
+    }
+    await patchMorningPrime(dateStr, patch);
+  }
+
+  // Skipping is a decision about one Morning Prime step on one date — "not today" — so
+  // it sits on that day's Morning Prime by routine item id (custom items included), never
+  // in the routine definition. It resolves the step but is not evidence: nothing is
+  // logged, ticked or invented, and real evidence arriving later outranks it.
+  // Evening Wind-down closes the day on the day record and does not skip.
+  function routineSkips(section, dateStr){
+    if (section === 'windDown') return {};
+    var plan = getPlanForDate(dateStr);
+    return (plan && plan.morningPrime && plan.morningPrime.skipped) || {};
+  }
+  async function setRoutineSkip(dateStr, itemId, on){
+    var plan = getPlanForDate(dateStr);
+    var mp = (plan && plan.morningPrime) || {};
+    var all = Object.assign({}, mp.skipped || {});
+    if (on) all[itemId] = { at: new Date().toISOString(), reason: null }; else delete all[itemId];
+    await patchMorningPrime(dateStr, { skipped: all });
   }
 
   // If Ledger already holds structured evidence of something, that evidence is
@@ -8245,8 +8314,13 @@
       return { done: meals.length > 0 || ack, value: meals.length ? meals.length + ' planned' : (ack ? 'None today' : '') };
     }
     if (key === 'keys'){
+      // Up to three, chosen on purpose. Done in the sheet records the decision whatever
+      // the count — none is a valid answer. A full three is a decision too (nothing is
+      // left to choose), which also keeps every day set before this change complete.
       var keys = getKeyTasks(dateStr);
-      return { done: keys.length >= 3, value: keys.length + ' of 3' };
+      plan = getPlanForDate(dateStr);
+      var reviewed = !!(plan && plan.morningPrime && plan.morningPrime.keysReviewedAt) || keys.length >= KEY_TASK_MAX;
+      return { done: reviewed, value: keys.length ? keys.length + ' selected' : (reviewed ? 'None today' : '') };
     }
     if (key === 'plan'){
       plan = getPlanForDate(dateStr);
@@ -8298,21 +8372,30 @@
     var ev = item.key ? routineEvidence(item.key, dateStr) : null;
     var tickable = !ev || ev.soft === true;
     var ticked = !!routineChecks(section, dateStr)[item.id];
+    var done = !!(ev && ev.done) || (tickable && ticked);
+    // done outranks skipped: once the record or a tick says so, the skip no longer shows
+    var skipped = !done && !!routineSkips(section, dateStr)[item.id];
     return {
       item: item,
-      done: !!(ev && ev.done) || (tickable && ticked),
+      done: done,
+      skipped: skipped,
+      resolved: done || skipped,
+      skippable: section !== 'windDown',
       fromRecord: !!(ev && ev.done),
       value: ev ? (ev.value || '') : '',
       tickable: tickable,
       linked: routineHasRecord(item.key)
     };
   }
+  // `done` counts real completion only; `resolved` adds the steps skipped for the day,
+  // and is what finishes a section.
   function routineSectionState(section, dateStr){
     var items = enabledRoutine(section).map(function(it){ return routineItemState(section, it, dateStr); });
     var done = items.filter(function(x){ return x.done; }).length;
+    var resolved = items.filter(function(x){ return x.resolved; }).length;
     return {
-      items: items, done: done, total: items.length,
-      complete: items.length === 0 || done === items.length
+      items: items, done: done, resolved: resolved, skipped: resolved - done, total: items.length,
+      complete: items.length === 0 || resolved === items.length
     };
   }
 
@@ -8346,24 +8429,32 @@
   // One row shape for every routine item. The leading slot is a tick where a tick
   // is the only possible record, and the item's icon where a real record answers
   // for it. Labels are user content, so they are filled as text afterwards.
+  // A skipped step resolves quietly: a dash, never the gold check, "Skipped today" and
+  // an Undo. The step itself still opens, so it can be done after all.
+  var RT_SKIP_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="12" x2="16" y2="12"/></svg>';
   function routineRowHtml(s, opts){
     opts = opts || {};
     var it = s.item;
     var lead = s.tickable
-      ? '<button type="button" class="mp-tick' + (s.done ? ' on' : '') + '" data-rt-tick="' + it.id + '"' +
+      ? '<button type="button" class="mp-tick' + (s.done ? ' on' : '') + (s.skipped ? ' skip' : '') + '" data-rt-tick="' + it.id + '"' +
           ' aria-pressed="' + (s.done ? 'true' : 'false') + '" data-rt-ticklabel="' + it.id + '">' +
-          (s.done ? CHECK_SVG : '') + '</button>'
-      : '<span class="mp-step-ic">' + routineIcon(it) + '</span>';
+          (s.done ? CHECK_SVG : (s.skipped ? RT_SKIP_SVG : '')) + '</button>'
+      : '<span class="mp-step-ic">' + (s.skipped ? RT_SKIP_SVG : routineIcon(it)) + '</span>';
     var open = s.linked;
     var tag = open ? 'button' : 'div';
-    return '<div class="mp-step-row' + (s.done ? ' done' : '') + '">' + lead +
+    var value = s.skipped ? 'Skipped today' : s.value;
+    return '<div class="mp-step-row' + (s.done ? ' done' : '') + (s.skipped ? ' skipped' : '') + '">' + lead +
       '<' + tag + (open ? ' type="button" data-rt-open="' + it.id + '"' : '') +
         ' class="mp-step' + (s.done ? ' done' : '') + (open ? '' : ' static') + '">' +
         (opts.num ? '<span class="mp-step-num">' + opts.num + '. </span>' : '') +
         '<span class="mp-step-label" data-rt-label="' + it.id + '"></span>' +
-        (s.value ? '<span class="mp-step-val">' + s.value + '</span>' : '') +
-        (open ? '<span class="chev">' + UI_ICON.chevronRight + '</span>' : '') +
+        (value ? '<span class="mp-step-val">' + value + '</span>' : '') +
+        (open && !s.skipped ? '<span class="chev">' + UI_ICON.chevronRight + '</span>' : '') +
       '</' + tag + '>' +
+      (s.skipped
+        ? '<button type="button" class="mp-skip-btn" data-rt-unskip="' + it.id + '">Undo</button>'
+        : (opts.skipMode && s.skippable && !s.resolved
+            ? '<button type="button" class="mp-skip-btn" data-rt-skip="' + it.id + '">Skip</button>' : '')) +
     '</div>';
   }
   // labels and their aria copies are user content — always written as text
@@ -8373,7 +8464,13 @@
         el.textContent = s.item.label;
       });
       root.querySelectorAll('[data-rt-ticklabel="' + s.item.id + '"]').forEach(function(el){
-        el.setAttribute('aria-label', (s.done ? 'Undo ' : 'Complete ') + s.item.label);
+        el.setAttribute('aria-label', (s.done ? 'Undo ' : 'Complete ') + s.item.label + (s.skipped ? ' (skipped today)' : ''));
+      });
+      root.querySelectorAll('[data-rt-skip="' + s.item.id + '"]').forEach(function(el){
+        el.setAttribute('aria-label', 'Skip ' + s.item.label + ' for today');
+      });
+      root.querySelectorAll('[data-rt-unskip="' + s.item.id + '"]').forEach(function(el){
+        el.setAttribute('aria-label', 'Undo skip: ' + s.item.label);
       });
     });
   }
@@ -8395,9 +8492,18 @@
         if (st) openRoutineItem(st.item, dateStr);
       });
     });
+    root.querySelectorAll('[data-rt-skip], [data-rt-unskip]').forEach(function(btn){
+      btn.addEventListener('click', async function(e){
+        e.stopPropagation();
+        var skip = !!btn.dataset.rtSkip;
+        await setRoutineSkip(dateStr, skip ? btn.dataset.rtSkip : btn.dataset.rtUnskip, skip);
+        if (after) after();
+      });
+    });
   }
 
   var mpExpanded = {};        // dateStr -> bool, session-only disclosure state
+  var mpSkipMode = {};        // dateStr -> bool, showing Skip on the steps still open
   var mpIntentionDraft = {};  // dateStr -> string, uncommitted edit
 
   function getMorningPrime(dateStr){
@@ -8437,7 +8543,9 @@
       mealsAcknowledged: mp.mealsAcknowledged,
       completedAt: mp.completedAt
     };
-    st.doneCount = planSec.done + moveSec.done;
+    st.doneCount = planSec.done + moveSec.done;            // really done
+    st.skippedCount = planSec.skipped + moveSec.skipped;   // resolved by a skip, not evidence
+    st.resolvedCount = st.doneCount + st.skippedCount;
     st.total = planSec.total + moveSec.total;
     st.complete = planSec.complete && moveSec.complete;
     return st;
@@ -8445,8 +8553,8 @@
   // "Plan ✓ · Move 3/5" — one line that says where each half stands
   function mpProgressLabel(st){
     var bits = [];
-    if (st.planSec.total) bits.push('Plan ' + (st.planSec.complete ? '\u2713' : st.planSec.done + '/' + st.planSec.total));
-    if (st.moveSec.total) bits.push('Move ' + (st.moveSec.complete ? '\u2713' : st.moveSec.done + '/' + st.moveSec.total));
+    if (st.planSec.total) bits.push('Plan ' + (st.planSec.complete ? '\u2713' : st.planSec.resolved + '/' + st.planSec.total));
+    if (st.moveSec.total) bits.push('Move ' + (st.moveSec.complete ? '\u2713' : st.moveSec.resolved + '/' + st.moveSec.total));
     return bits.join(' \u00b7 ');
   }
   // Morning Prime only asks for attention on a day it belongs to, and only while unfinished
@@ -8470,7 +8578,7 @@
   function mpMissingLabel(st){
     var missing = [];
     st.planSec.items.concat(st.moveSec.items).forEach(function(x){
-      if (!x.done) missing.push(x.item.label.toLowerCase());
+      if (!x.resolved) missing.push(x.item.label.toLowerCase());
     });
     if (!missing.length) return '';
     if (missing.length === 1) return 'Still to go: ' + missing[0] + '.';
@@ -8482,7 +8590,7 @@
     return '<div class="mp-sec">' +
       '<span class="mp-sec-label">' + label + '</span>' +
       '<span class="mp-sec-rule"></span>' +
-      '<span class="mp-sec-val">' + (sec.complete ? 'Complete' : sec.done + ' of ' + sec.total) + '</span>' +
+      '<span class="mp-sec-val">' + (sec.complete ? 'Complete' : sec.resolved + ' of ' + sec.total) + '</span>' +
     '</div>';
   }
 
@@ -8493,9 +8601,10 @@
     var isToday = dateStr === todayStr();
     var st = mpState(dateStr);
     // a today ritual; past days only keep it if it actually holds something
-    if (!isToday && !st.completedAt && !st.doneCount){ wrap.innerHTML = ''; return; }
+    if (!isToday && !st.completedAt && !st.resolvedCount){ wrap.innerHTML = ''; return; }
 
     var expanded = !!mpExpanded[dateStr];
+    var skipMode = expanded && !!mpSkipMode[dateStr];
     var backlogCount = backlogActions().length;
     var sub = st.completedAt
       ? 'Completed at ' + mpTimeLabel(st.completedAt)
@@ -8514,7 +8623,7 @@
       '<div class="mp-body' + (expanded ? '' : ' collapsed') + '" id="mpBody"><div class="mp-body-inner">' +
         (st.planSec.total
           ? '<div class="mp-group mp-group-plan">' + mpSectionHead('Plan', st.planSec) +
-            st.planSec.items.map(function(x, i){ return routineRowHtml(x, { num: i + 1 }); }).join('') + '</div>'
+            st.planSec.items.map(function(x, i){ return routineRowHtml(x, { num: i + 1, skipMode: skipMode }); }).join('') + '</div>'
           : '') +
         (st.intentionEnabled
           ? '<div class="mp-intention-wrap">' +
@@ -8524,7 +8633,12 @@
           : '') +
         (st.moveSec.total
           ? '<div class="mp-group mp-group-move">' + mpSectionHead('Move', st.moveSec) +
-            st.moveSec.items.map(function(x){ return routineRowHtml(x, {}); }).join('') + '</div>'
+            st.moveSec.items.map(function(x){ return routineRowHtml(x, { skipMode: skipMode }); }).join('') + '</div>'
+          : '') +
+        // one quiet way in, rather than a Skip on every row
+        (skipMode || !st.complete
+          ? '<button type="button" class="mp-skip-toggle" id="mpSkipToggle" aria-pressed="' + (skipMode ? 'true' : 'false') + '">' +
+              (skipMode ? 'Done skipping' : 'Skip a step for today') + '</button>'
           : '') +
         (isToday && backlogCount ?
           '<button type="button" class="mp-backlog" id="mpBacklogBtn">' +
@@ -8561,7 +8675,15 @@
 
     document.getElementById('mpHead').addEventListener('click', function(){
       mpExpanded[dateStr] = !mpExpanded[dateStr];
+      mpSkipMode[dateStr] = false;
       renderMorningPrime();
+    });
+    var skipToggle = document.getElementById('mpSkipToggle');
+    if (skipToggle) skipToggle.addEventListener('click', function(){
+      mpSkipMode[dateStr] = !mpSkipMode[dateStr];
+      renderMorningPrime();
+      var again = document.getElementById('mpSkipToggle');
+      if (again) again.focus();
     });
 
     var mpBacklogBtn = document.getElementById('mpBacklogBtn');
@@ -8577,6 +8699,7 @@
       if (after.complete){
         patch.completedAt = after.completedAt || new Date().toISOString();
         mpExpanded[dateStr] = false;
+        mpSkipMode[dateStr] = false;
       }
       delete mpIntentionDraft[dateStr];
       await patchMorningPrime(dateStr, patch);
@@ -8688,11 +8811,11 @@
       var q = query.trim().toLowerCase();
       var shown = q ? all.filter(function(c){ return (c.title || '').toLowerCase().indexOf(q) > -1; }) : all;
       var selected = all.filter(function(c){ return c.isKeyTask; }).length;
-      var atCap = selected >= 3;
+      var atCap = selected >= KEY_TASK_MAX;
       var exact = all.some(function(c){ return (c.title || '').trim().toLowerCase() === q; });
 
       return '<div class="sheet-handle"></div>' +
-        sheetHead(UI_ICON.list, 'Set your three key tasks', selected + ' of 3 selected', '') +
+        sheetHead(UI_ICON.list, 'Choose your key tasks', 'Up to three for today \u00b7 ' + selected + ' of ' + KEY_TASK_MAX, '') +
         '<div class="kt-search">' + UI_ICON.search +
           '<input type="text" id="ktSearch" placeholder="Search or add action…" autocomplete="off">' +
         '</div>' +
@@ -8715,7 +8838,9 @@
           ? '<button type="button" class="add-exercise-btn" id="ktAddBtn">+ Add new action</button>'
           : '<button type="button" class="add-exercise-btn" id="ktAddBtn">+ Add new action</button>') +
         (atCap ? '<p class="mp-hint">Three is the limit — deselect one to swap it out.</p>' : '') +
-        '<button type="button" class="btn-quiet" id="ktDoneBtn">Done</button>';
+        // Done is the decision, whatever the count; "none" is an answer, not a gap
+        '<button type="button" class="btn-primary kt-done" id="ktDoneBtn">Done</button>' +
+        '<button type="button" class="btn-link kt-none" id="ktNoneBtn">No key tasks today</button>';
     }
 
     function render(){
@@ -8726,7 +8851,14 @@
         sheetEl.querySelectorAll('.kt-row-title[data-kt-toggle="' + c.id + '"]').forEach(function(el){ el.textContent = c.title; });
       });
       document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
-      document.getElementById('ktDoneBtn').addEventListener('click', closeSheet);
+      document.getElementById('ktDoneBtn').addEventListener('click', function(){ markReviewed(); });
+      document.getElementById('ktNoneBtn').addEventListener('click', function(){
+        var keys = getKeyTasks(dateStr);
+        if (keys.length && !confirm('Clear ' + (keys.length === 1 ? 'the key task' : 'all ' + keys.length + ' key tasks') +
+            ' for today?\n\nThe actions stay on the day; they just stop being key tasks.')) return;
+        keys.forEach(function(c){ setKeyTask(c, false); });
+        markReviewed();
+      });
 
       var search = document.getElementById('ktSearch');
       search.value = focusVal;
@@ -8749,6 +8881,13 @@
         if (query.trim()) addNewKeyTask();
         else document.getElementById('ktSearch').focus();
       });
+    }
+
+    // closing with × changes nothing; Done (or "none") is what Morning Prime counts
+    async function markReviewed(){
+      closeSheet();
+      await patchMorningPrime(dateStr, { keysReviewedAt: new Date().toISOString() });
+      renderMorningPrime();
     }
 
     function toggleKeyTask(id){
@@ -10174,9 +10313,14 @@
   // Add action stays one tap away but out of the way, so the day itself leads.
   var addActionToggle = document.getElementById('addActionToggle');
   var addActionBody = document.getElementById('addActionBody');
+  var aaInput = document.getElementById('aaInput');
   function setAddActionOpen(open){
     addActionToggle.setAttribute('aria-expanded', String(open));
+    addActionToggle.setAttribute('aria-label', open ? 'Close add action' : 'Add action');
     addActionBody.classList.toggle('collapsed', !open);
+    // focus inside the tap itself, so a phone raises its keyboard
+    if (open) aaInput.focus();
+    else { aaInput.value = ''; if (document.activeElement === aaInput) aaInput.blur(); }
     // The trigger is in the header but the panel opens under the list, so on a
     // long day it would otherwise open below the fold with nothing to see.
     // Measured after the 0.24s reveal settles, and only moved if it needs it —
@@ -10193,6 +10337,26 @@
   addActionToggle.addEventListener('click', function(){
     setAddActionOpen(addActionToggle.getAttribute('aria-expanded') !== 'true');
   });
+  // Return creates a normal action for the day and leaves the field ready for the next;
+  // an empty Return does nothing; Escape closes without creating anything.
+  aaInput.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){ e.preventDefault(); setAddActionOpen(false); addActionToggle.focus(); return; }
+    if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
+    e.preventDefault();
+    var title = aaInput.value.trim();
+    if (!title) return;
+    createQuickAction(viewedDate, title);
+    aaInput.value = '';
+    keepAddFieldInView();
+  });
+  // the list grows above the field; keep the field clear of the tab bar and the keyboard
+  function keepAddFieldInView(){
+    var vv = window.visualViewport;
+    var bottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+    var r = addActionBody.getBoundingClientRect();
+    var limit = bottom - (vv && vv.height < window.innerHeight - 80 ? 16 : 104);
+    if (r.bottom > limit) window.scrollBy(0, r.bottom - limit);
+  }
 
   var recordedToggle = document.getElementById('recordedToggle');
   var recordedBody = document.getElementById('recordedBody');

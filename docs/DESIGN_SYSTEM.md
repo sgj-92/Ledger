@@ -34,23 +34,26 @@ warm parchment palette, not an inversion.
 
 | Token | Dark | Light | Role |
 | --- | --- | --- | --- |
-| `--bg` | `#0e0b08` | `#f5efe4` | Page |
-| `--surface` | `#16120d` | `#fcf8f1` | Rows, sheets, recorded activity |
-| `--surface-2` | `#1c1712` | `#f1e9dc` | Fields, pressed states |
-| `--surface-3` | `#241d16` | `#e9dfcd` | Raised / featured |
-| `--line` | `rgba(234,223,204,0.07)` | `rgba(74,56,36,0.10)` | Hairline |
-| `--line-2` | `rgba(234,223,204,0.13)` | `rgba(74,56,36,0.20)` | Stronger divider |
+| `--bg` | `#0e0b08` | `#f2eadd` | Page |
+| `--surface` | `#16120d` | `#fdfaf4` | Rows, sheets, recorded activity |
+| `--surface-2` | `#1c1712` | `#ece3d4` | Fields, pressed states |
+| `--surface-3` | `#241d16` | `#e2d7c4` | Raised / featured |
+| `--line` | `rgba(234,223,204,0.07)` | `rgba(74,56,36,0.12)` | Hairline |
+| `--line-2` | `rgba(234,223,204,0.13)` | `rgba(74,56,36,0.23)` | Stronger divider |
 
 Structure is carried by hairlines and surface steps, not by shadows or boxes.
-The surface steps are deliberately small.
+The surface steps are deliberately small. Light values were refined on 2026-10-04 so a card separates from the page; in
+light only, the few true cards (Morning Prime, player card, Focus evidence, Backlog
+panel) also take `--shadow-card`, and the chosen Overview/Flow tab is a raised
+ivory tab in a stone track. Dark is unchanged.
 
 ### Text tokens
 
 | Token | Dark | Light | Role |
 | --- | --- | --- | --- |
-| `--text` | `#f0e9dd` | `#2b211a` | Primary |
-| `--text-2` | `#a89b88` | `#665949` | Secondary |
-| `--text-3` | `#766a5b` | `#7a6a55` | Labels, meta, section headers |
+| `--text` | `#f0e9dd` | `#261d16` | Primary |
+| `--text-2` | `#a89b88` | `#5a4d3e` | Secondary |
+| `--text-3` | `#766a5b` | `#73624d` | Labels, meta, section headers |
 
 ### Accent
 
