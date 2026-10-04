@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-04 (Week starts setting; rolling 7 days; Plan week switcher; Calendar training target and Show picker)
+Last updated: 2026-10-04 (Training days vs modality frequency; per-activity weekly/monthly targets)
 
 ---
 
@@ -117,7 +117,9 @@ a preference, stored in `presets.routines` (`ledger_meta/presets`), so it follow
 Shaun across devices. Daily completion belongs to the date. Settings is a sheet
 reached from **Focus → Settings**, holding Appearance (Dark/Light/System),
 Calendar & weeks (**Week starts** Monday/Sunday, `presets.weekStartsOn`, default
-Monday), Training target (`presets.trainingTarget = { types, daysPerWeek }`), the
+Monday), Overall training (training-day target and the activities that count) and
+By activity (optional weekly and monthly session targets per type, steppers in
+expandable rows) — all in `presets.trainingTarget`, the
 two Morning Prime routines, the Wind-down routine and its prominence hour.
 
 ### Communications (Phase 1)
@@ -167,15 +169,20 @@ The three reflective tabs have one job each: **Focus** — where am I going?
 - **Calendar** — month grid laid out by **Week starts**, with a display filter
   (All activity, Training, Padel, Strength, HIIT, Cardio, Mobility, Weight,
   Nutrition): one **Show** picker on phones, wrapped chips from 768px, one state.
-  Summary for All/Training: the week in focus against the **training target**
-  ("3 of 4 · 1 day to target · This week"; past "Target met" / "1 short"; future
-  shows the target only) plus training days this month; with no target, a "Set a
-  weekly target" prompt. A single-activity view shows that activity's days and
-  sessions. Day detail reads Planned → Recorded → Outcome. A filter chosen from
+  Summary for All/Training: **training days** for the week in focus against the
+  day target ("4 / 5 Training days this week · 1 to go"; past "Target met" / "1
+  short"; future shows the target only) plus training days this month; with no
+  target, a "Set a weekly target" link. A training type (e.g. HIIT) shows that
+  type's **sessions** for the week and month against its own targets ("3 / 2 HIIT
+  this week · Target exceeded", "6 / 8 HIIT this month"), or plain counts
+  ("3 Mobility sessions this week") without one. Weight and Nutrition show days and
+  entries. Day detail reads Planned → Recorded → Outcome. A filter chosen from
   Progress holds for that visit; any other way in shows everything.
 - **Progress** (`view-stats`) — **Towards your focus** (each priority that names
   its evidence, with a factual signal), then **Last 7 days** (rolling, with its
-  date range), the health &
+  date range), **Training frequency** (one Week / Month / Quarter / Year selector;
+  training days then sessions per type, each with its target beside it for Week and
+  Month, counts only for Quarter and Year), the health &
   training stat cards and their detail sheets. A detail sheet names the priority
   it supports and links to those days in Calendar.
 - **Focus** — player card (XP/level/tier/streak/avatar), priorities (optionally
@@ -386,6 +393,28 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-04 — Training days and modality frequency are different measures
+**Decision:** Ledger counts two things. A **training day** is a unique date with at
+least one qualifying session (HIIT + Padel on Tuesday = 1 day); its target is
+`daysPerWeek` over the activities that count. **Modality frequency** is recorded
+sessions of one type (that Tuesday = 1 HIIT and 1 Padel; two genuine HIIT sessions
+on one day = 2). Each of Padel, Strength, HIIT, Cardio and Mobility may have an
+optional `weeklyTarget` and `monthlyTarget`, stored in
+`presets.trainingTarget.modalities[type]`. They are separate, deliberate values —
+a monthly target is never derived from a weekly one — and null means show the
+count only. Week follows Week starts; Month, Quarter and Year are calendar
+periods; only Week and Month compare with targets. Actual counts are never capped
+("3 / 2 · Target exceeded"), the target is secondary, and no percentage or
+consistency score is shown without an explicit target.
+**Why:** the HIIT target (2 a week) is a session count, not a day count; one
+number could not answer both.
+**Implications:** only recorded sessions count. A logged planned session is one
+session record linked by `sessionId`; plans are never counted, so nothing counts
+twice. The Calendar summary follows the display filter (All/Training → training
+days; a type → its sessions). Progress has one Training frequency section with a
+per-device period choice (`ledger_freq_period`). Settings splits Overall training
+from By activity.
 
 ### 2026-10-04 — Calendar weeks vs rolling 7 days; a real training target
 **Decision:** **Week starts** is a preference, Monday or Sunday (default Monday),
@@ -1090,6 +1119,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-04) — Training days vs modality frequency: per-activity weekly/monthly
+  session targets, Calendar summary by filter, Progress Training frequency with a
+  Week/Month/Quarter/Year selector, Settings By activity.
 - (2026-10-04) — Week starts setting (Monday/Sunday) with shared week helpers;
   Rolling 7 days for recent Progress views; Plan week switcher, swipe and This
   week return; Calendar training target (types + days/week) replacing

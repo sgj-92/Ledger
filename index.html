@@ -1173,6 +1173,56 @@
   }
   .cal-target-set svg { width: 13px; height: 13px; display: block; }
   .stat-num.met .val { color: var(--gold); }
+  /* actual leads; the target beside it is secondary */
+  .stat-num .val-of { font-size: 0.62em; color: var(--text-3); letter-spacing: 0; }
+  .stat-num .lbl-status { color: var(--text-3); }
+  .stat-num.met .lbl-status { color: var(--gold); }
+  .cal-summary { flex-wrap: wrap; row-gap: 6px; }
+  .cal-summary .cal-target-set { flex-basis: 100%; padding-top: 0; font-size: 13px; }
+
+  /* ---- Progress · Training frequency: one period at a time ---- */
+  .freq-period {
+    display: flex; width: max-content; gap: 2px; padding: 2px; margin: 0 0 var(--sp-3);
+    background: var(--surface-2); border-radius: 100px;
+  }
+  .freq-period button {
+    padding: 6px 14px; border: none; border-radius: 100px; background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12px; font-weight: 500; letter-spacing: 0.02em; color: var(--text-3);
+  }
+  .freq-period button.sel { background: var(--surface-3); color: var(--text); }
+  html[data-theme="light"] .freq-period button { color: var(--text-2); }
+  html[data-theme="light"] .freq-period button.sel { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(76,58,36,0.16); }
+  .freq-list { margin-bottom: var(--sp-5); }
+  .freq-row {
+    display: flex; align-items: baseline; gap: 10px; padding: 11px 2px;
+    border-bottom: 1px solid var(--line);
+  }
+  .freq-row:first-child { border-bottom-color: var(--line-2); }
+  .freq-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; font-size: 14px; color: var(--text); }
+  .freq-name .dot { width: 7px; height: 7px; flex-shrink: 0; }
+  .freq-count { font-family: var(--serif); font-size: 22px; line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; }
+  .freq-target { min-width: 118px; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .freq-row.met .freq-count { color: var(--gold); }
+  .freq-row.met .freq-target { color: var(--gold); }
+
+  /* ---- Settings · per-activity targets ---- */
+  .tg-row { gap: 10px; }
+  .tg-row .dot { width: 7px; height: 7px; flex-shrink: 0; }
+  .tg-chev { width: 14px; height: 14px; color: var(--text-3); flex-shrink: 0; transition: transform 0.2s ease; }
+  .tg-chev svg { width: 100%; height: 100%; display: block; }
+  .tg-row[aria-expanded="true"] .tg-chev { transform: rotate(180deg); }
+  .tg-edit { padding: 2px 16px 10px 33px; border-bottom: 1px solid var(--line); }
+  .tg-line { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .tg-label { flex: 1; font-size: 13px; color: var(--text-2); }
+  .tg-stepper { display: inline-flex; align-items: center; border: 1px solid var(--line-2); border-radius: 100px; }
+  .tg-step {
+    width: 36px; height: 34px; border: none; background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 17px; color: var(--text-2);
+  }
+  .tg-step:disabled { opacity: 0.3; cursor: default; }
+  .tg-step:not(:disabled):active { color: var(--gold); }
+  .tg-val { min-width: 26px; text-align: center; font-size: 14px; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+  .tg-val.none { color: var(--text-3); font-weight: 400; }
   /* training-target checklist rows */
   .tt-row { gap: 12px; }
   .tt-check {
@@ -3758,6 +3808,15 @@
 
     <h2 class="section-title">Last 7 days <span class="section-title-aside" id="weekBarRange"></span></h2>
     <div class="weekbar" id="weekBar"></div>
+
+    <h2 class="section-title">Training frequency <span class="section-title-aside" id="freqRange"></span></h2>
+    <div class="freq-period" id="freqPeriod" role="tablist" aria-label="Period">
+      <button type="button" role="tab" data-freq-period="week">Week</button>
+      <button type="button" role="tab" data-freq-period="month">Month</button>
+      <button type="button" role="tab" data-freq-period="quarter">Quarter</button>
+      <button type="button" role="tab" data-freq-period="year">Year</button>
+    </div>
+    <div class="freq-list" id="freqList"></div>
 
     <h2 class="section-title">Health &amp; training</h2>
     <div id="statsCards"></div>
@@ -9933,12 +9992,19 @@
       '</div>' +
 
       '<div class="set-group">' +
-        '<span class="set-group-label">Training target</span>' +
+        '<span class="set-group-label">Overall training</span>' +
         '<div class="set-card">' +
-          settingsRow('setTargetTypes', 'Included activities', trainingTypesSummary()) +
-          settingsRow('setTargetDays', 'Frequency', trainingFrequencySummary()) +
+          settingsRow('setTargetDays', 'Training day target', trainingFrequencySummary()) +
+          settingsRow('setTargetTypes', 'Activities that count', trainingTypesSummary()) +
         '</div>' +
         '<p class="set-note">Counts training days, not sessions: two on one day make one day.</p>' +
+      '</div>' +
+
+      '<div class="set-group">' +
+        '<span class="set-group-label">By activity</span>' +
+        '<div class="set-card" id="modalityTargets"></div>' +
+        '<p class="set-note">Counts sessions: two on one day make two. Weekly and monthly are set ' +
+          'separately; leave either empty to see the count alone.</p>' +
       '</div>' +
 
       '<div class="set-group">' +
@@ -9975,6 +10041,7 @@
       btn.addEventListener('click', function(){ setWeekStartsOn(btn.dataset.weekStart); });
     });
     document.getElementById('setTargetTypes').addEventListener('click', openTrainingTypesSheet);
+    renderModalityTargets(null);
     document.getElementById('setTargetDays').addEventListener('click', function(){ openTrainingFrequencySheet(false); });
     activeSheetRefresh = null;
   }
@@ -9999,6 +10066,64 @@
     presets.trainingTarget = Object.assign({}, presets.trainingTarget || {}, patch);
     savePresets();
     if (currentView === 'calendar') renderCalendar();
+    if (currentView === 'stats') renderStats();
+  }
+  // Per-activity targets: one compact row each, opening in place to two steppers.
+  // A stepper runs — (none), 1, 2 … ; minus from 1 returns to none.
+  function modalityTargetSummary(m){
+    var bits = [];
+    if (m.weeklyTarget != null) bits.push(m.weeklyTarget + ' a week');
+    if (m.monthlyTarget != null) bits.push(m.monthlyTarget + ' a month');
+    return bits.length ? bits.join(' \u00b7 ') : 'No targets';
+  }
+  function renderModalityTargets(openType, focusSel){
+    var card = document.getElementById('modalityTargets');
+    if (!card) return;
+    var mods = trainingTarget().modalities;
+    function stepper(t, key, label, v){
+      return '<div class="tg-line"><span class="tg-label">' + label + '</span>' +
+        '<span class="tg-stepper">' +
+          '<button type="button" class="tg-step" data-mt="' + t + '" data-mt-key="' + key + '" data-mt-d="-1" aria-label="' + label + ': fewer"' + (v == null ? ' disabled' : '') + '>\u2212</button>' +
+          '<span class="tg-val' + (v == null ? ' none' : '') + '" aria-live="polite">' + (v == null ? '\u2014' : v) + '</span>' +
+          '<button type="button" class="tg-step" data-mt="' + t + '" data-mt-key="' + key + '" data-mt-d="1" aria-label="' + label + ': more"' + (v != null && v >= MODALITY_TARGET_MAX[key] ? ' disabled' : '') + '>+</button>' +
+        '</span></div>';
+    }
+    card.innerHTML = PLAN_TRAINING_TYPES.map(function(t){
+      var m = mods[t], open = t === openType;
+      return '<button type="button" class="set-row tg-row" data-mt-open="' + t + '" aria-expanded="' + (open ? 'true' : 'false') + '">' +
+          '<span class="dot ' + t + '"></span><span class="set-row-label">' + TYPE_LABEL[t] + '</span>' +
+          '<span class="set-row-val">' + modalityTargetSummary(m) + '</span>' +
+          '<span class="tg-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
+        '</button>' +
+        (open ? '<div class="tg-edit">' + stepper(t, 'weeklyTarget', 'Weekly target', m.weeklyTarget) +
+                  stepper(t, 'monthlyTarget', 'Monthly target', m.monthlyTarget) + '</div>' : '');
+    }).join('');
+    card.querySelectorAll('[data-mt-open]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var t = b.dataset.mtOpen;
+        renderModalityTargets(t === openType ? null : t, '[data-mt-open="' + t + '"]');
+      });
+    });
+    card.querySelectorAll('[data-mt-d]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var t = b.dataset.mt, key = b.dataset.mtKey, d = parseInt(b.dataset.mtD, 10);
+        var all = Object.assign({}, (presets.trainingTarget && presets.trainingTarget.modalities) || {});
+        var cur = Object.assign({}, all[t] || {});
+        var v = trainingTarget().modalities[t][key];
+        var next = v == null ? (d > 0 ? 1 : null) : v + d;
+        cur[key] = (next == null || next < 1) ? null : Math.min(next, MODALITY_TARGET_MAX[key]);
+        all[t] = cur;
+        saveTrainingTarget({ modalities: all });
+        var sel = '[data-mt="' + t + '"][data-mt-key="' + key + '"][data-mt-d="' + d + '"]';
+        renderModalityTargets(t, sel);
+      });
+    });
+    if (focusSel){
+      var f = card.querySelector(focusSel);
+      // a stepper that just hit its end is disabled — keep focus on its partner
+      if (f && f.disabled) f = card.querySelector(focusSel.replace(/data-mt-d="-?1"/, 'data-mt-d="' + (focusSel.indexOf('"-1"') > -1 ? '1' : '-1') + '"'));
+      if (f) f.focus();
+    }
   }
   function trainingTypesSummary(){
     var types = trainingTarget().types;
@@ -10015,7 +10140,7 @@
     function render(){
       var types = trainingTarget().types;
       sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
-        sheetHead(TRAINING_ICON_SVG.hiit, 'Included activities', 'What counts as a training day toward the target.', '') +
+        sheetHead(TRAINING_ICON_SVG.hiit, 'Activities that count', 'What makes a day a training day.', '') +
         '<div class="set-card">' +
           PLAN_TRAINING_TYPES.map(function(t){
             var on = types.indexOf(t) > -1;
@@ -10051,7 +10176,7 @@
     editingId = null;
     var cur = trainingTarget().daysPerWeek;
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
-      sheetHead(UI_ICON.calendar, 'Training target', 'Training days per calendar week.', '') +
+      sheetHead(UI_ICON.calendar, 'Training day target', 'Days with any training that counts, per calendar week.', '') +
       '<div class="set-card">' +
         [1,2,3,4,5,6,7].map(function(n){
           return '<button type="button" class="set-row" data-tt-days="' + n + '">' +
@@ -10772,7 +10897,8 @@
     }
 
     // a single activity reads as counts of that activity; All and Training read against the target
-    if (filtered && calFilter !== 'training') renderCalFilterSummary(filterDayCount, filterEntryCount);
+    if (PLAN_TRAINING_TYPES.indexOf(calFilter) > -1) renderCalModalitySummary(calFilter, year, month);
+    else if (filtered && calFilter !== 'training') renderCalFilterSummary(filterDayCount, filterEntryCount);
     else renderCalSummary(year, month);
     renderDayDetail();
   }
@@ -10784,19 +10910,81 @@
     return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
   }
 
-  // ---- the training target ----
-  // presets.trainingTarget = { types: [...training types], daysPerWeek: 1–7 | null }.
-  // It counts DAYS, not sessions: two included sessions on one date are one day. Which
-  // types count is the target's own choice — the Calendar's Training view still shows
-  // every training type. With no days-per-week chosen there is no target, only counts.
+  // ---- training targets: two different measures ----
+  // TRAINING DAYS — unique dates holding at least one qualifying session; HIIT and Padel
+  //   on one Tuesday are one training day. Target: daysPerWeek, over the `types` that count.
+  // MODALITY FREQUENCY — recorded sessions of one type; that same Tuesday is one HIIT
+  //   session and one Padel session, and two genuine HIIT sessions on a day are two.
+  //   Each type may have a weeklyTarget and a monthlyTarget — separate, deliberate values;
+  //   a monthly target is never derived from a weekly one. Null means: show the count.
+  // presets.trainingTarget = { types, daysPerWeek, modalities: { <type>: { weeklyTarget, monthlyTarget } } }
+  // Only recorded sessions count. A planned session that is logged creates one session
+  // (linked by sessionId) and the plan itself is never counted, so nothing counts twice.
+  var MODALITY_TARGET_MAX = { weeklyTarget: 14, monthlyTarget: 60 };
+  function targetNum(v, max){ var n = parseInt(v, 10); return (n >= 1 && n <= max) ? n : null; }
   function trainingTarget(){
     var t = (presets && presets.trainingTarget) || {};
     var types = (t.types || []).filter(function(x){ return PLAN_TRAINING_TYPES.indexOf(x) > -1; });
-    var days = parseInt(t.daysPerWeek, 10);
+    var mods = {};
+    PLAN_TRAINING_TYPES.forEach(function(type){
+      var m = (t.modalities && t.modalities[type]) || {};
+      mods[type] = {
+        weeklyTarget: targetNum(m.weeklyTarget, MODALITY_TARGET_MAX.weeklyTarget),
+        monthlyTarget: targetNum(m.monthlyTarget, MODALITY_TARGET_MAX.monthlyTarget)
+      };
+    });
     return {
       types: types.length ? types : PLAN_TRAINING_TYPES.slice(),
-      daysPerWeek: (days >= 1 && days <= 7) ? days : null
+      daysPerWeek: targetNum(t.daysPerWeek, 7),
+      modalities: mods
     };
+  }
+  function modalitySessionsBetween(type, startStr, endStr){
+    return sessions.filter(function(x){ return x.type === type && x.date >= startStr && x.date <= endStr; }).length;
+  }
+  // Week (by Week starts), calendar month, quarter and year around a date
+  function periodRange(period, ref){
+    var d = toLocalDate(ref || new Date()), y = d.getFullYear(), m = d.getMonth(), a, b, label;
+    if (period === 'week'){ a = weekStartFor(d); b = weekEndFor(d); label = dateRangeLabel(a, b); }
+    else if (period === 'month'){ a = new Date(y, m, 1); b = new Date(y, m + 1, 0); label = d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }); }
+    else if (period === 'quarter'){
+      var q = Math.floor(m / 3);
+      a = new Date(y, q * 3, 1); b = new Date(y, q * 3 + 3, 0);
+      label = 'Q' + (q + 1) + ' ' + y + ' \u00b7 ' + a.toLocaleDateString(undefined, { month: 'short' }) + ' \u2013 ' + b.toLocaleDateString(undefined, { month: 'short' });
+    }
+    else { a = new Date(y, 0, 1); b = new Date(y, 11, 31); label = String(y); }
+    return { start: fmtDate(a), end: fmtDate(b), label: label };
+  }
+  // One way to say "actual against target": the actual count leads and is never capped
+  // (3 / 2 is "Target exceeded"); the target is secondary; with no target, just the count.
+  // A period that hasn't started shows its target only — the future is never a miss.
+  function targetStatus(count, target, ended){
+    if (target == null) return '';
+    if (count > target) return 'Target exceeded';
+    if (count === target) return 'Target met';
+    return (target - count) + (ended ? ' short' : ' to go');
+  }
+  function targetStatHtml(o){   // { count, target, noun, when, future, ended }
+    var val, status = '';
+    if (o.future){
+      val = o.target != null ? String(o.target) : '\u2014';
+      return '<div class="stat-num"><div class="val display">' + val + '</div>' +
+        '<div class="lbl">' + o.noun + (o.target != null ? ' target ' : ' ') + o.when + '</div></div>';
+    }
+    status = targetStatus(o.count, o.target, o.ended);
+    val = o.count + (o.target != null ? '<span class="val-of"> / ' + o.target + '</span>' : '');
+    return '<div class="stat-num' + (o.target != null && o.count >= o.target ? ' met' : '') + '">' +
+      '<div class="val display">' + val + '</div>' +
+      '<div class="lbl">' + o.noun + ' ' + o.when + (status ? '<span class="lbl-status"> \u00b7 ' + status + '</span>' : '') + '</div></div>';
+  }
+  function whenWeek(ws){
+    var r = relativeWeekLabel(ws);
+    return r === 'This week' ? 'this week' : (r === 'Last week' ? 'last week' : (r === 'Next week' ? 'next week' : r.charAt(0).toLowerCase() + r.slice(1)));
+  }
+  function whenMonth(year, month){
+    var now = new Date();
+    return (year === now.getFullYear() && month === now.getMonth()) ? 'this month'
+      : 'in ' + new Date(year, month, 1).toLocaleDateString(undefined, { month: 'long' });
   }
   function trainingDaysBetween(startStr, endStr, types){
     var seen = {};
@@ -10805,42 +10993,39 @@
     });
     return Object.keys(seen).length;
   }
-  // The month's training days, and the week in focus against the target: progress while
-  // it runs, achieved vs target once it has ended, the target alone before it starts —
-  // days that haven't happened are never counted as missed.
-  function renderCalSummary(year, month){
-    var wrap = document.getElementById('calSummary');
-    var tgt = trainingTarget();
+  // The Calendar's two numbers follow its display filter. All / Training: training DAYS
+  // for the week in focus (against the day target) and the month. One training type:
+  // that type's SESSIONS for the week and the month, each against its own target if set.
+  // The week in focus is the chosen day's, else this week's, else the month's edge.
+  function calFocusWeek(year, month){
     var today = todayStr();
     var mStart = fmtDate(new Date(year, month, 1)), mEnd = fmtDate(new Date(year, month + 1, 0));
-    var monthDays = trainingDaysBetween(mStart, mEnd < today ? mEnd : today, tgt.types);
-    var monthCol = '<div class="stat-num"><div class="val display">' + monthDays + '</div>' +
-      '<div class="lbl">Training ' + (monthDays === 1 ? 'day' : 'days') + ' this month</div></div>';
-    if (!tgt.daysPerWeek){
-      wrap.innerHTML = monthCol +
-        '<div class="stat-num"><button type="button" class="cal-target-set" id="calTargetSet">Set a weekly target' + UI_ICON.chevronRight + '</button>' +
-        '<div class="lbl">Training days per week</div></div>';
-      document.getElementById('calTargetSet').addEventListener('click', function(){ openTrainingFrequencySheet(true); });
-      return;
-    }
     var focus = (selectedDay && selectedDay >= mStart && selectedDay <= mEnd) ? selectedDay
       : (today >= mStart && today <= mEnd ? today : (today < mStart ? mStart : mEnd));
     var ws = fmtDate(weekStartFor(focus)), we = fmtDate(weekEndFor(focus));
-    var when = relativeWeekLabel(ws);
-    var val, lbl, n = tgt.daysPerWeek;
-    if (ws > today){
-      val = n + (n === 1 ? ' day' : ' days');
-      lbl = 'Target \u00b7 ' + when;
-    } else {
-      var got = trainingDaysBetween(ws, we < today ? we : today, tgt.types);
-      val = got + ' of ' + n;
-      if (got >= n) lbl = 'Target met \u00b7 ' + when;
-      else if (we < today) lbl = (n - got) + ' short \u00b7 ' + when;
-      else lbl = (n - got) + (n - got === 1 ? ' day' : ' days') + ' to target \u00b7 ' + when;
-    }
+    return { ws: ws, we: we, mStart: mStart, mEnd: mEnd, today: today,
+             weekFuture: ws > today, weekEnded: we < today, monthFuture: mStart > today, monthEnded: mEnd < today };
+  }
+  function renderCalSummary(year, month){
+    var wrap = document.getElementById('calSummary');
+    var tgt = trainingTarget(), f = calFocusWeek(year, month);
+    var weekDays = trainingDaysBetween(f.ws, f.we, tgt.types);
+    var monthDays = trainingDaysBetween(f.mStart, f.mEnd, tgt.types);
     wrap.innerHTML =
-      '<div class="stat-num' + (ws <= today && trainingDaysBetween(ws, we, tgt.types) >= n ? ' met' : '') + '"><div class="val display">' + val + '</div><div class="lbl">' + lbl + '</div></div>' +
-      monthCol;
+      targetStatHtml({ count: weekDays, target: tgt.daysPerWeek, noun: 'Training days', when: whenWeek(f.ws), future: f.weekFuture, ended: f.weekEnded }) +
+      targetStatHtml({ count: monthDays, target: null, noun: monthDays === 1 ? 'Training day' : 'Training days', when: whenMonth(year, month), future: f.monthFuture }) +
+      (tgt.daysPerWeek ? '' : '<button type="button" class="cal-target-set" id="calTargetSet">Set a weekly target' + UI_ICON.chevronRight + '</button>');
+    var set = document.getElementById('calTargetSet');
+    if (set) set.addEventListener('click', function(){ openTrainingFrequencySheet(true); });
+  }
+  function renderCalModalitySummary(type, year, month){
+    var wrap = document.getElementById('calSummary');
+    var mt = trainingTarget().modalities[type], f = calFocusWeek(year, month);
+    var label = calFilterLabel(type);
+    var wk = modalitySessionsBetween(type, f.ws, f.we), mo = modalitySessionsBetween(type, f.mStart, f.mEnd);
+    wrap.innerHTML =
+      targetStatHtml({ count: wk, target: mt.weeklyTarget, noun: mt.weeklyTarget != null ? label : label + ' sessions', when: whenWeek(f.ws), future: f.weekFuture, ended: f.weekEnded }) +
+      targetStatHtml({ count: mo, target: mt.monthlyTarget, noun: mt.monthlyTarget != null ? label : label + ' sessions', when: whenMonth(year, month), future: f.monthFuture, ended: f.monthEnded });
   }
 
   // Counts only: a filtered month states what was recorded, without a consistency judgement.
@@ -11028,9 +11213,51 @@
     });
   }
 
+  // ---- Training frequency: actual sessions per type over one chosen period ----
+  // Week and Month compare with explicit targets where set; Quarter and Year are counts.
+  // The first row is training days (unique dates), the rest are sessions per type.
+  var FREQ_PERIOD_KEY = 'ledger_freq_period';
+  var freqPeriod = (function(v){ return ['week','month','quarter','year'].indexOf(v) > -1 ? v : 'week'; })(lsGet(FREQ_PERIOD_KEY, 'week'));
+  function renderTrainingFrequency(){
+    var list = document.getElementById('freqList');
+    if (!list) return;
+    var r = periodRange(freqPeriod), tgt = trainingTarget();
+    document.getElementById('freqRange').textContent = r.label;
+    document.querySelectorAll('[data-freq-period]').forEach(function(b){
+      var on = b.dataset.freqPeriod === freqPeriod;
+      b.classList.toggle('sel', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    var key = freqPeriod === 'week' ? 'weeklyTarget' : (freqPeriod === 'month' ? 'monthlyTarget' : null);
+    var rows = [{ label: 'Training days', dot: '', count: trainingDaysBetween(r.start, r.end, tgt.types),
+                  target: freqPeriod === 'week' ? tgt.daysPerWeek : null, unit: ['day', 'days'] }];
+    PLAN_TRAINING_TYPES.forEach(function(t){
+      rows.push({ label: TYPE_LABEL[t], dot: t, count: modalitySessionsBetween(t, r.start, r.end),
+                  target: key ? tgt.modalities[t][key] : null, unit: ['session', 'sessions'] });
+    });
+    list.innerHTML = rows.map(function(row){
+      var status = targetStatus(row.count, row.target, false);
+      return '<div class="freq-row' + (row.target != null && row.count >= row.target ? ' met' : '') + '">' +
+        '<span class="freq-name">' + (row.dot ? '<span class="dot ' + row.dot + '"></span>' : '') + row.label + '</span>' +
+        '<span class="freq-count">' + row.count + '</span>' +
+        '<span class="freq-target">' + (row.target != null
+          ? '/ ' + row.target + ' \u00b7 ' + status
+          : (row.count === 1 ? row.unit[0] : row.unit[1])) + '</span>' +
+      '</div>';
+    }).join('');
+  }
+  document.querySelectorAll('[data-freq-period]').forEach(function(b){
+    b.addEventListener('click', function(){
+      freqPeriod = b.dataset.freqPeriod;
+      lsSet(FREQ_PERIOD_KEY, freqPeriod);
+      renderTrainingFrequency();
+    });
+  });
+
   function renderStats(){
     renderFocusEvidence();
     renderWeekBar();
+    renderTrainingFrequency();
     var container = document.getElementById('statsCards');
     container.innerHTML = '';
 
