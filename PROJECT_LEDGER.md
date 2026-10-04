@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-04 (Day Plan sheet: stable geometry, smooth sections, contextual Clear)
+Last updated: 2026-10-04 (Health & fitness: Strength, one-row training, Nutrition Plan, Enter-to-add meals)
 
 ---
 
@@ -79,14 +79,14 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   on 2026-10-02; restored on 2026-10-03. **Inbox** is reserved for a future
   unprocessed-capture concept and is not built.
 - **Health & fitness** — on Today a short summary (one line per planned session,
-  one for meals and diet, a quiet roadblock line) with Edit/Plan and a share
+  one for the Nutrition Plan, one for meals, a quiet roadblock line) with Edit/Plan and a share
   control for Daily Handoff; the Plan pane keeps the fuller list. Called **Today's Plan** until
   2026-09-22.
 - **Day Notes** — freeform text for one date, one compact row on Today between
   Health & fitness and Quick Log; opens a sheet with autosave. Context and
   thinking, never parsed into Actions. Stored as `plan.dayNotes`.
 - **Quick Log** — collapsible grid: Nutrition, Weight, Daily photo, Padel,
-  Cardio, HIIT, Resistance, Mobility, Symptoms.
+  Cardio, HIIT, Strength, Mobility, Symptoms.
 - **Recorded Activity** — collapsible, with a summary in its header.
 - **Catch-up** — the recovery layer for whatever the evening did not close.
   Reads the day's real records *and* its Wind-down state: anything already
@@ -150,7 +150,7 @@ two Morning Prime routines, the Wind-down routine and its prominence hour.
 The three reflective tabs have one job each: **Focus** — where am I going?
 **Progress** — am I moving there? **Calendar** — what actually happened?
 - **Calendar** — month grid with an activity filter (All, Training, Padel,
-  Resistance, HIIT, Cardio, Mobility, Weight, Nutrition), day detail reading
+  Strength, HIIT, Cardio, Mobility, Weight, Nutrition), day detail reading
   Planned → Recorded → Outcome, day status. A filter chosen from Progress holds
   for that visit; any other way in shows everything.
 - **Progress** (`view-stats`) — **Towards your focus** (each priority that names
@@ -171,13 +171,18 @@ vs **Day logged/Closed**. Exposure records source/time/confidence/note only;
 their own onset date/time and an optional *possible* link to an exposure.
 
 ### Training
-Five types: **Padel, Cardio, HIIT, Resistance, Mobility**. Planned training lives
+Five types: **Padel, Cardio, HIIT, Strength, Mobility**. "Strength" is the display
+label for the stored type `resistance` (and legacy `gym`). Planned training lives
 in `plan.trainingDetails[type]`; logging opens the same activity form pre-filled
 and creates a real session linked via `sessionId`. Plan saves are optimistic:
 the in-memory plan is the saved plan at once, and the listener converges on it.
 HIIT carries a freeform
 `outline` alongside the shared location and duration. The Plan sheet's type
-selector scrolls horizontally rather than shrinking five cards into a row.
+selector shows all five on one row (five equal columns, about 64 × 75px each at
+390px; no sideways scroll). The day's **Nutrition Plan** is one picker — Not set,
+Fasting, No / Low Carb, Normal, High Carb — stored in the existing `fasting` and
+`carbLevel` fields. Meals are typed as a list: Return keeps the meal and opens the
+next row.
 
 ### Gamification / XP
 Focus tab shows a player card: XP → level → tier (Rookie, Grinder, Contender,
@@ -360,6 +365,26 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-04 — Strength, one training row, one Nutrition Plan, meals as a list
+**Decision:** "Resistance training" displays as **Strength** everywhere (Plan,
+Today, Flow, Quick Log, Recorded activity, Calendar, Progress, Focus evidence,
+Handoff); the stored type stays `resistance`, so history needs no migration. The
+five training cards fit one row on a phone. Diet and Fasting become one
+**Nutrition Plan** picker: Not set, Fasting, No / Low Carb, Normal, High Carb (in
+that order). Meal fields take Return to keep the meal and open a focused row below.
+**Why:** five cards scrolled sideways; Diet + Fasting allowed "Fasting · Normal";
+meals needed a tap on Add meal for every row.
+**Implications:** no schema change. Not set = fasting false, carbLevel null;
+Fasting = fasting true, carbLevel null; the others = fasting false with the
+existing `low`/`normal`/`high`. A record holding both (pre-change) reads as
+Fasting everywhere and is left as stored until the picker is changed. Labels:
+"No / Low Carb", "High Carb". Today shows "Nutrition Plan · X" on its own line;
+one-line summaries say "Fasting", "No / Low Carb", "High Carb" or "Normal
+nutrition" (never a bare "Normal"). The Daily Handoff's "Diet:" block becomes one
+line, `Nutrition Plan: X`. Return on a blank row adds nothing, Add meal reuses a
+blank last row, blank rows are never saved, removing every row leaves one blank.
+Toggling a training card from the keyboard now keeps focus on it.
 
 ### 2026-10-04 — The Day Plan sheet holds still; Clear belongs to Health & fitness
 **Decision:** on phones the Day Plan sheet has one stable height (90dvh) and its
@@ -992,6 +1017,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-04) — Health & fitness refinement: Resistance training displays as
+  Strength, all five training cards on one mobile row, Diet + Fasting replaced by
+  one Nutrition Plan picker (fasting/carbLevel kept), Enter-to-add meals.
 - (2026-10-04) — Day Plan sheet refinement: stable mobile geometry with internal
   scrolling, animated sections with reduced-motion support, Save changes
   replacing Update plan, Clear health & fitness contextual and conditional.

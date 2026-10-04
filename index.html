@@ -1695,45 +1695,38 @@
   .type-chip-btn.sel { border-color: rgba(var(--gold-rgb),0.5); color: var(--gold); background: rgba(var(--gold-rgb),0.1); }
   .type-chip-btn .dot { width: 16px; height: 16px; border-radius: 50%; }
 
-  /* Five types no longer fit one row, so the row scrolls rather than the cards
-     shrinking — every type stays the same size and the sheet stays short. The
-     scroller bleeds to the sheet's edges so the next card peeks, which is what
-     makes the scroll obvious without a control. */
+  /* All five types sit on one row: five equal columns, no sideways scroll. Each card
+     stays a comfortable target (about 64 × 72px on a 390px phone) and every label is
+     one line. */
   .plan-type-grid {
-    display: flex; gap: 8px; margin-bottom: 10px; align-items: start;
-    overflow-x: auto; overflow-y: hidden;
-    margin-left: -22px; margin-right: -22px; padding: 2px 22px 4px;
-    /* the snapport has to respect the gutter, or the first card snaps flush
-       to the sheet edge and the padding is scrolled away */
-    scroll-snap-type: x proximity; scroll-padding-left: 22px; scroll-padding-right: 22px;
-    -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
-    scrollbar-width: none;
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px;
+    margin-bottom: 10px; align-items: start; padding: 2px 0 4px;
   }
-  .plan-type-grid::-webkit-scrollbar { display: none; }
-  .plan-type-cell {
-    flex: 0 0 78px; width: 78px; scroll-snap-align: start;
-    display: flex; flex-direction: column; gap: 5px; min-width: 0;
-  }
+  .plan-type-cell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
   .plan-type-btn {
-    position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px;
-    padding: 15px 4px 13px; border-radius: var(--r-md);
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px;
+    width: 100%; min-width: 0; padding: 11px 2px 10px; border-radius: var(--r-md);
     border: 1px solid var(--line); background: var(--surface-2); cursor: pointer;
     font-family: var(--sans); font-size: 10.5px; font-weight: 400; color: var(--text-2);
     transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
   }
   .plan-type-btn:active { opacity: 0.75; }
   .plan-type-btn .chip-icon {
-    width: 36px; height: 36px; border-radius: 50%;
+    width: 32px; height: 32px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--line-2); color: var(--text-2);
     transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
   }
-  .plan-type-btn .chip-icon svg { width: 18px; height: 18px; display: block; }
-  .plan-type-btn .chip-label { line-height: 1.25; }
+  .plan-type-btn .chip-icon svg { width: 16px; height: 16px; display: block; }
+  .plan-type-btn .chip-label {
+    max-width: 100%; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  @media (max-width: 359px) { .plan-type-grid { gap: 4px; } .plan-type-btn { font-size: 10px; } }
+  @media (min-width: 768px) { .plan-type-grid { gap: 8px; } }
   .plan-type-btn.sel { border-color: rgba(var(--gold-rgb),0.45); background: rgba(var(--gold-rgb),0.07); color: var(--text); }
   .plan-type-btn.sel .chip-icon { border-color: rgba(var(--gold-rgb),0.6); color: var(--gold); background: rgba(var(--gold-rgb),0.08); }
   .plan-type-btn .chip-check {
-    position: absolute; top: 7px; right: 7px; width: 14px; height: 14px; border-radius: 50%;
+    position: absolute; top: 5px; right: 5px; width: 13px; height: 13px; border-radius: 50%;
     background: var(--gold); color: var(--ink);
     display: flex; align-items: center; justify-content: center;
     opacity: 0; transform: scale(0.6); transition: opacity 0.15s ease, transform 0.15s ease;
@@ -3629,7 +3622,7 @@
       </button>
       <button class="quicklog-card resistance" data-type="resistance">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><line x1="5" y1="12" x2="19" y2="12"/><rect x="6.5" y="6.5" width="3" height="11" rx="1"/><rect x="14.5" y="6.5" width="3" height="11" rx="1"/></svg></span>
-        <span class="ql-label">Resistance training</span>
+        <span class="ql-label">Strength</span>
       </button>
       <button class="quicklog-card symptom" data-type="symptom">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.6 14.6c.9-.9 1.9-1.3 3.4-1.3s2.5.4 3.4 1.3"/><line x1="9" y1="9.2" x2="9.6" y2="9.2"/><line x1="14.4" y1="9.2" x2="15" y2="9.2"/></svg></span>
@@ -3811,7 +3804,35 @@
   var prioritiesLoaded = false;
   var planWeekStart = new Date(); planWeekStart.setDate(planWeekStart.getDate() - planWeekStart.getDay());
   var PLAN_TRAINING_TYPES = ['padel','cardio','hiit','resistance','yoga'];
-  var CARB_LEVEL_LABEL = { low: 'Low carb', normal: 'Normal', high: 'High carb' };
+  var CARB_LEVEL_LABEL = { low: 'No / Low Carb', normal: 'Normal', high: 'High Carb' };
+  // The day's Nutrition Plan is one choice stored in the existing fields: Fasting is
+  // fasting = true with no carb level; the others are a carb level with fasting off.
+  // An older record holding both reads as Fasting, so the two never show together.
+  var NUTRITION_PLAN_OPTIONS = [
+    { value: '', label: 'Not set' },
+    { value: 'fasting', label: 'Fasting' },
+    { value: 'low', label: CARB_LEVEL_LABEL.low },
+    { value: 'normal', label: CARB_LEVEL_LABEL.normal },
+    { value: 'high', label: CARB_LEVEL_LABEL.high }
+  ];
+  function nutritionPlanValue(p){
+    if (!p) return '';
+    if (p.fasting) return 'fasting';
+    return CARB_LEVEL_LABEL[p.carbLevel] ? p.carbLevel : '';
+  }
+  function nutritionPlanFields(value){
+    return value === 'fasting' ? { fasting: true, carbLevel: null } : { fasting: false, carbLevel: value || null };
+  }
+  // "Normal" alone means nothing, so a one-line summary says what it is
+  function nutritionPlanShort(p){
+    var v = nutritionPlanValue(p);
+    if (!v) return '';
+    return v === 'fasting' ? 'Fasting' : v === 'normal' ? 'Normal nutrition' : CARB_LEVEL_LABEL[v];
+  }
+  function nutritionPlanLabel(p){
+    var v = nutritionPlanValue(p);
+    return v === 'fasting' ? 'Fasting' : v ? CARB_LEVEL_LABEL[v] : '';
+  }
   var editingId = null;
   // Desktop and laptop widths: the same app, arranged for a wider screen. A few renderers
   // show more in place (Day Notes inline, the Plan day pane); nothing else forks on it.
@@ -3822,7 +3843,7 @@
   var viewedDate = todayStr(); // the date the Today view is currently showing
   var planSelectedDate = null; // last day-row interacted with in Plan (for the global FAB's date target)
 
-  var TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance training', cardio: 'Cardio', hiit: 'HIIT', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition', gluten: 'Gluten exposure', symptom: 'Symptoms' };
+  var TYPE_LABEL = { padel: 'Padel', resistance: 'Strength', cardio: 'Cardio', hiit: 'HIIT', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition', gluten: 'Gluten exposure', symptom: 'Symptoms' };
   // shared icon set for training types — reused by the Plan selector, the Health & fitness rows and Quick Log cards
   var TRAINING_ICON_SVG = {
     padel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="10" height="13" rx="5"/><line x1="10" y1="15.5" x2="10" y2="20"/><line x1="7" y1="21.5" x2="13" y2="21.5"/><circle cx="18.5" cy="18.5" r="2"/></svg>',
@@ -3833,7 +3854,7 @@
   };
   var STAR_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 3.4l2.55 5.62 6.15.66-4.58 4.13 1.26 6.05L12 16.8l-5.38 3.06 1.26-6.05L3.3 9.68l6.15-.66z"/></svg>';
   var CLOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="6.5" y1="6.5" x2="17.5" y2="17.5"/><line x1="17.5" y1="6.5" x2="6.5" y2="17.5"/></svg>';
-  var SHORT_TYPE_LABEL = { padel: 'Padel', resistance: 'Resistance', cardio: 'Cardio', hiit: 'HIIT', yoga: 'Mobility' };
+  var SHORT_TYPE_LABEL = { padel: 'Padel', resistance: 'Strength', cardio: 'Cardio', hiit: 'HIIT', yoga: 'Mobility' };
   var MOON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/></svg>';
   var CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   // Icons for the non-training session types, shown as the same icon-wrap treatment
@@ -5975,7 +5996,7 @@
       );
       var html = '<div class="sheet-handle"></div>' +
         '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit action' : 'New action') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
-        '<div class="field"><label>Action</label><input type="text" id="f_commitTitle" placeholder="e.g. Resistance training" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
+        '<div class="field"><label>Action</label><input type="text" id="f_commitTitle" placeholder="e.g. Strength session" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
         fieldSelect('f_commitCategory', 'Category',
           [{value:'', label:'No category'}].concat(QUICK_CAPTURE_CATEGORIES.map(function(c){ return {value:c.key, label:c.label, dot:c.color}; })),
           existing ? (existing.category || '') : (opts.category || qcLastCategory)) +
@@ -7942,13 +7963,8 @@
       L.push('Meals:');
       meals.forEach(function(m){ L.push('- ' + m.text + (m.completed ? ' (eaten)' : '')); });
     }
-    var dietBits = [];
-    if (plan && plan.carbLevel) dietBits.push(CARB_LEVEL_LABEL[plan.carbLevel]);
-    if (plan && plan.fasting) dietBits.push('Fasting');
-    if (dietBits.length){
-      L.push('Diet:');
-      dietBits.forEach(function(b){ L.push('- ' + b); });
-    }
+    // one line, one concept: an older record holding a carb level and fasting reads as Fasting
+    if (nutritionPlanValue(plan)) L.push('Nutrition Plan: ' + nutritionPlanLabel(plan));
     L.push('');
 
     // 7. Day notes — context, not work. Claude treats these as background unless
@@ -10207,7 +10223,7 @@
     { key: 'all', label: 'All' },
     { key: 'training', label: 'Training' },
     { key: 'padel', label: 'Padel' },
-    { key: 'resistance', label: 'Resistance' },
+    { key: 'resistance', label: 'Strength' },
     { key: 'hiit', label: 'HIIT' },
     { key: 'cardio', label: 'Cardio' },
     { key: 'yoga', label: 'Mobility' },
@@ -10449,7 +10465,7 @@
       {type:'nutrition', label:'Nutrition'}, {type:'weight', label:'Weight'}, {type:'photo', label:'Photo'},
       {type:'padel', label:'Padel'}, {type:'cardio', label:'Cardio'},
       {type:'hiit', label:'HIIT'},
-      {type:'resistance', label:'Resistance'}, {type:'yoga', label:'Mobility'}
+      {type:'resistance', label:'Strength'}, {type:'yoga', label:'Mobility'}
     ];
     typeMeta.forEach(function(m){
       var btn = document.createElement('button');
@@ -11154,11 +11170,8 @@
       '</button>');
     }
 
-    var dietBits = [];
-    if (plan && plan.carbLevel) dietBits.push(CARB_LEVEL_LABEL[plan.carbLevel]);
-    if (plan && plan.fasting) dietBits.push('Fasting');
-    if (dietBits.length){
-      cards.push(planCardHtml({ icon: UI_ICON.leaf, title: 'Diet', sub: dietBits.join(' · '), attr: ' data-plan-edit="1"' }));
+    if (nutritionPlanValue(plan)){
+      cards.push(planCardHtml({ icon: UI_ICON.leaf, title: 'Nutrition Plan', sub: nutritionPlanLabel(plan), attr: ' data-plan-edit="1"' }));
     }
 
     // The grid is training, meals, diet and whatever got in the way of them —
@@ -11200,16 +11213,14 @@
             (det.completed ? '<span class="tick">' + CHECK_SVG + '</span>' : '') + bits.join(' · ') + '</button>');
         });
       }
-      var food = [];
+      // the day's one nutrition choice, always named — never a bare "Normal"
+      if (nutritionPlanValue(plan)){
+        lines.push('<button type="button" class="hf-line" data-plan-edit="1">Nutrition Plan · ' + nutritionPlanLabel(plan) + '</button>');
+      }
       if (meals.length){
         var mealsEaten = meals.filter(function(m){ return m.completed; }).length;
-        food.push(plural(meals.length, 'meal') + (mealsEaten ? ' (' + mealsEaten + ' eaten)' : ''));
-      }
-      // "Normal" alone means nothing; the diet always says what it is
-      if (plan && plan.carbLevel) food.push(plan.carbLevel === 'normal' ? 'Normal diet' : CARB_LEVEL_LABEL[plan.carbLevel]);
-      if (plan && plan.fasting) food.push('Fasting');
-      if (food.length){
-        lines.push('<button type="button" class="hf-line" ' + (meals.length ? 'data-meals-open="1"' : 'data-plan-edit="1"') + '>' + food.join(' · ') + '</button>');
+        lines.push('<button type="button" class="hf-line" data-meals-open="1">' +
+          plural(meals.length, 'meal') + (mealsEaten ? ' (' + mealsEaten + ' eaten)' : '') + '</button>');
       }
       if (plan && plan.roadblocks){
         lines.push('<button type="button" class="hf-line rb" data-role="rb-card" id="planRoadblockCard">' + UI_ICON.mountain +
@@ -11336,8 +11347,9 @@
       if (det.durationMin) bits.push(det.durationMin + ' min');
     });
     if (meals.length) bits.push(plural(meals.length, 'meal'));
-    if (plan && plan.carbLevel && !acts.length) bits.push(CARB_LEVEL_LABEL[plan.carbLevel]);
-    if (plan && plan.fasting) bits.push('Fasting');
+    // fasting always shows; a carb level only where the row isn't already about actions
+    var np = nutritionPlanValue(plan);
+    if (np === 'fasting' || (np && !acts.length)) bits.push(nutritionPlanShort(plan));
     if (!bits.length && plan && plan.restDay) bits.push('Recovery');
     var supported = dateStr ? dayPrioritySupport(dateStr, types).length : 0;
     return { title: title, icon: icon, sub: bits.join(' · '), cats: catLine, priorities: supported,
@@ -11404,9 +11416,9 @@
               '<span class="pstrip-label">' + (SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]) + '</span></div>');
           });
         }
-        if (plan && plan.carbLevel){
+        if (nutritionPlanValue(plan)){
           strip.push('<div class="pstrip-item"><span class="pstrip-icon">' + UI_ICON.leaf + '</span>' +
-            '<span class="pstrip-label">' + CARB_LEVEL_LABEL[plan.carbLevel] + '</span></div>');
+            '<span class="pstrip-label">' + nutritionPlanShort(plan) + '</span></div>');
         }
         if (meals.length){
           strip.push('<div class="pstrip-item"><span class="pstrip-icon">' + UI_ICON.cutlery + '</span>' +
@@ -11664,8 +11676,7 @@
     });
     var meals = (p.meals || []).filter(function(m){ return planMealText(m).trim(); }).length;
     if (meals) bits.push(plural(meals, 'meal'));
-    if (p.carbLevel) bits.push(CARB_LEVEL_LABEL[p.carbLevel]);
-    if (p.fasting) bits.push('Fasting');
+    if (nutritionPlanValue(p)) bits.push(nutritionPlanShort(p));
     return bits.length ? bits.join(' · ') : 'Nothing planned';
   }
   function dpDirectionSummary(intention, support){
@@ -11882,8 +11893,7 @@
               planTypeGridHtml() +
             '</div><div class="plan-type-hint">Tap to select. Use Details to add more.</div></div>' +
           '</div>' +
-          fieldSelect('f_carbLevel', 'Diet', [{value:'',label:'Not set'}].concat(Object.keys(CARB_LEVEL_LABEL).map(function(k){ return {value:k,label:CARB_LEVEL_LABEL[k]}; })), carbLevel || '') +
-          fieldYesNo('f_fasting', 'Fasting', fasting) +
+          fieldSelect('f_nutritionPlan', 'Nutrition Plan', NUTRITION_PLAN_OPTIONS, nutritionPlanValue({ fasting: fasting, carbLevel: carbLevel })) +
           '<div class="field"><label>Meals</label><div id="planMealRows"></div>' +
             '<button type="button" class="add-exercise-btn" id="addPlanMealBtn">+ Add meal</button></div>' +
           '<button type="button" class="dp-clear" id="deletePlanBtn"' + (healthHasState() ? '' : ' hidden') + '>Clear health &amp; fitness</button>') +
@@ -12039,8 +12049,11 @@
     function refreshTypeGrid(){
       var grid = document.getElementById('planTypeGrid');
       if (!grid) return;
+      // the redraw replaces the buttons; a keyboard user stays on the card they toggled
+      var had = grid.contains(document.activeElement) ? document.activeElement.dataset.t : null;
       grid.innerHTML = planTypeGridHtml();
       wireTypeGrid();
+      if (had){ var again = grid.querySelector('.plan-type-btn[data-t="' + had + '"]'); if (again) again.focus(); }
       refreshSummaries();
       renderDaySupport(document.getElementById('dpSupport'), dateStr, restDay ? [] : trainingTypes);
     }
@@ -12120,26 +12133,67 @@
       });
     }
 
+    // Meals are typed as a list: Return keeps this meal and opens the next row, with the
+    // keyboard staying up. Rows are added and removed in place — never redrawn — so the
+    // focused field is never destroyed under the keyboard. Blank rows are never saved.
+    function blankMeal(){ return { id: uid(), text: '', completed: false, completedAt: null, nutritionEntryId: null }; }
+    function mealRowEl(m){
+      var row = document.createElement('div');
+      row.className = 'simple-row';
+      row.dataset.mealId = m.id;
+      row.innerHTML =
+        '<input type="text" placeholder="…" enterkeyhint="enter" autocomplete="off" aria-label="Meal">' +
+        '<button type="button" class="ex-rm" aria-label="Remove meal">✕</button>';
+      var input = row.querySelector('input');
+      input.value = m.text || '';
+      input.addEventListener('input', function(){ m.text = input.value; refreshSummaries(); });
+      input.addEventListener('keydown', function(e){
+        if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
+        if (e.metaKey || e.ctrlKey) return;   // Cmd/Ctrl+Enter still finishes the plan
+        e.preventDefault();
+        if (!input.value.trim()) return;      // a blank row is already the next one
+        var next = mealsState[mealsState.indexOf(m) + 1];
+        if (next && !(next.text || '').trim()) focusMeal(next);
+        else addMealAfter(m);
+      });
+      row.querySelector('.ex-rm').addEventListener('click', function(){
+        var i = mealsState.indexOf(m);
+        var hadFocus = row.contains(document.activeElement);
+        mealsState.splice(i, 1);
+        row.remove();
+        if (!mealsState.length) addMealAfter(null, true);
+        // a keyboard user lands on the neighbouring remove control, not in a field
+        if (hadFocus){
+          var near = mealRowFor(mealsState[Math.min(i, mealsState.length - 1)]);
+          if (near) near.querySelector('.ex-rm').focus();
+        }
+        refreshSummaries();
+      });
+      return row;
+    }
+    function mealRowFor(m){
+      return m ? document.querySelector('#planMealRows [data-meal-id="' + m.id + '"]') : null;
+    }
+    function focusMeal(m){
+      var row = mealRowFor(m);
+      if (row) row.querySelector('input').focus();
+    }
+    // insert a blank meal under `after` (or at the end) and, unless told not to, type into it
+    function addMealAfter(after, noFocus){
+      var wrap = document.getElementById('planMealRows');
+      var m = blankMeal();
+      var i = after ? mealsState.indexOf(after) : -1;
+      if (i === -1) mealsState.push(m); else mealsState.splice(i + 1, 0, m);
+      var el = mealRowEl(m);
+      var afterRow = mealRowFor(after);
+      if (afterRow) afterRow.parentNode.insertBefore(el, afterRow.nextSibling); else wrap.appendChild(el);
+      if (!noFocus) el.querySelector('input').focus();
+      return m;
+    }
     function renderMealRows(){
       var wrap = document.getElementById('planMealRows');
       wrap.innerHTML = '';
-      mealsState.forEach(function(m, i){
-        var row = document.createElement('div');
-        row.className = 'simple-row';
-        row.innerHTML =
-          '<input placeholder="…">' +
-          '<button type="button" class="ex-rm">✕</button>';
-        var input = row.querySelector('input');
-        input.value = m.text || '';
-        input.addEventListener('input', function(){ mealsState[i].text = input.value; refreshSummaries(); });
-        row.querySelector('.ex-rm').addEventListener('click', function(){
-          mealsState.splice(i,1);
-          if (!mealsState.length) mealsState.push({ id: uid(), text: '', completed: false, completedAt: null, nutritionEntryId: null });
-          renderMealRows();
-          refreshSummaries();
-        });
-        wrap.appendChild(row);
-      });
+      mealsState.forEach(function(m){ wrap.appendChild(mealRowEl(m)); });
     }
 
     function finishToMorningPrime(){
@@ -12181,23 +12235,20 @@
         restDay = !restDay;
         render(true);
       });
-      document.getElementById('f_carbLevel').addEventListener('change', function(){
-        carbLevel = this.value || null;
+      // one choice sets both stored fields; until it changes, an older record keeps both as they were
+      document.getElementById('f_nutritionPlan').addEventListener('change', function(){
+        var f = nutritionPlanFields(this.value);
+        fasting = f.fasting;
+        carbLevel = f.carbLevel;
         refreshSummaries();
       });
       wireTypeGrid();
-      document.querySelectorAll('#f_fastingToggle button').forEach(function(b){
-        b.addEventListener('click', function(){
-          fasting = (b.dataset.v === 'yes');
-          document.querySelectorAll('#f_fastingToggle button').forEach(function(x){ x.classList.remove('sel'); });
-          b.classList.add('sel');
-          refreshSummaries();
-        });
-      });
       renderMealRows();
+      // a blank last row is already the next meal — Add meal goes there rather than adding another
       document.getElementById('addPlanMealBtn').addEventListener('click', function(){
-        mealsState.push({ id: uid(), text: '', completed: false, completedAt: null, nutritionEntryId: null });
-        renderMealRows();
+        var last = mealsState[mealsState.length - 1];
+        if (last && !(last.text || '').trim()) { focusMeal(last); return; }
+        addMealAfter(last);
       });
       document.getElementById('savePlanBtn').addEventListener('click', function(){
         // reviewing and saving the plan is the completion signal — it doesn't demand
@@ -12220,13 +12271,13 @@
       // sessions and food entries are records of their own
       document.getElementById('deletePlanBtn').addEventListener('click', function(){
         var weekday = d.toLocaleDateString('en-GB', { weekday: 'long' });
-        if (!confirm('Clear health & fitness for ' + weekday + '?\n\nThis removes planned training, meals, diet and fasting choices for this day. Recorded activity is not deleted.')) return;
+        if (!confirm('Clear health & fitness for ' + weekday + '?\n\nThis removes planned training, meals and the Nutrition Plan for this day. Recorded activity is not deleted.')) return;
         flushText();
         if (getPlanForDate(dateStr)){
           savePlanFields(dateStr, { restDay: false, trainingTypes: [], trainingDetails: {}, carbLevel: null, fasting: false, meals: [] });
         }
         restDay = false; trainingTypes = []; trainingDetailsState = {}; carbLevel = null; fasting = false;
-        mealsState = [{ id: uid(), text: '', completed: false, completedAt: null, nutritionEntryId: null }];
+        mealsState = [blankMeal()];
         render(true);
       });
       refreshLive();
@@ -12396,7 +12447,7 @@
     { key: 'weight', label: 'Weight' },
     { key: 'training', label: 'All training' },
     { key: 'padel', label: 'Padel' },
-    { key: 'resistance', label: 'Resistance' },
+    { key: 'resistance', label: 'Strength' },
     { key: 'hiit', label: 'HIIT' },
     { key: 'cardio', label: 'Cardio' },
     { key: 'yoga', label: 'Mobility' },
