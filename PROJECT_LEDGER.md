@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-04 (Key tasks up to three; Morning Prime skip; inline Action entry; light theme refinement)
+Last updated: 2026-10-04 (Week starts setting; rolling 7 days; Plan week switcher; Calendar training target and Show picker)
 
 ---
 
@@ -115,7 +115,9 @@ Morning Prime (Plan, Move) and Evening Wind-down are **editable routines**:
 reorder, enable/disable, rename, add and delete custom items. The definition is
 a preference, stored in `presets.routines` (`ledger_meta/presets`), so it follows
 Shaun across devices. Daily completion belongs to the date. Settings is a sheet
-reached from **Focus → Settings**, holding Appearance (Dark/Light/System), the
+reached from **Focus → Settings**, holding Appearance (Dark/Light/System),
+Calendar & weeks (**Week starts** Monday/Sunday, `presets.weekStartsOn`, default
+Monday), Training target (`presets.trainingTarget = { types, daysPerWeek }`), the
 two Morning Prime routines, the Wind-down routine and its prominence hour.
 
 ### Communications (Phase 1)
@@ -156,15 +158,24 @@ two Morning Prime routines, the Wind-down routine and its prominence hour.
   **Clear health & fitness** sits at the foot of the Health & fitness section and
   appears only when that section holds something. On desktop the day pane shows
   them all, editable in place; "Edit plan" opens the same sheet as the inspector.
-  Meal ideas library unchanged.
+  Meal ideas library unchanged. Weeks follow **Week starts**. Above the rows a
+  compact switcher (‹ This week ˅ ›) steps weeks, opens nearby weeks or "Go to date",
+  and shows a quiet **This week** return when elsewhere; on phones a deliberate
+  sideways swipe over the rows also steps a week. The header arrows remain.
 The three reflective tabs have one job each: **Focus** — where am I going?
 **Progress** — am I moving there? **Calendar** — what actually happened?
-- **Calendar** — month grid with an activity filter (All, Training, Padel,
-  Strength, HIIT, Cardio, Mobility, Weight, Nutrition), day detail reading
-  Planned → Recorded → Outcome, day status. A filter chosen from Progress holds
-  for that visit; any other way in shows everything.
+- **Calendar** — month grid laid out by **Week starts**, with a display filter
+  (All activity, Training, Padel, Strength, HIIT, Cardio, Mobility, Weight,
+  Nutrition): one **Show** picker on phones, wrapped chips from 768px, one state.
+  Summary for All/Training: the week in focus against the **training target**
+  ("3 of 4 · 1 day to target · This week"; past "Target met" / "1 short"; future
+  shows the target only) plus training days this month; with no target, a "Set a
+  weekly target" prompt. A single-activity view shows that activity's days and
+  sessions. Day detail reads Planned → Recorded → Outcome. A filter chosen from
+  Progress holds for that visit; any other way in shows everything.
 - **Progress** (`view-stats`) — **Towards your focus** (each priority that names
-  its evidence, with a factual signal), then the weekly bar chart, the health &
+  its evidence, with a factual signal), then **Last 7 days** (rolling, with its
+  date range), the health &
   training stat cards and their detail sheets. A detail sheet names the priority
   it supports and links to those days in Calendar.
 - **Focus** — player card (XP/level/tier/streak/avatar), priorities (optionally
@@ -375,6 +386,33 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-04 — Calendar weeks vs rolling 7 days; a real training target
+**Decision:** **Week starts** is a preference, Monday or Sunday (default Monday),
+stored as `presets.weekStartsOn` so it follows Shaun across devices. A **calendar
+week** follows it and is used by Plan, the Calendar grid and historical weekly
+buckets (the 8-week charts in Progress details). **Rolling 7 days** is today plus
+the previous six and ignores the preference; it answers "how have I been doing
+recently?" — Progress's Last 7 days chart, the Strength/Mobility "Sessions, last 7
+days" stats and the Focus evidence "N in the last 7 days" (all previously labelled
+"this week" over an 8-day window). Month counts stay monthly. One set of helpers
+(`weekStartFor`, `weekEndFor`, `weekDatesFor`, `weekdayLabels`, `rollingDays`,
+`dateRangeLabel`…) replaces every `getDay()` week calculation. Changing the
+preference regroups immediately and never moves a stored date; Plan rebuilds the
+shown week around its chosen day, else today, else its middle. The Calendar's
+"Consistency" (training days ÷ days elapsed) is replaced by a configurable
+**training target**: `presets.trainingTarget = { types: [...], daysPerWeek }`,
+counting days not sessions (two included sessions on a date = one day). No
+days-per-week = no target, and the Calendar invites one instead of inventing it
+(4 is offered as a suggestion only). Target inclusion is separate from the
+Calendar display filter: the Training view shows every training type; Weight can
+be viewed with any target. Phones use one Show picker instead of the sideways chip
+row.
+**Why:** Plan and the Calendar were hard-coded Sunday-first; "this week" metrics
+were rolling windows in disguise; days-elapsed percentage was not a goal.
+**Implications:** No data migration. Calendar summary uses the target's types for
+both the week and the month figure, so they never contradict. Weight-only days no
+longer count as training days in the Calendar summary.
 
 ### 2026-10-04 — Key tasks are up to three; Morning Prime steps can be skipped for the day
 **Decision:** key tasks are "up to three", not exactly three. The Key Tasks step is
@@ -1052,6 +1090,10 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-04) — Week starts setting (Monday/Sunday) with shared week helpers;
+  Rolling 7 days for recent Progress views; Plan week switcher, swipe and This
+  week return; Calendar training target (types + days/week) replacing
+  Consistency; single Show picker for the Calendar filter on phones.
 - (2026-10-04) — Key tasks up to three with an explicit review (`keysReviewedAt`,
   "None today"); per-day Morning Prime skip with undo; inline rapid Action entry on
   Today replacing Quick add / Detailed add; light theme contrast/hierarchy pass.

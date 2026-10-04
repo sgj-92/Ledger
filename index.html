@@ -224,7 +224,12 @@
     letter-spacing: 0.2em; color: var(--text-3);
     margin: var(--sp-7) 0 var(--sp-4);
   }
-  h2.section-title::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  h2.section-title::after { content: ''; flex: 1; height: 1px; background: var(--line); order: 1; }
+  /* a quiet aside after the rule, e.g. the dates a rolling period covers */
+  .section-title-aside {
+    order: 2; flex-shrink: 0; font-size: 11px; font-weight: 400; text-transform: none;
+    letter-spacing: 0.01em; color: var(--text-3); font-variant-numeric: tabular-nums;
+  }
   h2.section-title:first-child, #catchUpBanner + h2.section-title { margin-top: var(--sp-2); }
   h2.section-title.tight { margin-top: var(--sp-6); margin-bottom: var(--sp-3); }
   h2.section-title.loose { margin-top: var(--sp-8); }
@@ -857,6 +862,38 @@
   .empty-state.tight { padding: 2px 2px 4px; font-size: 13.5px; }
 
   /* ---------- Plan week ---------- */
+  /* ---- Plan week switcher: step, jump, or come back — above the rows, in thumb reach ---- */
+  .pw-switch { display: flex; align-items: center; gap: 2px; margin: 0 0 var(--sp-3); min-height: 44px; }
+  .pw-step {
+    flex-shrink: 0; width: 40px; height: 40px; border: none; background: none; border-radius: 50%;
+    color: var(--text-2); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .pw-step svg { width: 18px; height: 18px; display: block; }
+  .pw-step:active { background: var(--surface-2); color: var(--gold); }
+  .pw-pick {
+    position: relative; display: inline-flex; align-items: baseline; gap: 8px; min-width: 0; padding: 10px 6px;
+    border: none; background: none; cursor: pointer; font-family: var(--sans); color: var(--text);
+  }
+  .pw-pick:active { opacity: 0.6; }
+  .pw-label { font-size: 14px; font-weight: 600; white-space: nowrap; }
+  /* the header right above already shows the dates; here they are for screen readers only */
+  .pw-range { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .pw-chev { width: 13px; height: 13px; color: var(--text-3); align-self: center; flex-shrink: 0; }
+  .pw-today {
+    margin-left: auto; flex-shrink: 0; padding: 7px 12px; border-radius: 100px;
+    border: 1px solid var(--line-2); background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--gold);
+  }
+  .pw-today[hidden] { display: none; }
+  .pw-today:active { background: var(--surface-2); }
+  /* the week arrives from the side it was asked for */
+  #planWeekList.pw-in-next { animation: pw-in-next 0.22s cubic-bezier(.2,.8,.2,1); }
+  #planWeekList.pw-in-prev { animation: pw-in-prev 0.22s cubic-bezier(.2,.8,.2,1); }
+  @keyframes pw-in-next { from { opacity: 0.35; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+  @keyframes pw-in-prev { from { opacity: 0.35; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { #planWeekList.pw-in-next, #planWeekList.pw-in-prev { animation: none; } }
+  .pw-date-input { position: fixed; left: 50%; top: 40%; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
   .plan-day-row {
     display: flex; align-items: center; gap: 14px;
     padding: 15px 2px; background: none;
@@ -1116,8 +1153,35 @@
   .stat-supports-kicker { font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); }
   .stat-supports-title { font-family: var(--serif); font-size: 15px; color: var(--text); margin-top: 4px; }
   .stat-supports .prio-signal { margin-top: 4px; }
-  .cal-filter { display: flex; gap: 6px; overflow-x: auto; margin: 0 -16px var(--sp-4); padding: 0 16px 2px; scrollbar-width: none; }
-  .cal-filter::-webkit-scrollbar { display: none; }
+  /* phones: one light "Show" control instead of a sideways row of chips */
+  .cal-filter { display: none; }
+  .cal-show {
+    display: inline-flex; align-items: center; gap: 8px; margin: 0 0 var(--sp-3); padding: 8px 2px; min-height: 40px;
+    border: none; background: none; cursor: pointer; font-family: var(--sans); color: var(--text);
+  }
+  .cal-show:active { opacity: 0.6; }
+  .cal-show-k { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-3); }
+  .cal-show-v { font-size: 14px; font-weight: 500; }
+  .cal-show-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .cal-show-dot[hidden] { display: none; }
+  .cal-show-chev { width: 13px; height: 13px; color: var(--text-3); }
+  .cal-show.narrowed .cal-show-v { color: var(--gold); }
+  /* the target prompt when none is set: an invitation, not a zero */
+  .cal-target-set {
+    display: inline-flex; align-items: center; gap: 4px; padding: 6px 0 0; border: none; background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--gold);
+  }
+  .cal-target-set svg { width: 13px; height: 13px; display: block; }
+  .stat-num.met .val { color: var(--gold); }
+  /* training-target checklist rows */
+  .tt-row { gap: 12px; }
+  .tt-check {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-2);
+    display: flex; align-items: center; justify-content: center; color: transparent;
+  }
+  .tt-check svg { width: 11px; height: 11px; display: block; }
+  .tt-row.on .tt-check { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .tt-row .dot { width: 7px; height: 7px; flex-shrink: 0; }
   .cal-filter button {
     flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
     padding: 6px 12px; border-radius: 100px; border: 1px solid var(--line); background: none; cursor: pointer;
@@ -3290,8 +3354,9 @@
     body.in-comms nav.tabbar .tab-btn[data-view="log"]:not(.active) { color: var(--text-3); font-weight: 400; }
     body.in-comms nav.tabbar .tab-btn[data-view="log"]:not(.active) .tab-icon { opacity: 0.65; }
 
-    /* Calendar filter: wraps instead of scrolling sideways */
-    .cal-filter { flex-wrap: wrap; margin: 0 0 var(--sp-4); padding: 0; overflow: visible; }
+    /* Calendar filter: wider screens keep the chips, wrapped — never scrolling sideways */
+    .cal-filter { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 var(--sp-4); padding: 0; overflow: visible; }
+    .cal-show { display: none; }
   }
 
   @media (min-width: 1024px) and (min-height: 520px) {
@@ -3396,10 +3461,11 @@
       display: grid; column-gap: 36px; align-items: start;
       grid-template-columns: minmax(0, 1fr) minmax(360px, 1.05fr);
     }
-    #planWeekList { grid-column: 1; grid-row: 1; }
-    #view-plan .meal-ideas-panel { grid-column: 1; grid-row: 2; }
+    #planWeekSwitch { grid-column: 1; grid-row: 1; }
+    #planWeekList { grid-column: 1; grid-row: 2; }
+    #view-plan .meal-ideas-panel { grid-column: 1; grid-row: 3; }
     .plan-day-pane {
-      display: block; grid-column: 2; grid-row: 1 / span 2;
+      display: block; grid-column: 2; grid-row: 1 / span 3;
       position: sticky; top: 18px; max-height: calc(100vh - 36px); overflow-y: auto;
       background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
       padding: 22px 24px 24px; overscroll-behavior: contain;
@@ -3678,6 +3744,10 @@
   <section class="view" id="view-calendar">
     <div class="cal-summary" id="calSummary"></div>
     <div class="cal-filter" id="calFilter" role="group" aria-label="Show activity"></div>
+    <button type="button" class="cal-show" id="calShowBtn" aria-haspopup="listbox" aria-expanded="false">
+      <span class="cal-show-k">Show</span><span class="cal-show-dot" hidden></span><span class="cal-show-v" id="calShowLabel">All activity</span>
+      <svg class="cal-show-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
     <div class="cal-grid" id="calGrid"></div>
     <div class="cal-day-detail" id="calDayDetail"></div>
   </section>
@@ -3686,7 +3756,7 @@
     <h2 class="section-title">Towards your focus</h2>
     <div id="focusEvidence"></div>
 
-    <h2 class="section-title">Recent progress</h2>
+    <h2 class="section-title">Last 7 days <span class="section-title-aside" id="weekBarRange"></span></h2>
     <div class="weekbar" id="weekBar"></div>
 
     <h2 class="section-title">Health &amp; training</h2>
@@ -3749,6 +3819,15 @@
   </section>
 
   <section class="view" id="view-plan">
+    <div class="pw-switch" id="planWeekSwitch">
+      <button type="button" class="pw-step" data-role="pw-prev" aria-label="Previous week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 6 8.5 12 14.5 18"/></svg></button>
+      <button type="button" class="pw-pick" data-role="pw-pick" aria-haspopup="listbox" aria-expanded="false">
+        <span class="pw-label" data-role="pw-label">This week</span><span class="pw-range" data-role="pw-range"></span>
+        <svg class="pw-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <button type="button" class="pw-step" data-role="pw-next" aria-label="Next week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9.5 6 15.5 12 9.5 18"/></svg></button>
+      <button type="button" class="pw-today" data-role="pw-today" hidden>This week</button>
+    </div>
     <div id="planWeekList"></div>
 
     <div class="panel meal-ideas-panel">
@@ -3825,7 +3904,7 @@
   var DAY_STATUS_LABEL = { completed: 'Completed', partial: 'Partially completed', disrupted: 'Disrupted', unknown: 'Unknown' };
   var presetsLoaded = false;
   var prioritiesLoaded = false;
-  var planWeekStart = new Date(); planWeekStart.setDate(planWeekStart.getDate() - planWeekStart.getDay());
+  var planWeekStart = weekStartFor(new Date());   // re-derived once presets say which day weeks start
   var PLAN_TRAINING_TYPES = ['padel','cardio','hiit','resistance','yoga'];
   var CARB_LEVEL_LABEL = { low: 'No / Low Carb', normal: 'Normal', high: 'High Carb' };
   // The day's Nutrition Plan is one choice stored in the existing fields: Fasting is
@@ -4000,6 +4079,70 @@
   function niceDate(d){
     return d.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long' });
   }
+
+  // ============ Weeks and rolling periods ============
+  // Two different questions, two different periods — never one standing in for the other:
+  //   a CALENDAR WEEK is Monday–Sunday or Sunday–Saturday by the Week starts preference
+  //     (presets.weekStartsOn), and is what Plan and any "this week" bucket use;
+  //   ROLLING N DAYS is today and the n-1 days before it, whatever the week start,
+  //     and answers "how have I been doing recently?".
+  // All arithmetic is on local calendar dates with setDate, so a DST change never
+  // shifts a day; nothing here touches stored dates.
+  function weekStartsOn(){ return (presets && presets.weekStartsOn === 'sunday') ? 'sunday' : 'monday'; }
+  function weekStartDow(){ return weekStartsOn() === 'sunday' ? 0 : 1; }
+  function toLocalDate(d){
+    if (typeof d === 'string') return new Date(d + 'T00:00:00');
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+  function addDays(d, n){ var x = toLocalDate(d); x.setDate(x.getDate() + n); return x; }
+  function weekStartFor(d){
+    var x = toLocalDate(d);
+    return addDays(x, -((x.getDay() - weekStartDow() + 7) % 7));
+  }
+  function weekEndFor(d){ return addDays(weekStartFor(d), 6); }
+  function weekDatesFor(d){
+    var start = weekStartFor(d), out = [];
+    for (var i = 0; i < 7; i++) out.push(addDays(start, i));
+    return out;
+  }
+  // where a date sits in its week (0 = the first day), for laying out grids
+  function weekIndexOf(d){ return (toLocalDate(d).getDay() - weekStartDow() + 7) % 7; }
+  function weekdayLabels(style){
+    var base = style === 'short' ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['S','M','T','W','T','F','S'];
+    var k = weekStartDow();
+    return base.slice(k).concat(base.slice(0, k));
+  }
+  function rollingDays(n, end){
+    var last = toLocalDate(end || new Date()), out = [];
+    for (var i = n - 1; i >= 0; i--) out.push(addDays(last, -i));
+    return out;
+  }
+  function inRollingDays(dateStr, n){
+    var days = rollingDays(n);
+    return dateStr >= fmtDate(days[0]) && dateStr <= fmtDate(days[days.length - 1]);
+  }
+  // "4 – 10 Oct", "28 Sep – 4 Oct"; long adds full month names and the year:
+  // "4 – 10 October 2026", "28 September – 4 October 2026"
+  function dateRangeLabel(start, end, long){
+    var a = toLocalDate(start), b = toLocalDate(end);
+    var mo = long ? 'long' : 'short';
+    var sameYear = a.getFullYear() === b.getFullYear();
+    var tail = long ? ' ' + b.getFullYear() : '';
+    if (sameYear && a.getMonth() === b.getMonth())
+      return a.getDate() + ' \u2013 ' + b.getDate() + ' ' + b.toLocaleDateString(undefined, { month: mo }) + tail;
+    var aLabel = a.getDate() + ' ' + a.toLocaleDateString(undefined, { month: mo }) + (long && !sameYear ? ' ' + a.getFullYear() : '');
+    return aLabel + ' \u2013 ' + b.getDate() + ' ' + b.toLocaleDateString(undefined, { month: mo }) + tail;
+  }
+  function weekRangeLabel(d, long){ return dateRangeLabel(weekStartFor(d), weekEndFor(d), long); }
+  function rollingRangeLabel(n){ var days = rollingDays(n); return dateRangeLabel(days[0], days[n - 1]); }
+  // "This week", "Next week", "Last week", "In 3 weeks", "3 weeks ago"
+  function relativeWeekLabel(start){
+    var diff = Math.round((toLocalDate(start) - weekStartFor(new Date())) / (7 * 86400000));
+    if (diff === 0) return 'This week';
+    if (diff === 1) return 'Next week';
+    if (diff === -1) return 'Last week';
+    return diff > 0 ? 'In ' + diff + ' weeks' : (-diff) + ' weeks ago';
+  }
   function niceTime(iso){
     try { return new Date(iso).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); } catch(e){ return ''; }
   }
@@ -4092,6 +4235,11 @@
           // routines are a preference like the rest of this document — name it
           // explicitly, because this handler rebuilds presets field by field
           presets.routines = data.routines || null;
+          // calendar preferences: which day weeks start, and the weekly training target
+          presets.weekStartsOn = data.weekStartsOn || null;
+          presets.trainingTarget = data.trainingTarget || null;
+          applyWeekPreference();
+          if (currentView === 'calendar') renderCalendar();
           if (currentView === 'focus') renderFocus();
           renderLogView();
         } else {
@@ -4166,6 +4314,7 @@
     localLoadComms();
     presetsLoaded = true;
     prioritiesLoaded = true;
+    applyWeekPreference();
     seedPrioritiesIfNeeded();
     document.getElementById('syncNote').textContent = 'Saving on this device only — add your Firebase config to sync';
     renderAll();
@@ -4969,13 +5118,8 @@
       nextBtn.dataset.mode = 'next';
       nextBtn.innerHTML = UI_ICON.chevronRightThin;
       labelEl.textContent = 'Plan';
-      var wkEnd = new Date(planWeekStart.getTime() + 6*86400000);
-      var thisWeekStart = new Date(); thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay());
-      titleEl.textContent = fmtDate(planWeekStart) === fmtDate(thisWeekStart) ? 'This week' : 'That week';
-      rangeEl.textContent = (planWeekStart.getMonth() === wkEnd.getMonth())
-        ? planWeekStart.getDate() + ' – ' + wkEnd.getDate() + ' ' + wkEnd.toLocaleDateString(undefined,{month:'long',year:'numeric'})
-        : planWeekStart.getDate() + ' ' + planWeekStart.toLocaleDateString(undefined,{month:'short'}) + ' – ' +
-          wkEnd.getDate() + ' ' + wkEnd.toLocaleDateString(undefined,{month:'short',year:'numeric'});
+      titleEl.textContent = relativeWeekLabel(planWeekStart);
+      rangeEl.textContent = weekRangeLabel(planWeekStart, true);
       rangeEl.hidden = false;
       quoteEl.innerHTML = editorialLine(fmtDate(planWeekStart), PLAN_LINES);
       quoteWrap.hidden = false;
@@ -5003,11 +5147,7 @@
 
   function headerNavStep(dir){
     if (currentView === 'comms'){ document.querySelector('.tab-btn[data-view="log"]').click(); return; }
-    if (currentView === 'plan'){
-      planWeekStart.setDate(planWeekStart.getDate() + dir * 7);
-      renderPlan(); renderHeader();
-      return;
-    }
+    if (currentView === 'plan'){ goPlanWeek(addDays(planWeekStart, dir * 7)); return; }
     if (currentView === 'calendar'){
       calMonth.setMonth(calMonth.getMonth() + dir);
       renderCalendar(); renderHeader();
@@ -9776,6 +9916,32 @@
       '</div>' +
 
       '<div class="set-group">' +
+        '<span class="set-group-label">Calendar &amp; weeks</span>' +
+        '<div class="set-card">' +
+          '<div class="set-row static">' +
+            '<div class="appearance-row">' +
+              '<span class="appearance-label">Week starts</span>' +
+              '<div class="theme-switch" id="weekStartSwitch" role="radiogroup" aria-label="Week starts">' +
+                '<button type="button" data-week-start="monday" role="radio">Monday</button>' +
+                '<button type="button" data-week-start="sunday" role="radio">Sunday</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<p class="set-note">Plan and Calendar show weeks this way. Recent views such as ' +
+          'Last 7 days always mean today and the six days before.</p>' +
+      '</div>' +
+
+      '<div class="set-group">' +
+        '<span class="set-group-label">Training target</span>' +
+        '<div class="set-card">' +
+          settingsRow('setTargetTypes', 'Included activities', trainingTypesSummary()) +
+          settingsRow('setTargetDays', 'Frequency', trainingFrequencySummary()) +
+        '</div>' +
+        '<p class="set-note">Counts training days, not sessions: two on one day make one day.</p>' +
+      '</div>' +
+
+      '<div class="set-group">' +
         '<span class="set-group-label">Morning Prime</span>' +
         '<div class="set-card">' +
           settingsRow('setPlanRoutine', 'Plan routine', routineSummary('plan')) +
@@ -9804,7 +9970,111 @@
     document.getElementById('setMoveRoutine').addEventListener('click', function(){ openRoutineEditor('move'); });
     document.getElementById('setWindRoutine').addEventListener('click', function(){ openRoutineEditor('windDown'); });
     document.getElementById('setWindHour').addEventListener('click', openWindDownHourSheet);
+    renderWeekStartSwitch();
+    sheetEl.querySelectorAll('[data-week-start]').forEach(function(btn){
+      btn.addEventListener('click', function(){ setWeekStartsOn(btn.dataset.weekStart); });
+    });
+    document.getElementById('setTargetTypes').addEventListener('click', openTrainingTypesSheet);
+    document.getElementById('setTargetDays').addEventListener('click', function(){ openTrainingFrequencySheet(false); });
     activeSheetRefresh = null;
+  }
+
+  // ---- week start and training target: preferences, so they live in presets and
+  // follow Shaun across devices; changing them regroups, it never moves a date ----
+  function renderWeekStartSwitch(){
+    var cur = weekStartsOn();
+    document.querySelectorAll('[data-week-start]').forEach(function(b){
+      var on = b.dataset.weekStart === cur;
+      b.classList.toggle('sel', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+  function setWeekStartsOn(v){
+    presets.weekStartsOn = v === 'sunday' ? 'sunday' : 'monday';
+    renderWeekStartSwitch();
+    applyWeekPreference();
+    savePresets();
+  }
+  function saveTrainingTarget(patch){
+    presets.trainingTarget = Object.assign({}, presets.trainingTarget || {}, patch);
+    savePresets();
+    if (currentView === 'calendar') renderCalendar();
+  }
+  function trainingTypesSummary(){
+    var types = trainingTarget().types;
+    if (types.length === PLAN_TRAINING_TYPES.length) return 'All training';
+    return PLAN_TRAINING_TYPES.filter(function(t){ return types.indexOf(t) > -1; })
+      .map(function(t){ return SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]; }).join(', ');
+  }
+  function trainingFrequencySummary(){
+    var n = trainingTarget().daysPerWeek;
+    return n ? n + (n === 1 ? ' day' : ' days') + ' per week' : 'Not set';
+  }
+  // a checklist, not a select: tap to include or leave out; at least one stays in
+  function openTrainingTypesSheet(){
+    function render(){
+      var types = trainingTarget().types;
+      sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+        sheetHead(TRAINING_ICON_SVG.hiit, 'Included activities', 'What counts as a training day toward the target.', '') +
+        '<div class="set-card">' +
+          PLAN_TRAINING_TYPES.map(function(t){
+            var on = types.indexOf(t) > -1;
+            return '<button type="button" class="set-row tt-row' + (on ? ' on' : '') + '" data-tt="' + t + '" role="checkbox" aria-checked="' + (on ? 'true' : 'false') + '">' +
+              '<span class="tt-check">' + CHECK_SVG + '</span>' +
+              '<span class="dot ' + t + '"></span>' +
+              '<span class="set-row-label">' + TYPE_LABEL[t] + '</span>' +
+            '</button>';
+          }).join('') +
+        '</div>' +
+        '<p class="set-note">The Calendar can still show any activity; this only decides what counts.</p>' +
+        '<button type="button" class="btn-quiet" id="ttBackBtn">Back to settings</button>';
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      document.getElementById('ttBackBtn').addEventListener('click', openSettingsSheet);
+      sheetEl.querySelectorAll('[data-tt]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var cur = trainingTarget().types.slice();
+          var t = btn.dataset.tt, i = cur.indexOf(t);
+          if (i > -1){ if (cur.length === 1) return; cur.splice(i, 1); } else cur.push(t);
+          saveTrainingTarget({ types: PLAN_TRAINING_TYPES.filter(function(x){ return cur.indexOf(x) > -1; }) });
+          render();
+          var again = sheetEl.querySelector('[data-tt="' + t + '"]');
+          if (again) again.focus();
+        });
+      });
+    }
+    editingId = null;
+    render();
+    backdrop.classList.add('open');
+    activeSheetRefresh = null;
+  }
+  function openTrainingFrequencySheet(fromCalendar){
+    editingId = null;
+    var cur = trainingTarget().daysPerWeek;
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.calendar, 'Training target', 'Training days per calendar week.', '') +
+      '<div class="set-card">' +
+        [1,2,3,4,5,6,7].map(function(n){
+          return '<button type="button" class="set-row" data-tt-days="' + n + '">' +
+            '<span class="set-row-label">' + n + (n === 1 ? ' day' : ' days') + ' per week</span>' +
+            (n === cur ? '<span class="set-row-val">Current</span>' : (!cur && n === 4 ? '<span class="set-row-val">Suggested</span>' : '')) +
+          '</button>';
+        }).join('') +
+        '<button type="button" class="set-row" data-tt-days="0">' +
+          '<span class="set-row-label">No target</span>' + (cur ? '' : '<span class="set-row-val">Current</span>') +
+        '</button>' +
+      '</div>' +
+      '<button type="button" class="btn-quiet" id="ttDaysBackBtn">' + (fromCalendar ? 'Close' : 'Back to settings') + '</button>';
+    backdrop.classList.add('open');
+    activeSheetRefresh = null;
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('ttDaysBackBtn').addEventListener('click', function(){ if (fromCalendar) closeSheet(); else openSettingsSheet(); });
+    sheetEl.querySelectorAll('[data-tt-days]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var n = parseInt(btn.dataset.ttDays, 10);
+        saveTrainingTarget({ daysPerWeek: n || null, types: trainingTarget().types });
+        if (fromCalendar) closeSheet(); else openSettingsSheet();
+      });
+    });
   }
 
   function openWindDownHourSheet(){
@@ -10384,7 +10654,7 @@
 
   // Show one kind of activity on the grid. The same records, just narrowed; 'all' is the usual view.
   var CAL_FILTERS = [
-    { key: 'all', label: 'All' },
+    { key: 'all', label: 'All activity' },
     { key: 'training', label: 'Training' },
     { key: 'padel', label: 'Padel' },
     { key: 'resistance', label: 'Strength' },
@@ -10400,7 +10670,27 @@
     var f = CAL_FILTERS.find(function(x){ return x.key === key; });
     return f ? f.label : key;
   }
+  // What the grid shows right now — a view, separate from what counts toward the
+  // training target. Phones get one picker; wider screens keep the wrapped chips.
+  // Both read and write the one calFilter.
+  function calFilterDot(key){ return (key === 'all' || key === 'training') ? '' : 'var(--' + key + ')'; }
+  function setCalFilter(key){ calFilter = key; renderCalendar(); }
+  document.getElementById('calShowBtn').addEventListener('click', function(e){
+    openPicker({
+      title: 'Show in Calendar', value: calFilter, anchor: e.currentTarget, search: false,
+      options: CAL_FILTERS.map(function(f){ return { value: f.key, label: f.label, dot: calFilterDot(f.key) || null }; }),
+      onPick: setCalFilter
+    });
+  });
   function renderCalFilter(){
+    var btn = document.getElementById('calShowBtn');
+    if (btn){
+      document.getElementById('calShowLabel').textContent = calFilterLabel(calFilter);
+      var dot = btn.querySelector('.cal-show-dot');
+      dot.hidden = !calFilterDot(calFilter);
+      dot.style.background = calFilterDot(calFilter);
+      btn.classList.toggle('narrowed', calFilter !== 'all');
+    }
     var wrap = document.getElementById('calFilter');
     if (!wrap) return;
     wrap.innerHTML = '';
@@ -10413,11 +10703,9 @@
       var dotType = (f.key === 'all' || f.key === 'training') ? '' : f.key;
       b.innerHTML = (dotType ? '<span class="dot ' + dotType + '"></span>' : '') + '<span></span>';
       b.lastChild.textContent = f.label;
-      b.addEventListener('click', function(){ calFilter = f.key; renderCalendar(); });
+      b.addEventListener('click', function(){ setCalFilter(f.key); });
       wrap.appendChild(b);
     });
-    var sel = wrap.querySelector('button.sel');
-    if (sel && sel.scrollIntoView && calFilter !== 'all') sel.scrollIntoView({ block: 'nearest', inline: 'center' });
   }
 
   function renderCalendar(){
@@ -10425,7 +10713,7 @@
     renderCalFilter();
     var grid = document.getElementById('calGrid');
     grid.innerHTML = '';
-    ['S','M','T','W','T','F','S'].forEach(function(d){
+    weekdayLabels('narrow').forEach(function(d){
       var el = document.createElement('div');
       el.className = 'cal-dow';
       el.textContent = d;
@@ -10433,12 +10721,11 @@
     });
 
     var year = calMonth.getFullYear(), month = calMonth.getMonth();
-    var firstDow = new Date(year, month, 1).getDay();
+    // empty cells before the 1st: where it falls in a week that starts on the chosen day
+    var firstDow = weekIndexOf(new Date(year, month, 1));
     var daysInMonth = new Date(year, month+1, 0).getDate();
     var today = todayStr();
     var isCurrentMonth = (year === new Date().getFullYear() && month === new Date().getMonth());
-    var activeDayCount = 0;
-    var trainingDayCount = 0; // excludes passive log-only days like photo/nutrition-only
     var filtered = calFilter !== 'all';
     var filterDayCount = 0, filterEntryCount = 0;
 
@@ -10466,12 +10753,6 @@
         filterEntryCount += daySessions.length;
       }
 
-      if (typesPresent.length && (!isCurrentMonth || dateObj <= new Date())){
-        activeDayCount++;
-        var trainingTypes = typesPresent.filter(function(t){ return t !== 'photo' && t !== 'nutrition'; });
-        if (trainingTypes.length) trainingDayCount++;
-      }
-
       if (typesPresent.length){
         var dominant = CAL_TYPE_ORDER.find(function(t){ return typesPresent.indexOf(t) !== -1; }) || typesPresent[0];
         var color = getComputedStyle(document.documentElement).getPropertyValue('--' + dominant).trim();
@@ -10490,8 +10771,9 @@
       grid.appendChild(cell);
     }
 
-    if (filtered) renderCalFilterSummary(filterDayCount, filterEntryCount);
-    else renderCalSummary(daysInMonth, activeDayCount, trainingDayCount, isCurrentMonth);
+    // a single activity reads as counts of that activity; All and Training read against the target
+    if (filtered && calFilter !== 'training') renderCalFilterSummary(filterDayCount, filterEntryCount);
+    else renderCalSummary(year, month);
     renderDayDetail();
   }
 
@@ -10502,13 +10784,63 @@
     return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
   }
 
-  function renderCalSummary(daysInMonth, activeDayCount, trainingDayCount, isCurrentMonth){
+  // ---- the training target ----
+  // presets.trainingTarget = { types: [...training types], daysPerWeek: 1–7 | null }.
+  // It counts DAYS, not sessions: two included sessions on one date are one day. Which
+  // types count is the target's own choice — the Calendar's Training view still shows
+  // every training type. With no days-per-week chosen there is no target, only counts.
+  function trainingTarget(){
+    var t = (presets && presets.trainingTarget) || {};
+    var types = (t.types || []).filter(function(x){ return PLAN_TRAINING_TYPES.indexOf(x) > -1; });
+    var days = parseInt(t.daysPerWeek, 10);
+    return {
+      types: types.length ? types : PLAN_TRAINING_TYPES.slice(),
+      daysPerWeek: (days >= 1 && days <= 7) ? days : null
+    };
+  }
+  function trainingDaysBetween(startStr, endStr, types){
+    var seen = {};
+    sessions.forEach(function(x){
+      if (x.date >= startStr && x.date <= endStr && types.indexOf(x.type) > -1) seen[x.date] = true;
+    });
+    return Object.keys(seen).length;
+  }
+  // The month's training days, and the week in focus against the target: progress while
+  // it runs, achieved vs target once it has ended, the target alone before it starts —
+  // days that haven't happened are never counted as missed.
+  function renderCalSummary(year, month){
     var wrap = document.getElementById('calSummary');
-    var daysSoFar = isCurrentMonth ? new Date().getDate() : daysInMonth;
-    var pct = daysSoFar ? Math.round((trainingDayCount / daysSoFar) * 100) : 0;
+    var tgt = trainingTarget();
+    var today = todayStr();
+    var mStart = fmtDate(new Date(year, month, 1)), mEnd = fmtDate(new Date(year, month + 1, 0));
+    var monthDays = trainingDaysBetween(mStart, mEnd < today ? mEnd : today, tgt.types);
+    var monthCol = '<div class="stat-num"><div class="val display">' + monthDays + '</div>' +
+      '<div class="lbl">Training ' + (monthDays === 1 ? 'day' : 'days') + ' this month</div></div>';
+    if (!tgt.daysPerWeek){
+      wrap.innerHTML = monthCol +
+        '<div class="stat-num"><button type="button" class="cal-target-set" id="calTargetSet">Set a weekly target' + UI_ICON.chevronRight + '</button>' +
+        '<div class="lbl">Training days per week</div></div>';
+      document.getElementById('calTargetSet').addEventListener('click', function(){ openTrainingFrequencySheet(true); });
+      return;
+    }
+    var focus = (selectedDay && selectedDay >= mStart && selectedDay <= mEnd) ? selectedDay
+      : (today >= mStart && today <= mEnd ? today : (today < mStart ? mStart : mEnd));
+    var ws = fmtDate(weekStartFor(focus)), we = fmtDate(weekEndFor(focus));
+    var when = relativeWeekLabel(ws);
+    var val, lbl, n = tgt.daysPerWeek;
+    if (ws > today){
+      val = n + (n === 1 ? ' day' : ' days');
+      lbl = 'Target \u00b7 ' + when;
+    } else {
+      var got = trainingDaysBetween(ws, we < today ? we : today, tgt.types);
+      val = got + ' of ' + n;
+      if (got >= n) lbl = 'Target met \u00b7 ' + when;
+      else if (we < today) lbl = (n - got) + ' short \u00b7 ' + when;
+      else lbl = (n - got) + (n - got === 1 ? ' day' : ' days') + ' to target \u00b7 ' + when;
+    }
     wrap.innerHTML =
-      '<div class="stat-num"><div class="val display">' + trainingDayCount + ' / ' + daysSoFar + '</div><div class="lbl">Training days this month</div></div>' +
-      '<div class="stat-num"><div class="val display">' + pct + '%</div><div class="lbl">Consistency</div></div>';
+      '<div class="stat-num' + (ws <= today && trainingDaysBetween(ws, we, tgt.types) >= n ? ' met' : '') + '"><div class="val display">' + val + '</div><div class="lbl">' + lbl + '</div></div>' +
+      monthCol;
   }
 
   // Counts only: a filtered month states what was recorded, without a consistency judgement.
@@ -10517,7 +10849,7 @@
     var label = calFilterLabel(calFilter);
     var noun = calFilter === 'weight' ? 'Weigh-ins' : (calFilter === 'nutrition' ? 'Days logged' : 'Sessions');
     wrap.innerHTML =
-      '<div class="stat-num"><div class="val display">' + dayCount + '</div><div class="lbl">' + label + ' days this month</div></div>' +
+      '<div class="stat-num"><div class="val display">' + dayCount + '</div><div class="lbl">' + label + (dayCount === 1 ? ' day' : ' days') + ' this month</div></div>' +
       '<div class="stat-num"><div class="val display">' + entryCount + '</div><div class="lbl">' + noun + '</div></div>';
   }
 
@@ -10646,11 +10978,8 @@
 
 
   // ---------- stats view ----------
-  function withinDays(s, n){
-    var d = new Date(s.date + 'T00:00:00');
-    var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - n); cutoff.setHours(0,0,0,0);
-    return d >= cutoff;
-  }
+  // recent = rolling: today and the n-1 days before it, never the calendar week
+  function withinDays(s, n){ return inRollingDays(s.date, n); }
   function withinThisMonth(s){
     var d = new Date(s.date + 'T00:00:00');
     var now = new Date();
@@ -10721,7 +11050,7 @@
     var gymWeek = gym.filter(function(s){ return withinDays(s,7); });
     var lastBw = gym.find(function(s){ return s.bodyweight; });
     container.appendChild(statCard('resistance', [
-      { val: gymWeek.length, lbl: 'Sessions this week' },
+      { val: gymWeek.length, lbl: 'Sessions, last 7 days' },
       { val: lastBw && lastBw.bodyweight ? lastBw.bodyweight + 'kg' : '—', lbl: 'Last logged bodyweight' }
     ]));
 
@@ -10747,7 +11076,7 @@
     var yoga = sessions.filter(function(s){ return s.type==='yoga'; });
     var yogaWeek = yoga.filter(function(s){ return withinDays(s,7); });
     container.appendChild(statCard('yoga', [
-      { val: yogaWeek.length, lbl: 'Sessions this week' },
+      { val: yogaWeek.length, lbl: 'Sessions, last 7 days' },
       { val: yoga.length, lbl: 'All-time sessions' }
     ]));
 
@@ -10856,14 +11185,13 @@
   }
 
   function renderWeeklyBarChart(entries, color){
-    // entries: array of {date} — buckets into the last 8 calendar weeks (Sun-Sat)
-    var now = new Date();
-    var weekStart = new Date(now); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    // entries: array of {date} — true calendar-week buckets (the last 8), so they follow
+    // the Week starts preference; unlike the rolling Last 7 days chart
+    var weekStart = weekStartFor(new Date());
     var buckets = [];
     for (var i=7; i>=0; i--){
-      var start = new Date(weekStart); start.setDate(start.getDate() - i*7);
-      var end = new Date(start); end.setDate(end.getDate() + 7);
-      buckets.push({ start: start, end: end, count: 0 });
+      var start = addDays(weekStart, -i * 7);
+      buckets.push({ start: start, end: addDays(start, 7), count: 0 });
     }
     entries.forEach(function(e){
       var d = new Date(e.date + 'T00:00:00');
@@ -11032,11 +11360,10 @@
     wrap.innerHTML = '';
     var bars = document.createElement('div');
     bars.className = 'weekbar-bars';
-    var days = [];
-    for (var i=6; i>=0; i--){
-      var d = new Date(); d.setDate(d.getDate()-i);
-      days.push(d);
-    }
+    // Last 7 days: today and the six before — rolling, so the week start never moves it
+    var days = rollingDays(7);
+    var rangeEl = document.getElementById('weekBarRange');
+    if (rangeEl) rangeEl.textContent = rollingRangeLabel(7);
     var maxCount = 1;
     var counts = days.map(function(d){
       var ds = fmtDate(d);
@@ -11520,8 +11847,113 @@
              constraint: !!(plan && plan.roadblocks) || dayCommitments.some(function(c){ return c.category === 'roadblock'; }) };
   }
 
+  // ---- moving between weeks ----
+  // The header arrows stay; the switcher above the rows is the thumb-reach way to step,
+  // jump to a nearby week or a date, and come back to this week. A short slide says
+  // which way the week moved. The rows stay one vertical list.
+  function goPlanWeek(start){
+    var next = weekStartFor(start);
+    var dir = next > planWeekStart ? 1 : (next < planWeekStart ? -1 : 0);
+    planWeekStart = next;
+    renderPlan();
+    renderHeader();
+    if (dir){
+      var list = document.getElementById('planWeekList');
+      list.classList.remove('pw-in-next', 'pw-in-prev');
+      void list.offsetWidth;
+      list.classList.add(dir > 0 ? 'pw-in-next' : 'pw-in-prev');
+    }
+  }
+  function renderPlanWeekSwitch(){
+    var wrap = document.getElementById('planWeekSwitch');
+    if (!wrap) return;
+    var isThis = fmtDate(planWeekStart) === fmtDate(weekStartFor(new Date()));
+    wrap.querySelector('[data-role="pw-label"]').textContent = relativeWeekLabel(planWeekStart);
+    wrap.querySelector('[data-role="pw-range"]').textContent = weekRangeLabel(planWeekStart);
+    wrap.querySelector('[data-role="pw-today"]').hidden = isThis;
+  }
+  function openPlanWeekPicker(anchor){
+    var thisStart = weekStartFor(new Date());
+    var opts = [];
+    for (var i = -4; i <= 8; i++){
+      var st = addDays(thisStart, i * 7);
+      opts.push({ value: fmtDate(st), label: relativeWeekLabel(st), hint: weekRangeLabel(st) });
+    }
+    opts.push({ value: '__date', label: 'Go to date\u2026' });
+    openPicker({
+      title: 'Go to week', value: fmtDate(planWeekStart), options: opts, anchor: anchor, search: false,
+      onPick: function(v){
+        if (v !== '__date'){ goPlanWeek(v); return; }
+        // the system date picker, opened from this tap — no calendar of our own
+        var inp = document.createElement('input');
+        inp.type = 'date';
+        inp.value = fmtDate(planWeekStart);
+        inp.className = 'pw-date-input';
+        inp.setAttribute('aria-label', 'Go to date');
+        document.body.appendChild(inp);
+        var done = function(){ if (inp.value) goPlanWeek(inp.value); inp.remove(); };
+        inp.addEventListener('change', done);
+        inp.addEventListener('blur', function(){ setTimeout(function(){ if (document.body.contains(inp)) inp.remove(); }, 400); });
+        try { if (inp.showPicker) inp.showPicker(); else inp.focus(); } catch(e){ inp.focus(); }
+      }
+    });
+  }
+  (function wirePlanWeekSwitch(){
+    var wrap = document.getElementById('planWeekSwitch');
+    wrap.querySelector('[data-role="pw-prev"]').addEventListener('click', function(){ goPlanWeek(addDays(planWeekStart, -7)); });
+    wrap.querySelector('[data-role="pw-next"]').addEventListener('click', function(){ goPlanWeek(addDays(planWeekStart, 7)); });
+    wrap.querySelector('[data-role="pw-pick"]').addEventListener('click', function(e){ openPlanWeekPicker(e.currentTarget); });
+    wrap.querySelector('[data-role="pw-today"]').addEventListener('click', function(){ goPlanWeek(new Date()); });
+    // A deliberate sideways swipe over the week steps it — phones only, never from a field,
+    // a scroller or the screen edge (the browser's own back gesture), and only when clearly
+    // more sideways than down, so vertical scrolling is never taken.
+    var list = document.getElementById('planWeekList');
+    var sx = null, sy = 0, st = 0;
+    list.addEventListener('touchstart', function(e){
+      sx = null;
+      if (isWide() || e.touches.length !== 1) return;
+      var t = e.touches[0];
+      if (t.clientX < 24 || t.clientX > window.innerWidth - 24) return;
+      for (var el = e.target; el && el !== list; el = el.parentNode){
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.hasAttribute('data-drag-handle')) return;
+        if (el.scrollWidth > el.clientWidth + 2 && /(auto|scroll)/.test(getComputedStyle(el).overflowX)) return;
+      }
+      sx = t.clientX; sy = t.clientY; st = Date.now();
+    }, { passive: true });
+    list.addEventListener('touchend', function(e){
+      if (sx == null) return;
+      var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+      sx = null;
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2 || Date.now() - st > 700) return;
+      // the tap that would follow a swipe must not open a day
+      var swallow = function(ev){ ev.stopPropagation(); ev.preventDefault(); };
+      window.addEventListener('click', swallow, true);
+      setTimeout(function(){ window.removeEventListener('click', swallow, true); }, 60);
+      goPlanWeek(addDays(planWeekStart, dx < 0 ? 7 : -7));
+    }, { passive: true });
+  })();
+
+  // When the week start changes, the week shown is rebuilt around the date that matters
+  // in it — the chosen day, else today, else its middle — so nothing jumps weeks away.
+  var shownWeekStartsOn = weekStartsOn();
+  function applyWeekPreference(){
+    if (shownWeekStartsOn === weekStartsOn()) return;
+    var prevStart = planWeekStart, prevEnd = fmtDate(addDays(prevStart, 6));
+    var t = todayStr(), anchor;
+    if (planSelectedDate && planSelectedDate >= fmtDate(prevStart) && planSelectedDate <= prevEnd) anchor = planSelectedDate;
+    else if (t >= fmtDate(prevStart) && t <= prevEnd) anchor = t;
+    else anchor = addDays(prevStart, 3);
+    shownWeekStartsOn = weekStartsOn();
+    planWeekStart = weekStartFor(anchor);
+    if (currentView === 'plan') renderPlan();
+    if (currentView === 'calendar') renderCalendar();
+    if (currentView === 'stats') renderStats();
+    renderHeader();
+  }
+
   function renderPlan(){
     renderMealIdeas();
+    renderPlanWeekSwitch();
 
     var list = document.getElementById('planWeekList');
     list.innerHTML = '';
@@ -11530,7 +11962,7 @@
     var paneDate = wide ? planPaneDate() : null;
 
     for (var i=0; i<7; i++){
-      var d = new Date(planWeekStart); d.setDate(d.getDate() + i);
+      var d = addDays(planWeekStart, i);
       var dateStr = fmtDate(d);
       var plan = getPlanForDate(dateStr);
       var isToday = dateStr === today;
@@ -11616,7 +12048,7 @@
   // the day the Plan pane shows: the one last chosen if it is in this week, else today, else Sunday
   function planPaneDate(){
     var start = fmtDate(planWeekStart);
-    var end = fmtDate(new Date(planWeekStart.getTime() + 6*86400000));
+    var end = fmtDate(addDays(planWeekStart, 6));
     if (planSelectedDate && planSelectedDate >= start && planSelectedDate <= end) return planSelectedDate;
     var t = todayStr();
     return (t >= start && t <= end) ? t : start;
@@ -12674,7 +13106,7 @@
       var wk = matching.filter(function(s){ return withinDays(s, 7); }).length;
       var mo = matching.filter(withinThisMonth).length;
       lines.push((wk || mo)
-        ? { text: plural(wk, 'session') + ' this week · ' + mo + ' this month' }
+        ? { text: plural(wk, 'session') + ' in the last 7 days · ' + mo + ' this month' }
         : { text: 'No sessions logged this month', quiet: true });
     }
     // Actions already carry a priorityId; completed ones are evidence for any priority.
