@@ -365,6 +365,16 @@ One pattern, and it is the strongest component in the system.
   flex to equal width.
 - Entry animation `sheet-up`, `0.24s cubic-bezier(.2,.9,.3,1)`.
 - A `.backdrop` sits behind, using `--backdrop`.
+- **Day Plan exception (2026-10-04).** A sheet holding `.dp-sec` sections has a
+  fixed `height: 90dvh` on phones (full height in the desktop inspector) and is
+  a flex column, so opening a section never resizes the sheet and the
+  `.dp-footer` action bar sits at its foot. Sections expand by animating
+  `grid-template-rows` 0fr→1fr over `.dp-body-inner` (0.22s
+  `cubic-bezier(.2,.8,.2,1)`, opacity with it, `visibility` keeping collapsed
+  fields out of the tab order; no transition under reduced motion). The footer
+  button is filled gold for "Finish planning" and a gold tint (`.is-saved`) for
+  "Save changes". A section-scoped destructive action is quiet danger text at the
+  section's foot (`.dp-clear`), never a full-width outlined button.
 
 All sheets are opened through one function (`openSheet`) and built by shared
 form builders. This is the one place where "one concept, one interaction

@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-03 (Today section headers unified; Wind-down closes the day)
+Last updated: 2026-10-04 (Day Plan sheet: stable geometry, smooth sections, contextual Clear)
 
 ---
 
@@ -140,7 +140,12 @@ two Morning Prime routines, the Wind-down routine and its prominence hour.
   outcomes, then by category; add, star, edit, pull from Backlog), Health &
   fitness (the previous plan form), Constraints (`plan.roadblocks` + roadblock
   actions) and Day Notes. On a phone these are collapsible sections with one-line
-  summaries; on desktop the day pane shows them all, editable in place.
+  summaries inside a sheet of fixed height (90dvh) whose content scrolls; sections
+  open and close with a short animation and the sheet never moves. One footer
+  action: **Finish planning** (unplanned/draft) or **Save changes** (planned).
+  **Clear health & fitness** sits at the foot of the Health & fitness section and
+  appears only when that section holds something. On desktop the day pane shows
+  them all, editable in place; "Edit plan" opens the same sheet as the inspector.
   Meal ideas library unchanged.
 The three reflective tabs have one job each: **Focus** — where am I going?
 **Progress** — am I moving there? **Calendar** — what actually happened?
@@ -355,6 +360,26 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-04 — The Day Plan sheet holds still; Clear belongs to Health & fitness
+**Decision:** on phones the Day Plan sheet has one stable height (90dvh) and its
+content scrolls inside it; sections animate open and closed (about 220ms, none
+under reduced motion) and an opened section's header stays where it was — the
+sheet scrolls only enough to show the start of new content hidden under the
+footer. The plan-wide action is a sticky footer: **Finish planning** (filled
+gold) for unplanned or draft days, **Save changes** (gold tint) for planned days,
+replacing "Update plan". **Clear health & fitness** moved from the foot of the
+sheet into the Health & fitness section as a quiet text action, shown only when
+that section holds a rest day, training or training details, a diet, fasting, or
+a meal with text; it confirms first and leaves the sheet open.
+**Why:** the bottom-anchored sheet resized with its content, so opening a section
+moved the whole sheet by over 200px; a global button cleared only one section.
+**Implications:** save semantics unchanged (owned fields, `planReviewedAt`,
+siblings kept). Clear patches only the health fields and is skipped when there is
+no stored record; intention, actions, constraints, notes, Morning Prime, orders,
+recorded sessions and food entries are untouched. The desktop inspector keeps
+its full height; its footer now sits at the inspector's foot. Day notes in the
+sheet now use the app's text-field style (it rendered as a bare textarea).
 
 ### 2026-10-03 — One section language on Today; Wind-down closes the day
 **Decision:** Today's sections share one header — title, muted status/count,
@@ -967,6 +992,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-04) — Day Plan sheet refinement: stable mobile geometry with internal
+  scrolling, animated sections with reduced-motion support, Save changes
+  replacing Update plan, Clear health & fitness contextual and conditional.
 - (2026-10-03) — Today section consistency: shared headers and icon language, no
   filler empty states, diet summary fixed, Wind-down below Recorded activity as
   Morning Prime's quieter sibling.

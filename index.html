@@ -2614,11 +2614,61 @@
     flex: 1; min-width: 0; text-align: right; font-size: 12.5px; color: var(--text-2);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .dp-head-chev { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-3); transition: transform 0.2s ease; }
+  .dp-head-chev { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-3); transition: transform 0.22s cubic-bezier(.2,.8,.2,1); }
   .dp-head-chev svg { width: 100%; height: 100%; display: block; }
   .dp-sec.open .dp-head-chev { transform: rotate(180deg); }
-  .dp-body { display: none; padding: 2px 0 var(--sp-5); }
-  .dp-sec.open .dp-body { display: block; }
+  /* The plan keeps one height while sections open and close — only what is inside it
+     scrolls, so the sheet's top edge never moves under the finger. The inspector is
+     already full height. */
+  .sheet:has(> .dp-sec) { height: 90vh; height: 90dvh; display: flex; flex-direction: column; }
+  .sheet:has(> .dp-sec) > * { flex-shrink: 0; }
+  /* a section opens by growing its row from nothing to its content's height; collapsed
+     content stays out of the tab order. The inner gutter keeps focus rings unclipped. */
+  .dp-body {
+    display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden;
+    transition: grid-template-rows 0.22s cubic-bezier(.2,.8,.2,1), opacity 0.16s ease, visibility 0s linear 0.22s;
+  }
+  .dp-sec.open .dp-body {
+    grid-template-rows: 1fr; opacity: 1; visibility: visible;
+    transition: grid-template-rows 0.22s cubic-bezier(.2,.8,.2,1), opacity 0.2s ease 0.03s, visibility 0s;
+  }
+  .dp-body-inner { min-height: 0; overflow: hidden; margin: 0 -4px; padding: 0 4px; }
+  .dp-body-pad { padding: 2px 0 var(--sp-5); }
+  @media (prefers-reduced-motion: reduce) {
+    .dp-body, .dp-sec.open .dp-body, .dp-head-chev { transition: none; }
+  }
+  /* Clearing belongs to the section it clears: a quiet text action at its foot,
+     shown only when there is something to clear */
+  .dp-clear {
+    display: block; margin: var(--sp-4) 0 0 auto; padding: 8px 0; background: none; border: none;
+    color: var(--danger); font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+    letter-spacing: 0.01em; cursor: pointer; opacity: 0.85;
+  }
+  .dp-clear:active { opacity: 0.5; }
+  .dp-clear[hidden] { display: none; }
+  /* one plan-wide action, riding the foot of the sheet. Finishing is a declaration and
+     fills gold; saving edits to a planned day is routine and stays a tint. */
+  .sheet-actionbar.dp-footer { margin-top: auto; align-items: center; }
+  .dp-footer .dp-footer-link {
+    flex: 0 0 auto; background: none; border: none; padding: 10px 2px;
+    color: var(--text-2); font-family: var(--sans); font-size: 13px; font-weight: 500;
+    letter-spacing: 0.01em; cursor: pointer; text-align: left; white-space: nowrap;
+  }
+  .dp-footer .dp-footer-link:active { opacity: 0.6; }
+  .dp-footer .save-btn {
+    flex: 1 1 auto; margin: 0; padding: 13px 18px; font-size: 14px; font-weight: 600;
+    border-radius: var(--r-md); white-space: nowrap;
+  }
+  .dp-footer .dp-footer-link + .save-btn { flex: 1 1 0; width: auto; padding: 13px 14px; }
+  @media (max-width: 359px) {
+    .sheet-actionbar.dp-footer { align-items: stretch; }
+    .dp-footer .dp-footer-link { text-align: center; }
+  }
+  .dp-footer .save-btn.is-saved {
+    background: rgba(var(--gold-rgb),0.12); color: var(--gold);
+    box-shadow: inset 0 0 0 1px rgba(var(--gold-rgb),0.34);
+  }
+  .dp-footer .save-btn.is-saved:active { background: rgba(var(--gold-rgb),0.2); }
   .dp-quiet { font-size: 12.5px; color: var(--text-3); margin: 4px 0 10px; line-height: 1.45; }
   .dp-sublabel { font-size: 10px; color: var(--text-3); margin: 2px 0 8px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.18em; }
   .dp-intention { min-height: 0; font-family: var(--serif); font-size: 15.5px; line-height: 1.45; }
@@ -2626,7 +2676,7 @@
   .dp-support-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0; transform: translateY(-2px); }
   .dp-support-title { font-family: var(--serif); font-size: 15px; color: var(--text); min-width: 0; overflow-wrap: anywhere; }
   .dp-support-via { margin-left: auto; flex-shrink: 0; font-size: 11.5px; color: var(--text-3); }
-  .dp-notes { min-height: 110px; }
+  .field textarea.dn-sheet-area.dp-notes { min-height: 110px; }
 
   .dpa-group {
     display: flex; align-items: center; gap: 10px; margin: 12px 0 6px;
@@ -3243,6 +3293,8 @@
     html[data-theme="light"] .sheet-backdrop { background: rgba(60,44,22,0.16); }
     .sheet-handle { display: none; }
     .sheet-actionbar { bottom: -28px; margin: var(--sp-5) -28px -28px; padding: 12px 28px 16px; }
+    .sheet:has(> .dp-sec) { height: 100%; }
+    .sheet-actionbar.dp-footer { margin-top: auto; }
 
     /* ---- Today: one working surface ---- */
     #view-log.active {
@@ -11811,7 +11863,7 @@
           '<span class="dp-head-sum" data-dp-sum="' + key + '"></span>' +
           '<span class="dp-head-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
         '</button>' +
-        '<div class="dp-body">' + body + '</div>' +
+        '<div class="dp-body"><div class="dp-body-inner"><div class="dp-body-pad">' + body + '</div></div></div>' +
       '</section>';
     }
 
@@ -11833,26 +11885,34 @@
           fieldSelect('f_carbLevel', 'Diet', [{value:'',label:'Not set'}].concat(Object.keys(CARB_LEVEL_LABEL).map(function(k){ return {value:k,label:CARB_LEVEL_LABEL[k]}; })), carbLevel || '') +
           fieldYesNo('f_fasting', 'Fasting', fasting) +
           '<div class="field"><label>Meals</label><div id="planMealRows"></div>' +
-            '<button type="button" class="add-exercise-btn" id="addPlanMealBtn">+ Add meal</button></div>') +
+            '<button type="button" class="add-exercise-btn" id="addPlanMealBtn">+ Add meal</button></div>' +
+          '<button type="button" class="dp-clear" id="deletePlanBtn"' + (healthHasState() ? '' : ' hidden') + '>Clear health &amp; fitness</button>') +
         secHtml('constraints',
           '<div class="field"><label for="f_roadblocks">Constraints &amp; roadblocks</label>' +
             '<textarea id="f_roadblocks" placeholder="Client meeting 14:00–16:00, dinner out, kids home early, travel day"></textarea></div>' +
           '<div id="dpRoadblockActions"></div>') +
         secHtml('notes',
-          '<textarea id="dpNotes" class="dn-sheet-area dp-notes" placeholder="Anything worth remembering about this day"></textarea>' +
+          '<div class="field"><textarea id="dpNotes" class="dn-sheet-area dp-notes" placeholder="Anything worth remembering about this day" aria-label="Day notes"></textarea></div>' +
           '<span class="dn-saved" id="dpNotesSaved"></span>') +
-        // declaring the day planned is its own act — editing alone never does it
-        '<button class="save-btn" id="savePlanBtn">' + (getPlanReadiness(dateStr).state === 'planned' ? 'Update plan' : 'Finish planning') + '</button>' +
-        (mpNeedsAttention(dateStr)
-          ? '<button type="button" class="btn-quiet" id="planToMpBtn">Return to Morning Prime</button>'
-          : '') +
-        (existing ? '<button class="delete-btn" id="deletePlanBtn">Clear health &amp; fitness</button>' : '');
+        // declaring the day planned is its own act — editing alone never does it.
+        // Intention, notes and actions save themselves; this commits the rest.
+        '<div class="sheet-actionbar dp-footer">' +
+          (mpNeedsAttention(dateStr)
+            ? '<button type="button" class="dp-footer-link" id="planToMpBtn">Return to Morning Prime</button>'
+            : '') +
+          (getPlanReadiness(dateStr).state === 'planned'
+            ? '<button type="button" class="save-btn is-saved" id="savePlanBtn">Save changes</button>'
+            : '<button type="button" class="save-btn" id="savePlanBtn">Finish planning</button>') +
+        '</div>';
       return html;
     }
 
-    function render(){
+    // a redraw from inside the sheet keeps the reader where they were
+    function render(keepScroll){
+      var top = sheetEl.scrollTop;
       sheetEl.innerHTML = buildHtml();
       wireSheet();
+      if (keepScroll) sheetEl.scrollTop = top;
     }
     render();
     backdrop.classList.add('open');
@@ -11871,6 +11931,57 @@
       savePlanForDate(dateStr, collectPlanData());
     }
 
+    // anything Clear would actually remove — an intention, actions or notes alone are not it
+    function healthHasState(){
+      return restDay || trainingTypes.length > 0 ||
+        Object.keys(trainingDetailsState).length > 0 || !!carbLevel || fasting ||
+        mealsState.some(function(m){ return (m.text || '').trim(); });
+    }
+    function refreshClear(){
+      var btn = document.getElementById('deletePlanBtn');
+      if (btn) btn.hidden = !healthHasState();
+    }
+
+    // Opening a section leaves its header where it was. Only when the start of the new
+    // content would sit under the footer does the sheet scroll — just enough to show it,
+    // and never so far that the header leaves view.
+    function revealSection(sec){
+      var head = sec.querySelector('.dp-head');
+      var body = sec.querySelector('.dp-body');
+      var foot = sheetEl.querySelector('.dp-footer');
+      var box = sheetEl.getBoundingClientRect();
+      var visibleBottom = (foot ? foot.getBoundingClientRect().top : box.bottom) - 12;
+      var want = head.getBoundingClientRect().bottom + Math.min(body.getBoundingClientRect().height, 200);
+      var over = want - visibleBottom;
+      var room = head.getBoundingClientRect().top - box.top - 12;
+      var by = Math.min(over, room);
+      if (by <= 0) return;
+      var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      sheetEl.scrollBy({ top: by, behavior: still ? 'auto' : 'smooth' });
+    }
+    function toggleSection(btn){
+      var k = btn.dataset.dpToggle;
+      var sec = btn.parentNode;
+      var body = sec.querySelector('.dp-body');
+      open[k] = !open[k];
+      sec.classList.toggle('open', open[k]);
+      btn.setAttribute('aria-expanded', open[k] ? 'true' : 'false');
+      // a quick close-and-reopen interrupts the first transition; only the latest waits
+      if (body.dpReveal) { body.removeEventListener('transitionend', body.dpReveal); body.dpReveal = null; }
+      if (!open[k]) return;
+      if (getComputedStyle(body).transitionDuration.split(',').every(function(t){ return parseFloat(t) === 0; })){
+        revealSection(sec);
+        return;
+      }
+      body.dpReveal = function(e){
+        if (e.target !== body || e.propertyName !== 'grid-template-rows') return;
+        body.removeEventListener('transitionend', body.dpReveal);
+        body.dpReveal = null;
+        revealSection(sec);
+      };
+      body.addEventListener('transitionend', body.dpReveal);
+    }
+
     function currentPlanish(){
       return { restDay: restDay, trainingTypes: restDay ? [] : trainingTypes, trainingDetails: trainingDetailsState,
                meals: mealsState, carbLevel: carbLevel, fasting: fasting };
@@ -11886,6 +11997,7 @@
       setSum('health', dpHealthSummary(currentPlanish()));
       setSum('constraints', dpConstraintsSummary(roadblocksVal, dateStr));
       setSum('notes', dpNotesSummary(notesVal));
+      refreshClear();
     }
     function refreshLive(){
       if (!document.getElementById('dpActions')) return;
@@ -12041,12 +12153,7 @@
     function wireSheet(){
       document.getElementById('sheetCloseBtn').addEventListener('click', function(){ flushText(); closeSheet(); });
       sheetEl.querySelectorAll('[data-dp-toggle]').forEach(function(btn){
-        btn.addEventListener('click', function(){
-          var k = btn.dataset.dpToggle;
-          open[k] = !open[k];
-          btn.parentNode.classList.toggle('open', open[k]);
-          btn.setAttribute('aria-expanded', open[k] ? 'true' : 'false');
-        });
+        btn.addEventListener('click', function(){ toggleSection(btn); });
       });
 
       // user text is set as values, never as markup
@@ -12072,7 +12179,7 @@
 
       document.getElementById('restDayToggle').addEventListener('click', function(){
         restDay = !restDay;
-        render();
+        render(true);
       });
       document.getElementById('f_carbLevel').addEventListener('change', function(){
         carbLevel = this.value || null;
@@ -12108,15 +12215,20 @@
         closeSheet();
         finishToMorningPrime();
       });
-      if (existing){
-        // clears what this section plans, never the day: notes, intention, Morning Prime
-        // and the action orders all live on the same record
-        document.getElementById('deletePlanBtn').addEventListener('click', function(){
-          flushText();
+      // clears what this section plans, never the day: notes, intention, Morning Prime,
+      // constraints and the action orders all live on the same record, and recorded
+      // sessions and food entries are records of their own
+      document.getElementById('deletePlanBtn').addEventListener('click', function(){
+        var weekday = d.toLocaleDateString('en-GB', { weekday: 'long' });
+        if (!confirm('Clear health & fitness for ' + weekday + '?\n\nThis removes planned training, meals, diet and fasting choices for this day. Recorded activity is not deleted.')) return;
+        flushText();
+        if (getPlanForDate(dateStr)){
           savePlanFields(dateStr, { restDay: false, trainingTypes: [], trainingDetails: {}, carbLevel: null, fasting: false, meals: [] });
-          closeSheet();
-        });
-      }
+        }
+        restDay = false; trainingTypes = []; trainingDetailsState = {}; carbLevel = null; fasting = false;
+        mealsState = [{ id: uid(), text: '', completed: false, completedAt: null, nutritionEntryId: null }];
+        render(true);
+      });
       refreshLive();
     }
   }
