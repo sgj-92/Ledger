@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-04 (Training days vs modality frequency; per-activity weekly/monthly targets)
+Last updated: 2026-10-04 (Last 7 days matrix; Weight detail with 7-day average; Steps; Challenge Zone)
 
 ---
 
@@ -98,6 +98,11 @@ The same page adapts by viewport width; there is no desktop build, route or flag
 - **Quick Log** — collapsible grid: Nutrition, Weight, Daily photo, Padel,
   Cardio, HIIT, Strength, Mobility, Symptoms.
 - **Recorded Activity** — collapsible, with a summary in its header.
+- **Challenge strip** — when a Challenge is running, one quiet line above Morning
+  Prime: "Autumn Reset · Day 13 of 76" with a hairline of progress.
+- **Steps** — a line in Today's Health & fitness summary: "Steps 8,420 · 7-day avg
+  9,105", or "Log steps ›". Logged from Quick Log (Nutrition, Weight, Steps, Daily
+  photo, Padel, Cardio, HIIT, Strength, Mobility, Symptoms).
 - **Catch-up** — the recovery layer for whatever the evening did not close.
   Reads the day's real records *and* its Wind-down state: anything already
   resolved is reported as a ✓ line instead of asked again, and a day closed in
@@ -180,9 +185,10 @@ The three reflective tabs have one job each: **Focus** — where am I going?
   Progress holds for that visit; any other way in shows everything.
 - **Progress** (`view-stats`) — **Towards your focus** (each priority that names
   its evidence, with a factual signal), then **Last 7 days** (rolling, with its
-  date range), **Training frequency** (one Week / Month / Quarter / Year selector;
+  date range, now a Training / Weight / Nutrition evidence matrix), **Training frequency** (one Week / Month / Quarter / Year selector;
   training days then sessions per type, each with its target beside it for Week and
-  Month, counts only for Quarter and Year), the health &
+  Month, counts only for Quarter and Year), **Challenge zone** and **Steps** tiles side
+  by side, then the health &
   training stat cards and their detail sheets. A detail sheet names the priority
   it supports and links to those days in Calendar.
 - **Focus** — player card (XP/level/tier/streak/avatar), priorities (optionally
@@ -393,6 +399,37 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-04 — Evidence matrix, weight trend, Steps and a Challenge Zone
+**Decision:** Progress's **Last 7 days** is a rolling Training / Weight / Nutrition
+evidence matrix (today and the six days before, never the week start). Training
+cells show each recorded modality's colour; several on a day share the cell in
+equal bands (none is picked). Planned training never fills a cell. Weight cells
+mean "logged", never good or bad. Nutrition cells use the day's own rating — on
+track, neutral, off track (a subdued hatch) — or a quiet dot when logged but not
+rated. Every cell has an accessible label and opens the day, the weigh-in or the
+nutrition record. **Weight detail** plots actual weigh-ins and the rolling 7-day
+average (the mean of whatever weigh-ins fall in that date and the six before; no
+interpolation), with Week/Month/Quarter/Year as rolling 7/30/91/365-day windows.
+The **weekly check-in** is the 7-day average now minus the 7-day average 7 days ago.
+One primary weight per date: a dedicated Weight log wins over Strength bodyweight;
+within a kind the most recently logged wins. **Steps** is a new daily evidence type
+in `ledger_sessions` (`{ type: 'steps', date, steps, loggedAt, updatedAt }`), one
+canonical value per date (the most recently logged); relogging a date edits it,
+totals are never summed, averages cover logged days only, and Steps never counts
+as training. **Challenge Zone** is a lightweight `ledger_challenges` record
+(`id, title, startDate, endDate, status active|completed|cancelled, createdAt,
+completedAt, notes`); day numbers are inclusive calendar days (start = Day 1),
+"Starts in N days" before and "Ended" after. It appears in Progress, on Today
+(above Morning Prime) and on Plan weeks/Day Plans that overlap it. It is a time
+container only — no rules or compliance yet.
+**Why:** the stacked bars were ambiguous; daily weight is noisy; steps and
+time-bound challenges were missing.
+**Implications:** Handoff adds "Challenge: <name> · Day X of Y" under the date and
+"Steps: N" in Health & fitness. Steps is a Focus evidence type and a Calendar
+filter. Challenge creation lives in Progress, not Settings. Progress sections are
+id-wrapped blocks (`pgFocus`, `pgLast7`, `pgFreq`, `pgPair`, `pgCards`); the desktop
+grid no longer depends on heading order.
 
 ### 2026-10-04 — Training days and modality frequency are different measures
 **Decision:** Ledger counts two things. A **training day** is a unique date with at
@@ -1119,6 +1156,10 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-04) — Progress/Health expansion: Last 7 days T/W/N matrix, Weight detail
+  (actual + 7-day average, periods, summary strip, weekly check-in, compact list),
+  manual daily Steps (Quick Log, Today, Calendar, Progress, detail, Focus, Handoff),
+  Challenge Zone (Progress, Today, Plan, Handoff).
 - (2026-10-04) — Training days vs modality frequency: per-activity weekly/monthly
   session targets, Calendar summary by filter, Progress Training frequency with a
   Week/Month/Quarter/Year selector, Settings By activity.

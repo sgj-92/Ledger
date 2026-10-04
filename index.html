@@ -82,6 +82,8 @@
     --yoga-soft: rgba(150,132,154,0.14);
     --weight: #7d93a6;
     --weight-soft: rgba(125,147,166,0.14);
+    --steps: #5ea3cf;
+    --steps-soft: rgba(94,163,207,0.14);
     --photo: #bb7b83;
     --photo-soft: rgba(187,123,131,0.14);
     --nutrition: #8da668;
@@ -846,6 +848,7 @@
   .dot.cardio { background: var(--cardio); }
   .dot.yoga { background: var(--yoga); }
   .dot.weight { background: var(--weight); }
+  .dot.steps { background: var(--steps); }
   .dot.photo { background: var(--photo); }
   .dot.nutrition { background: var(--nutrition); }
   .dot.gluten { background: var(--gluten); }
@@ -1179,6 +1182,156 @@
   .stat-num.met .lbl-status { color: var(--gold); }
   .cal-summary { flex-wrap: wrap; row-gap: 6px; }
   .cal-summary .cal-target-set { flex-basis: 100%; padding-top: 0; font-size: 13px; }
+
+  /* ---- Progress · Last 7 days: an evidence matrix, read in a glance ---- */
+  #weekBar.l7 { margin-bottom: var(--sp-3); }
+  #pgLast7 > h2.section-title, #pgFreq > h2.section-title, #pgCards > h2.section-title { margin-top: var(--sp-7); }
+  .l7-grid { display: grid; grid-template-columns: auto repeat(7, minmax(0, 1fr)); gap: 7px 6px; align-items: center; }
+  .l7-dow { text-align: center; font-size: 10.5px; font-weight: 500; color: var(--text-3); letter-spacing: 0.06em; padding-bottom: 1px; }
+  .l7-dow.today { color: var(--gold); font-weight: 600; }
+  .l7-label { display: flex; align-items: center; gap: 8px; padding-right: 8px; white-space: nowrap; }
+  .l7-ic { display: none; width: 16px; height: 16px; color: var(--text-3); }
+  .l7-ic svg { width: 100%; height: 100%; display: block; }
+  .l7-letter { width: 10px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; color: var(--text-3); }
+  .l7-name { font-size: 12.5px; color: var(--text-2); }
+  .l7-cell {
+    display: block; width: 100%; max-width: 36px; aspect-ratio: 1; justify-self: center; padding: 0;
+    border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer;
+  }
+  .l7-cell:active { transform: scale(0.94); }
+  .l7-cell.on, .l7-cell.nut-on, .l7-cell.nut-neutral { border-color: transparent; }
+  .l7-cell.weight { background: var(--weight); }
+  .l7-cell.nut-on, .l7-k.nut-on { background: var(--nutrition); }
+  .l7-cell.nut-neutral, .l7-k.nut-neutral { background: rgba(var(--day-neutral-rgb), 0.55); }
+  /* off track: a subdued hatch — present, and clearly not the green day */
+  .l7-cell.nut-off, .l7-k.nut-off {
+    background: repeating-linear-gradient(135deg, rgba(var(--day-bad-rgb), 0.6) 0 3px, rgba(var(--day-bad-rgb), 0.18) 3px 6px);
+    border-color: rgba(var(--day-bad-rgb), 0.55);
+  }
+  /* logged, not yet rated: a quiet dot in an outlined cell */
+  .l7-cell.nut-partial, .l7-k.nut-partial {
+    background: radial-gradient(circle, var(--nutrition) 0 22%, transparent 24%), var(--surface);
+    border: 1px dashed var(--nutrition);
+  }
+  .l7-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 12px 0 0; font-size: 11px; color: var(--text-3); }
+  .l7-key span { display: inline-flex; align-items: center; gap: 6px; }
+  .l7-key-lbl { color: var(--text-3); font-weight: 500; }
+  .l7-k { display: inline-block; width: 10px; height: 10px; border-radius: 3px; border: 1px solid transparent; }
+  @media (min-width: 768px) { .l7-ic { display: block; } }
+
+  /* ---- Progress · Challenge zone and Steps: two compact tiles side by side ---- */
+  .pg-pair { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 10px; margin: var(--sp-5) 0 var(--sp-2); }
+  .pg-tile {
+    display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0; text-align: left;
+    padding: 14px 14px 13px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface);
+    font-family: var(--sans); color: var(--text); cursor: pointer;
+  }
+  .pg-tile:active { background: var(--surface-2); }
+  html[data-theme="light"] .pg-tile { box-shadow: var(--shadow-card); }
+  .pg-tile-k { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-3); }
+  .pg-tile.empty { justify-content: space-between; }
+  .pg-tile-empty { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 500; color: var(--gold); }
+  .pg-tile-empty svg { width: 13px; height: 13px; }
+  .cz-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .cz-ic, .st-ic {
+    flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line-2);
+    display: flex; align-items: center; justify-content: center; color: var(--gold);
+  }
+  .cz-ic svg, .st-ic svg { width: 17px; height: 17px; display: block; }
+  .cz-body { display: flex; flex-direction: column; min-width: 0; }
+  .cz-title { font-family: var(--serif); font-size: 17px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cz-range { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .cz-day { font-size: 13px; color: var(--text-2); }
+  .cz-day strong { font-family: var(--serif); font-size: 24px; font-weight: 400; color: var(--text); margin: 0 1px; }
+  .cz-bar-row { display: flex; align-items: center; gap: 8px; }
+  .cz-bar { position: relative; flex: 1; height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; display: block; }
+  .cz-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--gold); }
+  .cz-pct { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .st-row { display: flex; align-items: center; gap: 10px; }
+  .st-body { display: flex; flex-direction: column; }
+  .st-lbl { font-size: 11.5px; color: var(--text-3); }
+  .st-val { font-family: var(--serif); font-size: 24px; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; }
+  .st-val.small { font-size: 19px; color: var(--text-2); }
+  .st-rule { height: 1px; background: var(--line); }
+
+  /* ---- Today · the challenge, one line with a hairline of progress ---- */
+  .cz-strip {
+    display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 var(--sp-3); padding: 9px 4px 9px 2px;
+    border: none; background: none; text-align: left; font-family: var(--sans); color: var(--text); cursor: pointer;
+  }
+  .cz-strip:active { opacity: 0.7; }
+  .cz-strip-ic { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-2); display: flex; align-items: center; justify-content: center; color: var(--gold); }
+  .cz-strip-ic svg { width: 15px; height: 15px; display: block; }
+  .cz-strip-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .cz-strip-line { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cz-strip-title { font-weight: 600; }
+  .cz-strip-day { color: var(--text-2); }
+  .cz-strip .cz-bar { height: 3px; flex: none; width: 100%; }
+  .cz-strip-chev { flex-shrink: 0; width: 15px; height: 15px; color: var(--text-3); display: flex; }
+  .cz-strip-chev svg { width: 100%; height: 100%; }
+  /* Plan and the Day Plan: the challenge in context, quietly */
+  .pw-challenge { margin: calc(-1 * var(--sp-2)) 0 var(--sp-3); padding: 0 6px; font-size: 12px; color: var(--text-3); }
+  .pw-challenge[hidden], .dp-challenge[hidden] { display: none; }
+  .dp-challenge { display: block; margin-top: 4px; font-size: 12px; color: var(--text-3); }
+  /* challenge sheet */
+  .cz-derived { margin: -6px 0 var(--sp-4); font-size: 12px; color: var(--text-3); }
+  .cz-derived.warn { color: var(--danger); }
+  .cz-detail { margin: 0 0 var(--sp-5); display: flex; flex-direction: column; gap: 10px; }
+  .cz-detail-day { font-size: 14px; color: var(--text-2); }
+  .cz-detail-day strong { font-family: var(--serif); font-size: 30px; font-weight: 400; color: var(--text); }
+  .cz-actions { display: flex; justify-content: space-between; margin-top: var(--sp-3); }
+  .cz-cancel { color: var(--danger); }
+
+  /* Today · steps in the Health & fitness summary */
+  .hf-line.hf-steps { display: flex; align-items: center; gap: 10px; }
+  .hf-steps-k { color: var(--text-3); min-width: 44px; }
+  .hf-steps-log { display: inline-flex; align-items: center; gap: 3px; color: var(--gold); font-weight: 500; }
+  .hf-steps-log svg { width: 12px; height: 12px; }
+  .steps-note { margin: -4px 0 var(--sp-3); min-height: 16px; font-size: 12px; color: var(--text-3); }
+
+  /* ---- Weight and Steps detail ---- */
+  .freq-period.detail-period { margin-bottom: var(--sp-4); width: 100%; }
+  .freq-period.detail-period button { flex: 1; }
+  .detail-card { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px 12px 12px; margin-bottom: var(--sp-4); background: var(--surface); }
+  html[data-theme="light"] .detail-card { box-shadow: var(--shadow-card); }
+  .dt-kicker { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-3); padding: 0 4px; }
+  .dt-headline { font-family: var(--serif); font-size: 18px; color: var(--text-2); margin: 6px 4px 8px; }
+  .dt-headline strong { font-size: 24px; font-weight: 400; color: var(--text); }
+  .dt-empty { padding: 18px 4px; font-size: 13px; color: var(--text-3); }
+  .detail-chart { width: 100%; height: auto; display: block; overflow: visible; }
+  .detail-chart .ch-grid { stroke: var(--line); stroke-width: 1; }
+  .detail-chart .ch-y, .detail-chart .ch-x, .detail-chart .ch-unit { fill: var(--text-3); font-family: var(--sans); font-size: 9.5px; }
+  .detail-chart .ch-actual { fill: none; stroke: var(--weight); stroke-width: 1.6; stroke-linejoin: round; opacity: 0.85; }
+  .detail-chart .ch-actual-dot { fill: var(--weight); }
+  .detail-chart .ch-avg { fill: none; stroke: var(--gold); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+  .detail-chart .ch-avg-dot { fill: var(--gold); }
+  .detail-chart .ch-steps { fill: var(--steps); }
+  .detail-chart .ch-empty { fill: var(--line-2); }
+  .ch-legend { display: flex; justify-content: center; gap: 18px; margin-top: 6px; font-size: 11.5px; color: var(--text-2); }
+  .ch-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .ch-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .ch-legend .lg-actual { background: var(--weight); }
+  .ch-legend .lg-avg { background: var(--gold); }
+  .dt-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: var(--r-lg); margin-bottom: var(--sp-4); }
+  .dt-m { display: flex; flex-direction: column; gap: 4px; padding: 12px 11px; min-width: 0; }
+  .dt-m + .dt-m { border-left: 1px solid var(--line); }
+  .dt-m-k { font-size: 9.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-3); }
+  .dt-m-v { font-family: var(--serif); font-size: 22px; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dt-m-v small { font-family: var(--sans); font-size: 12px; color: var(--text-3); }
+  .dt-m-s { font-size: 11px; line-height: 1.35; color: var(--text-3); }
+  .dt-list-head { display: flex; align-items: center; justify-content: space-between; margin: var(--sp-5) 2px var(--sp-2);
+    font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-3); }
+  .dt-viewall { background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); padding: 6px 0; }
+  .dt-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 2px; background: none; border: none;
+    border-bottom: 1px solid var(--line); font-family: var(--sans); color: var(--text); text-align: left; cursor: pointer; }
+  .dt-row:last-child { border-bottom: none; }
+  .dt-row:active { background: var(--surface-2); }
+  .dt-row .dot { width: 7px; height: 7px; flex-shrink: 0; }
+  .dt-row-date { flex: 1; font-size: 14px; }
+  .dt-row-date small { font-size: 12px; color: var(--text-3); margin-left: 4px; }
+  .dt-row-src { font-size: 11px; color: var(--text-3); }
+  .dt-row-val { font-family: var(--serif); font-size: 17px; font-variant-numeric: tabular-nums; }
+  .dt-row svg { width: 13px; height: 13px; color: var(--text-3); flex-shrink: 0; }
 
   /* ---- Progress · Training frequency: one period at a time ---- */
   .freq-period {
@@ -1959,6 +2112,8 @@
     --yoga-soft: rgba(111,92,116,0.13);
     --weight: #566e80;
     --weight-soft: rgba(86,110,128,0.13);
+    --steps: #2f6f99;
+    --steps-soft: rgba(47,111,153,0.13);
     --photo: #96545c;
     --photo-soft: rgba(150,84,92,0.13);
     --nutrition: #5f7840;
@@ -3445,7 +3600,7 @@
     .flow-context { display: block; position: sticky; top: 18px; border-left: 1px solid var(--line); padding-left: 28px; }
     .flow-head { margin-top: var(--sp-2); }
     .today-top { display: block; grid-area: top; margin-bottom: var(--sp-5); }
-    .today-top:has(> #catchUpBanner:empty):has(> #morningPrime:empty) { display: none; }
+    .today-top:has(> #catchUpBanner:empty):has(> #morningPrime:empty):has(> #challengeStrip:empty) { display: none; }
     .today-main { display: block; grid-area: main; min-width: 0; }
     .today-side { display: block; grid-area: side; min-width: 0; }
     .today-extra { display: block; grid-area: extra; min-width: 0; }
@@ -3571,16 +3726,17 @@
     .comms-pane .commitment-item { padding: 9px 13px; }
     .comms-intro { margin-top: var(--sp-1); }
 
-    /* ---- Progress: evidence beside trend, then the cards in a grid ---- */
+    /* ---- Progress: evidence beside the last seven days; frequency beside challenge and steps ---- */
     #view-stats.active {
       display: grid; column-gap: 36px; align-items: start;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
-    #view-stats > h2:nth-of-type(1) { grid-column: 1; grid-row: 1; margin-top: var(--sp-2); }
-    #focusEvidence { grid-column: 1; grid-row: 2; }
-    #view-stats > h2:nth-of-type(2) { grid-column: 2; grid-row: 1; margin-top: var(--sp-2); }
-    #weekBar { grid-column: 2; grid-row: 2; margin-bottom: 0; }
-    #view-stats > h2:nth-of-type(3) { grid-column: 1 / -1; grid-row: 3; }
+    #pgFocus { grid-column: 1; grid-row: 1; }
+    #pgLast7 { grid-column: 2; grid-row: 1; }
+    #pgFreq { grid-column: 1; grid-row: 2; }
+    #pgPair { grid-column: 2; grid-row: 2; margin-top: var(--sp-7); }
+    #pgCards { grid-column: 1 / -1; grid-row: 3; }
+    #pgFocus > h2.section-title, #pgLast7 > h2.section-title { margin-top: var(--sp-2); }
     #statsCards {
       grid-column: 1 / -1; grid-row: 4;
       display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px;
@@ -3597,6 +3753,7 @@
     .weekbar-bars { height: 150px; gap: 12px; }
     .weekbar-stack { max-width: 40px; }
     .weekbar-seg { height: auto; flex: 1 1 0; }
+    .l7-cell { max-width: 40px; }
 
     /* ---- Focus: direction on the left; targets, settings and build on the right ---- */
     #view-focus.active {
@@ -3676,6 +3833,7 @@
     <!-- The four wrappers below only arrange Today into columns on wider screens.
          On a phone they are display: contents, so the day reads exactly as before. -->
     <div class="today-top">
+    <div id="challengeStrip"></div>
     <div id="catchUpBanner"></div>
 
     <div id="morningPrime"></div>
@@ -3743,6 +3901,10 @@
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c0-2.5 1.5-4 3.5-4s3.5 1.5 3.5 4"/><line x1="12" y1="7" x2="12" y2="8.5"/></svg></span>
         <span class="ql-label">Weight</span>
       </button>
+      <button class="quicklog-card steps" data-type="steps">
+        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5c1.7 0 2.6 1.9 2.4 4.1-.2 1.9-.9 3-1.1 4.3-.1.8-.7 1.3-1.5 1.3s-1.5-.5-1.6-1.4c-.2-1.3-.8-2.4-.8-4.2 0-2.3 1-4.1 2.6-4.1z"/><path d="M6.6 15.8l3.2.5-.3 1.9a1.6 1.6 0 0 1-3.2-.5z"/><path d="M16 7.5c1.6 0 2.6 1.8 2.6 4.1 0 1.8-.6 2.9-.8 4.2-.1.9-.8 1.4-1.6 1.4s-1.4-.5-1.5-1.3c-.2-1.3-.9-2.4-1.1-4.3-.2-2.2.7-4.1 2.4-4.1z"/><path d="M14.2 19.8l3.2-.5.3 1.9a1.6 1.6 0 0 1-3.2.5z"/></svg></span>
+        <span class="ql-label">Steps</span>
+      </button>
       <button class="quicklog-card photo" data-type="photo">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.3"/></svg></span>
         <span class="ql-label">Daily photo</span>
@@ -3763,13 +3925,13 @@
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><line x1="5" y1="12" x2="19" y2="12"/><rect x="6.5" y="6.5" width="3" height="11" rx="1"/><rect x="14.5" y="6.5" width="3" height="11" rx="1"/></svg></span>
         <span class="ql-label">Strength</span>
       </button>
-      <button class="quicklog-card symptom" data-type="symptom">
-        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.6 14.6c.9-.9 1.9-1.3 3.4-1.3s2.5.4 3.4 1.3"/><line x1="9" y1="9.2" x2="9.6" y2="9.2"/><line x1="14.4" y1="9.2" x2="15" y2="9.2"/></svg></span>
-        <span class="ql-label">Symptoms</span>
-      </button>
       <button class="quicklog-card yoga" data-type="yoga">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.8" fill="currentColor" stroke="none"/><path d="M12 8v6"/><path d="M12 9c-2 2-3 3-6 3"/><path d="M12 9c2 2 3 3 6 3"/><path d="M12 14c-1.5 2-2 3-2 5.5"/><path d="M12 14c1.5 2 2 3 2 5.5"/></svg></span>
         <span class="ql-label">Mobility</span>
+      </button>
+      <button class="quicklog-card symptom span-2" data-type="symptom">
+        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.6 14.6c.9-.9 1.9-1.3 3.4-1.3s2.5.4 3.4 1.3"/><line x1="9" y1="9.2" x2="9.6" y2="9.2"/><line x1="14.4" y1="9.2" x2="15" y2="9.2"/></svg></span>
+        <span class="ql-label">Symptoms</span>
       </button>
     </div>
 
@@ -3803,23 +3965,37 @@
   </section>
 
   <section class="view" id="view-stats">
-    <h2 class="section-title">Towards your focus</h2>
-    <div id="focusEvidence"></div>
-
-    <h2 class="section-title">Last 7 days <span class="section-title-aside" id="weekBarRange"></span></h2>
-    <div class="weekbar" id="weekBar"></div>
-
-    <h2 class="section-title">Training frequency <span class="section-title-aside" id="freqRange"></span></h2>
-    <div class="freq-period" id="freqPeriod" role="tablist" aria-label="Period">
-      <button type="button" role="tab" data-freq-period="week">Week</button>
-      <button type="button" role="tab" data-freq-period="month">Month</button>
-      <button type="button" role="tab" data-freq-period="quarter">Quarter</button>
-      <button type="button" role="tab" data-freq-period="year">Year</button>
+    <!-- wrappers carry the order and the desktop grid; nothing depends on h2 position -->
+    <div class="pg-block" id="pgFocus">
+      <h2 class="section-title">Towards your focus</h2>
+      <div id="focusEvidence"></div>
     </div>
-    <div class="freq-list" id="freqList"></div>
 
-    <h2 class="section-title">Health &amp; training</h2>
-    <div id="statsCards"></div>
+    <div class="pg-block" id="pgLast7">
+      <h2 class="section-title">Last 7 days <span class="section-title-aside" id="weekBarRange"></span></h2>
+      <div class="l7" id="weekBar" role="group" aria-label="Last 7 days: training, weight and nutrition"></div>
+    </div>
+
+    <div class="pg-block" id="pgFreq">
+      <h2 class="section-title">Training frequency <span class="section-title-aside" id="freqRange"></span></h2>
+      <div class="freq-period" id="freqPeriod" role="tablist" aria-label="Period">
+        <button type="button" role="tab" data-freq-period="week">Week</button>
+        <button type="button" role="tab" data-freq-period="month">Month</button>
+        <button type="button" role="tab" data-freq-period="quarter">Quarter</button>
+        <button type="button" role="tab" data-freq-period="year">Year</button>
+      </div>
+      <div class="freq-list" id="freqList"></div>
+    </div>
+
+    <div class="pg-pair" id="pgPair">
+      <button type="button" class="pg-tile" id="challengeZone"></button>
+      <button type="button" class="pg-tile" id="stepsTile"></button>
+    </div>
+
+    <div class="pg-block" id="pgCards">
+      <h2 class="section-title">Health &amp; training</h2>
+      <div id="statsCards"></div>
+    </div>
   </section>
 
   <section class="view" id="view-focus">
@@ -3887,6 +4063,7 @@
       <button type="button" class="pw-step" data-role="pw-next" aria-label="Next week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9.5 6 15.5 12 9.5 18"/></svg></button>
       <button type="button" class="pw-today" data-role="pw-today" hidden>This week</button>
     </div>
+    <p class="pw-challenge" id="planChallengeLine" hidden></p>
     <div id="planWeekList"></div>
 
     <div class="panel meal-ideas-panel">
@@ -3955,6 +4132,7 @@
   var mealIdeas = [];
   var priorities = [];
   var matters = [];         // ledger_matters — the wider things that are happening
+  var challenges = [];      // ledger_challenges — named date ranges (Challenge Zone); no rules yet
   var conversations = [];   // ledger_conversations — who is involved, and who has the ball
   var commitments = [];
   var dayStatuses = [];
@@ -4004,7 +4182,7 @@
   var viewedDate = todayStr(); // the date the Today view is currently showing
   var planSelectedDate = null; // last day-row interacted with in Plan (for the global FAB's date target)
 
-  var TYPE_LABEL = { padel: 'Padel', resistance: 'Strength', cardio: 'Cardio', hiit: 'HIIT', yoga: 'Mobility', weight: 'Weight', photo: 'Daily photo', nutrition: 'Nutrition', gluten: 'Gluten exposure', symptom: 'Symptoms' };
+  var TYPE_LABEL = { padel: 'Padel', resistance: 'Strength', cardio: 'Cardio', hiit: 'HIIT', yoga: 'Mobility', weight: 'Weight', steps: 'Steps', photo: 'Daily photo', nutrition: 'Nutrition', gluten: 'Gluten exposure', symptom: 'Symptoms' };
   // shared icon set for training types — reused by the Plan selector, the Health & fitness rows and Quick Log cards
   var TRAINING_ICON_SVG = {
     padel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="10" height="13" rx="5"/><line x1="10" y1="15.5" x2="10" y2="20"/><line x1="7" y1="21.5" x2="13" y2="21.5"/><circle cx="18.5" cy="18.5" r="2"/></svg>',
@@ -4051,6 +4229,7 @@
   var SYMPTOM_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.6 14.6c.9-.9 1.9-1.3 3.4-1.3s2.5.4 3.4 1.3"/><line x1="9" y1="9.2" x2="9.6" y2="9.2"/><line x1="14.4" y1="9.2" x2="15" y2="9.2"/></svg>';
   var SESSION_ICON_SVG = Object.assign({}, TRAINING_ICON_SVG, {
     symptom: SYMPTOM_ICON_SVG,
+    steps: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5c1.7 0 2.6 1.9 2.4 4.1-.2 1.9-.9 3-1.1 4.3-.1.8-.7 1.3-1.5 1.3s-1.5-.5-1.6-1.4c-.2-1.3-.8-2.4-.8-4.2 0-2.3 1-4.1 2.6-4.1z"/><path d="M6.6 15.8l3.2.5-.3 1.9a1.6 1.6 0 0 1-3.2-.5z"/><path d="M16 7.5c1.6 0 2.6 1.8 2.6 4.1 0 1.8-.6 2.9-.8 4.2-.1.9-.8 1.4-1.6 1.4s-1.4-.5-1.5-1.3c-.2-1.3-.9-2.4-1.1-4.3-.2-2.2.7-4.1 2.4-4.1z"/><path d="M14.2 19.8l3.2-.5.3 1.9a1.6 1.6 0 0 1-3.2.5z"/></svg>',
     nutrition: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 4.2c0 7.8-4.9 12.3-11.2 12.3H5.8C5.8 8.7 10.7 4.2 17 4.2h2.5z"/><path d="M5 20c2.2-4.8 5.4-7.7 9.6-9.6"/></svg>',
     weight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c0-2.5 1.5-4 3.5-4s3.5 1.5 3.5 4"/><line x1="12" y1="7" x2="12" y2="8.5"/></svg>',
     photo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.3"/></svg>',
@@ -4194,6 +4373,97 @@
   }
   function weekRangeLabel(d, long){ return dateRangeLabel(weekStartFor(d), weekEndFor(d), long); }
   function rollingRangeLabel(n){ var days = rollingDays(n); return dateRangeLabel(days[0], days[n - 1]); }
+  // whole calendar days from a to b — counted on dates, never on elapsed milliseconds,
+  // so a clock change can't make a day 23 or 25 hours long
+  function daysBetween(a, b){
+    var x = toLocalDate(a), y = toLocalDate(b);
+    return Math.round((Date.UTC(y.getFullYear(), y.getMonth(), y.getDate()) - Date.UTC(x.getFullYear(), x.getMonth(), x.getDate())) / 86400000);
+  }
+
+  // ============ Weight, Steps and Challenges: evidence helpers ============
+  // WEIGHT — one primary value per date. A dedicated Weight log wins over the bodyweight
+  // noted in a Strength session; among several of the same kind, the most recently
+  // logged wins. So a weight entered in both places is one point, never two.
+  function sessionStamp(x){ return x.updatedAt || x.loggedAt || x.createdAt || ''; }
+  function dailyWeights(){
+    var byDate = {};
+    sessions.forEach(function(x){
+      var kg = x.type === 'weight' ? parseFloat(x.weightKg) : (x.type === 'resistance' ? parseFloat(x.bodyweight) : NaN);
+      if (!(kg > 0) || !x.date) return;
+      var rank = x.type === 'weight' ? 2 : 1, cur = byDate[x.date];
+      if (!cur || rank > cur.rank || (rank === cur.rank && sessionStamp(x) > sessionStamp(cur.session)))
+        byDate[x.date] = { date: x.date, kg: kg, rank: rank, session: x };
+    });
+    return Object.keys(byDate).sort().map(function(k){ return byDate[k]; });
+  }
+  // The rolling 7-day average on a date: the mean of the weigh-ins that exist in that date
+  // and the six before it. However many there are — one is enough — and nothing is
+  // interpolated; with none in the window there is no average for that date.
+  function weightAvgOn(dateStr, daily){
+    var from = fmtDate(addDays(dateStr, -6));
+    var inWin = daily.filter(function(w){ return w.date >= from && w.date <= dateStr; });
+    if (!inWin.length) return null;
+    return inWin.reduce(function(a, w){ return a + w.kg; }, 0) / inWin.length;
+  }
+  // Weekly check-in: today's rolling average against the rolling average 7 days earlier —
+  // the calm signal; a day-to-day difference is mostly water.
+  function weightCheckIn(daily){
+    var t = todayStr(), now = weightAvgOn(t, daily), before = weightAvgOn(fmtDate(addDays(t, -7)), daily);
+    return (now == null || before == null) ? null : { now: now, before: before, change: now - before };
+  }
+
+  // STEPS — one daily total per date (type 'steps', stored with the other sessions). If a
+  // date ever holds more than one record, the most recently logged is the day's value;
+  // daily totals are never added together.
+  function dailyStepsMap(){
+    var byDate = {};
+    sessions.forEach(function(x){
+      if (x.type !== 'steps' || !x.date || !(parseInt(x.steps, 10) >= 0)) return;
+      if (!byDate[x.date] || sessionStamp(x) > sessionStamp(byDate[x.date])) byDate[x.date] = x;
+    });
+    return byDate;
+  }
+  function stepsRecordFor(dateStr){ return dailyStepsMap()[dateStr] || null; }
+  // the 7-day average is over the days that were logged in the rolling window — an
+  // unlogged day is unknown, not zero
+  function stepsAverage(endDateStr, n){
+    var map = dailyStepsMap(), days = rollingDays(n || 7, endDateStr ? toLocalDate(endDateStr) : new Date());
+    var vals = days.map(function(d){ var r = map[fmtDate(d)]; return r ? parseInt(r.steps, 10) : null; })
+      .filter(function(v){ return v != null; });
+    return vals.length ? Math.round(vals.reduce(function(a, v){ return a + v; }, 0) / vals.length) : null;
+  }
+  function fmtSteps(n){ return n == null ? '\u2014' : Number(n).toLocaleString('en-GB'); }
+
+  // CHALLENGE — a named date range. Day numbers are inclusive calendar days: the start
+  // date is Day 1, the end date is the last day. It defines no rules and judges nothing.
+  function challengeTotalDays(c){ return daysBetween(c.startDate, c.endDate) + 1; }
+  function challengeDayOn(c, dateStr){ return daysBetween(c.startDate, dateStr) + 1; }
+  function challengeState(c, dateStr){
+    var day = challengeDayOn(c, dateStr || todayStr()), total = challengeTotalDays(c);
+    if (day < 1) return { phase: 'before', day: day, total: total, pct: 0, label: 'Starts in ' + (1 - day) + (1 - day === 1 ? ' day' : ' days') };
+    if (day > total) return { phase: 'after', day: total, total: total, pct: 100, label: 'Ended' };
+    return { phase: 'during', day: day, total: total, pct: Math.round(day / total * 100), label: 'Day ' + day + ' of ' + total };
+  }
+  // the one challenge shown: active, and running today — else the next to start, else the
+  // most recently ended that is still marked active
+  function activeChallenge(){
+    var t = todayStr();
+    var act = (challenges || []).filter(function(c){ return c.status === 'active' && c.startDate && c.endDate; });
+    var running = act.filter(function(c){ return c.startDate <= t && c.endDate >= t; });
+    if (running.length) return running.sort(function(a, b){ return a.startDate < b.startDate ? -1 : 1; })[0];
+    var soon = act.filter(function(c){ return c.startDate > t; }).sort(function(a, b){ return a.startDate < b.startDate ? -1 : 1; });
+    if (soon.length) return soon[0];
+    var past = act.filter(function(c){ return c.endDate < t; }).sort(function(a, b){ return a.endDate > b.endDate ? -1 : 1; });
+    return past[0] || null;
+  }
+  // a challenge's days that fall in [a, b], as "Days 13–19 of 75" — or null if none do
+  function challengeSpanLabel(c, a, b){
+    var s0 = a > c.startDate ? a : c.startDate, e0 = b < c.endDate ? b : c.endDate;
+    if (s0 > e0) return null;
+    var d1 = challengeDayOn(c, s0), d2 = challengeDayOn(c, e0), tot = challengeTotalDays(c);
+    return d1 === d2 ? 'Day ' + d1 + ' of ' + tot : 'Days ' + d1 + '\u2013' + d2 + ' of ' + tot;
+  }
+
   // "This week", "Next week", "Last week", "In 3 weeks", "3 weeks ago"
   function relativeWeekLabel(start){
     var diff = Math.round((toLocalDate(start) - weekStartFor(new Date())) / (7 * 86400000));
@@ -4349,6 +4619,10 @@
           commsChanged();
         }, function(err){ console.error(coll + ' snapshot error', err); });
       });
+      dbRef.collection('ledger_challenges').onSnapshot(function(snap){
+        challenges = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
+        challengesChanged();
+      }, function(err){ console.error('challenges snapshot error', err); });
       dbRef.collection('ledger_day_status')
         .onSnapshot(function(snap){
           dayStatuses = snap.docs.map(function(d){ var data = d.data() || {}; data.date = d.id; return data; });
@@ -4371,6 +4645,7 @@
     localLoadCommitments();
     localLoadDayStatuses();
     localLoadComms();
+    localLoadChallenges();
     presetsLoaded = true;
     prioritiesLoaded = true;
     applyWeekPreference();
@@ -5229,6 +5504,7 @@
 
   // ---------- log view ----------
   function sessionDetailText(s){
+    if (s.type === 'steps') return fmtSteps(s.steps) + ' steps';
     if (s.type === 'padel'){
       var parts = [];
       if (s.padelType && s.padelType !== 'match') parts.push(s.padelType.charAt(0).toUpperCase() + s.padelType.slice(1));
@@ -6762,6 +7038,25 @@
       localStorage.setItem('ledger_conversations_fallback', JSON.stringify(conversations));
     } catch(e){}
   }
+  // ---- Challenges: saved like plans — the change is local at once, then written ----
+  function localSaveChallenges(){ try { localStorage.setItem('ledger_challenges_fallback', JSON.stringify(challenges)); } catch(e){} }
+  function localLoadChallenges(){ try { challenges = JSON.parse(localStorage.getItem('ledger_challenges_fallback') || '[]') || []; } catch(e){} }
+  function challengesChanged(){
+    renderLogView();
+    if (currentView === 'stats') renderStats();
+    if (currentView === 'plan') renderPlan();
+    renderHeader();
+  }
+  async function saveChallenge(c){
+    var i = challenges.findIndex(function(x){ return x.id === c.id; });
+    if (i > -1) challenges[i] = c; else challenges.push(c);
+    localSaveChallenges();
+    challengesChanged();
+    if (dbReady && dbRef){
+      try { var copy = Object.assign({}, c); delete copy.id; await dbRef.collection('ledger_challenges').doc(c.id).set(copy); }
+      catch(e){ console.error('challenge save failed', e); }
+    }
+  }
   function localLoadComms(){
     try {
       matters = JSON.parse(localStorage.getItem('ledger_matters_fallback') || '[]') || [];
@@ -8140,6 +8435,10 @@
     // 1. Date
     L.push('LEDGER DAILY HANDOFF');
     L.push('Date: ' + d.getDate() + ' ' + d.toLocaleDateString(undefined, { month: 'long' }) + ' ' + d.getFullYear());
+    // the time container the day sits in, if any — day numbers only, no percentages
+    var hoChallenge = activeChallenge();
+    if (hoChallenge && dateStr >= hoChallenge.startDate && dateStr <= hoChallenge.endDate)
+      L.push('Challenge: ' + hoChallenge.title + ' \u00b7 ' + challengeState(hoChallenge, dateStr).label);
 
     // 2. Intention
     var intention = (mp.intention || '').trim();
@@ -8205,6 +8504,8 @@
     }
     // one line, one concept: an older record holding a carb level and fasting reads as Fasting
     if (nutritionPlanValue(plan)) L.push('Nutrition Plan: ' + nutritionPlanLabel(plan));
+    var handoffSteps = stepsRecordFor(dateStr);
+    if (handoffSteps) L.push('Steps: ' + fmtSteps(handoffSteps.steps));
     L.push('');
 
     // 7. Day notes — context, not work. Claude treats these as background unless
@@ -10585,6 +10886,7 @@
   }
 
   function renderLogView(){
+    renderChallengeStrip();
     renderTodayMode();
     renderCommsSummary();
     renderMorningPrime();
@@ -10645,6 +10947,7 @@
     card.addEventListener('click', function(){
       var type = card.dataset.type;
       if (type === 'symptom'){ openSymptomSheet(null, { date: viewedDate }); return; }
+      if (type === 'steps'){ openStepsSheet(viewedDate); return; }
       var existing = type === 'nutrition' ? getNutritionForDate(viewedDate) : null;
       openSheet(type, existing, viewedDate);
     });
@@ -10775,7 +11078,7 @@
   });
 
   // ---------- calendar view ----------
-  var CAL_TYPE_ORDER = ['padel','resistance','hiit','cardio','yoga','weight','nutrition','photo'];
+  var CAL_TYPE_ORDER = ['padel','resistance','hiit','cardio','yoga','weight','nutrition','steps','photo'];
 
   // Show one kind of activity on the grid. The same records, just narrowed; 'all' is the usual view.
   var CAL_FILTERS = [
@@ -10787,7 +11090,8 @@
     { key: 'cardio', label: 'Cardio' },
     { key: 'yoga', label: 'Mobility' },
     { key: 'weight', label: 'Weight' },
-    { key: 'nutrition', label: 'Nutrition' }
+    { key: 'nutrition', label: 'Nutrition' },
+    { key: 'steps', label: 'Steps' }
   ];
   var calFilter = 'all';
   var calFilterKeep = false;
@@ -11031,6 +11335,17 @@
   // Counts only: a filtered month states what was recorded, without a consistency judgement.
   function renderCalFilterSummary(dayCount, entryCount){
     var wrap = document.getElementById('calSummary');
+    // steps: one value a day, so the numbers are days logged and their average — never a sum
+    if (calFilter === 'steps'){
+      var y = calMonth.getFullYear(), m = calMonth.getMonth(), map = dailyStepsMap();
+      var a = fmtDate(new Date(y, m, 1)), b = fmtDate(new Date(y, m + 1, 0));
+      var vals = Object.keys(map).filter(function(k){ return k >= a && k <= b; }).map(function(k){ return parseInt(map[k].steps, 10); });
+      var avg = vals.length ? Math.round(vals.reduce(function(x, v){ return x + v; }, 0) / vals.length) : null;
+      wrap.innerHTML =
+        '<div class="stat-num"><div class="val display">' + vals.length + '</div><div class="lbl">' + (vals.length === 1 ? 'Day' : 'Days') + ' with steps logged this month</div></div>' +
+        '<div class="stat-num"><div class="val display">' + fmtSteps(avg) + '</div><div class="lbl">Average on those days</div></div>';
+      return;
+    }
     var label = calFilterLabel(calFilter);
     var noun = calFilter === 'weight' ? 'Weigh-ins' : (calFilter === 'nutrition' ? 'Days logged' : 'Sessions');
     wrap.innerHTML =
@@ -11146,7 +11461,7 @@
       {type:'nutrition', label:'Nutrition'}, {type:'weight', label:'Weight'}, {type:'photo', label:'Photo'},
       {type:'padel', label:'Padel'}, {type:'cardio', label:'Cardio'},
       {type:'hiit', label:'HIIT'},
-      {type:'resistance', label:'Strength'}, {type:'yoga', label:'Mobility'}
+      {type:'resistance', label:'Strength'}, {type:'yoga', label:'Mobility'}, {type:'steps', label:'Steps'}
     ];
     typeMeta.forEach(function(m){
       var btn = document.createElement('button');
@@ -11213,6 +11528,126 @@
     });
   }
 
+  // ---- Challenge Zone: a named date range and how far through it you are ----
+  // It is a time container, not a rules engine: no compliance, nothing inferred.
+  function challengeTileHtml(c){
+    if (!c) return '<span class="pg-tile-k">Challenge zone</span>' +
+      '<span class="pg-tile-empty">Start a challenge' + UI_ICON.chevronRight + '</span>';
+    var st = challengeState(c);
+    return '<span class="pg-tile-k">Challenge zone</span>' +
+      '<span class="cz-head"><span class="cz-ic">' + UI_ICON.mountain + '</span>' +
+        '<span class="cz-body"><span class="cz-title" data-role="cz-title"></span>' +
+        '<span class="cz-range">' + dateRangeLabel(c.startDate, c.endDate) + ' ' + c.endDate.slice(0, 4) + '</span></span></span>' +
+      '<span class="cz-day">' + (st.phase === 'during'
+        ? 'Day <strong>' + st.day + '</strong> of ' + st.total
+        : st.label) + '</span>' +
+      '<span class="cz-bar-row"><span class="cz-bar"><i style="width:' + st.pct + '%"></i></span><span class="cz-pct">' + st.pct + '%</span></span>';
+  }
+  function renderChallengeZone(){
+    var el = document.getElementById('challengeZone');
+    if (!el) return;
+    var c = activeChallenge();
+    el.innerHTML = challengeTileHtml(c);
+    el.classList.toggle('empty', !c);
+    el.setAttribute('aria-label', c ? 'Challenge: ' + c.title + ', ' + challengeState(c).label : 'Start a challenge');
+    var t = el.querySelector('[data-role="cz-title"]');
+    if (t) t.textContent = c.title;
+    el.onclick = function(){ openChallengeSheet(c); };
+  }
+  // Today: one quiet line with a hairline of progress, above Morning Prime — only on a
+  // day inside the challenge (or today, just before it starts)
+  function renderChallengeStrip(){
+    var el = document.getElementById('challengeStrip');
+    if (!el) return;
+    var c = activeChallenge(), ds = viewedDate;
+    var show = c && ((ds >= c.startDate && ds <= c.endDate) || (ds === todayStr() && ds < c.startDate));
+    if (!show){ el.innerHTML = ''; return; }
+    var st = challengeState(c, ds);
+    el.innerHTML = '<button type="button" class="cz-strip" id="czStripBtn">' +
+      '<span class="cz-strip-ic">' + UI_ICON.mountain + '</span>' +
+      '<span class="cz-strip-body"><span class="cz-strip-line"><span class="cz-strip-title" data-role="cz-title"></span><span class="cz-strip-day"> · ' + st.label + '</span></span>' +
+      '<span class="cz-bar"><i style="width:' + st.pct + '%"></i></span></span>' +
+      '<span class="cz-strip-chev">' + UI_ICON.chevronRight + '</span></button>';
+    el.querySelector('[data-role="cz-title"]').textContent = c.title;
+    document.getElementById('czStripBtn').addEventListener('click', function(){ openChallengeSheet(c); });
+  }
+  // Create or edit. The dates decide the length — never typed as "75 days".
+  function openChallengeSheet(existing){
+    editingId = null;
+    var c = existing ? Object.assign({}, existing) : null;
+    var today = todayStr();
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.mountain, c ? 'Challenge' : 'Start a challenge', c ? '' : 'A named stretch of days. Ledger counts the days; you decide what they mean.', '') +
+      (c ? '<div class="cz-detail" id="czDetail"></div>' : '') +
+      '<div class="field"><label for="f_czTitle">Challenge name</label><input type="text" id="f_czTitle" maxlength="60" placeholder="e.g. Autumn Reset" autocomplete="off"></div>' +
+      '<div class="field-row">' + fieldDate('f_czStart', 'Start date', c ? c.startDate : today) + fieldDate('f_czEnd', 'End date', c ? c.endDate : fmtDate(addDays(today, 29))) + '</div>' +
+      '<p class="cz-derived" id="czDerived"></p>' +
+      '<div class="field"><label for="f_czNotes">Notes</label><textarea id="f_czNotes" rows="2" placeholder="Optional"></textarea></div>' +
+      '<button type="button" class="save-btn" id="czSaveBtn">' + (c ? 'Save changes' : 'Start challenge') + '</button>' +
+      (c ? '<div class="cz-actions"><button type="button" class="btn-link" id="czCompleteBtn">Mark completed</button>' +
+            '<button type="button" class="btn-link cz-cancel" id="czCancelBtn">Cancel challenge</button></div>' : '');
+    backdrop.classList.add('open');
+    activeSheetRefresh = null;
+    var titleEl = document.getElementById('f_czTitle'), sEl = document.getElementById('f_czStart'), eEl = document.getElementById('f_czEnd');
+    var notesEl = document.getElementById('f_czNotes'), derived = document.getElementById('czDerived');
+    titleEl.value = c ? c.title : '';
+    notesEl.value = c ? (c.notes || '') : '';
+    function draft(){ return { startDate: sEl.value, endDate: eEl.value }; }
+    function syncDerived(){
+      var dft = draft();
+      if (!dft.startDate || !dft.endDate || dft.endDate < dft.startDate){ derived.textContent = 'The end date must be on or after the start.'; derived.classList.add('warn'); return; }
+      derived.classList.remove('warn');
+      var st = challengeState(dft);
+      derived.textContent = challengeTotalDays(dft) + ' days · ' + (st.phase === 'during' ? 'today is ' + st.label : (st.phase === 'before' ? st.label.toLowerCase() : 'already ended'));
+    }
+    function renderDetail(){
+      var box = document.getElementById('czDetail');
+      if (!box) return;
+      var st = challengeState(c);
+      box.innerHTML = '<div class="cz-detail-day">' + (st.phase === 'during' ? 'Day <strong>' + st.day + '</strong> of ' + st.total : st.label) + '</div>' +
+        '<span class="cz-bar-row"><span class="cz-bar"><i style="width:' + st.pct + '%"></i></span><span class="cz-pct">' + st.pct + '%</span></span>';
+    }
+    renderDetail(); syncDerived();
+    sEl.addEventListener('change', syncDerived); eEl.addEventListener('change', syncDerived);
+    if (!c) setTimeout(function(){ titleEl.focus(); }, 60);
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('czSaveBtn').addEventListener('click', function(){
+      var title = titleEl.value.trim(), dft = draft();
+      if (!title){ titleEl.focus(); return; }
+      if (!dft.startDate || !dft.endDate || dft.endDate < dft.startDate){ eEl.focus(); return; }
+      // build on the record, so fields a later phase adds (rules, daily results) survive an edit
+      saveChallenge(Object.assign({}, c || { id: uid(), status: 'active', createdAt: new Date().toISOString(), completedAt: null }, {
+        title: title, startDate: dft.startDate, endDate: dft.endDate, notes: notesEl.value.trim(), updatedAt: new Date().toISOString()
+      }));
+      closeSheet();
+    });
+    if (c){
+      document.getElementById('czCompleteBtn').addEventListener('click', function(){
+        saveChallenge(Object.assign({}, c, { status: 'completed', completedAt: new Date().toISOString() }));
+        closeSheet();
+      });
+      document.getElementById('czCancelBtn').addEventListener('click', function(){
+        if (!confirm('Cancel this challenge? It is kept as a record, but no longer shown.')) return;
+        saveChallenge(Object.assign({}, c, { status: 'cancelled', cancelledAt: new Date().toISOString() }));
+        closeSheet();
+      });
+    }
+  }
+
+  // ---- Steps tile: today and the rolling 7-day average ----
+  function renderStepsTile(){
+    var el = document.getElementById('stepsTile');
+    if (!el) return;
+    var rec = stepsRecordFor(todayStr()), avg = stepsAverage();
+    el.innerHTML = '<span class="pg-tile-k">Steps</span>' +
+      '<span class="st-row"><span class="st-ic">' + SESSION_ICON_SVG.steps + '</span>' +
+        '<span class="st-body"><span class="st-lbl">Today</span><span class="st-val">' + (rec ? fmtSteps(rec.steps) : '—') + '</span></span></span>' +
+      '<span class="st-rule"></span>' +
+      '<span class="st-lbl">7-day average</span><span class="st-val small">' + fmtSteps(avg) + '</span>';
+    el.setAttribute('aria-label', 'Steps: today ' + (rec ? fmtSteps(rec.steps) : 'not logged') + ', 7-day average ' + (avg != null ? fmtSteps(avg) : 'none'));
+    el.onclick = function(){ openStepsDetailSheet(); };
+  }
+
   // ---- Training frequency: actual sessions per type over one chosen period ----
   // Week and Month compare with explicit targets where set; Quarter and Year are counts.
   // The first row is training days (unique dates), the rest are sessions per type.
@@ -11258,6 +11693,8 @@
     renderFocusEvidence();
     renderWeekBar();
     renderTrainingFrequency();
+    renderChallengeZone();
+    renderStepsTile();
     var container = document.getElementById('statsCards');
     container.innerHTML = '';
 
@@ -11307,19 +11744,18 @@
       { val: yoga.length, lbl: 'All-time sessions' }
     ]));
 
-    // Weight (merges dedicated weight logs + bodyweight noted in gym sessions)
-    var weightEntries = sessions
-      .filter(function(s){ return (s.type==='weight' && s.weightKg) || (s.type==='resistance' && s.bodyweight); })
-      .map(function(s){ return { date: s.date, val: s.type==='weight' ? s.weightKg : s.bodyweight }; })
-      .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
-    var latestWeight = weightEntries.length ? weightEntries[weightEntries.length-1].val : null;
+    // Weight: one value per date (a Weight log wins over Strength bodyweight), with the
+    // rolling 7-day average beside the latest
+    var weightEntries = dailyWeights();
+    var latestWeight = weightEntries.length ? weightEntries[weightEntries.length-1].kg : null;
+    var weightAvg7 = weightAvgOn(todayStr(), weightEntries);
     var weightCard = statCard('weight', [
       { val: latestWeight != null ? latestWeight + 'kg' : '—', lbl: 'Latest weight' },
-      { val: weightEntries.length, lbl: 'Entries logged' }
+      { val: weightAvg7 != null ? weightAvg7.toFixed(1) + 'kg' : '—', lbl: '7-day average' }
     ]);
     if (weightEntries.length > 1){
       var sparkWrap = document.createElement('div');
-      sparkWrap.innerHTML = sparklineSvg(weightEntries.slice(-14).map(function(e){ return e.val; }), getComputedStyle(document.documentElement).getPropertyValue('--weight').trim());
+      sparkWrap.innerHTML = sparklineSvg(weightEntries.slice(-14).map(function(e){ return e.kg; }), getComputedStyle(document.documentElement).getPropertyValue('--weight').trim());
       weightCard.appendChild(sparkWrap.firstChild);
     }
     container.appendChild(weightCard);
@@ -11457,27 +11893,7 @@
     return wrap;
   }
 
-  function bigLineChartSvg(values, color){
-    if (!values.length) return document.createElement('div');
-    var w = 320, h = 120, pad = 10;
-    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
-    var range = (max - min) || 1;
-    var step = values.length > 1 ? (w - pad*2) / (values.length - 1) : 0;
-    var points = values.map(function(v, i){
-      var x = pad + i*step;
-      var y = h - pad - ((v - min) / range) * (h - pad*2);
-      return { x: x, y: y };
-    });
-    var polyStr = points.map(function(p){ return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
-    var dotsStr = points.map(function(p){ return '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="3" fill="'+color+'"/>'; }).join('');
-    var wrap = document.createElement('div');
-    wrap.className = 'detail-chart-wrap';
-    wrap.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
-      '<polyline points="' + polyStr + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-      dotsStr +
-      '</svg>';
-    return wrap;
-  }
+
 
   // Which priorities this detail counts towards, and a way into the matching Calendar days.
   function renderStatLinks(type){
@@ -11508,52 +11924,243 @@
     }
   }
 
+  // ============ Detail charts (plain SVG, no library) ============
+  // Rolling windows for the detail views, ending today.
+  var DETAIL_PERIODS = { week: { days: 7, label: 'Last 7 days' }, month: { days: 30, label: 'Last 30 days' },
+                         quarter: { days: 91, label: 'Last 3 months' }, year: { days: 365, label: 'Last 12 months' } };
+  function detailWindow(period){
+    var p = DETAIL_PERIODS[period] || DETAIL_PERIODS.month, end = todayStr();
+    return { start: fmtDate(addDays(end, -(p.days - 1))), end: end, days: p.days, label: p.label };
+  }
+  function periodSegHtml(id, current){
+    return '<div class="freq-period detail-period" id="' + id + '" role="tablist" aria-label="Period">' +
+      ['week','month','quarter','year'].map(function(k){
+        return '<button type="button" role="tab" data-period="' + k + '" class="' + (k === current ? 'sel' : '') + '" aria-selected="' + (k === current ? 'true' : 'false') + '">' +
+          k.charAt(0).toUpperCase() + k.slice(1) + '</button>';
+      }).join('') + '</div>';
+  }
+  function niceStep(span, target){
+    var raw = span / Math.max(1, target), pow = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10));
+    var n = raw / pow;
+    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * pow;
+  }
+  function shortDate(ds){ return toLocalDate(ds).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); }
+  // series: [{ points: [{ date, y }], cls, dots, last }]; x is the calendar date
+  function lineChartSvg(series, start, end, unit){
+    var W = 340, H = 196, L = 34, R = 10, T = 12, B = 26;
+    var all = [];
+    series.forEach(function(s){ s.points.forEach(function(p){ all.push(p.y); }); });
+    if (!all.length) return '';
+    var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+    var pad = Math.max(0.4, (hi - lo) * 0.12); lo -= pad; hi += pad;
+    var step = niceStep(hi - lo, 4);
+    lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
+    var span = Math.max(1, daysBetween(start, end));
+    function x(ds){ return L + (W - L - R) * (daysBetween(start, ds) / span); }
+    function y(v){ return T + (H - T - B) * (1 - (v - lo) / (hi - lo)); }
+    var g = '';
+    for (var v = lo; v <= hi + step / 2; v += step){
+      var yy = y(v).toFixed(1);
+      g += '<line class="ch-grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '"/>' +
+        '<text class="ch-y" x="' + (L - 6) + '" y="' + (+yy + 3.5) + '" text-anchor="end">' + (step < 1 ? v.toFixed(1) : Math.round(v)) + '</text>';
+    }
+    var ticks = span <= 7 ? span : 4;
+    for (var i = 0; i <= ticks; i++){
+      var ds = fmtDate(addDays(start, Math.round(span * i / ticks)));
+      g += '<text class="ch-x" x="' + x(ds).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="' + (i === 0 ? 'start' : (i === ticks ? 'end' : 'middle')) + '">' + shortDate(ds) + '</text>';
+    }
+    g += '<text class="ch-unit" x="2" y="' + (H - 7) + '">' + unit + '</text>';
+    series.forEach(function(s){
+      if (s.points.length > 1)
+        g += '<polyline class="' + s.cls + '" points="' + s.points.map(function(p){ return x(p.date).toFixed(1) + ',' + y(p.y).toFixed(1); }).join(' ') + '"/>';
+      s.points.forEach(function(p, i){
+        if (s.dots || (s.last && i === s.points.length - 1) || s.points.length === 1)
+          g += '<circle class="' + s.cls + '-dot" cx="' + x(p.date).toFixed(1) + '" cy="' + y(p.y).toFixed(1) + '" r="' + (s.dots ? 2.6 : 3) + '"/>';
+      });
+    });
+    return '<svg class="detail-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img">' + g + '</svg>';
+  }
+  // bars: [{ label, value (null = nothing logged), title }]
+  function barChartSvg(bars, cls){
+    var W = 340, H = 170, L = 6, R = 6, T = 10, B = 24;
+    var max = Math.max.apply(null, bars.map(function(b){ return b.value || 0; }).concat([1]));
+    var step = niceStep(max, 3), top = Math.ceil(max / step) * step;
+    var n = bars.length, slot = (W - L - R) / n, bw = Math.max(2, Math.min(26, slot * 0.62));
+    var g = '';
+    for (var v = step; v <= top + step / 2; v += step){
+      var yy = (T + (H - T - B) * (1 - v / top)).toFixed(1);
+      g += '<line class="ch-grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '"/>' +
+        '<text class="ch-y" x="' + (W - R) + '" y="' + (+yy - 3) + '" text-anchor="end">' + fmtSteps(v) + '</text>';
+    }
+    var every = n <= 7 ? 1 : (n <= 13 ? 2 : Math.ceil(n / 6));
+    bars.forEach(function(b, i){
+      var cx = L + slot * i + slot / 2;
+      if (b.value != null){
+        var h = Math.max(2, (H - T - B) * (b.value / top));
+        g += '<rect class="' + cls + '" x="' + (cx - bw / 2).toFixed(1) + '" y="' + (H - B - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="' + Math.min(4, bw / 3).toFixed(1) + '"><title>' + b.title + '</title></rect>';
+      } else {
+        g += '<rect class="ch-empty" x="' + (cx - bw / 2).toFixed(1) + '" y="' + (H - B - 2) + '" width="' + bw.toFixed(1) + '" height="2" rx="1"/>';
+      }
+      if (i % every === 0 || i === n - 1)
+        g += '<text class="ch-x" x="' + cx.toFixed(1) + '" y="' + (H - 7) + '" text-anchor="middle">' + b.label + '</text>';
+    });
+    return '<svg class="detail-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img">' + g + '</svg>';
+  }
+  function signedKg(v){ return (v > 0 ? '+' : (v < 0 ? '−' : '±')) + Math.abs(v).toFixed(1); }
+
+  // ============ Weight detail ============
+  // Daily weight is evidence; the rolling 7-day average shows the trend through the noise;
+  // the weekly check-in (average now vs 7 days ago) is the calm read of progress.
+  var WEIGHT_PERIOD_KEY = 'ledger_weight_period';
+  function openWeightDetailSheet(){
+    editingId = null;
+    var period = lsGet(WEIGHT_PERIOD_KEY, 'month');
+    if (!DETAIL_PERIODS[period]) period = 'month';
+    var showAll = false;
+    function render(){
+      var daily = dailyWeights(), w = detailWindow(period);
+      var inWin = daily.filter(function(x){ return x.date >= w.start && x.date <= w.end; });
+      var avgPts = [];
+      for (var i = 0; i < w.days; i++){
+        var ds = fmtDate(addDays(w.start, i)), a = weightAvgOn(ds, daily);
+        if (a != null && (inWin.length && ds >= inWin[0].date)) avgPts.push({ date: ds, y: a });
+      }
+      var latest = daily.length ? daily[daily.length - 1] : null;
+      var avgNow = weightAvgOn(todayStr(), daily);
+      var nInAvg = daily.filter(function(x){ return x.date >= fmtDate(addDays(todayStr(), -6)); }).length;
+      var ci = weightCheckIn(daily);
+      var trend = avgPts.length > 1 ? avgPts[avgPts.length - 1].y - avgPts[0].y : null;
+      var chart = inWin.length ? lineChartSvg([
+          { points: inWin.map(function(x){ return { date: x.date, y: x.kg }; }), cls: 'ch-actual', dots: true },
+          { points: avgPts, cls: 'ch-avg', last: true }
+        ], w.start, w.end, 'kg') : '';
+      var recent = daily.slice().reverse();
+      sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+        sheetHead(SESSION_ICON_SVG.weight, 'Weight', '', '') +
+        periodSegHtml('wtPeriod', period) +
+        '<div class="detail-card">' +
+          '<div class="dt-kicker">Trend · ' + w.label + '</div>' +
+          '<div class="dt-headline">' + (trend != null ? '<strong>' + signedKg(trend) + ' kg</strong> on the 7-day average'
+            : (inWin.length ? 'Not enough weigh-ins yet to show a trend' : 'No weigh-ins in this period')) + '</div>' +
+          (chart || '<div class="dt-empty">Log a weigh-in to start the chart.</div>') +
+          (chart ? '<div class="ch-legend"><span><i class="lg-actual"></i>Weigh-in</span><span><i class="lg-avg"></i>7-day average</span></div>' : '') +
+        '</div>' +
+        '<div class="dt-strip">' +
+          '<div class="dt-m"><span class="dt-m-k">Current weight</span><span class="dt-m-v">' + (latest ? latest.kg.toFixed(1) + '<small> kg</small>' : '—') + '</span>' +
+            '<span class="dt-m-s">' + (latest ? relativeDayLabel(latest.date) + ', ' + shortDate(latest.date) : 'Nothing logged') + '</span></div>' +
+          '<div class="dt-m"><span class="dt-m-k">7-day average</span><span class="dt-m-v">' + (avgNow != null ? avgNow.toFixed(1) + '<small> kg</small>' : '—') + '</span>' +
+            '<span class="dt-m-s">' + (avgNow != null ? 'from ' + plural(nInAvg, 'weigh-in') : 'No weigh-ins this week') + '</span></div>' +
+          '<div class="dt-m"><span class="dt-m-k">Weekly check-in</span><span class="dt-m-v">' + (ci ? signedKg(ci.change) + '<small> kg</small>' : '—') + '</span>' +
+            '<span class="dt-m-s">' + (ci ? 'average vs 7 days ago' : 'Needs a weigh-in in each of the last two weeks') + '</span></div>' +
+        '</div>' +
+        '<div class="stat-links" id="statDetailLinks"></div>' +
+        '<div class="dt-list-head"><span>Recent weigh-ins</span>' + (recent.length > 6 ? '<button type="button" class="dt-viewall" id="wtViewAll">' + (showAll ? 'Show fewer' : 'View all') + '</button>' : '') + '</div>' +
+        '<div class="dt-list">' + (recent.length ? (showAll ? recent : recent.slice(0, 6)).map(function(x){
+          return '<button type="button" class="dt-row" data-wt="' + x.date + '"><span class="dot weight"></span>' +
+            '<span class="dt-row-date">' + shortDate(x.date) + ' <small>' + toLocalDate(x.date).toLocaleDateString(undefined, { weekday: 'short' }) + '</small></span>' +
+            (x.rank === 1 ? '<span class="dt-row-src">from Strength</span>' : '') +
+            '<span class="dt-row-val">' + x.kg.toFixed(1) + ' kg</span>' + UI_ICON.chevronRight + '</button>';
+        }).join('') : '<div class="dt-empty">No weigh-ins logged yet</div>') + '</div>' +
+        '<button type="button" class="add-exercise-btn" id="wtLogBtn">+ Log a weigh-in</button>';
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      renderStatLinks('weight');
+      sheetEl.querySelectorAll('#wtPeriod [data-period]').forEach(function(b){
+        b.addEventListener('click', function(){ period = b.dataset.period; lsSet(WEIGHT_PERIOD_KEY, period); render(); var f = sheetEl.querySelector('#wtPeriod [data-period="' + period + '"]'); if (f) f.focus(); });
+      });
+      var va = document.getElementById('wtViewAll');
+      if (va) va.addEventListener('click', function(){ showAll = !showAll; render(); });
+      sheetEl.querySelectorAll('[data-wt]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var x = daily.find(function(e){ return e.date === b.dataset.wt; });
+          if (x) openSheet(x.session.type, x.session);
+        });
+      });
+      document.getElementById('wtLogBtn').addEventListener('click', function(){ openSheet('weight', null, todayStr()); });
+    }
+    render();
+    backdrop.classList.add('open');
+    activeSheetRefresh = render;
+  }
+
+  // ============ Steps detail ============
+  // Week and Month show each day; Quarter shows calendar-week averages; Year, monthly
+  // averages. Averages are over logged days only, and a day's total is never summed twice.
+  var STEPS_PERIOD_KEY = 'ledger_steps_period';
+  function openStepsDetailSheet(){
+    editingId = null;
+    var period = lsGet(STEPS_PERIOD_KEY, 'week');
+    if (!DETAIL_PERIODS[period]) period = 'week';
+    function render(){
+      var map = dailyStepsMap(), w = detailWindow(period), bars = [];
+      function avgOf(a, b){
+        var v = Object.keys(map).filter(function(k){ return k >= a && k <= b; }).map(function(k){ return parseInt(map[k].steps, 10); });
+        return v.length ? Math.round(v.reduce(function(x, y){ return x + y; }, 0) / v.length) : null;
+      }
+      if (period === 'week' || period === 'month'){
+        for (var i = 0; i < w.days; i++){
+          var ds = fmtDate(addDays(w.start, i)), r = map[ds];
+          bars.push({ label: period === 'week' ? toLocalDate(ds).toLocaleDateString(undefined, { weekday: 'narrow' }) : String(toLocalDate(ds).getDate()),
+                      value: r ? parseInt(r.steps, 10) : null, title: shortDate(ds) + ': ' + (r ? fmtSteps(r.steps) : 'not logged') });
+        }
+      } else if (period === 'quarter'){
+        for (var k = 12; k >= 0; k--){
+          var ws = weekStartFor(addDays(todayStr(), -7 * k)), a = fmtDate(ws), b = fmtDate(addDays(ws, 6));
+          var av = avgOf(a, b);
+          bars.push({ label: shortDate(a), value: av, title: 'Week of ' + shortDate(a) + ': ' + (av != null ? fmtSteps(av) + ' average' : 'nothing logged') });
+        }
+      } else {
+        var now = new Date();
+        for (var m = 11; m >= 0; m--){
+          var first = new Date(now.getFullYear(), now.getMonth() - m, 1), last = new Date(now.getFullYear(), now.getMonth() - m + 1, 0);
+          var mv = avgOf(fmtDate(first), fmtDate(last));
+          bars.push({ label: first.toLocaleDateString(undefined, { month: 'narrow' }), value: mv,
+                      title: first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) + ': ' + (mv != null ? fmtSteps(mv) + ' average' : 'nothing logged') });
+        }
+      }
+      var keys = Object.keys(map).filter(function(k){ return k >= w.start && k <= w.end; }).sort().reverse();
+      var total = keys.reduce(function(x, k){ return x + parseInt(map[k].steps, 10); }, 0);
+      var avg = keys.length ? Math.round(total / keys.length) : null;
+      sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+        sheetHead(SESSION_ICON_SVG.steps, 'Steps', '', '') +
+        periodSegHtml('stPeriod', period) +
+        '<div class="detail-card">' +
+          '<div class="dt-kicker">' + w.label + (period === 'quarter' ? ' · weekly averages' : (period === 'year' ? ' · monthly averages' : '')) + '</div>' +
+          barChartSvg(bars, 'ch-steps') +
+        '</div>' +
+        '<div class="dt-strip">' +
+          '<div class="dt-m"><span class="dt-m-k">Average</span><span class="dt-m-v">' + fmtSteps(avg) + '</span><span class="dt-m-s">on logged days</span></div>' +
+          '<div class="dt-m"><span class="dt-m-k">Total</span><span class="dt-m-v">' + (keys.length ? fmtSteps(total) : '—') + '</span><span class="dt-m-s">' + w.label.toLowerCase() + '</span></div>' +
+          '<div class="dt-m"><span class="dt-m-k">Days logged</span><span class="dt-m-v">' + keys.length + '<small> of ' + w.days + '</small></span><span class="dt-m-s">unlogged days are left out</span></div>' +
+        '</div>' +
+        '<div class="stat-links" id="statDetailLinks"></div>' +
+        '<div class="dt-list-head"><span>Recent days</span></div>' +
+        '<div class="dt-list">' + (keys.length ? keys.slice(0, 10).map(function(k){
+          return '<button type="button" class="dt-row" data-st="' + k + '"><span class="dot steps"></span>' +
+            '<span class="dt-row-date">' + shortDate(k) + ' <small>' + toLocalDate(k).toLocaleDateString(undefined, { weekday: 'short' }) + '</small></span>' +
+            '<span class="dt-row-val">' + fmtSteps(map[k].steps) + '</span>' + UI_ICON.chevronRight + '</button>';
+        }).join('') : '<div class="dt-empty">No steps logged in this period</div>') + '</div>' +
+        '<button type="button" class="add-exercise-btn" id="stLogBtn">+ Log steps</button>';
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      renderStatLinks('steps');
+      sheetEl.querySelectorAll('#stPeriod [data-period]').forEach(function(b){
+        b.addEventListener('click', function(){ period = b.dataset.period; lsSet(STEPS_PERIOD_KEY, period); render(); var f = sheetEl.querySelector('#stPeriod [data-period="' + period + '"]'); if (f) f.focus(); });
+      });
+      sheetEl.querySelectorAll('[data-st]').forEach(function(b){
+        b.addEventListener('click', function(){ openStepsSheet(b.dataset.st, map[b.dataset.st]); });
+      });
+      document.getElementById('stLogBtn').addEventListener('click', function(){ openStepsSheet(todayStr()); });
+    }
+    render();
+    backdrop.classList.add('open');
+    activeSheetRefresh = render;
+  }
+
   function openStatDetailSheet(type){
+    if (type === 'weight'){ openWeightDetailSheet(); return; }
+    if (type === 'steps'){ openStepsDetailSheet(); return; }
     editingId = null;
     var title = type === 'training' ? 'Training' : TYPE_LABEL[type];
     var bodyHtml = '';
-
-    if (type === 'weight'){
-      var weightEntries = sessions
-        .filter(function(s){ return (s.type==='weight' && s.weightKg) || (s.type==='resistance' && s.bodyweight); })
-        .map(function(s){ return { date: s.date, val: s.type==='weight' ? s.weightKg : s.bodyweight, origin: s }; })
-        .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
-
-      sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
-        '<div class="sheet-head"><div class="sheet-title">' + title + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
-        '<div id="statDetailChart"></div>' +
-        '<div class="stat-links" id="statDetailLinks"></div>' +
-        '<div id="statDetailList"></div>';
-      backdrop.classList.add('open');
-      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
-      renderStatLinks(type);
-
-      var chartWrap = document.getElementById('statDetailChart');
-      var color = getComputedStyle(document.documentElement).getPropertyValue('--weight').trim();
-      if (weightEntries.length > 1){
-        chartWrap.appendChild(bigLineChartSvg(weightEntries.map(function(e){ return e.val; }), color));
-        var first = weightEntries[0].val, last = weightEntries[weightEntries.length-1].val;
-        var diff = last - first;
-        var trendText = Math.abs(diff) < 0.05 ? 'No change' : (diff > 0 ? '+' + diff.toFixed(1) + 'kg' : diff.toFixed(1) + 'kg') + ' since first entry';
-        var trend = document.createElement('div');
-        trend.className = 'detail-trend';
-        trend.innerHTML = 'Trend: <strong>' + trendText + '</strong>';
-        chartWrap.appendChild(trend);
-      }
-      var listWrap = document.getElementById('statDetailList');
-      if (!weightEntries.length){
-        listWrap.innerHTML = '<div class="empty-state">No weight entries logged yet</div>';
-      } else {
-        weightEntries.slice().reverse().forEach(function(e){
-          var row = document.createElement('div');
-          row.className = 'session-item';
-          row.innerHTML = '<span class="dot weight"></span><div class="si-main"><div class="si-type">' + e.date + '</div><div class="si-detail">' + e.val + ' kg</div></div>';
-          row.addEventListener('click', function(){ openSheet(e.origin.type, e.origin); });
-          listWrap.appendChild(row);
-        });
-      }
-      return;
-    }
 
     // Generic detail: weekly frequency chart + full entry list, newest first
     var entries = (type === 'gluten')
@@ -11582,44 +12189,90 @@
   }
 
 
+  // ---- Last 7 days: a rolling evidence matrix — did I record it? ----
+  // Rows: Training (each recorded modality keeps its colour; several on a day share the
+  // cell in equal bands — none is picked over another), Weight (logged or not, never
+  // judged up or down), Nutrition (the day's own rating: on track, neutral, off track,
+  // or logged without a rating). Columns: today and the six days before, whatever the
+  // week start. Planned training never fills a cell — only recorded sessions.
+  function last7NutritionState(dateStr){
+    var n = getNutritionForDate(dateStr);
+    if (!n || !hasNutritionEvidence(n)) return null;
+    if (n.dayRating === 'good') return 'on';
+    if (n.dayRating === 'off-track') return 'off';
+    if (n.dayRating === 'neutral') return 'neutral';
+    return 'partial';
+  }
+  var L7_NUTRITION_WORDS = { on: 'nutrition on track', off: 'nutrition off track', neutral: 'nutrition neutral', partial: 'nutrition logged, not rated' };
   function renderWeekBar(){
     var wrap = document.getElementById('weekBar');
-    wrap.innerHTML = '';
-    var bars = document.createElement('div');
-    bars.className = 'weekbar-bars';
-    // Last 7 days: today and the six before — rolling, so the week start never moves it
-    var days = rollingDays(7);
+    if (!wrap) return;
+    var days = rollingDays(7), weights = {};
+    dailyWeights().forEach(function(w){ weights[w.date] = w; });
     var rangeEl = document.getElementById('weekBarRange');
     if (rangeEl) rangeEl.textContent = rollingRangeLabel(7);
-    var maxCount = 1;
-    var counts = days.map(function(d){
+    var t = todayStr();
+    var rows = [
+      { key: 'training', letter: 'T', label: 'Training', icon: TRAINING_ICON_SVG.resistance },
+      { key: 'weight', letter: 'W', label: 'Weight', icon: SESSION_ICON_SVG.weight },
+      { key: 'nutrition', letter: 'N', label: 'Nutrition', icon: UI_ICON.cutlery }
+    ];
+    var info = days.map(function(d){
       var ds = fmtDate(d);
-      var daySessions = sessions.filter(function(s){ return s.date === ds; });
-      if (daySessions.length > maxCount) maxCount = daySessions.length;
-      return daySessions;
+      var types = PLAN_TRAINING_TYPES.filter(function(tp){ return sessions.some(function(x){ return x.date === ds && x.type === tp; }); });
+      return { d: d, ds: ds, types: types, weight: weights[ds] || null, nutrition: last7NutritionState(ds) };
     });
-
-    days.forEach(function(d, i){
-      var col = document.createElement('div');
-      col.className = 'weekbar-col';
-      var stack = document.createElement('div');
-      stack.className = 'weekbar-stack';
-      var h = (counts[i].length / maxCount) * (isWide() ? 120 : 74);
-      stack.style.height = Math.max(h, counts[i].length ? 10 : 0) + 'px';
-      counts[i].forEach(function(s){
-        var seg = document.createElement('div');
-        seg.className = 'weekbar-seg ' + s.type;
-        seg.style.background = 'var(--' + s.type + ')';
-        stack.appendChild(seg);
+    var html = '<div class="l7-grid">' +
+      '<span class="l7-corner"></span>' +
+      info.map(function(x){
+        return '<span class="l7-dow' + (x.ds === t ? ' today' : '') + '" aria-hidden="true">' + x.d.toLocaleDateString(undefined, { weekday: 'narrow' }) + '</span>';
+      }).join('');
+    rows.forEach(function(r){
+      html += '<span class="l7-label"><span class="l7-ic">' + r.icon + '</span><span class="l7-letter">' + r.letter + '</span><span class="l7-name">' + r.label + '</span></span>';
+      info.forEach(function(x){
+        var dayLabel = x.d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+        var cls = 'l7-cell', style = '', words;
+        if (r.key === 'training'){
+          if (x.types.length){
+            cls += ' on';
+            var step = 100 / x.types.length;
+            style = x.types.length === 1 ? 'background: var(--' + x.types[0] + ')'
+              : 'background: linear-gradient(90deg, ' + x.types.map(function(tp, i){
+                  return 'var(--' + tp + ') ' + (i * step) + '% ' + ((i + 1) * step) + '%';
+                }).join(', ') + ')';
+            words = 'training: ' + x.types.map(function(tp){ return TYPE_LABEL[tp]; }).join(' and ');
+          } else words = 'no training recorded';
+        } else if (r.key === 'weight'){
+          if (x.weight){ cls += ' on weight'; words = 'weight logged, ' + x.weight.kg + ' kg'; }
+          else words = 'no weight logged';
+        } else {
+          if (x.nutrition){ cls += ' nut-' + x.nutrition; words = L7_NUTRITION_WORDS[x.nutrition]; }
+          else words = 'no nutrition logged';
+        }
+        html += '<button type="button" class="' + cls + '"' + (style ? ' style="' + style + '"' : '') +
+          ' data-l7="' + r.key + '" data-date="' + x.ds + '" aria-label="' + dayLabel + ': ' + words + '"></button>';
       });
-      col.appendChild(stack);
-      var lbl = document.createElement('div');
-      lbl.className = 'weekbar-day';
-      lbl.textContent = d.toLocaleDateString(undefined,{weekday:'narrow'});
-      col.appendChild(lbl);
-      bars.appendChild(col);
     });
-    wrap.appendChild(bars);
+    html += '</div>' +
+      '<div class="l7-key" aria-hidden="true"><span class="l7-key-lbl">Nutrition</span><span><i class="l7-k nut-on"></i>On track</span><span><i class="l7-k nut-neutral"></i>Neutral</span>' +
+      '<span><i class="l7-k nut-off"></i>Off track</span><span><i class="l7-k nut-partial"></i>Not rated</span></div>';
+    wrap.innerHTML = html;
+    // a cell opens what it stands for: the day's activity, its weigh-in, its nutrition
+    wrap.querySelectorAll('[data-l7]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var ds = b.dataset.date, kind = b.dataset.l7;
+        if (kind === 'training'){
+          selectedDay = ds; calFilter = 'all'; calFilterKeep = true;
+          calMonth = new Date(ds + 'T00:00:00'); calMonth.setDate(1);
+          document.querySelector('.tab-btn[data-view="calendar"]').click();
+        } else if (kind === 'weight'){
+          var w = weights[ds];
+          openSheet(w ? w.session.type : 'weight', w ? w.session : null, ds);
+        } else {
+          openSheet('nutrition', getNutritionForDate(ds), ds);
+        }
+      });
+    });
   }
 
   // ---------- gamification (player card) ----------
@@ -11940,6 +12593,16 @@
         lines.push('<button type="button" class="hf-line" data-meals-open="1">' +
           plural(meals.length, 'meal') + (mealsEaten ? ' (' + mealsEaten + ' eaten)' : '') + '</button>');
       }
+      // steps: the day's logged total and the rolling 7-day average, or a quiet way to log it
+      if (dateStr <= todayStr()){
+        var stepRec = stepsRecordFor(dateStr), stepAvg = stepsAverage(dateStr);
+        lines.push('<button type="button" class="hf-line hf-steps" data-steps-open="1">' +
+          '<span class="hf-steps-k">Steps</span>' +
+          (stepRec
+            ? '<span>' + fmtSteps(stepRec.steps) + (stepAvg != null ? ' \u00b7 7-day avg ' + fmtSteps(stepAvg) : '') + '</span>'
+            : '<span class="hf-steps-log">Log steps' + UI_ICON.chevronRight + '</span>') +
+        '</button>');
+      }
       if (plan && plan.roadblocks){
         lines.push('<button type="button" class="hf-line rb" data-role="rb-card" id="planRoadblockCard">' + UI_ICON.mountain +
           '<span class="hf-rb-text clamped" data-role="rb-text" id="planRoadblockText"></span></button>');
@@ -12004,6 +12667,9 @@
         e.stopPropagation();
         openPlanTrainingLogSheet(el.dataset.trainOpen, dateStr);
       });
+    });
+    wrap.querySelectorAll('[data-steps-open]').forEach(function(el){
+      el.addEventListener('click', function(){ openStepsSheet(dateStr); });
     });
     wrap.querySelectorAll('[data-meals-open]').forEach(function(el){
       el.addEventListener('click', function(e){ e.stopPropagation(); openPlanMealsSheet(dateStr); });
@@ -12098,6 +12764,11 @@
     wrap.querySelector('[data-role="pw-label"]').textContent = relativeWeekLabel(planWeekStart);
     wrap.querySelector('[data-role="pw-range"]').textContent = weekRangeLabel(planWeekStart);
     wrap.querySelector('[data-role="pw-today"]').hidden = isThis;
+    // the challenge, only where this week overlaps it — no day numbers for weeks outside
+    var line = document.getElementById('planChallengeLine'), ch = activeChallenge();
+    var span = ch ? challengeSpanLabel(ch, fmtDate(planWeekStart), fmtDate(addDays(planWeekStart, 6))) : null;
+    line.hidden = !span;
+    line.textContent = span ? ch.title + ' \u00b7 ' + span : '';
   }
   function openPlanWeekPicker(anchor){
     var thisStart = weekStartFor(new Date());
@@ -12703,7 +13374,8 @@
 
     function buildHtml(){
       var html = '<div class="sheet-handle"></div>' +
-        sheetHead('', niceDate(d), '<span class="dp-readiness" id="dpReadiness">' + readinessLineHtml(dateStr) + '</span>', '') +
+        sheetHead('', niceDate(d), '<span class="dp-readiness" id="dpReadiness">' + readinessLineHtml(dateStr) + '</span>' +
+          '<span class="dp-challenge" id="dpChallenge" hidden></span>', '') +
         secHtml('direction',
           '<div class="field"><label for="dpIntention">Intention</label>' +
             '<textarea id="dpIntention" class="dp-intention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea></div>' +
@@ -12744,6 +13416,12 @@
     function render(keepScroll){
       var top = sheetEl.scrollTop;
       sheetEl.innerHTML = buildHtml();
+      // the day's place in the challenge, quietly, when it falls inside one (title is user text)
+      var ch = activeChallenge(), chEl = document.getElementById('dpChallenge');
+      if (ch && chEl && dateStr >= ch.startDate && dateStr <= ch.endDate){
+        chEl.textContent = ch.title + ' \u00b7 ' + challengeState(ch, dateStr).label;
+        chEl.hidden = false;
+      }
       wireSheet();
       if (keepScroll) sheetEl.scrollTop = top;
     }
@@ -13210,11 +13888,8 @@
 
   // ---------- focus tab ----------
   function getLatestWeight(){
-    var entries = sessions
-      .filter(function(s){ return (s.type==='weight' && s.weightKg) || (s.type==='resistance' && s.bodyweight); })
-      .map(function(s){ return { date: s.date, val: s.type==='weight' ? s.weightKg : s.bodyweight }; })
-      .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
-    return entries.length ? entries[entries.length-1].val : null;
+    var daily = dailyWeights();   // one value per date: a Weight log wins over Strength bodyweight
+    return daily.length ? daily[daily.length - 1].kg : null;
   }
 
   function renderTargetWeightCard(){
@@ -13275,12 +13950,13 @@
     { key: 'cardio', label: 'Cardio' },
     { key: 'yoga', label: 'Mobility' },
     { key: 'nutrition', label: 'Nutrition' },
+    { key: 'steps', label: 'Steps' },
     { key: 'actions', label: 'Linked actions' }
   ];
   var EVIDENCE_LABEL = {};
   EVIDENCE_TYPES.forEach(function(e){ EVIDENCE_LABEL[e.key] = e.label; });
   // evidence kinds that have a Progress detail and a Calendar filter
-  var EVIDENCE_WITH_DETAIL = ['weight','training','padel','resistance','hiit','cardio','yoga','nutrition'];
+  var EVIDENCE_WITH_DETAIL = ['weight','training','padel','resistance','hiit','cardio','yoga','nutrition','steps'];
 
   function evidenceMatches(key, s){
     if (key === 'weight') return (s.type === 'weight' && s.weightKg) || (s.type === 'resistance' && s.bodyweight);
@@ -13315,6 +13991,10 @@
         var gap = (Math.abs(diff) < 0.05) ? 'at target' : (diff > 0 ? diff.toFixed(1) + 'kg to go' : Math.abs(diff).toFixed(1) + 'kg under');
         lines.push({ text: latest + 'kg → ' + target + 'kg · ' + gap });
       }
+    } else if (key === 'steps'){
+      var stToday = stepsRecordFor(todayStr()), stAvg = stepsAverage();
+      lines.push(stAvg == null ? { text: 'No steps logged in the last 7 days', quiet: true }
+        : { text: '7-day average ' + fmtSteps(stAvg) + (stToday ? ' \u00b7 today ' + fmtSteps(stToday.steps) : '') });
     } else if (key === 'nutrition'){
       var month = sessions.filter(function(s){ return s.type === 'nutrition' && withinThisMonth(s); });
       var good = month.filter(function(s){ return s.dayRating === 'good'; }).length;
@@ -13819,7 +14499,58 @@
   }
   backdrop.addEventListener('click', function(e){ if (e.target === backdrop) closeSheet(); });
 
+  // ---- Steps: one daily total per date ----
+  // Logging a date that already has steps edits that record — it never adds a second.
+  // Moving a record to a date that has one replaces that date's value.
+  function openStepsSheet(dateStr, existing){
+    editingId = null;
+    var orig = existing || null;
+    var date = (orig && orig.date) || dateStr || todayStr();
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(SESSION_ICON_SVG.steps, 'Steps', 'One total for the day.', '') +
+      fieldDate('f_stepsDate', 'Date', date) +
+      '<div class="field"><label for="f_steps">Steps</label>' +
+        '<input type="number" id="f_steps" inputmode="numeric" min="0" max="200000" step="1" placeholder="e.g. 8420" enterkeyhint="done"></div>' +
+      '<p class="steps-note" id="stepsNote"></p>' +
+      '<button type="button" class="save-btn" id="stepsSaveBtn">Save</button>' +
+      '<button type="button" class="delete-btn" id="stepsDeleteBtn" hidden>Delete</button>';
+    backdrop.classList.add('open');
+    activeSheetRefresh = null;
+    var dateEl = document.getElementById('f_stepsDate'), numEl = document.getElementById('f_steps');
+    var note = document.getElementById('stepsNote'), del = document.getElementById('stepsDeleteBtn');
+    function current(){ return (orig && orig.date === dateEl.value) ? orig : stepsRecordFor(dateEl.value); }
+    function sync(first){
+      var r = current();
+      if (first || !numEl.value) numEl.value = r ? r.steps : '';
+      del.hidden = !r;
+      note.textContent = (r && r !== orig) ? fmtSteps(r.steps) + ' already logged for this day \u2014 saving replaces it.' : '';
+    }
+    sync(true);
+    dateEl.addEventListener('change', function(){ sync(false); });
+    setTimeout(function(){ numEl.focus(); }, 60);
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    function save(){
+      var n = parseInt(numEl.value, 10), d = dateEl.value || todayStr();
+      if (!(n >= 0) || n > 200000){ numEl.focus(); return; }
+      var target = stepsRecordFor(d), now = new Date().toISOString();
+      if (orig && orig.date !== d && target && target.id !== orig.id) deleteSession(orig.id);
+      var base = (target && (!orig || target.id !== orig.id || orig.date === d)) ? target : (orig || {});
+      saveSession(Object.assign({}, base, {
+        id: base.id || uid(), type: 'steps', date: d, steps: n,
+        loggedAt: now, updatedAt: now, createdAt: base.createdAt || now
+      }));
+      closeSheet();
+    }
+    document.getElementById('stepsSaveBtn').addEventListener('click', save);
+    numEl.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); save(); } });
+    del.addEventListener('click', function(){
+      var r = current();
+      if (r && confirm('Delete the steps logged for this day?')){ deleteSession(r.id); closeSheet(); }
+    });
+  }
+
   function openSheet(type, existing, forcedDate, opts){
+    if (type === 'steps'){ openStepsSheet(forcedDate || (existing && existing.date), existing); return; }
     opts = opts || {};
     var mode = opts.mode || 'log';
     editingId = (mode === 'plan') ? null : (existing ? existing.id : null);
