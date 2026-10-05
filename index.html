@@ -1398,8 +1398,14 @@
   }
 
   /* Today · steps in the Health & fitness summary */
-  .hf-line.hf-steps { display: flex; align-items: center; gap: 10px; }
-  .hf-steps-k { color: var(--text-3); min-width: 44px; }
+  .hf-line.hf-steps, .hf-line.hf-diary { display: flex; align-items: center; gap: 10px; }
+  .hf-steps-k { color: var(--text-3); min-width: 82px; flex-shrink: 0; }
+  .hf-diary-val { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pm-diary-link {
+    display: inline-flex; align-items: center; gap: 4px; margin: 2px 0 var(--sp-3); padding: 8px 0;
+    background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 13.5px; font-weight: 500; color: var(--gold);
+  }
+  .pm-diary-link svg { width: 12px; height: 12px; }
   .hf-steps-log { display: inline-flex; align-items: center; gap: 3px; color: var(--gold); font-weight: 500; }
   .hf-steps-log svg { width: 12px; height: 12px; }
   .steps-note { margin: -4px 0 var(--sp-3); min-height: 16px; font-size: 12px; color: var(--text-3); }
@@ -5143,6 +5149,15 @@
   function planMealText(m){ return typeof m === 'string' ? m : ((m && m.text) || ''); }
   function getNutritionForDate(dateStr){
     return sessions.find(function(s){ return s.type === 'nutrition' && s.date === dateStr; }) || null;
+  }
+  function diaryLinesOf(rec){
+    return ((rec && rec.foodDiary) || '').split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+  }
+  // The day's Nutrition record, where the food diary lives: the editor while it is open,
+  // the summary once the day is closed, a fresh one when nothing is logged yet.
+  function openFoodDiary(dateStr){
+    var rec = getNutritionForDate(dateStr);
+    openSheet('nutrition', rec, dateStr);
   }
 
   // Tick/untick a planned meal: syncs it into (or out of) that day's Nutrition food diary.
@@ -9703,6 +9718,8 @@
           ? '<div class="field"><label>New meal</label><input type="text" id="pmNewMeal" placeholder="e.g. Chicken and rice" autocomplete="off"></div>' +
             '<button type="button" class="btn-primary" id="pmAddSaveBtn">Add meal</button>'
           : '<button type="button" class="add-exercise-btn" id="pmAddBtn">+ Add meal</button>') +
+        (dateStr <= todayStr() ? '<button type="button" class="pm-diary-link" id="pmDiaryBtn">' +
+          (eaten || diaryLinesOf(getNutritionForDate(dateStr)).length ? 'View food diary' : 'Open food diary') + UI_ICON.chevronRight + '</button>' : '') +
         '<button type="button" class="btn-quiet" id="pmDoneBtn">Done</button>' +
         '<button type="button" class="btn-link" id="pmNoneBtn">No meals to plan today</button>';
     }
@@ -9716,6 +9733,8 @@
       });
       document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
       document.getElementById('pmDoneBtn').addEventListener('click', closeSheet);
+      var diaryBtn = document.getElementById('pmDiaryBtn');
+      if (diaryBtn) diaryBtn.addEventListener('click', function(){ openFoodDiary(dateStr); });
       document.getElementById('pmNoneBtn').addEventListener('click', async function(){
         await patchMorningPrime(dateStr, { mealsAcknowledged: true });
         closeSheet();
@@ -13870,6 +13889,17 @@
         lines.push('<button type="button" class="hf-line" data-meals-open="1">' +
           plural(meals.length, 'meal') + (mealsEaten ? ' (' + mealsEaten + ' eaten)' : '') + '</button>');
       }
+      // the day's food diary itself — what has been eaten, not what was planned
+      if (dateStr <= todayStr()){
+        var diaryRec = getNutritionForDate(dateStr), diaryN = diaryLinesOf(diaryRec).length;
+        lines.push('<button type="button" class="hf-line hf-diary" data-diary-open="1" aria-label="Food diary: ' +
+            (diaryN ? plural(diaryN, 'item') : 'nothing logged yet') + '">' +
+          '<span class="hf-steps-k">Food diary</span>' +
+          (diaryN
+            ? '<span class="hf-diary-val">' + plural(diaryN, 'item') + ' \u00b7 <span data-role="diary-last"></span></span>'
+            : '<span class="hf-steps-log">' + (diaryRec ? 'Open diary' : 'Log food') + UI_ICON.chevronRight + '</span>') +
+        '</button>');
+      }
       // steps: the day's logged total and the rolling 7-day average, or a quiet way to log it
       if (dateStr <= todayStr()){
         var stepRec = stepsRecordFor(dateStr), stepAvg = stepsAverage(dateStr), stepTgt = challengeStepsTarget(dateStr);
@@ -13950,6 +13980,12 @@
     });
     wrap.querySelectorAll('[data-steps-open]').forEach(function(el){
       el.addEventListener('click', function(){ openStepsSheet(dateStr); });
+    });
+    // the latest diary line is user text — written as text
+    var diaryLast = wrap.querySelector('[data-role="diary-last"]');
+    if (diaryLast){ var dl = diaryLinesOf(getNutritionForDate(dateStr)); diaryLast.textContent = dl[dl.length - 1]; }
+    wrap.querySelectorAll('[data-diary-open]').forEach(function(el){
+      el.addEventListener('click', function(e){ e.stopPropagation(); openFoodDiary(dateStr); });
     });
     wrap.querySelectorAll('[data-meals-open]').forEach(function(el){
       el.addEventListener('click', function(e){ e.stopPropagation(); openPlanMealsSheet(dateStr); });

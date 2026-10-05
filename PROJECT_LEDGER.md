@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-05 (Challenge tasks: optional daily Actions; scoped add/edit/remove)
+Last updated: 2026-10-05 (Food diary reachable from Health & fitness)
 
 ---
 
@@ -105,6 +105,10 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   and one pill per daily task ("Press ups 30 / 50") that logs in a tap. The line
   opens the challenge: daily tasks for today or an earlier day, the last seven
   days complete/partial, add/edit/remove tasks, Edit challenge.
+- **Food diary** — a line in Today's Health & fitness summary (today and earlier
+  days): "Food diary · 3 items · <latest entry>", or "Log food ›". It opens the day's
+  Nutrition record (the editor, or the summary once the day is closed); the meals
+  sheet links to it too ("View food diary ›").
 - **Steps** — a line in Today's Health & fitness summary: "Steps 8,420 · 7-day avg
   9,105", or "Log steps ›". Logged from Quick Log (Nutrition, Weight, Steps, Daily
   photo, Padel, Cardio, HIIT, Strength, Mobility, Symptoms).
@@ -1233,6 +1237,8 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-05) — Food diary line in Health & fitness and a diary link in the meals
+  sheet, so the day's diary is one tap away.
 - (2026-10-05) — Challenge tasks as optional daily Actions (Today, Flow, Day Plan),
   and scoped add (just today / from today) and edit/remove (just this day / from
   this day on / every day), with one-day exceptions shown and restorable.
