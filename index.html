@@ -2306,8 +2306,6 @@
     font-family: var(--sans); font-size: 12px; letter-spacing: 0.01em; color: var(--text-3);
   }
   .mp-skip-toggle[aria-pressed="true"] { color: var(--gold); font-weight: 500; }
-  .kt-done { margin-top: var(--sp-4); }
-  .kt-none { display: block; margin: 4px auto 0; }
 
   .mp-intention-wrap { padding-top: 13px; }
   .mp-intention-wrap textarea {
@@ -2327,49 +2325,147 @@
   .mp-save[disabled] { opacity: 0.4; pointer-events: none; }
   .mp-hint { font-size: 11.5px; color: var(--text-3); margin: 10px 0 0; text-align: center; }
 
-  /* ---- key-task picker ---- */
+  /* ---- key-task picker ----
+     One height while it is open: the header and footer stay put and only the lists
+     scroll, so neither a selection nor the keyboard moves the sheet's top edge. */
+  .sheet:has(> .kt-body) { height: 90vh; height: 90dvh; display: flex; flex-direction: column; padding-bottom: 0; }
+  .sheet:has(> .kt-body) > * { flex-shrink: 0; }
+  .sheet:has(> .kt-body) > .kt-body { flex: 1 1 0; }
+  .sheet:has(> .kt-body) > .sheet-head { margin-bottom: var(--sp-4); }
+  .kt-body {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch; overflow-anchor: none;
+    margin: 0 -22px; padding: 0 22px var(--sp-5);
+  }
+  .kt-search-btn {
+    flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: none; background: none;
+    color: var(--text-2); display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .kt-search-btn svg { width: 17px; height: 17px; display: block; }
+  .kt-search-btn[hidden] { display: none; }
   .kt-search {
     display: flex; align-items: center; gap: 10px; margin-bottom: var(--sp-3);
     background: var(--surface-2); border: 1px solid var(--line);
-    border-radius: var(--r-md); padding: 11px 13px;
+    border-radius: var(--r-md); padding: 0 6px 0 13px;
   }
-  .kt-search svg { width: 15px; height: 15px; color: var(--text-3); flex-shrink: 0; }
+  .kt-search[hidden] { display: none; }
+  .kt-search > svg { width: 15px; height: 15px; color: var(--text-3); flex-shrink: 0; }
   .kt-search input {
-    flex: 1; min-width: 0; background: none; border: none; outline: none;
-    font-family: var(--sans); font-size: 14px; color: var(--text);
+    flex: 1; min-width: 0; height: 42px; background: none; border: none; outline: none;
+    font-family: var(--sans); font-size: 15px; color: var(--text); -webkit-appearance: none; appearance: none;
   }
+  .kt-search input::-webkit-search-cancel-button { display: none; }
   .kt-search input::placeholder { color: var(--text-3); }
-  .kt-list { margin-bottom: var(--sp-3); }
-  .kt-row {
-    display: flex; align-items: center; gap: 12px; width: 100%;
-    padding: 13px 0; background: none; border: none;
-    border-bottom: 1px solid var(--line);
-    font-family: var(--sans); text-align: left; color: var(--text); cursor: pointer;
+  .kt-search-x {
+    flex-shrink: 0; width: 40px; height: 40px; border: none; background: none; border-radius: 50%;
+    color: var(--text-3); display: flex; align-items: center; justify-content: center; cursor: pointer;
   }
-  .kt-row:active { opacity: 0.6; }
-  .kt-check {
+  .kt-search-x svg { width: 13px; height: 13px; display: block; }
+  .kt-sec { margin-bottom: var(--sp-5); }
+  .kt-sec[hidden] { display: none; }
+  .kt-sec-head {
+    margin: 0 0 2px; font-family: var(--sans); font-size: 10.5px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-3);
+  }
+  .kt-body.searching .kt-sec-head { display: none; }
+  .kt-row { display: flex; align-items: center; border-bottom: 1px solid var(--line); }
+  .kt-row[hidden] { display: none; }
+  .kt-hit {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 13px;
+    min-height: 52px; padding: 9px 0; background: none; border: none; cursor: pointer;
+    font-family: var(--sans); text-align: left; color: var(--text);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .kt-hit:active .kt-text { opacity: 0.6; }
+  .kt-mark {
     flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
-    border: 1.5px solid var(--line-2); background: none;
-    display: flex; align-items: center; justify-content: center; color: transparent;
-    transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+    border: 1.5px solid var(--line-2); color: transparent;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
   }
-  .kt-check svg { width: 12px; height: 12px; display: block; }
-  .kt-row.sel .kt-check { background: var(--gold); border-color: var(--gold); color: var(--ink); }
-  .kt-row-title {
-    flex: 1; min-width: 0; font-size: 14.5px; line-height: 1.35;
-    background: none; border: none; padding: 0; cursor: pointer;
-    font-family: var(--sans); color: var(--text); text-align: left;
+  .kt-mark svg { width: 15px; height: 15px; display: block; transform: scale(0.6); transition: transform 0.18s cubic-bezier(.2,.9,.3,1.3); }
+  .kt-row.sel .kt-mark { border-color: transparent; color: var(--gold); }
+  .kt-row.sel .kt-mark svg { width: 19px; height: 19px; transform: scale(1); }
+  .kt-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; transition: opacity 0.16s ease; }
+  .kt-title { font-size: 14.5px; line-height: 1.35; color: var(--text); overflow-wrap: anywhere; }
+  .kt-meta { font-size: 11.5px; line-height: 1.3; color: var(--text-3); }
+  .kt-meta:empty { display: none; }
+  /* at three, the rest step back but still answer a tap with the reason */
+  .kt-row.capped .kt-mark, .kt-row.capped .kt-text { opacity: 0.4; }
+  .kt-more {
+    flex-shrink: 0; width: 40px; height: 44px; margin-right: -10px; border: none; background: none;
+    color: var(--text-3); display: flex; align-items: center; justify-content: center; cursor: pointer;
+    border-radius: 10px;
   }
-  .kt-row.sel .kt-row-title { color: var(--text); }
-  .kt-chip {
-    flex-shrink: 0; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--text-3); border: 1px solid var(--line); border-radius: 20px;
-    padding: 3px 9px;
+  .kt-more svg { width: 17px; height: 17px; display: block; }
+  .kt-more:active { background: var(--surface-2); }
+  /* the summary is just the three names; the rows below carry the detail */
+  #ktSelected .kt-row { border-bottom: none; }
+  #ktSelected .kt-hit { min-height: 44px; padding: 4px 0; }
+  #ktSelected .kt-meta { display: none; }
+  .kt-row.kt-enter { animation: kt-enter 0.22s cubic-bezier(.2,.8,.2,1); overflow: hidden; }
+  @keyframes kt-enter { from { max-height: 0; opacity: 0; } to { max-height: 64px; opacity: 1; } }
+  .kt-row.kt-flash .kt-title { animation: kt-flash 1.4s ease; }
+  @keyframes kt-flash { 0%, 30% { color: var(--gold); } 100% { color: var(--text); } }
+  .kt-empty { font-size: 13px; color: var(--text-3); padding: 12px 0 4px; margin: 0; }
+  .kt-empty[hidden], .kt-nomatch[hidden] { display: none; }
+  .kt-nomatch { font-size: 13.5px; color: var(--text-2); padding: 18px 0 6px; margin: 0; }
+  .kt-all {
+    display: inline-flex; align-items: center; gap: 6px; margin: 6px 0 0; padding: 8px 0;
+    background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--text-2);
   }
-  .kt-row[aria-disabled="true"] { opacity: 0.38; pointer-events: none; }
-  .kt-empty { font-size: 13px; color: var(--text-3); padding: 16px 0; text-align: center; }
+  .kt-all svg { width: 11px; height: 11px; display: block; opacity: 0.7; }
+  .kt-all[hidden] { display: none; }
+  .kt-new-btn {
+    display: inline-flex; align-items: center; padding: 10px 0; background: none; border: none; cursor: pointer;
+    font-family: var(--sans); font-size: 13.5px; font-weight: 500; color: var(--gold);
+  }
+  .kt-new-btn[hidden], .kt-new-field[hidden] { display: none; }
+  .kt-new-btn.capped, .kt-all.capped { opacity: 0.45; }
+  .kt-new-field { display: flex; align-items: center; gap: 12px; padding: 4px 0; }
+  .kt-new-field .aa-ring { width: 22px; height: 22px; border-width: 1.5px; }
+  .kt-new-field .aa-input { height: 44px; }
+  .kt-new-add {
+    flex-shrink: 0; padding: 8px 14px; border-radius: 20px; cursor: pointer;
+    background: rgba(var(--gold-rgb),0.14); border: none; box-shadow: inset 0 0 0 1px rgba(var(--gold-rgb),0.32);
+    font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--gold);
+  }
+  .kt-new-x {
+    flex-shrink: 0; width: 40px; height: 40px; margin: 0 -10px 0 -8px; border: none; background: none; border-radius: 50%;
+    color: var(--text-3); display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .kt-new-x svg { width: 13px; height: 13px; display: block; }
+  /* a quiet way out on the left, a compact confirmation on the right */
+  .kt-foot {
+    position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin: 0 -22px; padding: 12px 22px calc(14px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line); background: var(--surface);
+  }
+  .kt-none {
+    background: none; border: none; padding: 10px 0; cursor: pointer;
+    font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--text-2); letter-spacing: 0.01em;
+  }
+  .kt-none:active { opacity: 0.6; }
+  .kt-done {
+    min-width: 116px; padding: 11px 26px; border-radius: 24px; cursor: pointer;
+    background: rgba(var(--gold-rgb),0.15); border: none; box-shadow: inset 0 0 0 1px rgba(var(--gold-rgb),0.38);
+    font-family: var(--sans); font-size: 14px; font-weight: 600; letter-spacing: 0.01em; color: var(--gold);
+  }
+  .kt-done:active { background: rgba(var(--gold-rgb),0.24); }
+  .kt-cap {
+    position: absolute; left: 50%; bottom: calc(100% + 10px); margin: 0; transform: translate(-50%, 4px);
+    padding: 7px 14px; border-radius: 20px; white-space: nowrap; pointer-events: none;
+    background: var(--surface-2); border: 1px solid var(--line-2); box-shadow: var(--shadow-raised);
+    font-family: var(--sans); font-size: 12.5px; color: var(--text-2);
+    opacity: 0; transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  .kt-cap.show { opacity: 1; transform: translate(-50%, 0); }
+  @media (prefers-reduced-motion: reduce) {
+    .kt-mark, .kt-mark svg, .kt-cap, .kt-text { transition: none; }
+    .kt-row.kt-enter, .kt-row.kt-flash .kt-title { animation: none; }
+  }
   /* the quiet escape hatches in these sheets sit centred under the primary action */
-  #pmNoneBtn, #pmDoneBtn, #ktDoneBtn { display: block; width: 100%; text-align: center; }
+  #pmNoneBtn, #pmDoneBtn { display: block; width: 100%; text-align: center; }
   #pmNoneBtn { color: var(--text-3); font-size: 12.5px; padding-bottom: 4px; }
 
   /* ---- planned meals sheet ---- */
@@ -3585,6 +3681,9 @@
     .sheet-handle { display: none; }
     .sheet-actionbar { bottom: -28px; margin: var(--sp-5) -28px -28px; padding: 12px 28px 16px; }
     .sheet:has(> .dp-sec) { height: 100%; }
+    .sheet:has(> .kt-body) { height: 100%; padding-bottom: 0; }
+    .kt-body { margin: 0 -28px; padding: 0 28px var(--sp-5); }
+    .kt-foot { margin: 0 -28px; padding: 14px 28px 18px; }
     .sheet-actionbar.dp-footer { margin-top: auto; }
 
     /* ---- Today: one working surface ---- */
@@ -6672,8 +6771,8 @@
   // One plain action for a day, from a title alone: the remembered category, no other
   // detail. It lands at the end of both orderings by creation (the order hints are
   // sparse) and is edited like any action — tap the row for the full editor.
-  function createQuickAction(dateStr, title){
-    var item = {
+  function createQuickAction(dateStr, title, extra){
+    var item = Object.assign({
       id: uid(),
       date: dateStr,
       originalDate: dateStr,
@@ -6684,7 +6783,7 @@
       disruptionReason: null,
       category: qcLastCategory || 'work',
       createdAt: new Date().toISOString()
-    };
+    }, extra || {});
     commitments.push(item);   // optimistic, so the row appears before the save returns
     saveCommitment(item);
     return item;
@@ -7912,13 +8011,17 @@
 
   // Moving an item forward mutates the one record: no duplicate, and the history
   // it was written with stays attached to it.
-  function moveActionToDate(c, dateStr){
-    saveCommitment(Object.assign({}, c, {
+  // extra: anything the mover sets at the same time (choosing a key task sets isKeyTask)
+  function movedToDate(c, dateStr, extra){
+    return Object.assign({}, c, {
       originalDate: actionOriginalDate(c),
       date: dateStr,
       isKeyTask: c.isKeyTask && c.date === dateStr,
       movedFromBacklogAt: new Date().toISOString()
-    }));
+    }, extra || {});
+  }
+  function moveActionToDate(c, dateStr){
+    saveCommitment(movedToDate(c, dateStr));
   }
 
   var BK_PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>';
@@ -7959,12 +8062,14 @@
             '</span>'
           : '<button type="button" class="bk-btn gold" data-bk-today="' + c.id + '"' +
               (compact ? ' aria-label="' + addLabel + '" title="' + addLabel + '"' : '') + '>' +
-              BK_PLUS_SVG + (compact ? '' : (opts.longLabels ? addLabel : 'Add today')) +
+              (opts.pick ? STAR_SVG : BK_PLUS_SVG) + (compact ? '' : (opts.longLabels ? addLabel : 'Add today')) +
             '</button>') +
-        '<button type="button" class="bk-btn" data-bk-day="' + c.id + '"' +
-          (compact ? ' aria-label="' + dayLabel + '" title="' + dayLabel + '"' : '') + '>' +
-          UI_ICON.calendar + (compact ? '' : dayLabel) +
-        '</button>' +
+        // choosing a key task is one decision, so picking a day stays out of the way
+        (opts.pick ? '' :
+          '<button type="button" class="bk-btn" data-bk-day="' + c.id + '"' +
+            (compact ? ' aria-label="' + dayLabel + '" title="' + dayLabel + '"' : '') + '>' +
+            UI_ICON.calendar + (compact ? '' : dayLabel) +
+          '</button>') +
       '</span>' +
     '</div>';
   }
@@ -8049,8 +8154,11 @@
 
   // opts.targetDate: opened from Plan — "Add" moves the item onto that day instead of today.
   // opts.onClose: where to return. (Also used directly as a click handler, hence the guard.)
+  // opts.onPick(c): a selection context (key tasks) — tapping an item hands it back instead
+  // of moving it here; the caller does the move.
   function openBacklogSheet(opts){
-    opts = (opts && (opts.targetDate || opts.onClose)) ? opts : {};
+    opts = (opts && (opts.targetDate || opts.onClose || opts.onPick)) ? opts : {};
+    var pick = opts.onPick || null;
     var target = opts.targetDate || null;
     var targetLabel = target ? (target === todayStr() ? 'today' : shortDayLabel(target)) : null;
     editingId = null;
@@ -8105,7 +8213,7 @@
           '<button class="circ-btn" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button>' +
           '<div class="bk-sheet-center">' +
             '<div class="sheet-title">Backlog</div>' +
-            '<div class="sheet-sub">' + (target ? 'Move an unfinished task onto ' + targetLabel + '.' : 'Unfinished tasks from earlier days.') + '</div>' +
+            '<div class="sheet-sub">' + (pick ? 'Choose a key task for ' + targetLabel + '.' : target ? 'Move an unfinished task onto ' + targetLabel + '.' : 'Unfinished tasks from earlier days.') + '</div>' +
           '</div>' +
           '<div class="bk-sheet-quote"><span>Nothing falls through.</span><i></i></div>' +
         '</div>';
@@ -8156,7 +8264,7 @@
             '<div class="bk-group-rows' + (collapsed ? ' collapsed' : '') + '">' +
               g.items.map(function(c){
                 return backlogRowHtml(c, { check: true, longLabels: true, hideDate: bkSort === 'date', moved: !!bkJustMoved[c.id],
-                  addLabel: target ? 'Add to ' + targetLabel : null });
+                  pick: !!pick, addLabel: pick ? 'Make key task' : target ? 'Add to ' + targetLabel : null });
               }).join('') +
             '</div>' +
           '</div>';
@@ -8193,7 +8301,18 @@
           render();
         });
       });
-      wireBacklogRows(sheetEl, function(id){ bkJustMoved[id] = true; render(); }, target);
+      if (pick){
+        sheetEl.querySelectorAll('[data-bk-open], [data-bk-today]').forEach(function(el){
+          el.addEventListener('click', function(e){
+            e.stopPropagation();
+            var id = el.dataset.bkOpen || el.dataset.bkToday;
+            var c = commitments.find(function(x){ return x.id === id; });
+            if (c) pick(c);
+          });
+        });
+      } else {
+        wireBacklogRows(sheetEl, function(id){ bkJustMoved[id] = true; render(); }, target);
+      }
     }
 
     render();
@@ -9302,128 +9421,457 @@
   }
 
   // ---- step 2: key tasks. Ordinary actions flagged isKeyTask — no parallel task type. ----
-  function openKeyTasksSheet(dateStr){
+  // The sheet answers one question: which actions, up to three, matter most today.
+  // Today's actions and the Backlog are both candidates; choosing a Backlog item moves
+  // that same record onto the day. Making something new is its own explicit step, and
+  // search only ever narrows the lists — no input here both finds and creates. A tap
+  // updates its own rows in place, so the sheet never rebuilds under the finger.
+  var KT_BACKLOG_PREVIEW = 4;
+  var KT_SEARCH_MIN = 9;      // search appears only once the lists are long enough to need it
+  var ktSession = null;       // survives a trip to the editor or the full Backlog
+  var KT_MORE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5.5" cy="12" r="1.55"/><circle cx="12" cy="12" r="1.55"/><circle cx="18.5" cy="12" r="1.55"/></svg>';
+
+  function ktDayActions(dateStr){
+    return sortByOrderHint(commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; }),
+      dayActionOrder(dateStr));
+  }
+
+  // resume: coming back from the editor or the full Backlog — same lists, same scroll
+  function openKeyTasksSheet(dateStr, resume){
     editingId = null;
-    var query = '';
+    var withBacklog = dateStr >= todayStr();   // the Backlog moves work forward, never back
+    var s = (resume && ktSession && ktSession.dateStr === dateStr) ? ktSession : null;
+    if (!s){
+      // which section a row belongs to is fixed when the sheet opens, so a chosen
+      // Backlog item keeps its place instead of jumping into Today
+      s = ktSession = {
+        dateStr: dateStr,
+        todayIds: ktDayActions(dateStr).map(function(c){ return c.id; }),
+        backlogIds: withBacklog ? backlogActions().map(function(c){ return c.id; }) : [],
+        moved: {},            // id -> what a Backlog item was before it was chosen here
+        scroll: 0, query: '', searchOpen: false, newOpen: false, newText: ''
+      };
+    }
+    var capTimer = null;
+    var quiet = false;        // this sheet's own writes repaint it themselves
+
+    function find(id){ return commitments.find(function(x){ return x.id === id; }) || null; }
+    function keys(){ return sortByOrderHint(getKeyTasks(dateStr), dayActionOrder(dateStr)); }
+    function el(id){ return document.getElementById(id); }
+
+    // a record that went away drops out; one that arrived for the day joins Today
+    function reconcile(){
+      s.todayIds = s.todayIds.filter(function(id){ var c = find(id); return c && c.date === dateStr && c.category !== 'roadblock'; });
+      s.backlogIds = s.backlogIds.filter(function(id){
+        var c = find(id);
+        return c && (isBacklogAction(c) || (s.moved[id] && c.date === dateStr));
+      });
+      Object.keys(s.moved).forEach(function(id){ if (s.backlogIds.indexOf(id) === -1) delete s.moved[id]; });
+      ktDayActions(dateStr).forEach(function(c){
+        if (s.todayIds.indexOf(c.id) === -1 && s.backlogIds.indexOf(c.id) === -1) s.todayIds.push(c.id);
+      });
+    }
+
+    function rowHtml(id, where){
+      return '<div class="kt-row" data-kt-row="' + id + '" data-kt-where="' + where + '">' +
+        '<button type="button" class="kt-hit" data-kt-toggle="' + id + '" aria-pressed="false">' +
+          '<span class="kt-mark" aria-hidden="true">' + STAR_SVG + '</span>' +
+          '<span class="kt-text"><span class="kt-title"></span><span class="kt-meta"></span></span>' +
+        '</button>' +
+        (where === 'sel' ? '' :
+          '<button type="button" class="kt-more" data-kt-open="' + id + '" aria-label="Action details">' + KT_MORE_SVG + '</button>') +
+      '</div>';
+    }
+
+    function searching(){ return s.searchOpen && !!s.query.trim(); }
+
+    function metaFor(c, where){
+      var cat = categoryLabel(c.category);
+      var bits;
+      if (where === 'backlog' && s.moved[c.id]){
+        bits = searching() ? ['Today', cat, 'from Backlog'] : ['Moved to today', cat];
+      } else if (where === 'backlog'){
+        bits = [cat, addedLabel(actionOriginalDate(c))];
+        if (searching()) bits.unshift('Backlog');
+      } else {
+        bits = [cat];
+        if (actionTime(c)) bits.push(actionTime(c));
+        if (c.status === 'completed') bits.push('Done');
+        if (searching()) bits.unshift('Today');
+      }
+      return bits.filter(function(x){ return !!x; }).join(' · ');
+    }
+
+    function subText(){
+      var n = keyTaskCount(dateStr);
+      var plan = getPlanForDate(dateStr);
+      var reviewed = !!(plan && plan.morningPrime && plan.morningPrime.keysReviewedAt);
+      return n === 0 && reviewed ? 'None selected' : 'Up to three for today · ' + n + ' of ' + KEY_TASK_MAX;
+    }
 
     function build(){
-      var all = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
-      var q = query.trim().toLowerCase();
-      var shown = q ? all.filter(function(c){ return (c.title || '').toLowerCase().indexOf(q) > -1; }) : all;
-      var selected = all.filter(function(c){ return c.isKeyTask; }).length;
-      var atCap = selected >= KEY_TASK_MAX;
-      var exact = all.some(function(c){ return (c.title || '').trim().toLowerCase() === q; });
-
+      var many = s.todayIds.length + s.backlogIds.length >= KT_SEARCH_MIN;
       return '<div class="sheet-handle"></div>' +
-        sheetHead(UI_ICON.list, 'Choose your key tasks', 'Up to three for today \u00b7 ' + selected + ' of ' + KEY_TASK_MAX, '') +
-        '<div class="kt-search">' + UI_ICON.search +
-          '<input type="text" id="ktSearch" placeholder="Search or add action…" autocomplete="off">' +
+        sheetHead(UI_ICON.list, 'Choose your key tasks', subText(), '') +
+        (many ? '<button type="button" class="kt-search-btn" id="ktSearchBtn" aria-label="Search actions" aria-expanded="false">' + UI_ICON.search + '</button>' : '') +
+        '<div class="kt-search" id="ktSearchBar" hidden>' + UI_ICON.search +
+          '<input type="search" id="ktSearch" placeholder="Find an action" enterkeyhint="search" autocomplete="off" aria-label="Find an action">' +
+          '<button type="button" class="kt-search-x" id="ktSearchClose" aria-label="Close search">' + CLOSE_SVG + '</button>' +
         '</div>' +
-        '<div class="kt-list">' +
-          (shown.length
-            ? shown.map(function(c){
-                var sel = !!c.isKeyTask;
-                var cat = QUICK_CAPTURE_CATEGORY_MAP[c.category];
-                return '<div class="kt-row' + (sel ? ' sel' : '') + '"' + (!sel && atCap ? ' aria-disabled="true"' : '') + '>' +
-                  '<button type="button" class="kt-check" data-kt-toggle="' + c.id + '"' +
-                    ' aria-pressed="' + (sel ? 'true' : 'false') + '" aria-label="' + (sel ? 'Remove key task' : 'Make key task') + '">' + CHECK_SVG + '</button>' +
-                  '<button type="button" class="kt-row-title" data-kt-toggle="' + c.id + '"></button>' +
-                  (cat ? '<span class="kt-chip">' + cat.label + '</span>' : '') +
-                  '<button type="button" class="chev" data-kt-open="' + c.id + '" aria-label="Edit action">' + UI_ICON.chevronRight + '</button>' +
-                '</div>';
-              }).join('')
-            : '<div class="kt-empty">' + (q ? 'No matching action' : 'No actions for this day yet') + '</div>') +
+        '<div class="kt-body" id="ktBody">' +
+          '<section class="kt-sec" id="ktSelSec"><h3 class="kt-sec-head">Selected</h3><div id="ktSelected"></div></section>' +
+          '<section class="kt-sec" id="ktTodaySec"><h3 class="kt-sec-head">Today</h3>' +
+            '<div id="ktToday">' + s.todayIds.map(function(id){ return rowHtml(id, 'today'); }).join('') + '</div>' +
+            '<p class="kt-empty" id="ktTodayEmpty">No actions yet</p>' +
+          '</section>' +
+          (withBacklog
+            ? '<section class="kt-sec" id="ktBacklogSec"><h3 class="kt-sec-head">Backlog · <span id="ktBkCount"></span></h3>' +
+                '<div id="ktBacklog">' + s.backlogIds.map(function(id){ return rowHtml(id, 'backlog'); }).join('') + '</div>' +
+                '<button type="button" class="kt-all" id="ktAllBtn">View all backlog' + UI_ICON.chevronRight + '</button>' +
+              '</section>'
+            : '') +
+          '<p class="kt-nomatch" id="ktNoMatch" hidden>No matching actions</p>' +
+          '<div class="kt-new">' +
+            '<button type="button" class="kt-new-btn" id="ktNewBtn">+ New action</button>' +
+            '<div class="kt-new-field" id="ktNewField" hidden>' +
+              '<span class="aa-ring" aria-hidden="true"></span>' +
+              '<input type="text" id="ktNewInput" class="aa-input" placeholder="What needs doing?" enterkeyhint="done" autocomplete="off" aria-label="New action" maxlength="200">' +
+              '<button type="button" class="kt-new-add" id="ktNewAdd">Add</button>' +
+              '<button type="button" class="kt-new-x" id="ktNewClose" aria-label="Cancel new action">' + CLOSE_SVG + '</button>' +
+            '</div>' +
+          '</div>' +
         '</div>' +
-        (q && !exact
-          ? '<button type="button" class="add-exercise-btn" id="ktAddBtn">+ Add new action</button>'
-          : '<button type="button" class="add-exercise-btn" id="ktAddBtn">+ Add new action</button>') +
-        (atCap ? '<p class="mp-hint">Three is the limit — deselect one to swap it out.</p>' : '') +
-        // Done is the decision, whatever the count; "none" is an answer, not a gap
-        '<button type="button" class="btn-primary kt-done" id="ktDoneBtn">Done</button>' +
-        '<button type="button" class="btn-link kt-none" id="ktNoneBtn">No key tasks today</button>';
+        '<div class="kt-foot">' +
+          '<p class="kt-cap" id="ktCap" role="status" aria-live="polite"></p>' +
+          '<button type="button" class="kt-none" id="ktNoneBtn">No key tasks today</button>' +
+          '<button type="button" class="kt-done" id="ktDoneBtn">Done</button>' +
+        '</div>';
+    }
+
+    function paintRow(row){
+      var c = find(row.dataset.ktRow);
+      if (!c) return;
+      var where = row.dataset.ktWhere;
+      var sel = c.date === dateStr && !!c.isKeyTask;
+      var capped = !sel && keyTaskCount(dateStr) >= KEY_TASK_MAX;
+      row.classList.toggle('sel', sel);
+      row.classList.toggle('capped', capped);
+      var hit = row.querySelector('.kt-hit');
+      hit.setAttribute('aria-pressed', sel ? 'true' : 'false');
+      if (capped) hit.setAttribute('aria-disabled', 'true'); else hit.removeAttribute('aria-disabled');
+      row.querySelector('.kt-title').textContent = c.title;    // user content — text only
+      var meta = row.querySelector('.kt-meta');
+      if (meta) meta.textContent = where === 'sel' ? metaFor(c, s.moved[c.id] ? 'backlog' : 'today') : metaFor(c, where);
+    }
+
+    // The Selected summary keeps its existing rows and only adds or removes the one that
+    // changed. Returns the rows it added, so a caller can ease them in.
+    function paintSelected(){
+      var box = el('ktSelected');
+      var want = keys().map(function(c){ return c.id; });
+      var have = {};
+      Array.prototype.slice.call(box.children).forEach(function(r){
+        if (want.indexOf(r.dataset.ktRow) === -1) box.removeChild(r);
+        else have[r.dataset.ktRow] = r;
+      });
+      var added = [];
+      want.forEach(function(id){
+        var r = have[id];
+        if (!r){
+          var tmp = document.createElement('div');
+          tmp.innerHTML = rowHtml(id, 'sel');
+          r = tmp.firstChild;
+          added.push(r);
+        }
+        box.appendChild(r);   // appending an existing node only reorders it
+      });
+      el('ktSelSec').hidden = !want.length || searching();
+      return added;
+    }
+
+    function applySearch(){
+      var q = searching() ? s.query.trim().toLowerCase() : '';
+      var body = el('ktBody');
+      body.classList.toggle('searching', !!q);
+      var any = false;
+      ['ktToday', 'ktBacklog'].forEach(function(boxId){
+        var box = el(boxId);
+        if (!box) return;
+        var shown = 0;
+        Array.prototype.slice.call(box.children).forEach(function(r, i){
+          var c = find(r.dataset.ktRow);
+          var hide;
+          if (q) hide = !c || (c.title || '').toLowerCase().indexOf(q) === -1;
+          // the Backlog shows its oldest few; anything chosen from further down stays in view
+          else hide = boxId === 'ktBacklog' && i >= KT_BACKLOG_PREVIEW && !s.moved[r.dataset.ktRow];
+          r.hidden = hide;
+          if (!hide) shown++;
+        });
+        if (q) box.parentNode.hidden = !shown;
+        any = any || shown > 0;
+      });
+      var todaySec = el('ktTodaySec');
+      if (!q) todaySec.hidden = false;
+      el('ktTodayEmpty').hidden = !!q || s.todayIds.length > 0;
+      var bkSec = el('ktBacklogSec');
+      if (bkSec){
+        var live = backlogActions().length;
+        el('ktBkCount').textContent = live;
+        if (!q) bkSec.hidden = !s.backlogIds.length;
+        el('ktAllBtn').hidden = !!q || live <= s.backlogIds.filter(function(id, i){
+          return i < KT_BACKLOG_PREVIEW && !s.moved[id];
+        }).length;
+      }
+      el('ktNoMatch').hidden = !q || any;
+      el('ktSelSec').hidden = !!q || !keyTaskCount(dateStr);
+    }
+
+    function paintAll(){
+      sheetEl.querySelectorAll('[data-kt-row]').forEach(paintRow);
+      var added = paintSelected();
+      added.forEach(paintRow);
+      applySearch();
+      var sub = sheetEl.querySelector('.sheet-sub');
+      if (sub) sub.textContent = subText();
+      var atCap = keyTaskCount(dateStr) >= KEY_TASK_MAX;
+      el('ktNewBtn').classList.toggle('capped', atCap);
+      var all = el('ktAllBtn');
+      if (all) all.classList.toggle('capped', atCap);
+      return added;
+    }
+
+    function capNote(){
+      var note = el('ktCap');
+      note.textContent = '';
+      note.classList.add('show');
+      setTimeout(function(){ note.textContent = 'Choose up to three'; }, 30);
+      clearTimeout(capTimer);
+      capTimer = setTimeout(function(){ note.classList.remove('show'); }, 2400);
+    }
+
+    // optimistic: the local list changes first, so the rows answer the tap immediately
+    function commit(rec){
+      var i = commitments.findIndex(function(x){ return x.id === rec.id; });
+      if (i > -1) commitments[i] = rec;
+      saveCommitment(rec);
+    }
+    // a chosen Backlog item takes the last place in the day's action order
+    function appendToOrder(id){
+      var ids = ktDayActions(dateStr).map(function(c){ return c.id; }).filter(function(x){ return x !== id; });
+      saveActionOrder(dateStr, ids.concat(id));
+    }
+    function dropFromOrder(id){
+      var order = dayActionOrder(dateStr);
+      if (order.indexOf(id) > -1) saveActionOrder(dateStr, order.filter(function(x){ return x !== id; }));
+    }
+
+    var MOVE_FIELDS = ['date', 'originalDate', 'isKeyTask', 'movedFromBacklogAt'];
+    // returns false at the limit
+    function select(c){
+      if (keyTaskCount(dateStr) >= KEY_TASK_MAX) return false;
+      if (c.date === dateStr){ commit(Object.assign({}, c, { isKeyTask: true })); return true; }
+      var before = {};
+      MOVE_FIELDS.forEach(function(k){ if (Object.prototype.hasOwnProperty.call(c, k)) before[k] = c[k]; });
+      s.moved[c.id] = before;
+      commit(movedToDate(c, dateStr, { isKeyTask: true }));
+      appendToOrder(c.id);
+      return true;
+    }
+    // Un-choosing something this sheet just pulled from the Backlog puts it back where it
+    // was — choosing a key task should not quietly leave a moved action behind.
+    function deselect(c){
+      var before = s.moved[c.id];
+      if (!before){ commit(Object.assign({}, c, { isKeyTask: false })); return; }
+      var rec = Object.assign({}, c);
+      MOVE_FIELDS.forEach(function(k){ if (k in before) rec[k] = before[k]; else delete rec[k]; });
+      delete s.moved[c.id];
+      commit(rec);
+      dropFromOrder(c.id);
+    }
+
+    // Keep the tapped row where it was on screen. When the list is too short to scroll,
+    // a new Selected row eases open instead.
+    function keepInPlace(anchor, change){
+      var body = el('ktBody');
+      var top = anchor && anchor.isConnected ? anchor.getBoundingClientRect().top : null;
+      var added = change() || [];
+      if (top == null || !anchor.isConnected) return;
+      var delta = anchor.getBoundingClientRect().top - top;
+      if (!delta) return;
+      var want = body.scrollTop + delta;
+      if (want >= 0 && want <= body.scrollHeight - body.clientHeight) body.scrollTop = want;
+      else added.forEach(function(r){ r.classList.add('kt-enter'); });
+    }
+
+    function quietly(fn){
+      quiet = true;
+      try { fn(); } finally { quiet = false; }
+    }
+
+    function toggle(id, anchor){
+      var c = find(id);
+      if (!c) return;
+      if (c.date === dateStr && c.isKeyTask){
+        keepInPlace(anchor, function(){ quietly(function(){ deselect(c); }); return paintAll(); });
+      } else if (keyTaskCount(dateStr) >= KEY_TASK_MAX){
+        capNote();
+      } else {
+        keepInPlace(anchor, function(){ quietly(function(){ select(c); }); return paintAll(); });
+      }
+    }
+
+    // the editor and the full Backlog come back here, with the lists, scroll and any
+    // half-typed new action as they were
+    function leave(){
+      s.scroll = el('ktBody').scrollTop;
+      s.newText = el('ktNewInput').value;
+    }
+    function reopen(){ openKeyTasksSheet(dateStr, true); }
+
+    function setNewOpen(open, focus){
+      s.newOpen = open;
+      el('ktNewBtn').hidden = open;
+      el('ktNewField').hidden = !open;
+      if (open && focus){
+        var input = el('ktNewInput');
+        input.focus({ preventScroll: true });
+        el('ktNewField').scrollIntoView({ block: 'nearest' });
+      }
+    }
+    function addNew(){
+      var input = el('ktNewInput');
+      var title = input.value.trim();
+      if (!title){ input.focus(); return; }
+      var atCap = keyTaskCount(dateStr) >= KEY_TASK_MAX;
+      var c;
+      quietly(function(){ c = createQuickAction(dateStr, title, atCap ? null : { isKeyTask: true }); });
+      input.value = '';
+      s.newText = '';
+      s.todayIds.push(c.id);
+      var tmp = document.createElement('div');
+      tmp.innerHTML = rowHtml(c.id, 'today');
+      var row = tmp.firstChild;
+      el('ktToday').appendChild(row);
+      wireRow(row);
+      setNewOpen(false);
+      paintAll();
+      row.classList.add('kt-flash');
+      if (atCap) capNote();
+    }
+
+    function setSearchOpen(open){
+      s.searchOpen = open;
+      if (!open) s.query = '';
+      el('ktSearchBar').hidden = !open;
+      var btn = el('ktSearchBtn');
+      if (btn){ btn.hidden = open; btn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+      var input = el('ktSearch');
+      input.value = s.query;
+      if (open) input.focus({ preventScroll: true });
+      paintAll();
+    }
+
+    function wireRow(row){
+      row.querySelector('.kt-hit').addEventListener('click', function(){ toggle(row.dataset.ktRow, row); });
+      var more = row.querySelector('.kt-more');
+      if (more) more.addEventListener('click', function(e){
+        e.stopPropagation();
+        var c = find(row.dataset.ktRow);
+        if (!c) return;
+        leave();
+        openCommitmentSheet(c, { onDone: reopen });
+      });
     }
 
     function render(){
-      var focusVal = query;
+      reconcile();
       sheetEl.innerHTML = build();
-      // titles are user content — set as text
-      commitments.filter(function(c){ return c.date === dateStr; }).forEach(function(c){
-        sheetEl.querySelectorAll('.kt-row-title[data-kt-toggle="' + c.id + '"]').forEach(function(el){ el.textContent = c.title; });
+      // the search control sits in the header, beside close
+      var sbtn = el('ktSearchBtn');
+      if (sbtn) sheetEl.querySelector('.sheet-head').insertBefore(sbtn, el('sheetCloseBtn'));
+      sheetEl.querySelectorAll('[data-kt-row]').forEach(wireRow);
+      // a Selected row deselects; the row it mirrors stays put
+      el('ktSelected').addEventListener('click', function(e){
+        var hit = e.target.closest('.kt-hit');
+        if (hit) toggle(hit.dataset.ktToggle, null);
       });
-      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
-      document.getElementById('ktDoneBtn').addEventListener('click', function(){ markReviewed(); });
-      document.getElementById('ktNoneBtn').addEventListener('click', function(){
-        var keys = getKeyTasks(dateStr);
-        if (keys.length && !confirm('Clear ' + (keys.length === 1 ? 'the key task' : 'all ' + keys.length + ' key tasks') +
-            ' for today?\n\nThe actions stay on the day; they just stop being key tasks.')) return;
-        keys.forEach(function(c){ setKeyTask(c, false); });
+      el('sheetCloseBtn').addEventListener('click', function(){ ktSession = null; closeSheet(); });
+      el('ktDoneBtn').addEventListener('click', function(){ markReviewed(); });
+      el('ktNoneBtn').addEventListener('click', function(){
+        var ks = getKeyTasks(dateStr);
+        if (ks.length && !confirm('Clear ' + (ks.length === 1 ? 'the key task' : 'all ' + ks.length + ' key tasks') +
+            ' for today?\n\nThe actions stay where they are; they just stop being key tasks.')) return;
+        quietly(function(){ ks.forEach(deselect); });
         markReviewed();
       });
-
-      var search = document.getElementById('ktSearch');
-      search.value = focusVal;
-      search.addEventListener('input', function(){ query = search.value; render(); document.getElementById('ktSearch').focus(); });
+      if (sbtn) sbtn.addEventListener('click', function(){ setSearchOpen(true); });
+      el('ktSearchClose').addEventListener('click', function(){ setSearchOpen(false); });
+      var search = el('ktSearch');
+      search.addEventListener('input', function(){ s.query = search.value; paintAll(); });
       search.addEventListener('keydown', function(e){
-        if (e.key === 'Enter' && search.value.trim()){ e.preventDefault(); addNewKeyTask(); }
+        if (e.key === 'Enter'){ e.preventDefault(); search.blur(); }     // search never creates
+        if (e.key === 'Escape'){ e.preventDefault(); setSearchOpen(false); }
+      });
+      el('ktNewBtn').addEventListener('click', function(){
+        if (keyTaskCount(dateStr) >= KEY_TASK_MAX){ capNote(); return; }
+        setNewOpen(true, true);
+      });
+      el('ktNewClose').addEventListener('click', function(){ el('ktNewInput').value = ''; s.newText = ''; setNewOpen(false); });
+      el('ktNewAdd').addEventListener('click', addNew);
+      el('ktNewInput').addEventListener('keydown', function(e){
+        if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addNew(); }
+        if (e.key === 'Escape'){ e.preventDefault(); el('ktNewClose').click(); }
+      });
+      var all = el('ktAllBtn');
+      if (all) all.addEventListener('click', function(){
+        if (keyTaskCount(dateStr) >= KEY_TASK_MAX){ capNote(); return; }
+        leave();
+        openBacklogSheet({ targetDate: dateStr, onClose: reopen, onPick: function(c){
+          if (keyTaskCount(dateStr) < KEY_TASK_MAX){
+            if (s.backlogIds.indexOf(c.id) === -1) s.backlogIds.push(c.id);
+            quietly(function(){ select(c); });
+          }
+          reopen();
+        } });
       });
 
-      sheetEl.querySelectorAll('[data-kt-toggle]').forEach(function(el){
-        el.addEventListener('click', function(){ toggleKeyTask(el.dataset.ktToggle); });
-      });
-      sheetEl.querySelectorAll('[data-kt-open]').forEach(function(el){
-        el.addEventListener('click', function(e){
-          e.stopPropagation();
-          var c = commitments.find(function(x){ return x.id === el.dataset.ktOpen; });
-          if (c) openCommitmentSheet(c);
-        });
-      });
-      document.getElementById('ktAddBtn').addEventListener('click', function(){
-        if (query.trim()) addNewKeyTask();
-        else document.getElementById('ktSearch').focus();
-      });
+      el('ktNewInput').value = s.newText;
+      setNewOpen(s.newOpen, false);
+      el('ktSearch').value = s.query;
+      el('ktSearchBar').hidden = !s.searchOpen;
+      if (sbtn) sbtn.hidden = s.searchOpen;
+      paintAll();
+      el('ktBody').scrollTop = s.scroll;
+    }
+
+    // a save elsewhere (or the other device) refreshes the rows in place; only a change
+    // in who is on the lists rebuilds them
+    function refresh(){
+      if (quiet || !el('ktBody')) return;
+      var sig = s.todayIds.join('|') + '#' + s.backlogIds.join('|');
+      reconcile();
+      if (sig !== s.todayIds.join('|') + '#' + s.backlogIds.join('|')){
+        s.scroll = el('ktBody').scrollTop;
+        s.newText = el('ktNewInput').value;
+        render();
+      } else {
+        paintAll();
+      }
     }
 
     // closing with × changes nothing; Done (or "none") is what Morning Prime counts
     async function markReviewed(){
+      ktSession = null;
       closeSheet();
       await patchMorningPrime(dateStr, { keysReviewedAt: new Date().toISOString() });
       renderMorningPrime();
     }
 
-    function toggleKeyTask(id){
-      var c = commitments.find(function(x){ return x.id === id; });
-      if (!c) return;
-      setKeyTask(c, !c.isKeyTask);
-      render();
-    }
-
-    // creates a normal Ledger action for the day, then marks it as a key task
-    function addNewKeyTask(){
-      var text = query.trim();
-      if (!text) return;
-      var selected = commitments.filter(function(x){ return x.date === dateStr && x.isKeyTask && x.category !== 'roadblock'; }).length;
-      var item = {
-        id: uid(),
-        date: dateStr,
-        originalDate: dateStr,
-        title: text,
-        priorityId: null,
-        minVersion: null,
-        status: 'planned',
-        disruptionReason: null,
-        category: qcLastCategory || 'work',
-        isKeyTask: selected < 3,
-        createdAt: new Date().toISOString()
-      };
-      commitments.push(item);           // optimistic, so the sheet reflects it immediately
-      saveCommitment(item);
-      query = '';
-      render();
-    }
-
     render();
     backdrop.classList.add('open');
-    activeSheetRefresh = render;
+    el('ktBody').scrollTop = s.scroll;   // only once the sheet has a layout to scroll
+    activeSheetRefresh = refresh;
+    if (s.newOpen) setTimeout(function(){ if (el('ktNewInput')) el('ktNewInput').focus({ preventScroll: true }); }, 60);
   }
 
   // ---- step 3: intention ----

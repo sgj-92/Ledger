@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-04 (Last 7 days matrix; Weight detail with 7-day average; Steps; Challenge Zone)
+Last updated: 2026-10-05 (Choose your key tasks sheet redesigned: Today + Backlog, separate New action)
 
 ---
 
@@ -56,7 +56,9 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   to "Completed at HH:MM" once both are complete. Stored as `plan.morningPrime`;
   manual ticks in `plan.morningPrime.checks[section]`. Key tasks are up to three:
   Done in the Key Tasks sheet sets `morningPrime.keysReviewedAt` and completes the
-  step at 0–3 ("None today", "2 selected"). Any step can be **skipped for the day**
+  step at 0–3 ("None today", "2 selected"). The sheet lists Selected, Today and a
+  Backlog preview (oldest four, "View all backlog"); choosing a Backlog item moves
+  that record to today; "+ New action" is the only way to create. Any step can be **skipped for the day**
   ("Skip a step for today" in the expanded card, then Skip per open step; Undo on the
   row): `morningPrime.skipped[itemId] = { at, reason }`. Skipped is resolved but not
   evidence — a dash and "Skipped today", never the gold check — and real evidence
@@ -399,6 +401,30 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-05 — Choosing key tasks is one question; the Backlog is a source
+**Decision:** the "Choose your key tasks" sheet answers only which actions (up to
+three) are key today. Sections: Selected (shown only when any are), Today, Backlog
+(count, oldest four, "View all backlog"), then "+ New action". The whole row
+selects/deselects (○ → gold ★); a separate ⋯ opens the Action editor. Choosing a
+Backlog item moves the same record to today with the existing move fields
+(`originalDate` kept, `movedFromBacklogAt`, all links/metadata kept) plus
+`isKeyTask: true`, and appends it to today's `actionOrder`; it stays in the Backlog
+section as "Moved to today" for the session. Un-choosing an item the sheet just
+moved puts it back (date, flags, order) — choosing a key task never leaves a stray
+move. "+ New action" is the only creating control ("What needs doing?", Return or
+Add, marked key). Search is an icon shown only at 9+ candidates; it filters both
+lists, labels each result's source, and never creates. At three, the rest mute and
+a tap shows a quiet "Choose up to three". Done only sets `keysReviewedAt`; "No key
+tasks today" (confirm only when some are selected) clears and reviews. The full
+Backlog opens in a selection context ("Make key task", no day picker) and returns
+with the sheet's lists, scroll and any half-typed new action intact.
+**Why:** one input that both searched and created, Today-only candidates and a
+heavy checkout button made a small daily decision feel like data entry.
+**Implications:** no new record type; key tasks remain Actions with `isKeyTask`.
+`moveActionToDate` now shares `movedToDate(c, date, extra)`; `createQuickAction`
+takes an optional patch. The sheet is fixed height with an internal scroller and
+updates rows in place, so taps and the keyboard do not move it.
 
 ### 2026-10-04 — Evidence matrix, weight trend, Steps and a Challenge Zone
 **Decision:** Progress's **Last 7 days** is a rolling Training / Weight / Nutrition
@@ -1156,6 +1182,10 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-05) — "Choose your key tasks" redesign: Selected / Today / Backlog
+  sections, whole-row selection with a separate details control, Backlog items
+  moved (not copied) to today, separate "+ New action", search only for long
+  lists, quiet three-limit note, refined footer, selection-mode full Backlog.
 - (2026-10-04) — Progress/Health expansion: Last 7 days T/W/N matrix, Weight detail
   (actual + 7-day average, periods, summary strip, weekly check-in, compact list),
   manual daily Steps (Quick Log, Today, Calendar, Progress, detail, Focus, Handoff),
