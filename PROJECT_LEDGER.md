@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-05 (Challenge daily tasks: steps linked to Steps, counts, yes/no; logged per day)
+Last updated: 2026-10-05 (Challenge tasks: optional daily Actions; scoped add/edit/remove)
 
 ---
 
@@ -404,6 +404,34 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-05 — Challenge tasks can be Actions; changes are scoped
+**Decision (Shaun's request):** a challenge task can optionally **also be an Action**
+(`asAction`), so it sits in the day's Actions and Flow. Adding a task asks **Just
+today** or **Every day from today** (`fromDate`/`untilDate` on the task; a task
+added mid-challenge leaves earlier days as they were). Editing or removing asks
+**Just this day** (an exception on that day's plan:
+`plan.challengeTaskEdits[challengeId][taskId]`), **From this day on** (a version on
+the task, `versions: [{ from, patch }]`; removal sets `untilDate`) or **Every day
+of the challenge** (the base, earlier days included and judged by it). The newest
+instruction wins: from-on and every-day clear the edited fields from one-day
+exceptions they cover. The type is fixed once a task is made. A day's Action is
+made when that day is opened (Today, or a later day's Day Plan / day pane) — never
+for past days, never the whole challenge in advance — with a fixed id per task and
+day (`cz-<challenge>-<task>-<date>`, created only if absent), and the day's plan
+remembers it (`plan.challengeActions`) so one deleted by hand is not remade.
+Completing the Action counts a count or yes/no as met ("done in Actions"); steps
+stay evidence-only. Logging in the challenge keeps the Action in step (met
+completes it, dropping below target reopens it); its Log button opens the
+challenge's own log. Open Actions follow later edits (retitled unless renamed by
+hand; removed when the task or its Action option goes); completed ones are kept.
+**Why:** the challenge's daily asks need to be ordered with the rest of the day,
+and a target or task often changes for a day or from a day without rewriting
+history.
+**Implications:** supersedes "a changed target applies to every day" in the
+previous entry — that is now the explicit Every-day choice. Days complete counts
+only days that had tasks. Ending, cancelling or re-dating the challenge removes
+its open Actions from today on.
 
 ### 2026-10-05 — A challenge can carry daily tasks
 **Decision (Shaun's request; supersedes "time container only — no rules yet"):** a
@@ -1205,6 +1233,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-05) — Challenge tasks as optional daily Actions (Today, Flow, Day Plan),
+  and scoped add (just today / from today) and edit/remove (just this day / from
+  this day on / every day), with one-day exceptions shown and restorable.
 - (2026-10-05) — Challenge daily tasks: detail sheet (tasks for today or an earlier
   day, last seven days, days complete), add/edit/remove tasks, count log with
   quick-add, steps linked to the Steps record, Today pills, Progress tile line,

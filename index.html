@@ -1360,6 +1360,42 @@
   .cz-kind-note { margin: -4px 0 var(--sp-4); font-size: 12px; color: var(--text-3); min-height: 16px; }
   .cz-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 var(--sp-5); }
   #czTargetRow[hidden], #czUnitField[hidden] { display: none; }
+  .cz-task.off .cz-task-title, .cz-task.off .cz-task-meta { color: var(--text-3); }
+  .cz-task.off .cz-task-mark { border-style: dashed; }
+  .cz-task.off .cz-task-hit { cursor: default; }
+  /* "also an Action": a quiet switch row */
+  .cz-opt {
+    display: flex; align-items: flex-start; gap: 12px; width: 100%; margin: 0 0 var(--sp-5); padding: 12px 14px;
+    border: 1px solid var(--line); border-radius: var(--r-md); background: none; cursor: pointer;
+    font-family: var(--sans); text-align: left; color: var(--text);
+  }
+  .cz-opt-box {
+    flex-shrink: 0; width: 22px; height: 22px; margin-top: 1px; border-radius: 6px; border: 1.5px solid var(--line-2);
+    box-sizing: border-box; display: flex; align-items: center; justify-content: center; color: transparent;
+  }
+  .cz-opt-box svg { width: 12px; height: 12px; display: block; }
+  .cz-opt.on { border-color: rgba(var(--gold-rgb),0.4); }
+  .cz-opt.on .cz-opt-box { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .cz-opt-text, .cz-scope-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .cz-opt-title, .cz-scope-label { font-size: 14px; font-weight: 500; }
+  .cz-opt-sub, .cz-scope-sub { font-size: 12px; line-height: 1.4; color: var(--text-3); }
+  /* where a change applies: one choice, spelled out */
+  .cz-scopes { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+  .cz-scope {
+    display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: none; background: none; cursor: pointer;
+    font-family: var(--sans); text-align: left; color: var(--text);
+  }
+  .cz-scope + .cz-scope { border-top: 1px solid var(--line); }
+  .cz-scope.sel { background: rgba(var(--gold-rgb),0.07); }
+  .cz-scope-dot {
+    flex-shrink: 0; width: 18px; height: 18px; margin-top: 1px; border-radius: 50%; border: 1.5px solid var(--line-2); box-sizing: border-box;
+  }
+  .cz-scope.sel .cz-scope-dot { border: 5px solid var(--gold); }
+  .cz-offday {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    margin: 0 0 var(--sp-4); padding: 10px 14px; border-radius: var(--r-md); background: var(--surface-2);
+    font-size: 13px; color: var(--text-2);
+  }
 
   /* Today · steps in the Health & fitness summary */
   .hf-line.hf-steps { display: flex; align-items: center; gap: 10px; }
@@ -4642,15 +4678,43 @@
     return d1 === d2 ? 'Day ' + d1 + ' of ' + tot : 'Days ' + d1 + '\u2013' + d2 + ' of ' + tot;
   }
 
-  // CHALLENGE TASKS — what the challenge asks of every day, on the challenge record:
-  //   tasks: [{ id, title, kind: 'count' | 'check' | 'steps', target, unit }]
-  // A day's results are per-date state, so they live on that day's plan record:
-  //   plan.challengeLog[challengeId][taskId] = { value, at }   (count: a number; check: true)
-  // A steps task stores nothing of its own — it reads the day's Steps record, so there is
-  // one number for steps wherever it is shown or logged.
+  // CHALLENGE TASKS — what the challenge asks of each day, on the challenge record:
+  //   tasks: [{ id, title, kind: 'count' | 'check' | 'steps', target, unit, asAction,
+  //             fromDate?, untilDate?, versions?: [{ from, patch }] }]
+  // A task's shape on a date is its base, then every version that started on or before
+  // that date ("from this day on" edits), then that day's own exception ("just this day"),
+  // kept on the day's plan: plan.challengeTaskEdits[challengeId][taskId] = patch.
+  // A day's results are per-date state too: plan.challengeLog[challengeId][taskId] =
+  // { value, at } (count: a number; check: true). A steps task stores nothing of its own —
+  // it reads the day's Steps record, so steps are one number wherever they are logged.
   var CZ_KIND_LABEL = { count: 'Count', check: 'Yes / no', steps: 'Steps' };
+  var CZ_FIELDS = ['title', 'target', 'unit', 'asAction'];
   function challengeTasks(c){
     return (c && Array.isArray(c.tasks)) ? c.tasks.filter(function(t){ return t && t.id && t.title; }) : [];
+  }
+  function czDayEdits(c, dateStr){
+    var p = getPlanForDate(dateStr);
+    return (p && p.challengeTaskEdits && p.challengeTaskEdits[c.id]) || {};
+  }
+  // the task as it stands on a date, or null when it does not apply that day
+  // (withRemoved: its shape even on a day it was taken off)
+  function challengeTaskOn(c, t, dateStr, withRemoved){
+    if (t.fromDate && dateStr < t.fromDate) return null;
+    if (t.untilDate && dateStr > t.untilDate) return null;
+    var e = {};
+    Object.keys(t).forEach(function(k){ if (k !== 'versions') e[k] = t[k]; });
+    (t.versions || []).slice().sort(function(a, b){ return a.from < b.from ? -1 : 1; }).forEach(function(v){
+      if (v.from <= dateStr) Object.assign(e, v.patch || {});
+    });
+    Object.assign(e, czDayEdits(c, dateStr)[t.id] || {});
+    return e.removed && !withRemoved ? null : e;
+  }
+  function challengeTasksOn(c, dateStr){
+    return challengeTasks(c).map(function(t){ return challengeTaskOn(c, t, dateStr); }).filter(function(t){ return !!t; });
+  }
+  // the day's own Action for a task, wherever it has since been moved
+  function czLinkedAction(c, t, dateStr){
+    return commitments.find(function(x){ return x.challengeTaskId === t.id && x.challengeId === c.id && x.czDate === dateStr; }) || null;
   }
   function challengeTaskValue(c, t, dateStr){
     if (t.kind === 'steps'){
@@ -4661,28 +4725,35 @@
     var e = p && p.challengeLog && p.challengeLog[c.id] && p.challengeLog[c.id][t.id];
     return e ? e.value : null;
   }
+  // t: the task as it stands that day. Completing its Action in Today or Flow counts for a
+  // count or a yes/no; steps are evidence and only the Steps record can meet them.
   function challengeTaskMet(c, t, dateStr){
     var v = challengeTaskValue(c, t, dateStr);
-    if (t.kind === 'check') return v === true;
-    if (v == null) return false;
-    return Number(t.target) > 0 ? v >= Number(t.target) : v > 0;
+    var met = t.kind === 'check' ? v === true
+      : (v != null && (Number(t.target) > 0 ? v >= Number(t.target) : v > 0));
+    if (met || t.kind === 'steps') return met;
+    var a = czLinkedAction(c, t, dateStr);
+    return !!(a && a.status === 'completed');
   }
   function challengeTaskUnit(t){ return t.kind === 'steps' ? 'steps' : (t.unit || 'reps'); }
   // "8,420 / 10,000", "30 / 50 reps", "Done" — a day's result against the daily target
   function challengeTaskProgress(c, t, dateStr, short){
     var v = challengeTaskValue(c, t, dateStr);
-    if (t.kind === 'check') return v === true ? 'Done' : (short ? '' : 'Not yet');
+    var viaAction = t.kind !== 'steps' && challengeTaskMet(c, t, dateStr) &&
+      !(t.kind === 'check' ? v === true : (v != null && (Number(t.target) > 0 ? v >= Number(t.target) : v > 0)));
+    if (t.kind === 'check') return v === true || viaAction ? 'Done' : (short ? '' : 'Not yet');
+    if (viaAction && short) return 'Done';
     var fmt = t.kind === 'steps' ? fmtSteps : function(n){ return String(n); };
     var target = Number(t.target) > 0 ? Number(t.target) : null;
     if (short && t.kind === 'steps'){
       fmt = function(n){ return n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : String(n); };
     }
     var shown = v == null ? (short ? '0' : '—') : fmt(v);
-    return target ? shown + ' / ' + fmt(target) + (short || t.kind === 'steps' ? '' : ' ' + challengeTaskUnit(t))
-      : shown + (short ? '' : ' ' + challengeTaskUnit(t));
+    return (target ? shown + ' / ' + fmt(target) + (short || t.kind === 'steps' ? '' : ' ' + challengeTaskUnit(t))
+      : shown + (short ? '' : ' ' + challengeTaskUnit(t))) + (viaAction ? ' \u00b7 done in Actions' : '');
   }
   function challengeDayResult(c, dateStr){
-    var ts = challengeTasks(c);
+    var ts = challengeTasksOn(c, dateStr);
     return { met: ts.filter(function(t){ return challengeTaskMet(c, t, dateStr); }).length, total: ts.length };
   }
   // Writes on top of the day's plan, so nothing else on it is touched. null clears.
@@ -4699,8 +4770,117 @@
   function challengeStepsTarget(dateStr){
     var c = activeChallenge();
     if (!c || dateStr < c.startDate || dateStr > c.endDate) return null;
-    var t = challengeTasks(c).find(function(x){ return x.kind === 'steps' && Number(x.target) > 0; });
+    var t = challengeTasksOn(c, dateStr).find(function(x){ return x.kind === 'steps' && Number(x.target) > 0; });
     return t ? Number(t.target) : null;
+  }
+
+  // ---- challenge tasks as Actions ----
+  // A task can also be an ordinary Action each day, so it sits in Flow and can be ordered
+  // with the rest of the day. The day's Action is made when the day is opened (today, or a
+  // later day in Today or the Day Plan) — never in advance for the whole challenge and
+  // never for days already past. Its id is fixed per task and day, and the day's plan
+  // remembers it was made (plan.challengeActions[challengeId][taskId]), so an Action that
+  // was deleted by hand is not made again.
+  var czLoaded = { commitments: false, plans: false, challenges: false };
+  function czDataReady(){ return czLoaded.commitments && czLoaded.plans && czLoaded.challenges; }
+  function czActionId(c, t, dateStr){ return 'cz-' + c.id + '-' + t.id + '-' + dateStr; }
+  function czActionTitle(t){
+    var target = Number(t.target) > 0 ? Number(t.target) : null;
+    if (t.kind === 'check' || !target) return t.title;
+    return t.title + ' · ' + (t.kind === 'steps' ? fmtSteps(target) + ' steps' : target + ' ' + challengeTaskUnit(t));
+  }
+  function czMadeOn(c, dateStr){
+    var p = getPlanForDate(dateStr);
+    return (p && p.challengeActions && p.challengeActions[c.id]) || {};
+  }
+  function czSetMade(c, dateStr, made){
+    var plan = planBase(dateStr);
+    var all = Object.assign({}, plan.challengeActions || {});
+    all[c.id] = made;
+    savePlanForDate(dateStr, Object.assign({}, plan, { challengeActions: all }));
+  }
+  // created only if absent — another device may have made the same day's Action already
+  function czCreateAction(item){
+    if (commitments.some(function(x){ return x.id === item.id; })) return;
+    commitments.push(item);
+    if (dbReady && dbRef){
+      var ref = dbRef.collection('ledger_commitments').doc(item.id);
+      var copy = Object.assign({}, item); delete copy.id;
+      dbRef.runTransaction(function(tx){
+        return tx.get(ref).then(function(d){ if (!d.exists) tx.set(ref, copy); });
+      }).catch(function(e){ console.error('challenge action create failed', e); });
+      renderLogView();
+      return;
+    }
+    saveCommitment(item);
+  }
+  var czEnsureQueued = {};
+  function ensureChallengeActions(dateStr){
+    if (!dateStr || czEnsureQueued[dateStr]) return;
+    czEnsureQueued[dateStr] = true;
+    // after the current render, so making records never happens mid-render
+    setTimeout(function(){
+      delete czEnsureQueued[dateStr];
+      if (!czDataReady() || dateStr < todayStr()) return;
+      var c = activeChallenge();
+      if (!c || dateStr < c.startDate || dateStr > c.endDate) return;
+      var made = czMadeOn(c, dateStr);
+      var todo = challengeTasksOn(c, dateStr).filter(function(t){ return t.asAction && !made[t.id]; });
+      if (!todo.length) return;
+      var next = Object.assign({}, made), now = new Date().toISOString();
+      var items = todo.map(function(t){
+        var id = czActionId(c, t, dateStr);
+        next[t.id] = id;
+        return {
+          id: id, date: dateStr, originalDate: dateStr, title: czActionTitle(t), czTitle: czActionTitle(t),
+          category: 'training', status: 'planned', priorityId: null, minVersion: null, disruptionReason: null,
+          challengeId: c.id, challengeTaskId: t.id, czDate: dateStr, createdAt: now
+        };
+      });
+      czSetMade(c, dateStr, next);      // remembered first, so a re-render never makes two
+      items.forEach(czCreateAction);
+    }, 0);
+  }
+  // After a task changes: today's and later Actions follow it. One that is no longer
+  // wanted goes (unless already done) and is forgotten, so it can be made again if the
+  // task is switched back on; one still wanted takes the new title unless renamed by hand.
+  function reconcileChallengeActions(c, taskId){
+    var today = todayStr();
+    var defs = challengeTasks(c);
+    commitments.filter(function(x){
+      return x.challengeId === c.id && x.czDate && x.czDate >= today && (!taskId || x.challengeTaskId === taskId);
+    }).forEach(function(a){
+      var def = defs.find(function(t){ return t.id === a.challengeTaskId; });
+      var inRange = c.status === 'active' && a.czDate >= c.startDate && a.czDate <= c.endDate;
+      var t = def && inRange ? challengeTaskOn(c, def, a.czDate) : null;
+      if (!t || !t.asAction){
+        if (a.status === 'completed') return;
+        deleteCommitment(a.id);
+        var made = Object.assign({}, czMadeOn(c, a.czDate));
+        delete made[a.challengeTaskId];
+        czSetMade(c, a.czDate, made);
+      } else if (a.status !== 'completed' && a.title === a.czTitle && a.title !== czActionTitle(t)){
+        saveCommitment(Object.assign({}, a, { title: czActionTitle(t), czTitle: czActionTitle(t) }));
+      }
+    });
+    // a day whose Action was switched off and on again is made afresh
+    var made = czMadeOn(c, today);
+    Object.keys(made).forEach(function(tid){
+      if (!commitments.some(function(x){ return x.id === made[tid]; })){
+        var def = defs.find(function(t){ return t.id === tid; });
+        var t = def ? challengeTaskOn(c, def, today) : null;
+        if (!t || !t.asAction){ var m = Object.assign({}, made); delete m[tid]; czSetMade(c, today, m); }
+      }
+    });
+    ensureChallengeActions(today);
+  }
+  // Logging in the challenge keeps the day's Action in step: met completes it, and
+  // dropping below the target reopens it.
+  function czSyncActionDone(c, t, dateStr, met){
+    var a = czLinkedAction(c, t, dateStr);
+    if (!a) return;
+    if (met && a.status !== 'completed') saveCommitment(Object.assign({}, a, { status: 'completed' }));
+    else if (!met && a.status === 'completed') saveCommitment(Object.assign({}, a, { status: 'planned' }));
   }
 
   // "This week", "Next week", "Last week", "In 3 weeks", "3 weeks ago"
@@ -4824,6 +5004,7 @@
       dbRef.collection('ledger_plans')
         .onSnapshot(function(snap){
           plans = snap.docs.map(function(d){ var data = d.data() || {}; data.date = d.id; return data; });
+          if (!snap.metadata || !snap.metadata.fromCache) czLoaded.plans = true;
           keepPendingPlans();
           if (currentView === 'plan') renderPlan();
           renderLogView();
@@ -4844,6 +5025,7 @@
       dbRef.collection('ledger_commitments')
         .onSnapshot(function(snap){
           commitments = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
+          if (!snap.metadata || !snap.metadata.fromCache) czLoaded.commitments = true;
           renderLogView();
           // Plan reads the same actions: its week rows and day pane follow them
           if (currentView === 'plan') renderPlan();
@@ -4860,6 +5042,7 @@
       });
       dbRef.collection('ledger_challenges').onSnapshot(function(snap){
         challenges = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
+        if (!snap.metadata || !snap.metadata.fromCache) czLoaded.challenges = true;
         challengesChanged();
       }, function(err){ console.error('challenges snapshot error', err); });
       dbRef.collection('ledger_day_status')
@@ -4885,6 +5068,7 @@
     localLoadDayStatuses();
     localLoadComms();
     localLoadChallenges();
+    czLoaded = { commitments: true, plans: true, challenges: true };
     presetsLoaded = true;
     prioritiesLoaded = true;
     applyWeekPreference();
@@ -6230,7 +6414,26 @@
         toggleCommitmentQuickStatus(c);
       });
     }
-    if (c.category === 'training'){
+    // a challenge task's Action logs against the challenge — the count, or the steps
+    var czT = null, czC = null;
+    if (c.challengeId && c.czDate){
+      czC = challenges.find(function(x){ return x.id === c.challengeId; }) || null;
+      var czDef = czC && challengeTasks(czC).find(function(x){ return x.id === c.challengeTaskId; });
+      czT = czDef ? challengeTaskOn(czC, czDef, c.czDate) : null;
+    }
+    if (czT){
+      if (czT.kind !== 'check'){
+        var czBtn = document.createElement('button');
+        czBtn.type = 'button';
+        czBtn.className = 'commitment-train-link';
+        czBtn.textContent = 'Log';
+        czBtn.addEventListener('click', function(e){
+          e.stopPropagation();
+          logChallengeTask(czC, czT, c.czDate);
+        });
+        row.insertBefore(czBtn, row.querySelector('.commitment-status-dot'));
+      }
+    } else if (c.category === 'training'){
       var trainBtn = document.createElement('button');
       trainBtn.type = 'button';
       trainBtn.className = 'commitment-train-link';
@@ -8699,8 +8902,8 @@
     if (hoChallenge && dateStr >= hoChallenge.startDate && dateStr <= hoChallenge.endDate)
       L.push('Challenge: ' + hoChallenge.title + ' \u00b7 ' + challengeState(hoChallenge, dateStr).label);
     // its daily tasks against the day, in the order they were set
-    if (hoChallenge && dateStr >= hoChallenge.startDate && dateStr <= hoChallenge.endDate && dateStr <= todayStr() && challengeTasks(hoChallenge).length)
-      L.push('Challenge tasks: ' + challengeTasks(hoChallenge).map(function(t){
+    if (hoChallenge && dateStr >= hoChallenge.startDate && dateStr <= hoChallenge.endDate && dateStr <= todayStr() && challengeTasksOn(hoChallenge, dateStr).length)
+      L.push('Challenge tasks: ' + challengeTasksOn(hoChallenge, dateStr).map(function(t){
         return t.title + ' ' + challengeTaskProgress(hoChallenge, t, dateStr) + (challengeTaskMet(hoChallenge, t, dateStr) ? ' (met)' : '');
       }).join('; '));
 
@@ -12122,7 +12325,7 @@
   }
 
   // ---- Challenge Zone: a named date range and how far through it you are ----
-  // The challenge can carry daily tasks (see challengeTasks); without them it is just the
+  // The challenge can carry daily tasks (see challengeTasksOn); without them it is just the
   // time container. Nothing here is inferred — a day is complete when its tasks are met.
   function challengeTileHtml(c){
     if (!c) return '<span class="pg-tile-k">Challenge zone</span>' +
@@ -12151,11 +12354,13 @@
     el.onclick = function(){ openChallengeSheet(c); };
   }
 
-  // One task, logged for a date: a yes/no toggles; a count opens its log; steps opens the
-  // Steps log itself. onDone: where to come back to afterwards.
+  // One task, logged for a date (t: as it stands that day): a yes/no toggles; a count
+  // opens its log; steps opens the Steps log itself. onDone: where to come back to.
   function logChallengeTask(c, t, dateStr, onDone){
     if (t.kind === 'check'){
-      setChallengeTaskValue(c, t, dateStr, challengeTaskValue(c, t, dateStr) === true ? null : true);
+      var on = !challengeTaskMet(c, t, dateStr);
+      setChallengeTaskValue(c, t, dateStr, on ? true : null);
+      czSyncActionDone(c, t, dateStr, on);
       if (onDone) onDone();
     } else if (t.kind === 'steps'){
       openStepsSheet(dateStr, null, { onDone: onDone });
@@ -12173,8 +12378,9 @@
     var c = activeChallenge(), ds = viewedDate;
     var show = c && ((ds >= c.startDate && ds <= c.endDate) || (ds === todayStr() && ds < c.startDate));
     if (!show){ el.innerHTML = ''; return; }
+    if (ds >= todayStr()) ensureChallengeActions(ds);
     var st = challengeState(c, ds);
-    var tasks = st.phase === 'during' && ds <= todayStr() ? challengeTasks(c) : [];
+    var tasks = st.phase === 'during' && ds <= todayStr() ? challengeTasksOn(c, ds) : [];
     var res = challengeDayResult(c, ds);
     el.innerHTML = '<div class="cz-strip-wrap">' +
       '<button type="button" class="cz-strip" id="czStripBtn">' +
@@ -12201,12 +12407,13 @@
     document.getElementById('czStripBtn').addEventListener('click', function(){ openChallengeSheet(c, ds); });
   }
 
-  // Tapping the challenge anywhere opens what it asks of the day; there is no challenge
-  // yet, it starts one.
+  // Tapping the challenge anywhere opens what it asks of the day; with no challenge yet,
+  // it starts one.
   function openChallengeSheet(existing, dateStr){
     if (existing) openChallengeDetail(existing.id, dateStr);
     else openChallengeForm(null);
   }
+  function czDayWord(dateStr){ return dateStr === todayStr() ? 'today' : shortDayLabel(dateStr); }
 
   // ---- the challenge, opened: the day's tasks, how the days have gone, and editing ----
   function openChallengeDetail(id, dateStr){
@@ -12222,17 +12429,21 @@
     function reopen(){ openChallengeDetail(id, day); }
 
     function build(c){
-      var st = challengeState(c), tasks = challengeTasks(c);
-      var started = c.startDate <= today;
+      var st = challengeState(c), started = c.startDate <= today;
+      var tasks = challengeTasksOn(c, day);
+      // a task taken off just this day stays in reach, so it can be brought back
+      var offToday = challengeTasks(c).filter(function(t){
+        var e = czDayEdits(c, day)[t.id];
+        return e && e.removed && (!t.fromDate || day >= t.fromDate) && (!t.untilDate || day <= t.untilDate);
+      });
       var html = '<div class="sheet-handle"></div>' +
         sheetHead(UI_ICON.mountain, '<span data-role="cz-title"></span>', dateRangeLabel(c.startDate, c.endDate) + ' ' + c.endDate.slice(0, 4), '') +
         '<div class="cz-detail"><div class="cz-detail-day">' + (st.phase === 'during' ? 'Day <strong>' + st.day + '</strong> of ' + st.total : st.label) + '</div>' +
           '<span class="cz-bar-row"><span class="cz-bar"><i style="width:' + st.pct + '%"></i></span><span class="cz-pct">' + st.pct + '%</span></span></div>';
 
-      // the day's tasks, for today or a chosen earlier day of the challenge
       html += '<section class="cz-sec">' +
         '<div class="cz-sec-head"><h3 class="cz-sec-title">Daily tasks</h3>' +
-        (started && tasks.length
+        (started && challengeTasks(c).length
           ? '<div class="cz-daynav">' +
               '<button type="button" class="cz-daynav-btn" id="czPrevDay" aria-label="Previous day"' + (day <= c.startDate ? ' disabled' : '') + '>' + UI_ICON.chevronRight + '</button>' +
               '<span class="cz-daynav-lbl">' + (day === today ? 'Today' : shortDayLabel(day)) + '</span>' +
@@ -12240,9 +12451,12 @@
             '</div>'
           : '') +
         '</div>';
-      if (!tasks.length){
-        html += '<p class="cz-empty">Add what the challenge asks of every day — 10,000 steps, 50 press ups — and log each day against it.</p>';
-      } else {
+      if (!tasks.length && !offToday.length){
+        html += '<p class="cz-empty">' + (challengeTasks(c).length
+          ? 'No daily tasks on this day.'
+          : 'Add what the challenge asks of every day — 10,000 steps, 50 press ups — and log each day against it.') + '</p>';
+      }
+      if (tasks.length || offToday.length){
         html += '<div class="cz-tasks">' + tasks.map(function(t){
           var met = started && challengeTaskMet(c, t, day);
           return '<div class="cz-task' + (met ? ' met' : '') + '" data-cz-row="' + t.id + '">' +
@@ -12250,8 +12464,17 @@
               '<span class="cz-task-mark" aria-hidden="true">' + CHECK_SVG + '</span>' +
               '<span class="cz-task-text"><span class="cz-task-title"></span>' +
                 '<span class="cz-task-meta">' + (started ? challengeTaskProgress(c, t, day) : czTargetLabel(t)) +
-                  (t.kind === 'steps' ? ' · linked to Steps' : '') + '</span></span>' +
+                  (t.kind === 'steps' ? ' \u00b7 linked to Steps' : '') +
+                  (t.asAction && !(started && /in Actions$/.test(challengeTaskProgress(c, t, day))) ? ' \u00b7 in Actions' : '') + '</span></span>' +
             '</button>' +
+            '<button type="button" class="kt-more" data-cz-edit="' + t.id + '" aria-label="Edit task">' + KT_MORE_SVG + '</button>' +
+          '</div>';
+        }).join('') + offToday.map(function(t){
+          return '<div class="cz-task off" data-cz-row="' + t.id + '">' +
+            '<div class="cz-task-hit" aria-disabled="true">' +
+              '<span class="cz-task-mark" aria-hidden="true"></span>' +
+              '<span class="cz-task-text"><span class="cz-task-title"></span><span class="cz-task-meta">Off ' + czDayWord(day) + '</span></span>' +
+            '</div>' +
             '<button type="button" class="kt-more" data-cz-edit="' + t.id + '" aria-label="Edit task">' + KT_MORE_SVG + '</button>' +
           '</div>';
         }).join('') + '</div>';
@@ -12259,7 +12482,7 @@
       html += '<button type="button" class="kt-new-btn" id="czAddTask">+ Add daily task</button></section>';
 
       // how the days have gone: the last seven challenge days, and the running count
-      if (tasks.length && started){
+      if (challengeTasks(c).length && started){
         var last = c.endDate < today ? c.endDate : today;
         var from = fmtDate(addDays(last, -6));
         if (from < c.startDate) from = c.startDate;
@@ -12267,11 +12490,15 @@
         while (d <= last){ days.push(d); d = fmtDate(addDays(d, 1)); }
         var complete = 0, n = 0;
         d = c.startDate;
-        while (d <= last){ var r = challengeDayResult(c, d); if (r.met === r.total) complete++; n++; d = fmtDate(addDays(d, 1)); }
+        while (d <= last){
+          var r = challengeDayResult(c, d);
+          if (r.total){ n++; if (r.met === r.total) complete++; }
+          d = fmtDate(addDays(d, 1));
+        }
         html += '<section class="cz-sec"><div class="cz-sec-head"><h3 class="cz-sec-title">Days complete</h3>' +
           '<span class="cz-sec-count">' + complete + ' of ' + n + '</span></div>' +
           '<div class="cz-days">' + days.map(function(ds){
-            var r = challengeDayResult(c, ds), cls = r.met === r.total ? 'all' : (r.met ? 'some' : 'none');
+            var r = challengeDayResult(c, ds), cls = !r.total ? 'none' : (r.met === r.total ? 'all' : (r.met ? 'some' : 'none'));
             var lbl = toLocalDate(ds).toLocaleDateString(undefined, { weekday: 'narrow' });
             return '<button type="button" class="cz-dayc ' + cls + (ds === day ? ' cur' : '') + '" data-cz-day="' + ds + '" aria-label="' +
               shortDayLabel(ds) + ': ' + r.met + ' of ' + r.total + ' done">' +
@@ -12291,21 +12518,22 @@
       sheetEl.querySelector('[data-role="cz-title"]').textContent = c.title;    // user text
       var notes = sheetEl.querySelector('[data-role="cz-notes"]');
       if (notes) notes.textContent = c.notes;
-      challengeTasks(c).forEach(function(t){
-        var row = sheetEl.querySelector('[data-cz-row="' + t.id + '"]');
-        row.querySelector('.cz-task-title').textContent = t.title;
+      sheetEl.querySelectorAll('[data-cz-row]').forEach(function(row){
+        var def = challengeTasks(c).find(function(t){ return t.id === row.dataset.czRow; });
+        var t = def && (challengeTaskOn(c, def, day, true) || def);
+        if (t) row.querySelector('.cz-task-title').textContent = t.title;
       });
       document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
       sheetEl.querySelectorAll('[data-cz-log]').forEach(function(b){
         b.addEventListener('click', function(){
-          var t = challengeTasks(getC()).find(function(x){ return x.id === b.dataset.czLog; });
+          var t = challengeTasksOn(getC(), day).find(function(x){ return x.id === b.dataset.czLog; });
           if (t) logChallengeTask(getC(), t, day, t.kind === 'check' ? null : reopen);
         });
       });
       sheetEl.querySelectorAll('[data-cz-edit]').forEach(function(b){
         b.addEventListener('click', function(){
           var t = challengeTasks(getC()).find(function(x){ return x.id === b.dataset.czEdit; });
-          if (t) openChallengeTaskSheet(getC(), t, reopen);
+          if (t) openChallengeTaskSheet(getC(), t, day, reopen);
         });
       });
       sheetEl.querySelectorAll('[data-cz-day]').forEach(function(b){
@@ -12314,7 +12542,7 @@
       var prev = document.getElementById('czPrevDay'), next = document.getElementById('czNextDay');
       if (prev) prev.addEventListener('click', function(){ day = fmtDate(addDays(day, -1)); render(); });
       if (next) next.addEventListener('click', function(){ day = fmtDate(addDays(day, 1)); render(); });
-      document.getElementById('czAddTask').addEventListener('click', function(){ openChallengeTaskSheet(getC(), null, reopen); });
+      document.getElementById('czAddTask').addEventListener('click', function(){ openChallengeTaskSheet(getC(), null, day, reopen); });
       document.getElementById('czEditBtn').addEventListener('click', function(){ openChallengeForm(getC(), reopen); });
     }
 
@@ -12329,22 +12557,113 @@
       : 'Logged daily';
   }
 
-  // Add or edit one daily task. Changing a target applies to every day of the challenge,
-  // past ones included; removing a task leaves the numbers already logged on their days.
-  function openChallengeTaskSheet(c, task, onDone){
+  // ---- applying a task change to one day, to this day onwards, or to every day ----
+  // day: one exception on that day's plan. forward: a version from that day (later
+  // versions take the same values, so nothing after it disagrees). all: the base, with
+  // the changed fields cleared from versions. The newest instruction wins, so forward and
+  // all also clear those fields from the single-day exceptions they cover.
+  // "From this day on" also carries the task past an end it had (a one-day task becomes
+  // ongoing); "every day" spans the whole challenge, earlier days included.
+  function czApplyEdit(c, t, dateStr, scope, patch){
+    var first = t.fromDate && t.fromDate > c.startDate ? t.fromDate : c.startDate;
+    if (scope === 'forward' && dateStr <= first && !t.fromDate) scope = 'all';
+    var widen = (scope === 'all' && (t.fromDate || t.untilDate)) || (scope === 'forward' && t.untilDate);
+    if (!Object.keys(patch).length && !widen) return;
+    if (scope === 'day'){
+      var plan = planBase(dateStr);
+      var all = Object.assign({}, plan.challengeTaskEdits || {});
+      var mine = Object.assign({}, all[c.id] || {});
+      mine[t.id] = Object.assign({}, mine[t.id] || {}, patch);
+      all[c.id] = mine;
+      savePlanForDate(dateStr, Object.assign({}, plan, { challengeTaskEdits: all }));
+      return;
+    }
+    var next = Object.assign({}, t);
+    delete next.untilDate;
+    if (scope === 'all') delete next.fromDate;
+    var versions = (t.versions || []).map(function(v){ return { from: v.from, patch: Object.assign({}, v.patch) }; });
+    if (scope === 'forward'){
+      versions.forEach(function(v){ if (v.from > dateStr) Object.assign(v.patch, patch); });
+      var own = versions.find(function(v){ return v.from === dateStr; });
+      if (own) Object.assign(own.patch, patch); else versions.push({ from: dateStr, patch: Object.assign({}, patch) });
+    } else {
+      Object.assign(next, patch);
+      versions.forEach(function(v){ Object.keys(patch).forEach(function(k){ delete v.patch[k]; }); });
+      versions = versions.filter(function(v){ return Object.keys(v.patch).length; });
+    }
+    // the same fields as one-day exceptions in range give way
+    plans.filter(function(p){ return p.challengeTaskEdits && p.challengeTaskEdits[c.id] && p.challengeTaskEdits[c.id][t.id] &&
+        (scope === 'all' || p.date >= dateStr); })
+        .forEach(function(p){
+          var ex = Object.assign({}, p.challengeTaskEdits[c.id][t.id]);
+          var hit = false;
+          Object.keys(patch).forEach(function(k){ if (k in ex){ delete ex[k]; hit = true; } });
+          if (!hit) return;
+          var base = planBase(p.date);
+          var allE = Object.assign({}, base.challengeTaskEdits), mineE = Object.assign({}, allE[c.id]);
+          if (Object.keys(ex).length) mineE[t.id] = ex; else delete mineE[t.id];
+          allE[c.id] = mineE;
+          savePlanForDate(p.date, Object.assign({}, base, { challengeTaskEdits: allE }));
+        });
+    next.versions = versions;
+    czSaveTask(c, next);
+  }
+  function czSaveTask(c, task){
+    var list = challengeTasks(c).slice();
+    var i = list.findIndex(function(x){ return x.id === task.id; });
+    if (i > -1) list[i] = task; else list.push(task);
+    var saved = Object.assign({}, c, { tasks: list, updatedAt: new Date().toISOString() });
+    saveChallenge(saved);
+    return saved;
+  }
+  function czRemoveTask(c, t, dateStr, scope){
+    var first = t.fromDate && t.fromDate > c.startDate ? t.fromDate : c.startDate;
+    if (scope === 'forward' && dateStr <= first) scope = 'all';
+    if (scope === 'day'){ czApplyEdit(c, t, dateStr, 'day', { removed: true }); return c; }
+    if (scope === 'forward'){
+      return czSaveTask(c, Object.assign({}, t, {
+        untilDate: fmtDate(addDays(dateStr, -1)),
+        versions: (t.versions || []).filter(function(v){ return v.from < dateStr; })
+      }));
+    }
+    var saved = Object.assign({}, c, { tasks: challengeTasks(c).filter(function(x){ return x.id !== t.id; }), updatedAt: new Date().toISOString() });
+    saveChallenge(saved);
+    return saved;
+  }
+
+  // Add or edit one daily task. dateStr: the day the challenge sheet was showing — the
+  // "just this day" and "from this day" of the choice.
+  function openChallengeTaskSheet(c, task, dateStr, onDone){
     editingId = null;
     activeSheetRefresh = null;
-    var t = task ? Object.assign({}, task) : null;
-    var others = challengeTasks(c).filter(function(x){ return !t || x.id !== t.id; });
-    var stepsTaken = others.some(function(x){ return x.kind === 'steps'; });
-    var kind = t ? (t.kind || 'count') : 'count';
+    var day = dateStr || todayStr();
+    var editing = !!task;
+    var cur = task ? (challengeTaskOn(c, task, day) || null) : null;    // its shape on this day
+    var offDay = editing && !cur;                                       // taken off just this day
+    var shown = cur || (task && challengeTaskOn(c, task, day, true)) || task;
+    var stepsTaken = challengeTasks(c).some(function(x){ return x.kind === 'steps' && (!task || x.id !== task.id); });
+    var kind = task ? (task.kind || 'count') : 'count';
+    var asAction = shown ? !!shown.asAction : false;
+    var dayWord = czDayWord(day);
+    var Day = dayWord.charAt(0).toUpperCase() + dayWord.slice(1);
+    var startsHere = day <= c.startDate;
+    var scopes = editing
+      ? [{ k: 'day', label: 'Just ' + dayWord, sub: 'Only ' + shortDayLabel(day) + ' changes.' },
+         { k: 'forward', label: startsHere ? 'Every day' : 'From ' + dayWord + ' on', sub: startsHere ? 'The whole challenge.' : Day + ' and every later day. Earlier days keep what they had.' },
+         { k: 'all', label: 'Every day of the challenge', sub: 'All ' + challengeTotalDays(c) + ' days, earlier ones included \u2014 they are judged by this too.' }]
+      : [{ k: 'day', label: 'Just ' + dayWord, sub: 'A one-off for ' + shortDayLabel(day) + '.' },
+         { k: 'forward', label: startsHere ? 'Every day' : 'Every day from ' + dayWord, sub: 'Until ' + shortDayLabel(c.endDate) + '. Earlier days are left as they were.' }];
+    if (startsHere && editing) scopes = scopes.filter(function(s){ return s.k !== 'all'; });
+    var scope = 'forward';
     function back(){ closeSheet(); if (onDone) onDone(); }
+
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
-      sheetHead(UI_ICON.mountain, t ? 'Edit daily task' : 'Add daily task', 'Repeats every day of the challenge.', '') +
+      sheetHead(UI_ICON.mountain, editing ? 'Edit daily task' : 'Add daily task', editing ? 'Changes can apply to one day or from a day on.' : 'Part of every challenge day you choose.', '') +
+      (offDay ? '<div class="cz-offday"><span>Taken off ' + dayWord + '.</span><button type="button" class="btn-link" id="czRestoreDay">Bring it back for ' + dayWord + '</button></div>' : '') +
       '<div class="field"><label>Type</label><div class="freq-period detail-period" id="czKind" role="radiogroup" aria-label="Task type">' +
         ['count', 'check', 'steps'].map(function(k){
-          var off = k === 'steps' && stepsTaken;
-          return '<button type="button" role="radio" data-cz-kind="' + k + '"' + (off ? ' disabled title="This challenge already has a steps task"' : '') + '>' + CZ_KIND_LABEL[k] + '</button>';
+          var off = editing ? k !== kind : (k === 'steps' && stepsTaken);
+          return '<button type="button" role="radio" data-cz-kind="' + k + '"' + (off ? ' disabled' + (k === 'steps' && !editing ? ' title="This challenge already has a steps task"' : '') : '') + '>' + CZ_KIND_LABEL[k] + '</button>';
         }).join('') +
       '</div></div>' +
       '<div class="field"><label for="f_czTask">Task</label><input type="text" id="f_czTask" maxlength="40" placeholder="e.g. Press ups" autocomplete="off"></div>' +
@@ -12353,13 +12672,32 @@
         '<div class="field" id="czUnitField"><label for="f_czUnit">Unit</label><input type="text" id="f_czUnit" maxlength="16" placeholder="reps" autocomplete="off"></div>' +
       '</div>' +
       '<p class="cz-kind-note" id="czKindNote"></p>' +
-      '<button type="button" class="save-btn" id="czTaskSave">' + (t ? 'Save task' : 'Add task') + '</button>' +
-      (t ? '<button type="button" class="delete-btn" id="czTaskDelete">Remove task</button>' : '');
+      '<button type="button" class="cz-opt" id="czAsAction" role="switch" aria-checked="false">' +
+        '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+        '<span class="cz-opt-text"><span class="cz-opt-title">Also add as an Action</span>' +
+        '<span class="cz-opt-sub">It joins the day’s Actions and Flow. Ticking it there counts here.</span></span>' +
+      '</button>' +
+      '<div class="field"><label>' + (editing ? 'Apply to' : 'Add for') + '</label><div class="cz-scopes" role="radiogroup">' +
+        scopes.map(function(s){
+          return '<button type="button" class="cz-scope" role="radio" data-cz-scope="' + s.k + '">' +
+            '<span class="cz-scope-dot" aria-hidden="true"></span>' +
+            '<span class="cz-scope-text"><span class="cz-scope-label">' + s.label + '</span><span class="cz-scope-sub">' + s.sub + '</span></span></button>';
+        }).join('') +
+      '</div></div>' +
+      '<button type="button" class="save-btn" id="czTaskSave">' + (editing ? 'Save task' : 'Add task') + '</button>' +
+      (editing ? '<button type="button" class="delete-btn" id="czTaskDelete"></button>' : '');
     backdrop.classList.add('open');
     var nameEl = document.getElementById('f_czTask'), targetEl = document.getElementById('f_czTarget'), unitEl = document.getElementById('f_czUnit');
-    nameEl.value = t ? t.title : '';
-    targetEl.value = t && Number(t.target) > 0 ? t.target : '';
-    unitEl.value = t && t.kind === 'count' ? (t.unit || '') : '';
+    nameEl.value = shown ? shown.title : '';
+    targetEl.value = shown && Number(shown.target) > 0 ? shown.target : '';
+    unitEl.value = shown && kind === 'count' ? (shown.unit || '') : '';
+    var optBtn = document.getElementById('czAsAction');
+    function syncOpt(){
+      optBtn.setAttribute('aria-checked', asAction ? 'true' : 'false');
+      optBtn.classList.toggle('on', asAction);
+    }
+    optBtn.addEventListener('click', function(){ asAction = !asAction; syncOpt(); });
+    syncOpt();
     function syncKind(){
       sheetEl.querySelectorAll('[data-cz-kind]').forEach(function(b){
         var on = b.dataset.czKind === kind;
@@ -12378,33 +12716,82 @@
       b.addEventListener('click', function(){ if (!b.disabled){ kind = b.dataset.czKind; syncKind(); } });
     });
     syncKind();
-    if (!t) setTimeout(function(){ nameEl.focus(); }, 60);
+    var delBtn = document.getElementById('czTaskDelete');
+    function syncScope(){
+      sheetEl.querySelectorAll('[data-cz-scope]').forEach(function(b){
+        var on = b.dataset.czScope === scope;
+        b.classList.toggle('sel', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+      if (delBtn) delBtn.textContent = scope === 'day' ? 'Remove for just ' + dayWord
+        : (scope === 'forward' && !startsHere ? 'Remove from ' + dayWord + ' on' : 'Remove from the challenge');
+    }
+    sheetEl.querySelectorAll('[data-cz-scope]').forEach(function(b){
+      b.addEventListener('click', function(){ scope = b.dataset.czScope; syncScope(); });
+    });
+    syncScope();
+    if (!editing) setTimeout(function(){ nameEl.focus(); }, 60);
     document.getElementById('sheetCloseBtn').addEventListener('click', back);
+
     function save(){
       var title = nameEl.value.trim();
       if (!title){ nameEl.focus(); return; }
       var target = parseInt(targetEl.value, 10);
       if (kind !== 'check' && targetEl.value && !(target > 0)){ targetEl.focus(); return; }
-      var next = Object.assign({}, t || { id: uid(), createdAt: new Date().toISOString() }, {
-        title: title, kind: kind,
+      var vals = {
+        title: title,
         target: kind === 'check' ? null : (target > 0 ? target : null),
-        unit: kind === 'count' ? (unitEl.value.trim() || 'reps') : null
-      });
-      var list = challengeTasks(c).slice();
-      var i = list.findIndex(function(x){ return x.id === next.id; });
-      if (i > -1) list[i] = next; else list.push(next);
-      saveChallenge(Object.assign({}, c, { tasks: list, updatedAt: new Date().toISOString() }));
+        unit: kind === 'count' ? (unitEl.value.trim() || 'reps') : null,
+        asAction: asAction
+      };
+      var saved;
+      if (!editing){
+        var t = Object.assign({ id: uid(), createdAt: new Date().toISOString(), kind: kind, versions: [] }, vals);
+        if (scope === 'day'){ t.fromDate = day; t.untilDate = day; }
+        else if (day > c.startDate) t.fromDate = day;
+        saved = czSaveTask(c, t);
+        reconcileChallengeActions(saved, t.id);
+      } else {
+        // what changed from this day's shape — and, for a wider scope, any name or target
+        // that differs somewhere in it, so "every day: 40" means 40 on every day
+        var patch = {};
+        function norm(v){ return v == null ? null : v; }
+        CZ_FIELDS.forEach(function(k){
+          var a = k === 'asAction' ? !!shown[k] : norm(shown[k]), b = k === 'asAction' ? !!vals[k] : norm(vals[k]);
+          if (a !== b) patch[k] = vals[k];
+        });
+        if (scope !== 'day') ['title', 'target', 'unit'].forEach(function(k){
+          if (k in patch) return;
+          var differs = norm(task[k]) !== norm(vals[k]) ||
+            (task.versions || []).some(function(v){ return (k in v.patch) && norm(v.patch[k]) !== norm(vals[k]); }) ||
+            plans.some(function(p){
+              var e = p.challengeTaskEdits && p.challengeTaskEdits[c.id] && p.challengeTaskEdits[c.id][task.id];
+              return e && (k in e) && (scope === 'all' || p.date >= day) && norm(e[k]) !== norm(vals[k]);
+            });
+          if (differs) patch[k] = vals[k];
+        });
+        if (offDay && scope === 'day') patch.removed = false;
+        czApplyEdit(c, task, day, scope, patch);
+        saved = challenges.find(function(x){ return x.id === c.id; }) || c;
+        reconcileChallengeActions(saved, task.id);
+      }
       back();
     }
     document.getElementById('czTaskSave').addEventListener('click', save);
     [nameEl, targetEl, unitEl].forEach(function(el){
       el.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); save(); } });
     });
-    if (t) document.getElementById('czTaskDelete').addEventListener('click', function(){
-      if (!confirm('Remove "' + t.title + '" from this challenge?\n\nNumbers already logged stay on their days; they just stop counting.')) return;
-      saveChallenge(Object.assign({}, c, {
-        tasks: challengeTasks(c).filter(function(x){ return x.id !== t.id; }), updatedAt: new Date().toISOString()
-      }));
+    var restore = document.getElementById('czRestoreDay');
+    if (restore) restore.addEventListener('click', function(){
+      czApplyEdit(c, task, day, 'day', { removed: false });
+      reconcileChallengeActions(challenges.find(function(x){ return x.id === c.id; }) || c, task.id);
+      back();
+    });
+    if (delBtn) delBtn.addEventListener('click', function(){
+      var whole = !(scope === 'day' || (scope === 'forward' && !startsHere));
+      if (whole && !confirm('Remove "' + task.title + '" from this challenge?\n\nNumbers already logged stay on their days; they just stop counting.')) return;
+      var saved = czRemoveTask(c, task, day, scope);
+      reconcileChallengeActions(challenges.find(function(x){ return x.id === c.id; }) || saved, task.id);
       back();
     });
   }
@@ -12446,12 +12833,17 @@
       var n = parseInt(raw, 10);
       if (!(n >= 0) || n > 100000){ num.focus(); return; }
       setChallengeTaskValue(c, t, dateStr, n);
+      czSyncActionDone(c, t, dateStr, target ? n >= target : n > 0);
       back();
     }
     document.getElementById('czCountSave').addEventListener('click', save);
     num.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); save(); } });
     var clr = document.getElementById('czCountClear');
-    if (clr) clr.addEventListener('click', function(){ setChallengeTaskValue(c, t, dateStr, null); back(); });
+    if (clr) clr.addEventListener('click', function(){
+      setChallengeTaskValue(c, t, dateStr, null);
+      czSyncActionDone(c, t, dateStr, false);
+      back();
+    });
   }
 
   // Create or edit the challenge itself. The dates decide the length — never typed as "75 days".
@@ -12496,6 +12888,7 @@
         title: title, startDate: dft.startDate, endDate: dft.endDate, notes: notesEl.value.trim(), updatedAt: new Date().toISOString()
       });
       saveChallenge(saved);
+      if (c) reconcileChallengeActions(saved);    // new dates: Actions outside them go
       closeSheet();
       // a new challenge goes straight on to its daily tasks
       if (!c) openChallengeDetail(saved.id);
@@ -12503,12 +12896,16 @@
     });
     if (c){
       document.getElementById('czCompleteBtn').addEventListener('click', function(){
-        saveChallenge(Object.assign({}, c, { status: 'completed', completedAt: new Date().toISOString() }));
+        var done = Object.assign({}, c, { status: 'completed', completedAt: new Date().toISOString() });
+        saveChallenge(done);
+        reconcileChallengeActions(done);          // its open Actions from today on go with it
         closeSheet();
       });
       document.getElementById('czCancelBtn').addEventListener('click', function(){
         if (!confirm('Cancel this challenge? It is kept as a record, but no longer shown.')) return;
-        saveChallenge(Object.assign({}, c, { status: 'cancelled', cancelledAt: new Date().toISOString() }));
+        var gone = Object.assign({}, c, { status: 'cancelled', cancelledAt: new Date().toISOString() });
+        saveChallenge(gone);
+        reconcileChallengeActions(gone);
         closeSheet();
       });
     }
@@ -13842,6 +14239,7 @@
   function renderPlanDayPane(dateStr){
     var pane = document.getElementById('planDayPane');
     if (!pane) return;
+    if (dateStr && dateStr >= todayStr()) ensureChallengeActions(dateStr);
     // never redraw under the cursor; catch up once the field is left
     var act = document.activeElement;
     if (act && pane.contains(act) && /^(TEXTAREA|INPUT)$/.test(act.tagName) && pane.dataset.date === dateStr){
@@ -14220,6 +14618,7 @@
   function openPlanSheet(dateStr, existing, opts){
     opts = opts || {};
     editingId = null;
+    if (dateStr >= todayStr()) ensureChallengeActions(dateStr);   // a challenge's Actions for the day, if any
     var p = existing || {};
     var d = new Date(dateStr + 'T00:00:00');
     var restDay = !!p.restDay;
@@ -15425,6 +15824,9 @@
         id: base.id || uid(), type: 'steps', date: d, steps: n,
         loggedAt: now, updatedAt: now, createdAt: base.createdAt || now
       }));
+      // a challenge's steps task with an Action that day: meeting the target ticks it
+      var ch = activeChallenge(), stT = ch ? challengeTasksOn(ch, d).find(function(x){ return x.kind === 'steps' && Number(x.target) > 0; }) : null;
+      if (stT && d >= ch.startDate && d <= ch.endDate) czSyncActionDone(ch, stT, d, n >= Number(stT.target));
       done();
     }
     document.getElementById('stepsSaveBtn').addEventListener('click', save);
