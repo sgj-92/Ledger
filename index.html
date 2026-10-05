@@ -1303,7 +1303,7 @@
   .cz-pill.met { border-color: rgba(var(--gold-rgb),0.4); }
   .cz-pill.met .cz-pill-mark { background: var(--gold); border-color: var(--gold); color: var(--ink); }
   .cz-pill.met .cz-pill-val { color: var(--gold); }
-  .hf-line.hf-steps.met > span:last-child { color: var(--gold); }
+  .hf-line.hf-steps.met > .hf-v { color: var(--gold); }
   /* challenge detail */
   .cz-sec { margin: 0 0 var(--sp-5); }
   .cz-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 32px; margin-bottom: 2px; }
@@ -1398,9 +1398,11 @@
   }
 
   /* Today · steps in the Health & fitness summary */
-  .hf-line.hf-steps, .hf-line.hf-diary { display: flex; align-items: center; gap: 10px; }
-  .hf-steps-k { color: var(--text-3); min-width: 82px; flex-shrink: 0; }
-  .hf-diary-val { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Health & fitness on Today: a quiet key column, then the value */
+  .hf-line.hf-kv { display: flex; align-items: center; gap: 10px; }
+  .hf-k { flex-shrink: 0; width: 108px; color: var(--text-3); }
+  .hf-v { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hf-v .tick { margin-right: 6px; vertical-align: -1px; }
   .pm-diary-link {
     display: inline-flex; align-items: center; gap: 4px; margin: 2px 0 var(--sp-3); padding: 8px 0;
     background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 13.5px; font-weight: 500; color: var(--gold);
@@ -9701,7 +9703,7 @@
         ? meals.length + ' planned' + (eaten ? ' · ' + eaten + ' eaten' : '')
         : 'Nothing planned yet';
       return '<div class="sheet-handle"></div>' +
-        sheetHead(UI_ICON.cutlery, 'Plan your meals', sub, '') +
+        sheetHead(UI_ICON.cutlery, 'Food Plan', sub, '') +
         '<div class="pm-list">' +
           (meals.length
             ? meals.map(function(m){
@@ -13818,7 +13820,7 @@
       var eaten = meals.filter(function(m){ return m.completed; }).length;
       cards.push(planCardHtml({
         icon: UI_ICON.cutlery,
-        title: 'Meals',
+        title: 'Food Plan',
         sub: meals.length + ' planned' + (eaten ? ' · ' + eaten + ' eaten' : ''),
         done: eaten > 0 && eaten === meals.length,
         attr: ' data-meals-open="1"'
@@ -13864,11 +13866,13 @@
 
     if (opts.primary){
       // Today summarises: a line or two, each opening the same place its card did
+      // each line is keyed: a quiet label, then the day's value
       var lines = [];
+      var hfKey = function(k){ return '<span class="hf-k">' + k + '</span>'; };
       if (plan && plan.restDay){
-        lines.push('<div class="hf-line">Rest day</div>');
+        lines.push('<div class="hf-line hf-kv">' + hfKey('Training') + '<span class="hf-v">Rest day</span></div>');
       } else if (plan && plan.trainingTypes){
-        plan.trainingTypes.forEach(function(t){
+        plan.trainingTypes.forEach(function(t, i){
           var det = (plan.trainingDetails && plan.trainingDetails[t]) || {};
           var bits = [SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]];
           if (det.completed) bits.push('Recorded');
@@ -13876,27 +13880,30 @@
             if (hhmm(det.activityTime)) bits.push(det.activityTime);
             if (det.durationMin) bits.push(det.durationMin + ' min');
           }
-          lines.push('<button type="button" class="hf-line' + (det.completed ? ' done' : '') + '" data-train-open="' + t + '">' +
-            (det.completed ? '<span class="tick">' + CHECK_SVG + '</span>' : '') + bits.join(' · ') + '</button>');
+          // a second session sits under the first, without repeating the label
+          lines.push('<button type="button" class="hf-line hf-kv' + (det.completed ? ' done' : '') + '" data-train-open="' + t + '">' +
+            hfKey(i ? '' : 'Training') +
+            '<span class="hf-v">' + (det.completed ? '<span class="tick">' + CHECK_SVG + '</span>' : '') + bits.join(' · ') + '</span></button>');
         });
       }
       // the day's one nutrition choice, always named — never a bare "Normal"
       if (nutritionPlanValue(plan)){
-        lines.push('<button type="button" class="hf-line" data-plan-edit="1">Nutrition Plan · ' + nutritionPlanLabel(plan) + '</button>');
+        lines.push('<button type="button" class="hf-line hf-kv" data-plan-edit="1">' + hfKey('Nutrition Plan') +
+          '<span class="hf-v">' + nutritionPlanLabel(plan) + '</span></button>');
       }
       if (meals.length){
         var mealsEaten = meals.filter(function(m){ return m.completed; }).length;
-        lines.push('<button type="button" class="hf-line" data-meals-open="1">' +
-          plural(meals.length, 'meal') + (mealsEaten ? ' (' + mealsEaten + ' eaten)' : '') + '</button>');
+        lines.push('<button type="button" class="hf-line hf-kv" data-meals-open="1">' + hfKey('Food Plan') +
+          '<span class="hf-v">' + plural(meals.length, 'meal') + (mealsEaten ? ' (' + mealsEaten + ' eaten)' : '') + '</span></button>');
       }
       // the day's food diary itself — what has been eaten, not what was planned
       if (dateStr <= todayStr()){
         var diaryRec = getNutritionForDate(dateStr), diaryN = diaryLinesOf(diaryRec).length;
-        lines.push('<button type="button" class="hf-line hf-diary" data-diary-open="1" aria-label="Food diary: ' +
+        lines.push('<button type="button" class="hf-line hf-kv hf-diary" data-diary-open="1" aria-label="Food Diary: ' +
             (diaryN ? plural(diaryN, 'item') : 'nothing logged yet') + '">' +
-          '<span class="hf-steps-k">Food diary</span>' +
+          hfKey('Food Diary') +
           (diaryN
-            ? '<span class="hf-diary-val">' + plural(diaryN, 'item') + ' \u00b7 <span data-role="diary-last"></span></span>'
+            ? '<span class="hf-v">' + plural(diaryN, 'item') + ' \u00b7 <span data-role="diary-last"></span></span>'
             : '<span class="hf-steps-log">' + (diaryRec ? 'Open diary' : 'Log food') + UI_ICON.chevronRight + '</span>') +
         '</button>');
       }
@@ -13905,10 +13912,10 @@
         var stepRec = stepsRecordFor(dateStr), stepAvg = stepsAverage(dateStr), stepTgt = challengeStepsTarget(dateStr);
         var stepMet = stepRec && stepTgt && parseInt(stepRec.steps, 10) >= stepTgt;
         // a running challenge's steps task is this same number, so its target shows here too
-        lines.push('<button type="button" class="hf-line hf-steps' + (stepMet ? ' met' : '') + '" data-steps-open="1">' +
-          '<span class="hf-steps-k">Steps</span>' +
+        lines.push('<button type="button" class="hf-line hf-kv hf-steps' + (stepMet ? ' met' : '') + '" data-steps-open="1">' +
+          hfKey('Steps') +
           (stepRec
-            ? '<span>' + fmtSteps(stepRec.steps) + (stepTgt ? ' / ' + fmtSteps(stepTgt) : '') +
+            ? '<span class="hf-v">' + fmtSteps(stepRec.steps) + (stepTgt ? ' / ' + fmtSteps(stepTgt) : '') +
                 (stepAvg != null ? ' \u00b7 7-day avg ' + fmtSteps(stepAvg) : '') + '</span>'
             : '<span class="hf-steps-log">Log steps' + UI_ICON.chevronRight + '</span>') +
         '</button>');
@@ -14707,7 +14714,7 @@
             '</div><div class="plan-type-hint">Tap to select. Use Details to add more.</div></div>' +
           '</div>' +
           fieldSelect('f_nutritionPlan', 'Nutrition Plan', NUTRITION_PLAN_OPTIONS, nutritionPlanValue({ fasting: fasting, carbLevel: carbLevel })) +
-          '<div class="field"><label>Meals</label><div id="planMealRows"></div>' +
+          '<div class="field"><label>Food Plan</label><div id="planMealRows"></div>' +
             '<button type="button" class="add-exercise-btn" id="addPlanMealBtn">+ Add meal</button></div>' +
           '<button type="button" class="dp-clear" id="deletePlanBtn"' + (healthHasState() ? '' : ' hidden') + '>Clear health &amp; fitness</button>') +
         secHtml('constraints',

@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-05 (Food diary reachable from Health & fitness)
+Last updated: 2026-10-05 (Health & fitness keyed lines; planned meals are the Food Plan)
 
 ---
 
@@ -105,8 +105,12 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   and one pill per daily task ("Press ups 30 / 50") that logs in a tap. The line
   opens the challenge: daily tasks for today or an earlier day, the last seven
   days complete/partial, add/edit/remove tasks, Edit challenge.
+- **Health & fitness summary** — keyed lines, a quiet label column then the value:
+  Training, Nutrition Plan, Food Plan (planned meals: "6 meals (3 eaten)"), Food
+  Diary, Steps. Planned meals are called the **Food Plan** everywhere (Day Plan
+  field, plan card, meals sheet title).
 - **Food diary** — a line in Today's Health & fitness summary (today and earlier
-  days): "Food diary · 3 items · <latest entry>", or "Log food ›". It opens the day's
+  days): "3 items · <latest entry>", or "Log food ›". It opens the day's
   Nutrition record (the editor, or the summary once the day is closed); the meals
   sheet links to it too ("View food diary ›").
 - **Steps** — a line in Today's Health & fitness summary: "Steps 8,420 · 7-day avg
@@ -1237,6 +1241,8 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-05) — Planned meals relabelled Food Plan; Today's Health & fitness lines
+  keyed (Training / Nutrition Plan / Food Plan / Food Diary / Steps).
 - (2026-10-05) — Food diary line in Health & fitness and a diary link in the meals
   sheet, so the day's diary is one tap away.
 - (2026-10-05) — Challenge tasks as optional daily Actions (Today, Flow, Day Plan),
