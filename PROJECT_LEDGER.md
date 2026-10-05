@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-05 (Choose your key tasks sheet redesigned: Today + Backlog, separate New action)
+Last updated: 2026-10-05 (Challenge daily tasks: steps linked to Steps, counts, yes/no; logged per day)
 
 ---
 
@@ -101,7 +101,10 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   Cardio, HIIT, Strength, Mobility, Symptoms.
 - **Recorded Activity** — collapsible, with a summary in its header.
 - **Challenge strip** — when a Challenge is running, one quiet line above Morning
-  Prime: "Autumn Reset · Day 13 of 76" with a hairline of progress.
+  Prime: "Autumn Reset · Day 13 of 76 · 2 of 4 done" with a hairline of progress,
+  and one pill per daily task ("Press ups 30 / 50") that logs in a tap. The line
+  opens the challenge: daily tasks for today or an earlier day, the last seven
+  days complete/partial, add/edit/remove tasks, Edit challenge.
 - **Steps** — a line in Today's Health & fitness summary: "Steps 8,420 · 7-day avg
   9,105", or "Log steps ›". Logged from Quick Log (Nutrition, Weight, Steps, Daily
   photo, Padel, Cardio, HIIT, Strength, Mobility, Symptoms).
@@ -401,6 +404,26 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-05 — A challenge can carry daily tasks
+**Decision (Shaun's request; supersedes "time container only — no rules yet"):** a
+challenge may list daily tasks on its record, `tasks: [{ id, title, kind, target,
+unit }]`, with kind **count** (a number a day, e.g. 50 reps), **check** (yes/no) or
+**steps** (at most one). A day's results are per-date state on that day's plan:
+`plan.challengeLog[challengeId][taskId] = { value, at }`. A steps task stores
+nothing: it reads the day's Steps record, so Steps logged in Health & fitness and
+in the challenge are one number, and Health & fitness shows the challenge target
+("10,500 / 10,000"). A task is met at or above its target (any amount when no
+target); a day is complete when every task is met. Tasks are added, edited and
+removed from the challenge sheet; editing builds on the task and keeps its id.
+**Why:** the running challenge (10k steps, press ups, sit ups, crunches each day)
+needed its daily asks visible and loggable where the day is lived.
+**Implications:** challenge tasks are not Actions (no daily Action records, no
+Flow/Backlog). A changed target applies to every day, past ones included; a removed
+task leaves its logged values on the plans but stops counting. Handoff adds
+"Challenge tasks: Steps 9,000 / 10,000; Press ups 50 / 50 reps (met); …". Tapping
+the Progress tile or the Today strip opens the challenge detail; Edit challenge is
+inside it. A new challenge opens straight onto its daily tasks.
 
 ### 2026-10-05 — Choosing key tasks is one question; the Backlog is a source
 **Decision:** the "Choose your key tasks" sheet answers only which actions (up to
@@ -1182,6 +1205,10 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-05) — Challenge daily tasks: detail sheet (tasks for today or an earlier
+  day, last seven days, days complete), add/edit/remove tasks, count log with
+  quick-add, steps linked to the Steps record, Today pills, Progress tile line,
+  Health & fitness target, Handoff line.
 - (2026-10-05) — "Choose your key tasks" redesign: Selected / Today / Backlog
   sections, whole-row selection with a separate details control, Backlog items
   moved (not copied) to today, separate "+ New action", search only for long
