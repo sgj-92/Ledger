@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-06 (Day snapshot: shareable image with sections, items and presets)
+Last updated: 2026-10-06 (Day Plan Save draft; Save to plan and Log activity in both training forms)
 
 ---
 
@@ -412,6 +412,21 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-06 — A plan can be saved unfinished; a planned session can be saved or logged from either place
+**Decision (Shaun's request):** the Day Plan footer offers **Save draft** beside
+**Finish planning** for a day not yet planned (it saves everything, including
+training, meals and the Nutrition Plan, without setting `planReviewedAt`, so the
+day reads Draft); a planned day keeps the single "Save changes". With Morning Prime
+waiting, "Return to Morning Prime" takes its own line above the two. The training
+form opened for a planned session offers both actions in both places: from Plan,
+**Save to plan** (primary) and **Log activity** (only on a day that has come, it
+saves the detail to the plan, records the session and marks the plan done); from
+Today, **Log activity** (primary) and **Save to plan** (adds detail to the plan
+without logging; not shown once the session is logged).
+**Why:** closing the Day Plan dropped unsaved health choices unless the day was
+declared finished, and a session could only be planned in Plan and only logged
+from Today.
 
 ### 2026-10-06 — A day can be shared as an image, with presets
 **Decision (Shaun's request):** "Share snapshot" draws the chosen parts of a day
@@ -1263,6 +1278,8 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-06) — Day Plan "Save draft"; training form offers Save to plan and Log
+  activity from both Plan and Today.
 - (2026-10-06) — Day snapshot sharing: image of chosen sections/items, built-in and
   named presets (create, update, rename, delete), Share / Save image; H&F share icon
   and a "Share snapshot" link at the foot of Today.

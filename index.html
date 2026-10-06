@@ -3219,6 +3219,14 @@
     border-radius: var(--r-md); white-space: nowrap;
   }
   .dp-footer .dp-footer-link + .save-btn { flex: 1 1 0; width: auto; padding: 13px 14px; }
+  .dp-footer .dp-draft {
+    flex: 1 1 0; width: auto; margin: 0; padding: 13px 14px; font-size: 14px; border-radius: var(--r-md); white-space: nowrap;
+  }
+  .dp-footer .dp-draft + .save-btn { flex: 1 1 0; width: auto; padding: 13px 14px; }
+  /* with Morning Prime waiting, its link takes a line of its own above the two saves */
+  .sheet-actionbar.dp-footer.has-link { flex-wrap: wrap; row-gap: 4px; }
+  .dp-footer.has-link .dp-footer-link { flex-basis: 100%; text-align: center; padding: 2px 0 6px; }
+  .form-alt-btn { margin-top: 10px; }
   @media (max-width: 359px) {
     .sheet-actionbar.dp-footer { align-items: stretch; }
     .dp-footer .dp-footer-link { text-align: center; }
@@ -15279,13 +15287,15 @@
           '<span class="dn-saved" id="dpNotesSaved"></span>') +
         // declaring the day planned is its own act — editing alone never does it.
         // Intention, notes and actions save themselves; this commits the rest.
-        '<div class="sheet-actionbar dp-footer">' +
+        // a day still being shaped can be saved as a draft, without declaring it planned
+        '<div class="sheet-actionbar dp-footer' + (mpNeedsAttention(dateStr) ? ' has-link' : '') + '">' +
           (mpNeedsAttention(dateStr)
             ? '<button type="button" class="dp-footer-link" id="planToMpBtn">Return to Morning Prime</button>'
             : '') +
           (getPlanReadiness(dateStr).state === 'planned'
             ? '<button type="button" class="save-btn is-saved" id="savePlanBtn">Save changes</button>'
-            : '<button type="button" class="save-btn" id="savePlanBtn">Finish planning</button>') +
+            : '<button type="button" class="btn-secondary dp-draft" id="saveDraftBtn">Save draft</button>' +
+              '<button type="button" class="save-btn" id="savePlanBtn">Finish planning</button>') +
         '</div>';
       return html;
     }
@@ -15637,6 +15647,14 @@
         out.planReviewedAt = new Date().toISOString();
         savePlanForDate(dateStr, out);
         closeSheet();
+        if (opts.returnToMorningPrime) finishToMorningPrime();
+      });
+      var draftBtn = document.getElementById('saveDraftBtn');
+      if (draftBtn) draftBtn.addEventListener('click', function(){
+        flushText();
+        savePlanForDate(dateStr, collectPlanData());     // saved, not declared planned
+        closeSheet();
+        showPinToast('Saved as a draft', false, CHECK_SVG);
         if (opts.returnToMorningPrime) finishToMorningPrime();
       });
       var planToMp = document.getElementById('planToMpBtn');
@@ -16666,9 +16684,16 @@
         '<button type="button" class="btn-primary" id="closeNutritionBtn">Close nutrition' + (d.date === todayStr() ? ' for today' : '') + '</button>' +
         '<button type="button" class="btn-secondary" id="saveBtn">Save and finish later</button>' +
       '</div>';
+    } else if (mode === 'plan'){
+      // planning can also record it, on a day that has come
+      html += '<button class="save-btn" id="saveBtn">Save to plan</button>' +
+        ((d.date || todayStr()) <= todayStr() ? '<button type="button" class="btn-secondary form-alt-btn" id="logFromPlanBtn">Log activity</button>' : '');
+    } else if (fromPlan){
+      // a planned session opened from Today can be logged, or just given more detail
+      html += '<button class="save-btn" id="saveBtn">Log activity</button>' +
+        (!editingId ? '<button type="button" class="btn-secondary form-alt-btn" id="savePlanOnlyBtn">Save to plan</button>' : '');
     } else {
-      html += '<button class="save-btn" id="saveBtn">' +
-        (mode === 'plan' ? 'Save to plan' : (fromPlan ? 'Log activity' : 'Save')) + '</button>';
+      html += '<button class="save-btn" id="saveBtn">Save</button>';
     }
     if (mode === 'plan') html += '<button type="button" class="delete-btn" id="removeFromPlanBtn">Remove from plan</button>';
     else if (editingId) html += '<button class="delete-btn" id="deleteBtn">Delete</button>';
@@ -17103,6 +17128,24 @@
       saveSession(out);
       if (opts.planDate) markPlanTrainingCompleted(opts.planDate, type, out.id);
       closeSheet();
+    });
+
+    var logFromPlan = document.getElementById('logFromPlanBtn');
+    if (logFromPlan) logFromPlan.addEventListener('click', function(){
+      // the plan keeps what was entered, and the session is recorded against it
+      var out = collectFormData();
+      saveTrainingPlanDetails(type, opts.planDate, out);
+      out.id = uid();
+      saveSession(out);
+      markPlanTrainingCompleted(opts.planDate, type, out.id);
+      closeSheet();
+      if (opts.onDone) opts.onDone(getPlanForDate(opts.planDate));
+    });
+    var savePlanOnly = document.getElementById('savePlanOnlyBtn');
+    if (savePlanOnly) savePlanOnly.addEventListener('click', function(){
+      saveTrainingPlanDetails(type, opts.planDate, collectFormData());
+      closeSheet();
+      showPinToast('Saved to plan', false, CHECK_SVG);
     });
 
     if (type === 'nutrition'){
