@@ -1756,6 +1756,56 @@
   .icon-btn svg { width: 15px; height: 15px; display: block; }
   .icon-btn:active { color: var(--gold); border-color: rgba(var(--gold-rgb),0.4); }
   .day-share-link { display: block; width: 100%; text-align: center; color: var(--text-3); font-size: 12.5px; }
+  .day-share-row { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; }
+  .day-share-row .day-share-link { width: auto; }
+  .day-share-link.snap { color: var(--gold); }
+  /* ---- snapshot sheet ---- */
+  .sheet:has(.snap-presets) { overflow-x: hidden; }
+  .snap-presets { display: flex; gap: 8px; overflow-x: auto; margin: 0 -22px var(--sp-3); padding: 2px 22px 4px; scrollbar-width: none; }
+  .snap-presets::-webkit-scrollbar { display: none; }
+  .snap-presets .bk-filter-chip { flex-shrink: 0; white-space: nowrap; }
+  .snap-presets .snap-new { color: var(--gold); border-style: dashed; }
+  .snap-tools { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 0 0 var(--sp-3); font-size: 12.5px; }
+  .snap-tools .btn-link { padding: 4px 0; font-size: 12.5px; }
+  .snap-tools-note { color: var(--text-3); margin-right: auto; }
+  .snap-tools #snapUpdate { margin-right: auto; color: var(--gold); }
+  .snap-tools .snap-del { color: var(--danger); }
+  .snap-name { display: flex; align-items: center; gap: 10px; margin: 0 0 var(--sp-3); }
+  .snap-name input {
+    flex: 1; min-width: 0; height: 42px; padding: 0 12px; border-radius: var(--r-md);
+    border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); font-family: var(--sans); font-size: 15px; outline: none;
+  }
+  .snap-preview {
+    max-height: 52vh; overflow-y: auto; overscroll-behavior: contain; border-radius: var(--r-md);
+    border: 1px solid var(--line); background: #0e0b08; margin-bottom: var(--sp-5);
+  }
+  .snap-preview img { display: block; width: 100%; height: auto; }
+  .snap-preview img[hidden], .snap-empty[hidden] { display: none; }
+  .snap-empty { margin: 0; padding: 40px 16px; text-align: center; font-size: 13px; color: var(--text-3); }
+  .snap-include { margin-bottom: 4px; }
+  .snap-sec { border-bottom: 1px solid var(--line); }
+  .snap-sec-row { display: flex; align-items: center; }
+  .snap-sec-hit, .snap-item {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 12px 0; background: none; border: none;
+    cursor: pointer; font-family: var(--sans); text-align: left; color: var(--text);
+  }
+  .snap-sec-label { font-size: 14.5px; flex-shrink: 0; }
+  .snap-sec-sum { margin-left: auto; min-width: 0; font-size: 12.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .snap-sec-hit[aria-checked="true"] .cz-opt-box, .snap-item.on .cz-opt-box { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .snap-sec-hit[aria-checked="false"] .snap-sec-label { color: var(--text-2); }
+  .snap-sec-more {
+    flex-shrink: 0; width: 40px; height: 40px; margin-right: -10px; border: none; background: none; cursor: pointer;
+    color: var(--text-3); display: flex; align-items: center; justify-content: center;
+  }
+  .snap-sec-more svg { width: 14px; height: 14px; transition: transform 0.18s ease; }
+  .snap-sec-more[aria-expanded="true"] svg { transform: rotate(90deg); }
+  .snap-mode { margin: -2px 0 12px 34px; }
+  .snap-items { padding: 0 0 8px 34px; }
+  .snap-item { width: 100%; padding: 8px 0; gap: 10px; }
+  .snap-item .cz-opt-box { width: 18px; height: 18px; border-radius: 5px; }
+  .snap-item .cz-opt-box svg { width: 10px; height: 10px; }
+  .snap-item-text { font-size: 13.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .snap-item.on .snap-item-text { color: var(--text); }
 
   .handoff-preview {
     margin: 0 0 var(--sp-4); padding: 14px 14px; max-height: 40vh; overflow: auto;
@@ -4170,7 +4220,10 @@
     <!-- the day's last ritual closes the page, after the evidence of the day -->
     <div class="wd-wrap" id="windDownSection"></div>
 
-    <button type="button" class="btn-link day-share-link" id="shareDayFootBtn">Share day for Claude →</button>
+    <div class="day-share-row">
+      <button type="button" class="btn-link day-share-link snap" id="shareSnapFootBtn">Share snapshot →</button>
+      <button type="button" class="btn-link day-share-link" id="shareDayFootBtn">Share day for Claude →</button>
+    </div>
     <p class="sync-note" id="syncNote"></p>
     </div>
   </section>
@@ -4994,6 +5047,7 @@
           // calendar preferences: which day weeks start, and the weekly training target
           presets.weekStartsOn = data.weekStartsOn || null;
           presets.trainingTarget = data.trainingTarget || null;
+          presets.shareTemplates = data.shareTemplates || null;      // snapshot presets
           applyWeekPreference();
           if (currentView === 'calendar') renderCalendar();
           if (currentView === 'focus') renderFocus();
@@ -9126,6 +9180,503 @@
     backdrop.classList.add('open');
   }
 
+  // ============ Day snapshot: an image of the day to share ============
+  // A picture for other people (an accountability group), not a hand-off for tools: the
+  // day's chosen parts drawn onto one image, as tall as they need. What to include is
+  // chosen per section and, inside a section, per item; presets remember the sections
+  // (and which challenge tasks) so a regular share is one tap. Presets are a preference
+  // and sync with the rest (presets.shareTemplates); per-item choices are for that share.
+  var SNAP_SECTIONS = [
+    { key: 'challenge', label: 'Challenge' },
+    { key: 'routines', label: 'Morning Prime & Wind-down' },
+    { key: 'intention', label: 'Intention' },
+    { key: 'keyTasks', label: 'Key tasks' },
+    { key: 'actions', label: 'Actions' },
+    { key: 'training', label: 'Training' },
+    { key: 'nutritionPlan', label: 'Nutrition Plan' },
+    { key: 'foodPlan', label: 'Food Plan' },
+    { key: 'foodDiary', label: 'Food Diary' },
+    { key: 'steps', label: 'Steps' },
+    { key: 'weight', label: 'Weight' }
+  ];
+  var SNAP_HF = ['training', 'nutritionPlan', 'foodPlan', 'foodDiary', 'steps', 'weight'];
+  var SNAP_BUILTIN = [
+    { id: 'hf', name: 'Health & fitness', sections: SNAP_HF, actionsMode: 'done', builtIn: true },
+    { id: 'day', name: 'Whole day', sections: SNAP_SECTIONS.map(function(s){ return s.key; }), actionsMode: 'all', builtIn: true }
+  ];
+  var SNAP_LAST_KEY = 'ledger_snap_preset';
+  function snapUserPresets(){ return (presets.shareTemplates || []).filter(function(p){ return p && p.id && p.name; }); }
+  function snapAllPresets(){ return SNAP_BUILTIN.concat(snapUserPresets()); }
+  function snapPresetById(id){ return snapAllPresets().find(function(p){ return p.id === id; }) || null; }
+  function saveSnapPresets(list){
+    presets.shareTemplates = list;
+    savePresets();
+  }
+
+  // Everything the day holds that a snapshot can show, section by section. Items carry a
+  // stable id so they can be left out one at a time. state: 'done' | 'open' | 'key'.
+  function snapshotData(dateStr){
+    var out = {};
+    var plan = getPlanForDate(dateStr);
+    var c = activeChallenge();
+    if (c && dateStr >= c.startDate && dateStr <= c.endDate){
+      var st = challengeState(c, dateStr);
+      var tasks = dateStr <= todayStr() ? challengeTasksOn(c, dateStr) : [];
+      var met = tasks.filter(function(t){ return challengeTaskMet(c, t, dateStr); }).length;
+      out.challenge = { title: c.title, day: st.label, pct: st.pct,
+        summary: tasks.length ? met + ' of ' + tasks.length + ' done' : st.label,
+        items: tasks.map(function(t){
+          return { id: 'ct:' + t.id, taskId: t.id, text: t.title, value: challengeTaskProgress(c, t, dateStr), state: challengeTaskMet(c, t, dateStr) ? 'done' : 'open' };
+        }) };
+    }
+    var mps = mpState(dateStr), wds = windDownState(dateStr), r = [];
+    if (mps.total) r.push({ id: 'rt:mp', text: 'Morning Prime', state: mps.completedAt ? 'done' : 'open',
+      value: mps.completedAt ? 'Done · ' + mpTimeLabel(mps.completedAt) : mps.resolvedCount + ' of ' + mps.total });
+    if (wds.total) r.push({ id: 'rt:wd', text: 'Evening Wind-down', state: wds.completedAt ? 'done' : 'open',
+      value: wds.completedAt ? 'Done · ' + mpTimeLabel(wds.completedAt) : wds.resolved + ' of ' + wds.total });
+    if (r.length) out.routines = { items: r, summary: r.filter(function(x){ return x.state === 'done'; }).length + ' of ' + r.length + ' done' };
+    var intention = (getMorningPrime(dateStr).intention || '').trim();
+    if (intention) out.intention = { text: intention, summary: '' };
+    var acts = sortByOrderHint(commitments.filter(function(x){ return x.date === dateStr && x.category !== 'roadblock'; }), dayActionOrder(dateStr));
+    var keys = acts.filter(function(x){ return x.isKeyTask; });
+    if (keys.length) out.keyTasks = { summary: keys.filter(function(x){ return x.status === 'completed'; }).length + ' of ' + keys.length + ' done',
+      items: keys.map(function(x){ return { id: 'a:' + x.id, text: x.title, state: x.status === 'completed' ? 'done' : 'open', key: true }; }) };
+    if (acts.length) out.actions = { summary: acts.filter(function(x){ return x.status === 'completed'; }).length + ' of ' + acts.length + ' complete',
+      items: acts.map(function(x){ return { id: 'a:' + x.id, text: x.title, state: x.status === 'completed' ? 'done' : 'open', key: !!x.isKeyTask }; }) };
+    // training: what was recorded, then anything planned that was not
+    var recorded = sessions.filter(function(s){ return s.date === dateStr && PLAN_TRAINING_TYPES.indexOf(s.type) > -1; });
+    var tr = recorded.map(function(s){
+      var det = sessionDetailText(s);
+      return { id: 's:' + s.id, text: TYPE_LABEL[s.type], value: det === 'Session logged' ? '' : det, state: 'done' };
+    });
+    var types = recorded.map(function(s){ return s.type; });
+    if (plan && !plan.restDay) (plan.trainingTypes || []).forEach(function(t){
+      if (types.indexOf(t) === -1) tr.push({ id: 'pt:' + t, text: TYPE_LABEL[t], value: 'Planned', state: 'open' });
+    });
+    if (plan && plan.restDay && !tr.length) tr.push({ id: 'rest', text: 'Rest day', value: '', state: 'done' });
+    if (tr.length) out.training = { items: tr, summary: recorded.length ? plural(recorded.length, 'session') : 'Planned' };
+    if (nutritionPlanValue(plan)) out.nutritionPlan = { value: nutritionPlanLabel(plan), summary: nutritionPlanLabel(plan) };
+    var meals = getPlanMeals(plan).filter(function(m){ return (m.text || '').trim(); });
+    if (meals.length) out.foodPlan = { summary: meals.filter(function(m){ return m.completed; }).length + ' of ' + meals.length + ' eaten',
+      items: meals.map(function(m){ return { id: 'm:' + m.id, text: m.text, state: m.completed ? 'done' : 'open' }; }) };
+    var nut = getNutritionForDate(dateStr), lines = diaryLinesOf(nut);
+    if (lines.length) out.foodDiary = { summary: plural(lines.length, 'item') + (nut.dayRating ? ' · ' + DAY_RATING_LABEL[nut.dayRating] : ''),
+      rating: nut.dayRating ? DAY_RATING_LABEL[nut.dayRating] : '',
+      items: lines.map(function(l, i){ return { id: 'fd:' + i, text: l }; }) };
+    var stp = stepsRecordFor(dateStr);
+    if (stp){
+      var tgt = challengeStepsTarget(dateStr), n = parseInt(stp.steps, 10);
+      out.steps = { value: fmtSteps(n), target: tgt ? fmtSteps(tgt) : '', met: !!(tgt && n >= tgt), summary: fmtSteps(n) + (tgt ? ' / ' + fmtSteps(tgt) : '') };
+    }
+    var wt = dailyWeights().find(function(w){ return w.date === dateStr; });
+    if (wt) out.weight = { value: (Math.round(wt.kg * 10) / 10).toFixed(1) + ' kg', summary: (Math.round(wt.kg * 10) / 10).toFixed(1) + ' kg' };
+    return out;
+  }
+
+  // ---- drawing: one long card, drawn on a canvas ----
+  var SNAP_W = 1080, SNAP_PAD = 84;
+  var SNAP_C = { bg: '#0e0b08', bg2: '#17120c', text: '#f0e9dd', text2: '#b3a690', text3: '#7d705f', gold: '#dcb878', line: 'rgba(234,223,204,0.10)', ink: '#14100b' };
+  var SNAP_SERIF = '"Playfair Display", Georgia, serif', SNAP_SANS = 'Inter, -apple-system, "Segoe UI", sans-serif';
+  function snapFontsReady(){
+    if (!document.fonts || !document.fonts.load) return Promise.resolve();
+    return Promise.all([
+      document.fonts.load('400 80px "Playfair Display"'), document.fonts.load('italic 400 34px "Playfair Display"'),
+      document.fonts.load('400 34px Inter'), document.fonts.load('500 34px Inter'), document.fonts.load('600 34px Inter')
+    ]).catch(function(){});
+  }
+  function snapWrap(ctx, text, maxW){
+    var words = String(text).split(/\s+/), lines = [], cur = '';
+    words.forEach(function(w){
+      var next = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(next).width <= maxW || !cur) cur = next;
+      else { lines.push(cur); cur = w; }
+    });
+    if (cur) lines.push(cur);
+    // a single word wider than the line is cut rather than spilling off the card
+    return lines.map(function(l){
+      if (ctx.measureText(l).width <= maxW) return l;
+      while (l.length > 1 && ctx.measureText(l + '…').width > maxW) l = l.slice(0, -1);
+      return l + '…';
+    });
+  }
+  function snapSpaced(ctx, px){ if ('letterSpacing' in ctx) ctx.letterSpacing = px + 'px'; }
+
+  // Builds the card as a list of blocks, each able to measure and draw itself, so the
+  // canvas is exactly as tall as the day chosen.
+  function snapBlocks(dateStr, data, sel, title){
+    var B = [];
+    var d = toLocalDate(dateStr);
+    var inner = SNAP_W - SNAP_PAD * 2;
+    function on(k){ return !!sel.sections[k] && !!data[k]; }
+    function kept(items){ return (items || []).filter(function(it){ return !sel.off[it.id]; }); }
+    B.push({ h: function(){ return 40; }, draw: function(){} });
+    B.push({ h: function(){ return 40; }, draw: function(ctx, y){
+      ctx.font = '600 25px ' + SNAP_SANS; ctx.fillStyle = SNAP_C.gold; snapSpaced(ctx, 6);
+      ctx.fillText(d.toLocaleDateString('en-GB', { weekday: 'long' }).toUpperCase(), SNAP_PAD, y + 28); snapSpaced(ctx, 0);
+    } });
+    B.push({ h: function(){ return 104; }, draw: function(ctx, y){
+      ctx.font = '400 84px ' + SNAP_SERIF; ctx.fillStyle = SNAP_C.text;
+      ctx.fillText(d.getDate() + ' ' + d.toLocaleDateString('en-GB', { month: 'long' }) + ' ' + d.getFullYear(), SNAP_PAD - 3, y + 82);
+    } });
+    if (title) B.push({ h: function(){ return 52; }, draw: function(ctx, y){
+      ctx.font = 'italic 400 36px ' + SNAP_SERIF; ctx.fillStyle = SNAP_C.text2; ctx.fillText(title, SNAP_PAD, y + 38);
+    } });
+    B.push({ h: function(){ return 52; }, draw: function(ctx, y){
+      ctx.fillStyle = SNAP_C.gold; ctx.fillRect(SNAP_PAD, y + 26, 72, 3);
+    } });
+
+    function heading(label, right){
+      B.push({ h: function(){ return 74; }, draw: function(ctx, y){
+        ctx.font = '500 23px ' + SNAP_SANS; ctx.fillStyle = SNAP_C.text3; snapSpaced(ctx, 5);
+        ctx.fillText(label.toUpperCase(), SNAP_PAD, y + 50); snapSpaced(ctx, 0);
+        if (right){ ctx.font = '500 26px ' + SNAP_SANS; ctx.fillStyle = SNAP_C.text2; ctx.textAlign = 'right'; ctx.fillText(right, SNAP_W - SNAP_PAD, y + 50); ctx.textAlign = 'left'; }
+      } });
+    }
+    function mark(ctx, x, cy, state){
+      ctx.save();
+      if (state === 'done'){
+        ctx.fillStyle = SNAP_C.gold; ctx.beginPath(); ctx.arc(x + 16, cy, 16, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = SNAP_C.ink; ctx.lineWidth = 3.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.beginPath(); ctx.moveTo(x + 9, cy + 0.5); ctx.lineTo(x + 14, cy + 6); ctx.lineTo(x + 23.5, cy - 5.5); ctx.stroke();
+      } else if (state === 'open'){
+        ctx.strokeStyle = 'rgba(234,223,204,0.28)'; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.arc(x + 16, cy, 14.8, 0, Math.PI * 2); ctx.stroke();
+      } else if (state === 'dot'){
+        ctx.fillStyle = SNAP_C.gold; ctx.beginPath(); ctx.arc(x + 16, cy, 5, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    }
+    // one row: a mark, text that wraps, and an optional value on the right
+    function row(it, opts){
+      opts = opts || {};
+      var textX = SNAP_PAD + 56, lines = null, valW = 0;
+      function layout(ctx){
+        ctx.font = '500 27px ' + SNAP_SANS; valW = it.value ? Math.min(ctx.measureText(it.value).width, inner * 0.45) + 24 : 0;
+        ctx.font = (opts.big ? '400 36px ' : '400 33px ') + SNAP_SANS;
+        lines = snapWrap(ctx, it.text, SNAP_W - SNAP_PAD - textX - valW);
+      }
+      B.push({
+        h: function(ctx){ layout(ctx); return Math.max(64, 20 + lines.length * 44); },
+        draw: function(ctx, y){
+          layout(ctx);
+          var first = y + 32;
+          mark(ctx, SNAP_PAD, first, opts.mark || it.state);
+          ctx.font = (opts.big ? '400 36px ' : '400 33px ') + SNAP_SANS;
+          ctx.fillStyle = it.state === 'open' && !opts.keepBright ? SNAP_C.text2 : SNAP_C.text;
+          lines.forEach(function(l, i){ ctx.fillText(l, textX, first + 12 + i * 44); });
+          if (it.value){
+            ctx.font = '500 27px ' + SNAP_SANS; ctx.textAlign = 'right';
+            ctx.fillStyle = it.state === 'done' ? SNAP_C.gold : SNAP_C.text3;
+            var v = it.value;
+            while (v.length > 1 && ctx.measureText(v).width > inner * 0.45) v = v.slice(0, -2) + '…';
+            ctx.fillText(v, SNAP_W - SNAP_PAD, first + 10); ctx.textAlign = 'left';
+          }
+        }
+      });
+    }
+    function stat(big, small, met){
+      B.push({ h: function(){ return 96; }, draw: function(ctx, y){
+        ctx.font = '400 70px ' + SNAP_SERIF; ctx.fillStyle = met ? SNAP_C.gold : SNAP_C.text;
+        ctx.fillText(big, SNAP_PAD, y + 70);
+        if (small){
+          var w = ctx.measureText(big).width;
+          ctx.font = '400 32px ' + SNAP_SANS; ctx.fillStyle = SNAP_C.text2; ctx.fillText(small, SNAP_PAD + w + 18, y + 68);
+        }
+      } });
+    }
+    function gap(h){ B.push({ h: function(){ return h; }, draw: function(){} }); }
+
+    if (on('challenge')){
+      var ch = data.challenge, cItems = kept(ch.items);
+      heading('Challenge', cItems.length ? cItems.filter(function(i){ return i.state === 'done'; }).length + ' of ' + cItems.length + ' done' : '');
+      B.push({ h: function(){ return 124; }, draw: function(ctx, y){
+        ctx.font = '400 52px ' + SNAP_SERIF; ctx.fillStyle = SNAP_C.text;
+        var t = ch.title; while (t.length > 1 && ctx.measureText(t).width > inner) t = t.slice(0, -2) + '…';
+        ctx.fillText(t, SNAP_PAD, y + 52);
+        ctx.font = '500 28px ' + SNAP_SANS; ctx.fillStyle = SNAP_C.text2; ctx.fillText(ch.day, SNAP_PAD, y + 98);
+        var bx = SNAP_PAD + ctx.measureText(ch.day).width + 28, bw = SNAP_W - SNAP_PAD - bx;
+        ctx.fillStyle = 'rgba(234,223,204,0.10)'; ctx.fillRect(bx, y + 87, bw, 7);
+        ctx.fillStyle = SNAP_C.gold; ctx.fillRect(bx, y + 87, Math.max(7, bw * ch.pct / 100), 7);
+      } });
+      cItems.forEach(function(it){ row(it); });
+      gap(18);
+    }
+    if (on('routines')){ heading('Routines'); kept(data.routines.items).forEach(function(it){ row(it); }); gap(18); }
+    if (on('intention')){
+      heading('Intention');
+      var iLines = null;
+      B.push({ h: function(ctx){ ctx.font = 'italic 400 38px ' + SNAP_SERIF; iLines = snapWrap(ctx, '“' + data.intention.text + '”', inner); return 20 + iLines.length * 52; },
+        draw: function(ctx, y){ ctx.font = 'italic 400 38px ' + SNAP_SERIF; ctx.fillStyle = SNAP_C.text; iLines.forEach(function(l, i){ ctx.fillText(l, SNAP_PAD, y + 40 + i * 52); }); } });
+      gap(18);
+    }
+    var keyShown = on('keyTasks');
+    if (keyShown){ heading('Key tasks', data.keyTasks.summary); kept(data.keyTasks.items).forEach(function(it){ row(it, { keepBright: true }); }); gap(18); }
+    if (on('actions')){
+      var aItems = kept(data.actions.items).filter(function(it){ return !(keyShown && it.key); })
+        .filter(function(it){ return sel.actionsMode === 'all' || it.state === 'done'; });
+      if (aItems.length){ heading(keyShown ? 'Other actions' : 'Actions', data.actions.summary); aItems.forEach(function(it){ row(it); }); gap(18); }
+    }
+    if (on('training')){ heading('Training'); kept(data.training.items).forEach(function(it){ row(it, { big: true }); }); gap(18); }
+    if (on('nutritionPlan')){ heading('Nutrition Plan'); row({ text: data.nutritionPlan.value, state: 'dot' }, { big: true }); gap(18); }
+    if (on('foodPlan')){ heading('Food Plan', data.foodPlan.summary); kept(data.foodPlan.items).forEach(function(it){ row(it); }); gap(18); }
+    if (on('foodDiary')){ heading('Food Diary', data.foodDiary.rating); kept(data.foodDiary.items).forEach(function(it){ row({ text: it.text, state: 'dot' }, { mark: 'dot' }); }); gap(18); }
+    if (on('steps')){ heading('Steps'); stat(data.steps.value, data.steps.target ? '/ ' + data.steps.target : 'steps', data.steps.met); gap(18); }
+    if (on('weight')){ heading('Weight'); stat(data.weight.value, '', false); gap(18); }
+
+    B.push({ h: function(){ return 120; }, draw: function(ctx, y){
+      ctx.fillStyle = SNAP_C.line; ctx.fillRect(SNAP_PAD, y + 30, inner, 2);
+      ctx.font = '500 22px ' + SNAP_SANS; ctx.fillStyle = SNAP_C.text3; snapSpaced(ctx, 5);
+      ctx.fillText('LEDGER', SNAP_PAD, y + 84);
+      ctx.textAlign = 'right'; ctx.fillText('A MORE INTENTIONAL YOU', SNAP_W - SNAP_PAD, y + 84); ctx.textAlign = 'left';
+      snapSpaced(ctx, 0);
+    } });
+    return B;
+  }
+  var SNAP_MAX_H = 9000;   // phones refuse very tall canvases; a day this long is cut there
+  function drawSnapshot(dateStr, data, sel, title){
+    var blocks = snapBlocks(dateStr, data, sel, title);
+    var probe = document.createElement('canvas').getContext('2d');
+    var hs = blocks.map(function(b){ return b.h(probe); });
+    var H = Math.min(SNAP_MAX_H, hs.reduce(function(a, h){ return a + h; }, 0) + 40);
+    var cv = document.createElement('canvas');
+    cv.width = SNAP_W; cv.height = H;
+    var ctx = cv.getContext('2d');
+    var g = ctx.createLinearGradient(0, 0, 0, Math.min(H, 900));
+    g.addColorStop(0, SNAP_C.bg2); g.addColorStop(1, SNAP_C.bg);
+    ctx.fillStyle = SNAP_C.bg; ctx.fillRect(0, 0, SNAP_W, H);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, SNAP_W, Math.min(H, 900));
+    ctx.textBaseline = 'alphabetic';
+    var y = 0;
+    blocks.forEach(function(b, i){ if (y + hs[i] <= H) b.draw(ctx, y); y += hs[i]; });
+    return cv;
+  }
+
+  // ---- the share sheet ----
+  function snapSelFromPreset(p, data){
+    var sel = { sections: {}, actionsMode: p.actionsMode || 'done', off: {} };
+    (p.sections || []).forEach(function(k){ sel.sections[k] = true; });
+    (p.offTasks || []).forEach(function(id){ sel.off['ct:' + id] = true; });
+    return sel;
+  }
+  function snapSelMatches(sel, p){
+    var a = Object.keys(sel.sections).filter(function(k){ return sel.sections[k]; }).sort().join('|');
+    var b = (p.sections || []).slice().sort().join('|');
+    var offA = Object.keys(sel.off).filter(function(k){ return sel.off[k] && k.indexOf('ct:') === 0; }).map(function(k){ return k.slice(3); }).sort().join('|');
+    var offB = (p.offTasks || []).slice().sort().join('|');
+    return a === b && offA === offB && (sel.actionsMode || 'done') === (p.actionsMode || 'done');
+  }
+  function openSnapshotSheet(dateStr, presetId){
+    editingId = null;
+    activeSheetRefresh = null;
+    var data = snapshotData(dateStr);
+    var pid = presetId || lsGet(SNAP_LAST_KEY, 'hf');
+    if (!snapPresetById(pid)) pid = 'hf';
+    var sel = snapSelFromPreset(snapPresetById(pid), data);
+    var open = {};           // section key -> its items are showing
+    var naming = null;       // null | 'new' | 'rename'
+    var blob = null, drawSeq = 0, drawTimer = null;
+    var canShareFiles = !!(navigator.share && navigator.canShare);
+
+    function activePreset(){ return snapPresetById(pid); }
+    function anyChosen(){ return SNAP_SECTIONS.some(function(s){ return sel.sections[s.key] && data[s.key]; }); }
+
+    function build(){
+      var p = activePreset();
+      var avail = SNAP_SECTIONS.filter(function(s){ return !!data[s.key]; });
+      var html = '<div class="sheet-handle"></div>' +
+        sheetHead(UI_ICON.share, 'Share snapshot', shortDayLabel(dateStr) + ' · an image of the day', '') +
+        '<div class="snap-presets" role="radiogroup" aria-label="Presets">' +
+          snapAllPresets().map(function(x){
+            return '<button type="button" class="bk-filter-chip' + (x.id === pid ? ' sel' : '') + '" role="radio" aria-checked="' + (x.id === pid ? 'true' : 'false') + '" data-snap-preset="' + x.id + '"></button>';
+          }).join('') +
+          '<button type="button" class="bk-filter-chip snap-new" id="snapNewBtn">+ New preset</button>' +
+        '</div>';
+      // preset tools: update what changed, or name a new one
+      var dirty = p && !snapSelMatches(sel, p);
+      if (naming){
+        html += '<div class="snap-name"><input type="text" id="snapName" maxlength="32" placeholder="Preset name, e.g. Belly Must Go" autocomplete="off">' +
+          '<button type="button" class="kt-new-add" id="snapNameSave">' + (naming === 'new' ? 'Save' : 'Rename') + '</button>' +
+          '<button type="button" class="kt-new-x" id="snapNameCancel" aria-label="Cancel">' + CLOSE_SVG + '</button></div>';
+      } else if (p && !p.builtIn){
+        html += '<div class="snap-tools">' +
+          (dirty ? '<button type="button" class="btn-link" id="snapUpdate">Update “<span data-role="snap-pname"></span>”</button>' : '<span class="snap-tools-note">Preset</span>') +
+          '<button type="button" class="btn-link" id="snapRename">Rename</button>' +
+          '<button type="button" class="btn-link snap-del" id="snapDelete">Delete</button></div>';
+      } else if (dirty){
+        html += '<div class="snap-tools"><span class="snap-tools-note">Changed from “' + p.name + '”</span>' +
+          '<button type="button" class="btn-link" id="snapSaveAs">Save as a preset</button></div>';
+      }
+      html += '<div class="snap-preview" id="snapPreview"><img id="snapImg" alt="Snapshot preview"><p class="snap-empty" id="snapEmpty" hidden>Choose something to include.</p></div>';
+      html += '<h3 class="cz-sec-title snap-include">Include</h3><div class="snap-secs">' +
+        (avail.length ? avail.map(function(s){
+          var d = data[s.key], items = d.items || [];
+          var chosen = !!sel.sections[s.key];
+          return '<div class="snap-sec' + (chosen ? ' on' : '') + '">' +
+            '<div class="snap-sec-row">' +
+              '<button type="button" class="snap-sec-hit" data-snap-sec="' + s.key + '" role="switch" aria-checked="' + (chosen ? 'true' : 'false') + '">' +
+                '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+                '<span class="snap-sec-label">' + s.label + '</span>' +
+                '<span class="snap-sec-sum" data-snap-sum="' + s.key + '"></span>' +
+              '</button>' +
+              (items.length > 0 && s.key !== 'routines' || s.key === 'routines' && items.length > 1
+                ? '<button type="button" class="snap-sec-more" data-snap-open="' + s.key + '" aria-expanded="' + (open[s.key] ? 'true' : 'false') + '" aria-label="Choose items">' + UI_ICON.chevronRight + '</button>' : '') +
+            '</div>' +
+            (s.key === 'actions' && chosen
+              ? '<div class="freq-period snap-mode" role="radiogroup" aria-label="Which actions">' +
+                  '<button type="button" data-snap-mode="done" class="' + (sel.actionsMode !== 'all' ? 'sel' : '') + '">Done only</button>' +
+                  '<button type="button" data-snap-mode="all" class="' + (sel.actionsMode === 'all' ? 'sel' : '') + '">All, with what’s left</button></div>'
+              : '') +
+            (open[s.key] && items.length
+              ? '<div class="snap-items">' + items.map(function(it){
+                  return '<button type="button" class="snap-item' + (sel.off[it.id] ? '' : ' on') + '" data-snap-item="' + it.id + '" role="switch" aria-checked="' + (sel.off[it.id] ? 'false' : 'true') + '">' +
+                    '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span><span class="snap-item-text"></span></button>';
+                }).join('') + '</div>'
+              : '') +
+          '</div>';
+        }).join('') : '<p class="cz-empty">Nothing recorded on this day yet.</p>') +
+      '</div>';
+      html += '<div class="sheet-actionbar">' +
+        '<button type="button" class="btn-secondary" id="snapSaveBtn">Save image</button>' +
+        (canShareFiles ? '<button type="button" class="btn-primary" id="snapShareBtn">Share…</button>' : '') +
+      '</div>';
+      return html;
+    }
+
+    function render(){
+      var scroll = sheetEl.scrollTop;
+      sheetEl.innerHTML = build();
+      // preset names and item text are user content — set as text
+      sheetEl.querySelectorAll('[data-snap-preset]').forEach(function(b){ b.textContent = snapPresetById(b.dataset.snapPreset).name; });
+      var pn = sheetEl.querySelector('[data-role="snap-pname"]');
+      if (pn) pn.textContent = activePreset().name;
+      SNAP_SECTIONS.forEach(function(s){
+        var sum = sheetEl.querySelector('[data-snap-sum="' + s.key + '"]');
+        if (sum && data[s.key]) sum.textContent = s.key === 'intention' ? '' : (data[s.key].summary || '');
+        (data[s.key] && data[s.key].items || []).forEach(function(it){
+          var b = sheetEl.querySelector('[data-snap-item="' + it.id + '"] .snap-item-text');
+          if (b) b.textContent = it.text + (it.value ? ' · ' + it.value : '');
+        });
+      });
+      wire();
+      sheetEl.scrollTop = scroll;
+      redraw();
+    }
+
+    function redraw(){
+      clearTimeout(drawTimer);
+      drawTimer = setTimeout(function(){
+        var seq = ++drawSeq;
+        var img = document.getElementById('snapImg'), empty = document.getElementById('snapEmpty');
+        if (!img) return;
+        if (!anyChosen()){ img.hidden = true; empty.hidden = false; blob = null; syncButtons(); return; }
+        snapFontsReady().then(function(){
+          if (seq !== drawSeq || !document.getElementById('snapImg')) return;
+          var p = activePreset();
+          var cv = drawSnapshot(dateStr, data, sel, p && !p.builtIn ? p.name : '');
+          document.getElementById('snapImg').src = cv.toDataURL('image/png');
+          document.getElementById('snapImg').hidden = false;
+          document.getElementById('snapEmpty').hidden = true;
+          cv.toBlob(function(b){ if (seq === drawSeq){ blob = b; syncButtons(); } }, 'image/png');
+        });
+      }, 60);
+    }
+    function syncButtons(){
+      ['snapSaveBtn', 'snapShareBtn'].forEach(function(id){ var b = document.getElementById(id); if (b) b.disabled = !blob; });
+    }
+    function fileName(){ return 'ledger-' + dateStr + '.png'; }
+
+    function wire(){
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      sheetEl.querySelectorAll('[data-snap-preset]').forEach(function(b){
+        b.addEventListener('click', function(){
+          pid = b.dataset.snapPreset; lsSet(SNAP_LAST_KEY, pid);
+          sel = snapSelFromPreset(activePreset(), data); naming = null; render();
+        });
+      });
+      document.getElementById('snapNewBtn').addEventListener('click', function(){ naming = 'new'; render(); focusName(''); });
+      sheetEl.querySelectorAll('[data-snap-sec]').forEach(function(b){
+        b.addEventListener('click', function(){ var k = b.dataset.snapSec; sel.sections[k] = !sel.sections[k]; render(); });
+      });
+      sheetEl.querySelectorAll('[data-snap-open]').forEach(function(b){
+        b.addEventListener('click', function(){ var k = b.dataset.snapOpen; open[k] = !open[k]; render(); });
+      });
+      sheetEl.querySelectorAll('[data-snap-item]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var id = b.dataset.snapItem; sel.off[id] = !sel.off[id];
+          // choosing an item of a section that is off turns the section on
+          SNAP_SECTIONS.forEach(function(s){ if (data[s.key] && (data[s.key].items || []).some(function(it){ return it.id === id; }) && !sel.off[id]) sel.sections[s.key] = true; });
+          render();
+        });
+      });
+      sheetEl.querySelectorAll('[data-snap-mode]').forEach(function(b){
+        b.addEventListener('click', function(){ sel.actionsMode = b.dataset.snapMode; render(); });
+      });
+      var upd = document.getElementById('snapUpdate');
+      if (upd) upd.addEventListener('click', function(){
+        var p = activePreset();
+        saveSnapPresets(snapUserPresets().map(function(x){ return x.id === p.id ? Object.assign({}, x, presetFields(), { updatedAt: new Date().toISOString() }) : x; }));
+        render();
+        showPinToast('Preset updated', false, CHECK_SVG);
+      });
+      var saveAs = document.getElementById('snapSaveAs');
+      if (saveAs) saveAs.addEventListener('click', function(){ naming = 'new'; render(); focusName(''); });
+      var ren = document.getElementById('snapRename');
+      if (ren) ren.addEventListener('click', function(){ naming = 'rename'; render(); focusName(activePreset().name); });
+      var del = document.getElementById('snapDelete');
+      if (del) del.addEventListener('click', function(){
+        var p = activePreset();
+        if (!confirm('Delete the preset “' + p.name + '”?')) return;
+        saveSnapPresets(snapUserPresets().filter(function(x){ return x.id !== p.id; }));
+        pid = 'hf'; lsSet(SNAP_LAST_KEY, pid); render();
+      });
+      var nameSave = document.getElementById('snapNameSave');
+      if (nameSave){
+        var input = document.getElementById('snapName');
+        var commit = function(){
+          var name = input.value.trim();
+          if (!name){ input.focus(); return; }
+          if (naming === 'new'){
+            var np = Object.assign({ id: uid(), name: name, createdAt: new Date().toISOString() }, presetFields());
+            saveSnapPresets(snapUserPresets().concat(np));
+            pid = np.id; lsSet(SNAP_LAST_KEY, pid);
+          } else {
+            var cur = activePreset();
+            saveSnapPresets(snapUserPresets().map(function(x){ return x.id === cur.id ? Object.assign({}, x, { name: name }) : x; }));
+          }
+          naming = null; render();
+        };
+        nameSave.addEventListener('click', commit);
+        input.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); commit(); } });
+        document.getElementById('snapNameCancel').addEventListener('click', function(){ naming = null; render(); });
+      }
+      document.getElementById('snapSaveBtn').addEventListener('click', function(){
+        if (!blob) return;
+        var url = URL.createObjectURL(blob), a = document.createElement('a');
+        a.href = url; a.download = fileName(); document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 2000);
+      });
+      var shareBtn = document.getElementById('snapShareBtn');
+      if (shareBtn) shareBtn.addEventListener('click', function(){
+        if (!blob) return;
+        var file = new File([blob], fileName(), { type: 'image/png' });
+        if (!navigator.canShare({ files: [file] })){ document.getElementById('snapSaveBtn').click(); return; }
+        navigator.share({ files: [file], title: 'My day · ' + shortDayLabel(dateStr) }).catch(function(){ /* dismissed */ });
+      });
+      syncButtons();
+    }
+    // what a preset keeps: the sections, the actions choice, and any challenge tasks left out
+    function presetFields(){
+      return {
+        sections: SNAP_SECTIONS.map(function(s){ return s.key; }).filter(function(k){ return sel.sections[k]; }),
+        actionsMode: sel.actionsMode || 'done',
+        offTasks: Object.keys(sel.off).filter(function(k){ return sel.off[k] && k.indexOf('ct:') === 0; }).map(function(k){ return k.slice(3); })
+      };
+    }
+    function focusName(v){ var i = document.getElementById('snapName'); if (i){ i.value = v; setTimeout(function(){ i.focus(); }, 30); } }
+
+    render();
+    backdrop.classList.add('open');
+  }
+
   // ============ Morning Prime ============
   // A compact daily setup ritual: plan meals, choose up to three key tasks, set an intention.
   // It leans on the systems already here — key tasks are ordinary actions flagged
@@ -11754,6 +12305,7 @@
   }
 
   document.getElementById('shareDayFootBtn').addEventListener('click', function(){ openShareDaySheet(viewedDate); });
+  document.getElementById('shareSnapFootBtn').addEventListener('click', function(){ openSnapshotSheet(viewedDate); });
 
   document.getElementById('viewHistoryBtn').addEventListener('click', function(){
     selectedDay = viewedDate;
@@ -13855,12 +14407,12 @@
             '<span class="tsec-status"></span>' +
             '<span class="tsec-chev">' + UI_ICON.chevronRight + '</span>' +
           '</button>' +
-          '<span class="tsec-extra"><button type="button" class="icon-btn" data-role="share" id="shareDayBtn" aria-label="Share day">' + UI_ICON.share + '</button></span>' +
+          '<span class="tsec-extra"><button type="button" class="icon-btn" data-role="share" id="shareDayBtn" aria-label="Share a snapshot of Health & fitness">' + UI_ICON.share + '</button></span>' +
         '</div>'
       : '<div class="today-plan-widget-head">' +
           '<span class="sec-label">' + label + '</span>' +
           '<span class="sec-rule"></span>' +
-          '<button type="button" class="icon-btn" data-role="share"' + idAttr('shareDayBtn') + ' aria-label="Share day">' + UI_ICON.share + '</button>' +
+          '<button type="button" class="icon-btn" data-role="share"' + idAttr('shareDayBtn') + ' aria-label="Share a snapshot of Health & fitness">' + UI_ICON.share + '</button>' +
           '<button type="button" class="sec-link" data-role="plan-edit"' + idAttr('planTodayBtn') + '>' + planActionLabel + UI_ICON.arrowRight + '</button>' +
         '</div>';
 
@@ -13971,7 +14523,8 @@
     wrap.querySelector('[data-role="plan-edit"]').addEventListener('click', function(){
       openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'] });
     });
-    wrap.querySelector('[data-role="share"]').addEventListener('click', function(){ openShareDaySheet(dateStr); });
+    // the section's share icon shares a picture of it; the Claude hand-off stays at the foot of Today
+    wrap.querySelector('[data-role="share"]').addEventListener('click', function(){ openSnapshotSheet(dateStr, 'hf'); });
     wrap.querySelectorAll('[data-plan-edit]').forEach(function(el){
       el.addEventListener('click', function(e){
         e.stopPropagation();

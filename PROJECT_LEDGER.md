@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-05 (Health & fitness keyed lines; planned meals are the Food Plan)
+Last updated: 2026-10-06 (Day snapshot: shareable image with sections, items and presets)
 
 ---
 
@@ -412,6 +412,28 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-06 — A day can be shared as an image, with presets
+**Decision (Shaun's request):** "Share snapshot" draws the chosen parts of a day
+onto one PNG (1080 wide, as tall as the content, capped at 9000px), in Ledger's
+dark editorial style whatever the app theme, and shares it with the Web Share API
+(files) or saves it. Sections: Challenge (day, progress, its tasks), Routines
+(Morning Prime, Wind-down), Intention, Key tasks, Actions (Done only, or All with
+what's left; key tasks not repeated when Key tasks is on), Training (recorded, then
+planned-not-done), Nutrition Plan, Food Plan, Food Diary (with the day rating),
+Steps (with the challenge target), Weight. Only sections the day has are offered;
+each can be expanded to leave single items out for that share. **Presets**: two
+built in (Health & fitness, Whole day) and any number of named ones (e.g. "Belly
+Must Go"), which keep the sections, the Actions choice and any challenge tasks left
+out; created from the current choice, updated when it changes, renamed, deleted.
+A named preset's name appears under the date on the image. Presets sync in
+`presets.shareTemplates`; the last one used is remembered per device.
+**Why:** sharing the day with an accountability group, quickly and selectively.
+**Implications:** the Health & fitness share icon now opens the snapshot with the
+Health & fitness preset; the Claude hand-off stays at the foot of Today ("Share day
+for Claude"), beside a new "Share snapshot" link. Per-share item choices (a diary
+line, a single action) are not saved in presets — items other than challenge tasks
+change from day to day.
 
 ### 2026-10-05 — Challenge tasks can be Actions; changes are scoped
 **Decision (Shaun's request):** a challenge task can optionally **also be an Action**
@@ -1241,6 +1263,9 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 
 ## Recently Completed
 
+- (2026-10-06) — Day snapshot sharing: image of chosen sections/items, built-in and
+  named presets (create, update, rename, delete), Share / Save image; H&F share icon
+  and a "Share snapshot" link at the foot of Today.
 - (2026-10-05) — Planned meals relabelled Food Plan; Today's Health & fitness lines
   keyed (Training / Nutrition Plan / Food Plan / Food Diary / Steps).
 - (2026-10-05) — Food diary line in Health & fitness and a diary link in the meals
