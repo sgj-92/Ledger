@@ -6,6 +6,14 @@
 // outcome back onto the pin document. Nothing here is queued or scheduled — it runs immediately
 // when the document is created.
 //
+// Security: this function runs with the Admin SDK, so Firestore security rules do NOT apply to
+// it — it can read every subscription. It therefore enforces ownership itself: a pin is sent only
+// to devices registered by the same account (ownerUid). Clients can create pins and register
+// devices only as the owner (firestore.rules), so nobody else can trigger a push or add a device.
+// Records written before ownership existed carry no ownerUid; they were all created by the
+// owner's devices, so a legacy pin or device still matches until it is re-registered (the app
+// re-saves a device's subscription, with its ownerUid, every time it pins).
+//
 // Deploy with: firebase deploy --only functions
 // Required one-time setup — see the "Required configuration" section in the delivery report /
 // README for exact commands (VAPID keys, APP_URL, etc). Nothing here reads those values except
@@ -43,7 +51,13 @@ exports.sendPinNotification = onDocumentCreated(
 
     webpush.setVapidDetails(VAPID_SUBJECT.value(), VAPID_PUBLIC_KEY.value(), VAPID_PRIVATE_KEY.value());
 
-    const subsSnap = await db.collection('ledger_push_subscriptions').get();
+    const allSubs = await db.collection('ledger_push_subscriptions').get();
+    // only the pin owner's devices — a legacy record (no ownerUid) on either side predates accounts
+    const subsDocs = allSubs.docs.filter((doc) => {
+      const owner = (doc.data() || {}).ownerUid;
+      return !pin.ownerUid || !owner || owner === pin.ownerUid;
+    });
+    const subsSnap = { empty: subsDocs.length === 0, docs: subsDocs };
     if (subsSnap.empty) {
       await snap.ref.update({ status: 'failed', error: 'No registered device', sentAt: new Date().toISOString() });
       return;

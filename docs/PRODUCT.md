@@ -22,11 +22,12 @@ manager. Every decision may be optimised for one user's real life.
 
 ## Who it is currently for
 
-One user. No accounts, no login, no multi-user model, no sharing.
-
-This is a deliberate scope boundary, not an unfinished feature. It is also the
-reason the security posture is what it is — see
-[Privacy and data](#privacy-and-data).
+One owner. Ledger has one person's private data in it. Since 2026-10-06 it
+signs in (Firebase Authentication), and a partner can be given a role. A partner
+will only ever see what the owner explicitly shares, through separate shared
+collections, never the owner's private Ledger. Partner Sharing beyond the
+identity boundary is a later phase. See
+[Privacy and data](#privacy-and-data) and `docs/SECURITY.md`.
 
 ## Core loop
 
@@ -192,10 +193,9 @@ open product decision.
   fallback. The app is required to work with no network and no Firebase config.
 - Ten collections, listed in `PROJECT_LEDGER.md` → Current State.
 - The data is personal: health, food, symptoms, weight, photographs, plans.
-- **Known conflict:** Firestore rules are currently fully open and the client
-  config sits in a public repository. This was accepted knowingly for a
-  single-user app with no login, and it contradicts "Privacy by design". It is
-  tracked as an Issue, not as a settled decision.
+- **Access:** Firebase Authentication (email link) and owner-only Firestore
+  rules (`firestore.rules`, `docs/SECURITY.md`). The client config is public by
+  design; the rules, not secrecy, protect the data.
 
 ## Product success principles
 

@@ -36,6 +36,7 @@
 <script src="buildInfo.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
   /* ==========================================================
      Ledger — editorial dark system
@@ -4085,9 +4086,60 @@
   }
 
   @keyframes inspector-in { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  /* ---------- identity gate: opaque, above everything, from first paint ---------- */
+  body.auth-locked { overflow: hidden; }
+  .auth-gate {
+    position: fixed; inset: 0; z-index: 2000; overflow-y: auto; overscroll-behavior: contain;
+    display: flex; align-items: center; justify-content: center;
+    padding: calc(32px + env(safe-area-inset-top)) 22px calc(32px + env(safe-area-inset-bottom));
+    background: radial-gradient(120% 70% at 50% 0%, var(--surface) 0%, var(--bg) 62%);
+  }
+  .auth-gate[hidden] { display: none; }
+  .auth-card { width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .auth-mark { width: 56px; height: 56px; border-radius: 14px; margin-bottom: 22px; }
+  .auth-title { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 34px; line-height: 1.15; letter-spacing: -0.015em; color: var(--text); }
+  .auth-sub { margin: 10px 0 0; font-family: var(--serif); font-style: italic; font-size: 15.5px; line-height: 1.5; color: var(--text-2); }
+  .auth-sub strong { font-family: var(--sans); font-style: normal; font-weight: 500; font-size: 14.5px; color: var(--text); overflow-wrap: anywhere; }
+  .auth-card[data-state="splash"] .auth-sub { color: var(--text-3); }
+  .auth-form { width: 100%; margin-top: 28px; text-align: left; }
+  .auth-label { display: block; margin-bottom: 8px; font-family: var(--sans); font-size: 10.5px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-3); }
+  .auth-input {
+    width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border-radius: var(--r-md);
+    border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text);
+    font-family: var(--sans); font-size: 16px; outline: none;
+  }
+  .auth-input:focus { border-color: rgba(var(--gold-rgb),0.55); }
+  .auth-btn { width: 100%; margin-top: 14px; }
+  .auth-btn[disabled] { opacity: 0.6; }
+  .auth-error { min-height: 18px; margin: 10px 0 0; font-size: 13px; line-height: 1.45; color: var(--danger); }
+  .auth-error:empty { min-height: 0; margin: 0; }
+  .auth-fine { margin: 18px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--text-3); }
+  .auth-alt { margin-top: 16px; color: var(--text-2); }
+  .auth-id {
+    width: 100%; box-sizing: border-box; margin-top: 22px; padding: 12px 14px; border-radius: var(--r-md);
+    border: 1px solid var(--line); background: var(--surface-2); text-align: left;
+    display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px;
+  }
+  .auth-id .auth-label { grid-column: 1 / -1; margin: 0; }
+  .auth-id code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: var(--text); overflow-wrap: anywhere; }
+  .auth-id .btn-link { padding: 4px 0; color: var(--gold); }
+  .set-account { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .set-account-who { min-width: 0; font-size: 14px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .set-account .btn-link { flex-shrink: 0; color: var(--danger); }
 </style>
 </head>
-<body>
+<body class="auth-locked">
+
+<!-- The identity gate. It covers Ledger from first paint until the signed-in user is
+     confirmed as the owner (or the build has no accounts). -->
+<div class="auth-gate" id="authGate" role="dialog" aria-modal="true" aria-label="Sign in to Ledger">
+  <div class="auth-card" id="authCard" data-state="splash">
+    <img class="auth-mark" src="icon-192.png" alt="" width="56" height="56">
+    <h1 class="auth-title">Ledger</h1>
+    <p class="auth-sub">Opening…</p>
+  </div>
+</div>
 
 <header class="top">
   <div class="hdr-tex" aria-hidden="true"></div>
@@ -5027,21 +5079,302 @@
     } catch(e){}
   }
 
-  async function initDb(){
+  // ============ Identity: who is using Ledger ============
+  // Firebase Authentication is the identity boundary. Signing in proves who someone is;
+  // what they may see is their role, read from ledger_users/{uid} — "owner" or
+  // "partner" — which no client can write (see firestore.rules). Nothing private is
+  // loaded, listened to or drawn until the signed-in user is confirmed as the owner:
+  //   Firebase init → auth state → role → owner: private data / partner: holding
+  //   screen / signed out: sign-in.
+  // A build with no Firebase config (local development) has no accounts and runs on
+  // this device's storage alone, as it always has.
+  var LOCAL_ONLY = firebaseConfig.apiKey === "YOUR_API_KEY";
+  var AUTH_EMAIL_KEY = 'ledger_auth_email';   // the address a sign-in link was sent to, on this device
+  var AUTH_ROLE_KEY = 'ledger_auth_role';     // { uid, role } the server last confirmed for this device's user
+  var authUser = null, authRole = null, authProfile = null;
+  var ownerDataStarted = false;
+  var authLinkPending = false;
+  var ROLE_VALUES = ['owner', 'partner'];
+
+  function authGateEl(){ return document.getElementById('authGate'); }
+  function appRegions(){
+    return ['header.top', 'main', 'nav.tabbar', '#globalFabBtn', '#sheetBackdrop']
+      .map(function(s){ return document.querySelector(s); }).filter(Boolean);
+  }
+  function lockApp(){
+    document.body.classList.add('auth-locked');
+    appRegions().forEach(function(el){ el.inert = true; el.setAttribute('aria-hidden', 'true'); });
+    authGateEl().hidden = false;
+  }
+  function unlockApp(){
+    appRegions().forEach(function(el){ el.inert = false; el.removeAttribute('aria-hidden'); });
+    document.body.classList.remove('auth-locked');
+    authGateEl().hidden = true;
+  }
+
+  // The last confirmed role is a convenience for opening Ledger offline. It only ever
+  // applies to the account Firebase Auth already has signed in on this device, so it
+  // cannot open Ledger for anyone who has not signed in here.
+  function cachedRole(uid){
     try {
-      if (firebaseConfig.apiKey === "YOUR_API_KEY") { fallbackMode(); return; }
+      var c = JSON.parse(localStorage.getItem(AUTH_ROLE_KEY) || 'null');
+      return c && c.uid === uid && ROLE_VALUES.indexOf(c.role) > -1 ? c.role : null;
+    } catch(e){ return null; }
+  }
+  function rememberRole(uid, role){ try { localStorage.setItem(AUTH_ROLE_KEY, JSON.stringify({ uid: uid, role: role })); } catch(e){} }
+  function forgetRole(){ try { localStorage.removeItem(AUTH_ROLE_KEY); } catch(e){} }
+
+  // the profile, or { offline } when the server cannot be reached to say
+  function fetchProfile(user){
+    return new Promise(function(resolve){
+      var settled = false;
+      var timer = setTimeout(function(){ if (!settled){ settled = true; resolve({ offline: true }); } }, 8000);
+      dbRef.collection('ledger_users').doc(user.uid).get().then(function(doc){
+        if (settled) return; settled = true; clearTimeout(timer);
+        var data = doc.exists ? (doc.data() || {}) : null;
+        resolve({ profile: data, role: data && ROLE_VALUES.indexOf(data.role) > -1 ? data.role : null });
+      }).catch(function(e){
+        if (settled) return; settled = true; clearTimeout(timer);
+        // denied means "no role here"; anything else means "couldn't ask"
+        resolve(e && e.code === 'permission-denied' ? { profile: null, role: null } : { offline: true });
+      });
+    });
+  }
+
+  async function handleAuthState(user){
+    if (!user){
+      authUser = null; authRole = null; authProfile = null;
+      // private data never outlives the session that loaded it
+      if (ownerDataStarted){ location.reload(); return; }
+      lockApp();
+      // a sign-in screen already showing (with a message, or a half-typed address) stays as it is
+      var shown = document.getElementById('authCard').getAttribute('data-state');
+      if (authLinkPending) renderGate('splash');
+      else if (['signin', 'sent', 'confirm'].indexOf(shown) === -1) renderGate('signin');
+      return;
+    }
+    authUser = user;
+    if (!ownerDataStarted){ lockApp(); renderGate('splash'); }
+    var r = await fetchProfile(user);
+    if (authUser !== user) return;                       // signed out meanwhile
+    var role = r.offline ? cachedRole(user.uid) : r.role;
+    if (!r.offline){ if (role) rememberRole(user.uid, role); else forgetRole(); }
+    authRole = role;
+    authProfile = r.profile || authProfile;
+    if (role === 'owner'){
+      if (!ownerDataStarted){ unlockApp(); startOwnerData(); }
+      return;
+    }
+    // not (or no longer) the owner: private data is neither shown nor kept on screen
+    if (ownerDataStarted){ location.reload(); return; }
+    lockApp();
+    renderGate(role === 'partner' ? 'partner' : (r.offline ? 'offline' : 'noaccess'));
+  }
+
+  function signOutLedger(){
+    forgetRole();
+    firebase.auth().signOut().catch(function(){ location.reload(); });
+  }
+  function authContinueUrl(){ return location.origin + location.pathname; }
+  function cleanAuthUrl(){ try { history.replaceState(null, '', location.pathname); } catch(e){} }
+  function authErrorText(e){
+    var code = (e && e.code) || '';
+    if (code === 'auth/invalid-email') return 'That doesn’t look like an email address.';
+    if (code === 'auth/network-request-failed') return 'No connection. Try again when you’re online.';
+    if (code === 'auth/invalid-action-code' || code === 'auth/expired-action-code') return 'That link has expired or was already used. Send a new one.';
+    if (code === 'auth/operation-not-allowed' || code === 'auth/unauthorized-continue-uri' || code === 'auth/unauthorized-domain')
+      return 'Email-link sign-in isn’t switched on for this Ledger yet (Firebase Console → Authentication).';
+    return 'Something went wrong. Please try again.';
+  }
+  function completeEmailLink(email, link){
+    authLinkPending = true;
+    renderGate('splash');
+    return firebase.auth().signInWithEmailLink(email, link).then(function(){
+      try { localStorage.removeItem(AUTH_EMAIL_KEY); } catch(e){}
+      authLinkPending = false;
+      cleanAuthUrl();
+      // onAuthStateChanged takes it from here
+    }).catch(function(e){
+      authLinkPending = false;
+      cleanAuthUrl();
+      renderGate('signin', { error: authErrorText(e) });
+    });
+  }
+
+  // The sign-in screen and the states around it. User text (emails) is set as text.
+  function renderGate(state, info){
+    info = info || {};
+    var card = document.getElementById('authCard');
+    var mark = '<img class="auth-mark" src="icon-192.png" alt="" width="56" height="56">';
+    var html = mark;
+    if (state === 'splash'){
+      html += '<h1 class="auth-title">Ledger</h1><p class="auth-sub">Opening…</p>';
+    } else if (state === 'signin'){
+      html += '<h1 class="auth-title">Ledger</h1>' +
+        '<p class="auth-sub">A more intentional you.</p>' +
+        '<form class="auth-form" id="authForm" novalidate>' +
+          '<label class="auth-label" for="authEmail">Email</label>' +
+          '<input class="auth-input" type="email" id="authEmail" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required>' +
+          '<button type="submit" class="save-btn auth-btn" id="authSend">Email me a sign-in link</button>' +
+          '<p class="auth-error" id="authError" role="alert"></p>' +
+        '</form>' +
+        '<p class="auth-fine">No password. The link signs you in on this device.</p>';
+    } else if (state === 'sent'){
+      html += '<h1 class="auth-title">Check your email</h1>' +
+        '<p class="auth-sub">A sign-in link is on its way to <strong data-role="auth-email"></strong>.</p>' +
+        '<p class="auth-fine">Open it on this device. If you use Ledger from your Home Screen, the link opens in the browser instead — ' +
+          'press and hold it in the email, choose Copy Link, and paste it here.</p>' +
+        '<form class="auth-form" id="authPasteForm" novalidate>' +
+          '<label class="auth-label" for="authLink">Sign-in link</label>' +
+          '<input class="auth-input" type="url" id="authLink" placeholder="Paste the link" autocomplete="off" autocapitalize="off" spellcheck="false">' +
+          '<button type="submit" class="save-btn auth-btn">Sign in</button>' +
+          '<p class="auth-error" id="authError" role="alert"></p>' +
+        '</form>' +
+        '<button type="button" class="btn-link auth-alt" id="authRestart">Use a different email</button>';
+    } else if (state === 'confirm'){
+      html += '<h1 class="auth-title">Confirm your email</h1>' +
+        '<p class="auth-sub">To finish signing in on this device, enter the address the link was sent to.</p>' +
+        '<form class="auth-form" id="authConfirmForm" novalidate>' +
+          '<label class="auth-label" for="authEmail">Email</label>' +
+          '<input class="auth-input" type="email" id="authEmail" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">' +
+          '<button type="submit" class="save-btn auth-btn">Sign in</button>' +
+          '<p class="auth-error" id="authError" role="alert"></p>' +
+        '</form>';
+    } else if (state === 'partner'){
+      html += '<h1 class="auth-title">Shared Ledger access is being set up.</h1>' +
+        '<p class="auth-sub">You’re signed in as <strong data-role="auth-email"></strong>. Nothing has been shared with you yet — this is where it will appear.</p>' +
+        '<button type="button" class="btn-link auth-alt" id="authSignOut">Sign out</button>';
+    } else if (state === 'noaccess'){
+      html += '<h1 class="auth-title">This account isn’t set up for Ledger</h1>' +
+        '<p class="auth-sub">You’re signed in as <strong data-role="auth-email"></strong>, but this account has no access.</p>' +
+        '<div class="auth-id"><span class="auth-label">Account ID</span><code data-role="auth-uid"></code>' +
+          '<button type="button" class="btn-link" id="authCopyUid">Copy</button></div>' +
+        '<p class="auth-fine">If this is your Ledger, give this account the owner role in the Firebase Console ' +
+          '(Firestore → ledger_users → a document with this ID, role: owner), then reopen Ledger.</p>' +
+        '<button type="button" class="save-btn auth-btn" id="authRetry">I’ve done that — try again</button>' +
+        '<button type="button" class="btn-link auth-alt" id="authSignOut">Sign out</button>';
+    } else if (state === 'offline'){
+      html += '<h1 class="auth-title">You’re offline</h1>' +
+        '<p class="auth-sub">Ledger needs to confirm your account once on this device before it can open without a connection.</p>' +
+        '<button type="button" class="save-btn auth-btn" id="authRetry">Try again</button>' +
+        '<button type="button" class="btn-link auth-alt" id="authSignOut">Sign out</button>';
+    } else {
+      html += '<h1 class="auth-title">Ledger couldn’t start</h1>' +
+        '<p class="auth-sub">' + (state === 'nosdk' ? 'The sign-in service didn’t load. Check your connection.' : 'Something went wrong while opening Ledger.') + '</p>' +
+        '<button type="button" class="save-btn auth-btn" id="authReload">Try again</button>';
+    }
+    card.innerHTML = html;
+    card.setAttribute('data-state', state);
+    card.querySelectorAll('[data-role="auth-email"]').forEach(function(el){
+      el.textContent = info.email || (authUser && authUser.email) || '';
+    });
+    var uidEl = card.querySelector('[data-role="auth-uid"]');
+    if (uidEl) uidEl.textContent = authUser ? authUser.uid : '';
+    var err = document.getElementById('authError');
+    if (err && info.error) err.textContent = info.error;
+    wireGate(state, info);
+  }
+
+  function wireGate(state, info){
+    var err = function(t){ var e = document.getElementById('authError'); if (e) e.textContent = t || ''; };
+    var form = document.getElementById('authForm');
+    if (form){
+      var emailEl = document.getElementById('authEmail');
+      try { emailEl.value = localStorage.getItem(AUTH_EMAIL_KEY) || ''; } catch(e){}
+      form.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        var email = emailEl.value.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ err('That doesn’t look like an email address.'); emailEl.focus(); return; }
+        var btn = document.getElementById('authSend');
+        btn.disabled = true; btn.textContent = 'Sending…'; err('');
+        firebase.auth().sendSignInLinkToEmail(email, { url: authContinueUrl(), handleCodeInApp: true }).then(function(){
+          try { localStorage.setItem(AUTH_EMAIL_KEY, email); } catch(e){}
+          renderGate('sent', { email: email });
+        }).catch(function(e){
+          btn.disabled = false; btn.textContent = 'Email me a sign-in link';
+          err(authErrorText(e));
+        });
+      });
+    }
+    var paste = document.getElementById('authPasteForm');
+    if (paste) paste.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var link = document.getElementById('authLink').value.trim();
+      if (!link || !firebase.auth().isSignInWithEmailLink(link)){ err('That isn’t a Ledger sign-in link. Copy the whole link from the email.'); return; }
+      completeEmailLink(info.email, link);
+    });
+    var confirmF = document.getElementById('authConfirmForm');
+    if (confirmF) confirmF.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var email = document.getElementById('authEmail').value.trim();
+      if (!email){ err('Enter your email.'); return; }
+      completeEmailLink(email, info.link);
+    });
+    var restart = document.getElementById('authRestart');
+    if (restart) restart.addEventListener('click', function(){ renderGate('signin'); });
+    var so = document.getElementById('authSignOut');
+    if (so) so.addEventListener('click', signOutLedger);
+    var retry = document.getElementById('authRetry');
+    if (retry) retry.addEventListener('click', function(){ if (authUser) handleAuthState(authUser); });
+    var reload = document.getElementById('authReload');
+    if (reload) reload.addEventListener('click', function(){ location.reload(); });
+    var copy = document.getElementById('authCopyUid');
+    if (copy) copy.addEventListener('click', function(){
+      copyTextToClipboard(authUser ? authUser.uid : '').then(function(){ copy.textContent = 'Copied'; }).catch(function(){});
+    });
+    var focusEl = document.querySelector('#authCard input');
+    if (focusEl && state !== 'splash') setTimeout(function(){ try { focusEl.focus({ preventScroll: true }); } catch(e){} }, 50);
+  }
+
+  async function initDb(){
+    // no Firebase in this build: a local, single-device Ledger with no accounts
+    if (LOCAL_ONLY){ unlockApp(); fallbackMode(); return; }
+    try {
       firebase.initializeApp(firebaseConfig);
       dbRef = firebase.firestore();
+    } catch(e){
+      console.error('firebase init failed', e);
+      lockApp(); renderGate('error'); return;
+    }
+    if (!firebase.auth){ lockApp(); renderGate('nosdk'); return; }
+    var auth = firebase.auth();
+    // arriving from a sign-in email
+    if (auth.isSignInWithEmailLink(location.href)){
+      var email = null;
+      try { email = localStorage.getItem(AUTH_EMAIL_KEY); } catch(e){}
+      if (email) completeEmailLink(email, location.href);
+      else { authLinkPending = true; lockApp(); renderGate('confirm', { link: location.href }); authLinkPending = false; }
+    }
+    auth.onAuthStateChanged(function(user){
+      // while a "confirm your email" form is showing, a signed-out callback must not replace it
+      var card = document.getElementById('authCard');
+      if (!user && card && card.getAttribute('data-state') === 'confirm') return;
+      handleAuthState(user);
+    });
+  }
+
+  // a private-data listener that is refused means this user is no longer the owner
+  function ownerDataError(err){
+    console.error('firestore snapshot error', err);
+    if (err && err.code === 'permission-denied'){
+      if (ownerDataStarted){ location.reload(); return; }
+      return;
+    }
+    fallbackMode();
+  }
+
+  // The owner's private data — started only once the signed-in user is confirmed as owner.
+  function startOwnerData(){
+    if (ownerDataStarted) return;
+    ownerDataStarted = true;
+    try {
       dbReady = true;
       document.getElementById('syncNote').textContent = '';
       dbRef.collection('ledger_sessions').orderBy('date','desc')
         .onSnapshot(function(snap){
           sessions = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return normalizeSession(data); });
           renderAll();
-        }, function(err){
-          console.error('firestore snapshot error', err);
-          fallbackMode();
-        });
+        }, ownerDataError);
       dbRef.collection('ledger_meta').doc('presets').onSnapshot(function(doc){
         if (doc.exists){
           var data = doc.data();
@@ -5126,7 +5459,10 @@
     }
   }
 
+  // This device's stored copy. Only ever for a local build, or for the confirmed owner
+  // when the cloud cannot be reached — never for a signed-out or non-owner session.
   function fallbackMode(){
+    if (!LOCAL_ONLY && authRole !== 'owner') return;
     dbReady = false;
     localLoad();
     localLoadPresets();
@@ -5143,7 +5479,9 @@
     prioritiesLoaded = true;
     applyWeekPreference();
     seedPrioritiesIfNeeded();
-    document.getElementById('syncNote').textContent = 'Saving on this device only — add your Firebase config to sync';
+    document.getElementById('syncNote').textContent = LOCAL_ONLY
+      ? 'Saving on this device only — add your Firebase config to sync'
+      : 'Offline — showing what this device last saved';
     renderAll();
     tryHandleDeepLink();
   }
@@ -5651,6 +5989,7 @@
       await dbRef.collection('ledger_push_subscriptions').doc(subId).set({
         endpoint: json.endpoint,
         keys: json.keys,
+        ownerUid: authUser ? authUser.uid : null,   // a device belongs to the account that registered it
         createdAt: new Date().toISOString()
       });
       return true;
@@ -5721,6 +6060,7 @@
         return;
       }
       await dbRef.collection('ledger_pins').add({
+        ownerUid: authUser ? authUser.uid : null,     // the push goes only to this account's devices
         text: text,
         note: note || '',
         linkedActionId: linkedActionId || null,
@@ -11635,6 +11975,15 @@
       sheetHead('', 'Settings', 'How Ledger behaves, and what the day asks of you.', '') +
 
       '<div class="set-group">' +
+        '<span class="set-group-label">Account</span>' +
+        '<div class="set-card"><div class="set-row static set-account">' +
+          '<span class="set-account-who" id="setAccountWho"></span>' +
+          (LOCAL_ONLY ? '' : '<button type="button" class="btn-link" id="setSignOut">Sign out</button>') +
+        '</div></div>' +
+        (LOCAL_ONLY ? '<p class="set-note">This copy of Ledger has no account and keeps everything on this device.</p>' : '') +
+      '</div>' +
+
+      '<div class="set-group">' +
         '<span class="set-group-label">Appearance</span>' +
         '<div class="set-card">' +
           '<div class="set-row static">' +
@@ -11705,6 +12054,14 @@
 
     backdrop.classList.add('open');
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    // the address is user content — written as text
+    document.getElementById('setAccountWho').textContent = LOCAL_ONLY ? 'This device only'
+      : 'Signed in as ' + ((authProfile && authProfile.displayName) || (authUser && authUser.email) || 'the owner') +
+        (authProfile && authProfile.displayName && authUser && authUser.email ? ' \u00b7 ' + authUser.email : '');
+    var signOutBtn = document.getElementById('setSignOut');
+    if (signOutBtn) signOutBtn.addEventListener('click', function(){
+      if (confirm('Sign out of Ledger on this device?')) signOutLedger();
+    });
     renderThemeSwitch();
     sheetEl.querySelectorAll('[data-theme-set]').forEach(function(btn){
       btn.addEventListener('click', function(){ setThemePref(btn.dataset.themeSet); });

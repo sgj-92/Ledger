@@ -1,0 +1,160 @@
+# Security and identity
+
+How Ledger decides who can see what, and how to roll it out or change it.
+The rules themselves are in `firestore.rules`; this is the runbook around them.
+
+## The model
+
+- **Identity is Firebase Authentication** (passwordless email link). Signing in
+  proves who someone is. It grants nothing on its own: anyone can create an
+  email-link account against this project, because the web config is public.
+- **Authority is a role**, read from `ledger_users/{uid}`:
+
+  ```
+  ledger_users/{uid}
+    role:        "owner" | "partner"
+    displayName: string
+    email:       string
+    createdAt:   ISO date string
+  ```
+
+  No client can write this collection. Roles are granted in the Firebase Console
+  (or with the Admin SDK). A signed-in user may read their own profile; the owner
+  may read all of them.
+- **Ledger is single-owner.** Every existing `ledger_*` collection is the owner's
+  private data. The rules allow read and write only to a signed-in user whose
+  profile role is `owner`. Records carry no per-record owner field. "Owner" is a
+  role on this deployment, not a property stamped on each document. See
+  "Ownership of existing records" below.
+- **A partner gets nothing from private collections**, now or later. Partner
+  Sharing (a later phase) will publish explicit projections into separate
+  collections (`ledger_share_members`, `ledger_shared_snapshots`,
+  `ledger_shared_requests`). Those are reserved in the rules and closed to
+  every client until that phase gives them their own narrow rules. Sharing is
+  never a filtered client-side view of private data.
+
+### Collections
+
+| Collection | Holds | Access |
+| --- | --- | --- |
+| `ledger_users` | roles | read own (owner reads all); no client writes |
+| `ledger_commitments` | actions | owner |
+| `ledger_plans` | day plans, Morning Prime, challenge logs | owner |
+| `ledger_sessions` | training, weight, steps, nutrition, photos, symptoms | owner |
+| `ledger_day_status` | day close / review | owner |
+| `ledger_priorities`, `ledger_focus` | direction | owner |
+| `ledger_meals` | meal ideas | owner |
+| `ledger_meta` | preferences (`presets`) | owner |
+| `ledger_matters`, `ledger_conversations` | Communications | owner |
+| `ledger_challenges` | challenges | owner |
+| `ledger_push_subscriptions` | devices for Pin now | owner |
+| `ledger_pins` | Pin now requests | owner |
+| `ledger_share_*`, `ledger_shared_*` | reserved for Partner Sharing | closed |
+| anything else | — | denied |
+
+## The app's side
+
+Startup is: Firebase → auth state → role → then one of:
+
+- **Owner**: the private listeners start and Ledger opens.
+- **Partner**: a holding screen ("Shared Ledger access is being set up."). No
+  private listener or read is started.
+- **Signed in, no role**: "This account isn't set up for Ledger", showing the
+  account ID to grant.
+- **Signed out**: the sign-in screen.
+
+An opaque gate covers the app from first paint until this is decided. Nothing
+private is fetched or drawn before the owner is confirmed. Firestore errors
+are never what hides private data.
+
+**Offline.** Firebase Auth keeps the session on the device. The last role the
+server confirmed is remembered for that account, under
+`localStorage.ledger_auth_role`. So an owner who has opened Ledger online on
+this device can open it offline. The remembered role only applies to the
+account Firebase Auth already has signed in here. A device that has never
+confirmed the owner stays closed offline. A server answer of "no role" or
+"denied" clears the remembered role at once.
+
+The localStorage copy of Ledger is only ever loaded for a local build, or for
+the confirmed owner when the cloud cannot be reached. It is never loaded for a
+signed-out or non-owner session. Signing out forgets the remembered role.
+
+A build with no Firebase config (`apiKey: "YOUR_API_KEY"`, used for local
+development and tests) has no accounts and runs on device storage, as before.
+
+**Email links on the installed app.** On iOS, an email link opens in Safari,
+not the Home Screen app, and the two keep separate storage. The "Check your
+email" screen therefore offers a field to paste the link. Press and hold the
+link in Mail, choose Copy Link, and paste it into Ledger. Opening the link in
+Safari also signs Safari in.
+
+## Rollout (first time) — in this order
+
+The rules must not go live before the owner profile exists, or Ledger loses
+access to its own data.
+
+1. **Firebase Console → Authentication → Sign-in method**: enable
+   **Email/Password** and, inside it, **Email link (passwordless sign-in)**.
+2. **Authentication → Settings → Authorized domains**: add `sgj-92.github.io`.
+3. Open Ledger, enter your email, and finish sign-in from the link. Ledger
+   shows "This account isn't set up for Ledger" with your **Account ID**. Copy
+   it.
+4. **Firestore → Start collection** `ledger_users`, with **Document ID** set to
+   the Account ID. Add these fields: `role` (string) `owner`, `displayName`
+   (string), `email` (string), `createdAt` (string, e.g. `2026-10-06`).
+5. In Ledger, tap "I've done that — try again". Ledger opens with all your
+   data. Sign in on your other devices the same way.
+6. Only now **deploy the rules** from a machine with the Firebase CLI:
+   `firebase deploy --only firestore:rules`. The project is already set in
+   `.firebaserc`. Then reload Ledger on each device and check it still opens
+   with everything there.
+7. **Deploy the function** (optional, recommended):
+   `firebase deploy --only functions`. It sends each Pin now only to the
+   devices of the account that created it.
+
+To add a partner later, sign them in once to get their Account ID, then add
+`ledger_users/{their uid}` with `role: partner`. Until Partner Sharing exists,
+they only see the holding screen.
+
+## Ownership of existing records
+
+No data was moved, copied or rewritten. Ledger has exactly one owner, so the
+rules express ownership as the owner role rather than a field on every
+document. Two alternatives were rejected:
+
+- Stamping `ownerUid` on every record would mean migrating every collection.
+  Every list query would also have to filter on it, because rules are not
+  filters. Every writer would have to add the field, and one missed writer
+  means a refused save.
+- Moving everything under `users/{uid}/...` would mean copying all data to new
+  paths and rewriting every read and write.
+
+Both carry real data risk for no gain while there is one owner. If Ledger ever
+needs several owners, that migration can be done then, deliberately. Because
+nothing is migrated, record counts are unchanged by this phase.
+
+## Push notifications (Pin now)
+
+- Devices and pins are owner-only under the rules. No one else can read
+  devices, register a device or create a pin that triggers a push.
+- New devices and pins carry `ownerUid`. A device's subscription is re-saved
+  with its `ownerUid` every time it pins.
+- The Cloud Function uses the Admin SDK, which is **not subject to Firestore
+  rules**. It enforces ownership itself: a pin goes only to devices with the
+  same `ownerUid`. A legacy record without one still matches, because every
+  legacy record was made by the owner. No secret is in the client. The VAPID
+  private key stays in Secret Manager.
+
+## Testing the rules
+
+`tests/firestore-rules/` runs the rules against the Firestore emulator. It
+needs Java and Node:
+
+```
+cd tests/firestore-rules && npm install
+npx firebase emulators:exec --only firestore --project demo-ledger --config ../../firebase.json "node rules.test.js"
+```
+
+It covers signed out, owner, partner, a signed-in account with no role, the
+reserved shared collections and an unlisted collection. All of them must pass
+before a rules change is deployed.

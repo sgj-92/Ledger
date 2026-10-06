@@ -235,8 +235,12 @@ These are observed facts about this repo, useful before making changes.
   fallback — the app must keep working with no network and no Firebase config.
 - Live `onSnapshot` listeners drive re-renders; a save generally triggers a
   render rather than the caller updating the DOM directly.
-- Firestore security rules are **not** in this repo and are currently fully
-  open. See Open Questions in `PROJECT_LEDGER.md` before widening exposure.
+- **Firebase Authentication is the identity boundary.** Firestore rules are in
+  `firestore.rules` (owner-only private data; roles in `ledger_users`; reserved,
+  closed shared namespace), with emulator tests in `tests/firestore-rules/`.
+  Private listeners start only after the owner role is confirmed — never add a
+  read of private data before that. Runbook: `docs/SECURITY.md`. A build with
+  `apiKey: "YOUR_API_KEY"` (tests, local dev) stays local and account-free.
 
 ## Deploys and the build stamp
 - GitHub Pages deploys `main` by the legacy branch source ("pages build and

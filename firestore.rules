@@ -1,0 +1,72 @@
+rules_version = '2';
+
+// Ledger — Firestore security rules.
+//
+// The identity boundary is Firebase Authentication. Who may do what is data, not code:
+// a profile at ledger_users/{uid} carries a role, "owner" or "partner". Profiles are
+// created in the Firebase Console (or with the Admin SDK) — no client can write one, so
+// no one can grant themselves a role by signing up.
+//
+// Ledger is a single-owner app: every existing ledger_* collection is the owner's
+// private data and is readable and writable only by an authenticated user whose
+// profile role is "owner". A partner gets nothing from these collections, ever.
+// Partner access, when it arrives, is through separate, explicitly shared
+// collections (see "Shared namespace" below) — never a filtered view of private ones.
+//
+// Anything not matched here is denied.
+//
+// Deploy: firebase deploy --only firestore:rules   (see docs/SECURITY.md first —
+// the owner profile must exist before these rules go live).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function profilePath() {
+      return /databases/$(database)/documents/ledger_users/$(request.auth.uid);
+    }
+    function hasRole(role) {
+      return signedIn() && exists(profilePath()) && get(profilePath()).data.role == role;
+    }
+    function isOwner() {
+      return hasRole('owner');
+    }
+
+    // ---- Identity ----
+    // A signed-in user may read their own profile (so the app can learn its role);
+    // the owner may read all of them. Roles are granted outside the client only.
+    match /ledger_users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isOwner());
+      allow write: if false;
+    }
+
+    // ---- Private Ledger data: owner only ----
+    match /ledger_commitments/{docId=**}        { allow read, write: if isOwner(); }
+    match /ledger_plans/{docId=**}              { allow read, write: if isOwner(); }
+    match /ledger_sessions/{docId=**}           { allow read, write: if isOwner(); }   // training, weight, steps, nutrition, photos, symptoms
+    match /ledger_day_status/{docId=**}         { allow read, write: if isOwner(); }
+    match /ledger_priorities/{docId=**}         { allow read, write: if isOwner(); }
+    match /ledger_focus/{docId=**}              { allow read, write: if isOwner(); }
+    match /ledger_meals/{docId=**}              { allow read, write: if isOwner(); }
+    match /ledger_meta/{docId=**}               { allow read, write: if isOwner(); }
+    match /ledger_matters/{docId=**}            { allow read, write: if isOwner(); }
+    match /ledger_conversations/{docId=**}      { allow read, write: if isOwner(); }
+    match /ledger_challenges/{docId=**}         { allow read, write: if isOwner(); }
+
+    // ---- Web Push (Pin now): owner only ----
+    // Device subscriptions and the pins that trigger a push. The sending Cloud Function
+    // uses the Admin SDK, which is not subject to these rules.
+    match /ledger_push_subscriptions/{docId=**} { allow read, write: if isOwner(); }
+    match /ledger_pins/{docId=**}               { allow read, write: if isOwner(); }
+
+    // ---- Shared namespace (Partner Sharing, a later phase) ----
+    // Reserved and closed. When sharing is built, these get their own narrow rules:
+    // the owner writes explicit projections; a partner reads only what is addressed
+    // to them. Until then, nobody reads or writes them from a client.
+    match /ledger_share_members/{docId=**}      { allow read, write: if false; }
+    match /ledger_shared_snapshots/{docId=**}   { allow read, write: if false; }
+    match /ledger_shared_requests/{docId=**}    { allow read, write: if false; }
+  }
+}

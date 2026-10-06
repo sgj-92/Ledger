@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-06 (Day Plan Save draft; Save to plan and Log activity in both training forms)
+Last updated: 2026-10-06 (Partner Sharing step 1: Firebase Auth identity boundary + owner-only Firestore rules)
 
 ---
 
@@ -279,8 +279,26 @@ fallback** — the app works entirely offline/unconfigured. Collections:
 `ledger_commitments`, `ledger_plans`, `ledger_sessions`, `ledger_day_status`,
 `ledger_priorities`, `ledger_focus`, `ledger_meals`, `ledger_meta`,
 `ledger_pins`, `ledger_push_subscriptions`, `ledger_matters`,
-`ledger_conversations`. Live `onSnapshot` listeners drive
-re-renders. Deployed to GitHub Pages (`https://sgj-92.github.io/Ledger/`).
+`ledger_conversations`, `ledger_challenges`, and `ledger_users` (roles). Live
+`onSnapshot` listeners drive re-renders. Deployed to GitHub Pages
+(`https://sgj-92.github.io/Ledger/`).
+
+### Identity and security
+**Firebase Authentication (passwordless email link) is the identity boundary.**
+Roles live in `ledger_users/{uid}` (`owner` | `partner`), granted in the Firebase
+Console only. Every `ledger_*` collection is **owner-only** in the
+version-controlled `firestore.rules`; a partner has no access to private
+collections, and Partner Sharing will use explicit shared collections
+(`ledger_share_members`, `ledger_shared_snapshots`, `ledger_shared_requests`,
+reserved and closed). The app shows an opaque gate from first paint and starts
+private listeners only after the owner role is confirmed; a partner sees a holding
+screen; a signed-in account without a role sees its Account ID to grant. Offline,
+an owner already confirmed on this device can open Ledger (Firebase Auth's
+persisted session + the remembered role); nothing else unlocks local data. A build
+with no Firebase config stays local and account-free. Runbook and rollout order:
+`docs/SECURITY.md`. **Rollout status:** app gate deployed; the rules are written
+and emulator-tested but go live only after Shaun has created his owner profile and
+deployed them (see Handoffs).
 
 ---
 
@@ -412,6 +430,30 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-06 — Firebase Auth is the identity boundary; private data is owner-only
+**Decision (Shaun's direction, Partner Sharing step 1; supersedes "Firestore rules
+left fully open", 2026-09-11):** Ledger signs in with Firebase Authentication,
+passwordless email link (the installed iOS app gets a paste-the-link fallback,
+since links open in Safari). Authority is a role in `ledger_users/{uid}` —
+`owner` or `partner` — that no client can write. `firestore.rules` (now in the
+repo, with emulator tests in `tests/firestore-rules/`) makes every private
+collection readable and writable only by the owner role; the future shared
+namespace is reserved and closed; anything unlisted is denied. **Ownership is the
+owner role, not a per-record field:** no data is moved, copied or stamped (an
+`ownerUid` on every record or a per-user path would mean migrating every
+collection and every writer, with real data risk, for a single-owner app).
+Startup is Firebase → auth → role → owner data / partner holding screen / sign-in;
+nothing private is fetched or drawn before the owner is confirmed. Offline, the
+last server-confirmed role for the account already signed in on the device is
+used; the localStorage copy loads only for the confirmed owner (or a config-less
+local build). Pin now: devices and pins are owner-only and carry `ownerUid`; the
+Admin-SDK function (not subject to rules) sends a pin only to its owner's devices.
+**Why:** Ledger holds health, family and business data, and a partner is coming;
+open rules could not survive that.
+**Implications:** `docs/PRODUCT.md`'s "no accounts" boundary is superseded by
+explicit partner sharing. Rollout order matters (rules after the owner profile) —
+`docs/SECURITY.md`. Partner UI, snapshots, requests and notifications are Phase 2+.
 
 ### 2026-10-06 — A plan can be saved unfinished; a planned session can be saved or logged from either place
 **Decision (Shaun's request):** the Day Plan footer offers **Save draft** beside
@@ -1182,6 +1224,7 @@ being caught.
 **Implications:** Treat "rebuild from scratch" as a bug pattern in review.
 
 ### 2026-09-11 — Firestore rules left fully open
+*(Superseded 2026-10-06 by "Firebase Auth is the identity boundary".)*
 **Decision:** `allow read, write: if true`, accepted knowingly for a
 single-user app with no login.
 **Why:** No auth exists; the app must work immediately on Shaun's phone.
@@ -1209,8 +1252,11 @@ was a direct instruction from Shaun, not a backlog item.
 Each question that became a discrete piece of work now has an Issue. The Issue
 carries the detail; this list records that the question is still open.
 
-1. **Firestore rules vs "Privacy by design".** Rules are fully open and not in
-   the repo (no `firestore.rules`; `firebase.json` deploys functions only).
+1. **Firestore rules vs "Privacy by design".** *Being resolved (2026-10-06): auth +
+   owner-only `firestore.rules` are in the repo and emulator-tested; live once Shaun
+   deploys them after creating his owner profile (`docs/SECURITY.md`).* Previously:
+   rules fully open and not in the repo (no `firestore.rules`; `firebase.json`
+   deployed functions only).
    Knowingly accepted, but it conflicts with the stated principle. Options
    previously offered: scope rules per collection, App Check, or real auth.
    → **#5** (proposed P0). Sharpened by audit: the repository is public and the
@@ -1270,14 +1316,29 @@ No active handoff.
 
 No active handoff.
 
+### Shaun
+
+Partner Sharing step 1 is in code and live on `main`; finish the rollout, in order
+(`docs/SECURITY.md` → Rollout): (1) Console: enable Email link sign-in and authorise
+`sgj-92.github.io`; (2) sign in on the phone, copy the Account ID; (3) create
+`ledger_users/{that id}` with `role: owner`; (4) confirm Ledger opens with all data
+on each device; (5) `firebase deploy --only firestore:rules`, reload, confirm again;
+(6) `firebase deploy --only functions`. Then confirm here that it works on real
+devices.
+
 ### Claude Code
 
-No active handoff. Collaboration files are set up; await a new explicit handoff.
+No active handoff. **Do not start Partner Sharing Phase 2** (shared projections,
+partner portal, requests) until Shaun confirms authentication works on his real
+devices and the rules are deployed.
 
 ---
 
 ## Recently Completed
 
+- (2026-10-06) — Partner Sharing step 1: Firebase Auth (email link) gate with
+  owner / partner / no-role / signed-out states, owner-only `firestore.rules`
+  (emulator-tested), push ownership, `docs/SECURITY.md`.
 - (2026-10-06) — Day Plan "Save draft"; training form offers Save to plan and Log
   activity from both Plan and Today.
 - (2026-10-06) — Day snapshot sharing: image of chosen sections/items, built-in and
@@ -1393,8 +1454,8 @@ No active handoff. Collaboration files are set up; await a new explicit handoff.
 1. **Shaun:** create the GitHub Project (Open Q7). Configuration is recorded in
    `docs/ROAD_TO_SHIPPABLE.md` → Appendix. Nothing else can be prioritised
    properly until it exists.
-2. Decide on #5 (open Firestore rules on a public repository). Proposed P0, and
-   the only seeded Issue proposed above P1.
+2. #5 (open Firestore rules): fixed in code; **Shaun** to complete the Console
+   steps and deploy the rules (`docs/SECURITY.md` → Rollout).
 3. Triage #6–#19 into the board, then decide what, if anything, to build.
 
 Everything else is on the board. Do not duplicate it here.
