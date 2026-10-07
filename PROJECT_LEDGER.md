@@ -1514,13 +1514,17 @@ beyond) starts only on his explicit brief.
 
 ## Recently Completed
 
-- (2026-10-07) — Vercel + custom domain migration audit: `ledger.sgj.luxe`
+- `4325821` + `43bbd64` (2026-10-07) — Vercel + custom domain migration audit:
+  `ledger.sgj.luxe`
   canonical (`LEDGER_HOME`; emailed links return to production from unknown
   hosts); deep links `?openAction=`/`?request=`/`?view=` on the root; Vercel build
   stamp (`vercel.json` + `scripts/vercel-build-info.js`); host-neutral freshness UI;
   legacy Pages "moved" link with no redirect; `APP_URL` default →
   ledger.sgj.luxe; origin-local state and Blaze documented. End to end 132 checks
   (emulators); live-domain checks pending Shaun (not reachable from Claude Code).
+  The first Vercel build with the stamp step failed (no `public/`); `43bbd64` set
+  `outputDirectory: "."` and deployed. Production stayed on the previous build
+  meanwhile.
 - (2026-10-07) — Challenge weekly targets (counts and steps, optional daily goal,
   per-week scope), on the challenge sheet, Today and the share snapshot.
 - (2026-10-07) — Password sign-in as the main way in (email link as backup):
