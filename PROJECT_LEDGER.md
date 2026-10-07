@@ -47,13 +47,15 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   capsule and drag to reorder (mouse: drag straight away; ⋯ Move up/down on hover);
   completed items stay in place, filled and muted. Desktop adds a context column (intention, key tasks, next up,
   constraints, notes). The mode is a per-device preference (`ledger_today_mode`).
-  Once Morning Prime is done, "Start the day in Flow" offers the switch; when the
+  Once Morning Prime is done, the switch lights its Flow side in gold (no separate
+  "Start the day in Flow" button since 2026-10-07); when the
   evening routine is due, Flow shows "Evening Wind-down ready".
 - **Morning Prime** — two sections, tracked separately. **Plan** is what can be
   done from the phone before getting up (meals → choose key tasks → review today's
   plan → intention); **Move** is the physical start (weigh-in, body photo,
   supplements, water, stretch). Header reads `Plan ✓ · Move 3/5`, and collapses
-  to "Completed at HH:MM" once both are complete. Stored as `plan.morningPrime`;
+  to "Completed HH:MM" (never truncated; "Reopen" gives way first on narrow
+  screens) once both are complete. Stored as `plan.morningPrime`;
   manual ticks in `plan.morningPrime.checks[section]`. Key tasks are up to three:
   Done in the Key Tasks sheet sets `morningPrime.keysReviewedAt` and completes the
   step at 0–3 ("None today", "2 selected"). The sheet lists Selected, Today and a
@@ -101,10 +103,15 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   Cardio, HIIT, Strength, Mobility, Symptoms.
 - **Recorded Activity** — collapsible, with a summary in its header.
 - **Challenge strip** — when a Challenge is running, one quiet line above Morning
-  Prime: "Autumn Reset · Day 13 of 76 · 2 of 4 done" with a hairline of progress,
-  and one pill per daily task ("Press ups 30 / 50") that logs in a tap. The line
-  opens the challenge: daily tasks for today or an earlier day, the last seven
-  days complete/partial, add/edit/remove tasks, Edit challenge.
+  Prime, **collapsed by default**: icon, "Belly Must Go. · Day 3 of 92 · 3 of 4 done"
+  (name strongest, the rest muted; the name truncates before the numbers), chevron.
+  The whole row expands in place (˅/˄). Expanded: the challenge's hairline of
+  progress with › to open the challenge, the day's tasks as one-tap pills, then a
+  quiet "Week N progress" list ("Press Ups 50 / 350", tappable to log). Open/closed
+  is remembered per day on the device (`ledger_cz_open`). With nothing to expand
+  (before the start), the line opens the challenge. The challenge sheet: daily tasks
+  for today or an earlier day, the last seven days, weekly targets, add/edit/remove,
+  Edit challenge.
 - **Health & fitness summary** — keyed lines, a quiet label column then the value:
   Training, Nutrition Plan, Food Plan (planned meals: "6 meals (3 eaten)"), Food
   Diary, Steps. Planned meals are called the **Food Plan** everywhere (Day Plan
@@ -520,6 +527,23 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-07 — Today: the challenge is collapsed by default; status recedes, work rises
+**Decision (Shaun's brief):** the Challenge strip on Today is one collapsed status line
+by default (name · day · day's count, chevron); its pills, weekly totals and progress
+bar appear only when expanded, and the open/closed state is remembered per day on the
+device. Inside it, the day's tasks lead and the week's totals are a quiet list, not a
+second row of pills. Around it: Morning Prime's done row never truncates its time
+("Completed 07:42"); the Overview/Flow switch is the one control for Flow, so once
+Morning Prime is done it lights its Flow side instead of a separate gold button; the
+gaps between the status rows and the switch are tighter so the first Actions show in
+the first viewport. In the Actions header, Order/Groups and the count are quieter than
+the title. A done Action recedes by colour (title and meta alike, still readable), not
+opacity; its control is a quiet filled disc with a tick; a key-task star hangs in front
+of the title in Overview as it already did in Flow.
+**Why:** Today's execution list is the primary content; challenge and routines are
+context around it. **Supersedes:** "Start the day in Flow" as a separate link (the
+2026-09-30 Flow decision) and the always-open pills of the challenge strip.
 
 ### 2026-10-07 — ledger.sgj.luxe is the one production origin
 **Decision (Shaun's handoff):** production is `https://ledger.sgj.luxe` on Vercel.
@@ -1514,6 +1538,12 @@ beyond) starts only on his explicit brief.
 
 ## Recently Completed
 
+- (2026-10-07) — Today polish pass: Challenge collapsed by default (per-day memory,
+  quieter weekly list), Morning Prime "Completed HH:MM", Flow suggested by the switch,
+  tighter status spacing (five Actions in the first viewport at 390px, was about
+  one and a half), quieter Actions header, readable done rows. Also fixed a button-
+  padding bug that drew every status tick as a symmetric "v" (read as a chevron).
+
 - `4325821` + `43bbd64` (2026-10-07) — Vercel + custom domain migration audit:
   `ledger.sgj.luxe`
   canonical (`LEDGER_HOME`; emailed links return to production from unknown
@@ -1672,7 +1702,9 @@ beyond) starts only on his explicit brief.
    - install from ledger.sgj.luxe (Share → Add to Home Screen), open it, reload;
    - optional: open `https://ledger.sgj.luxe/?view=week` as Abi and refresh it
      (no 404);
-   - republish `firestore.rules` from the Console if not done since Phase 2.5.
+   - republish `firestore.rules` from the Console if not done since Phase 2.5;
+   - Today on the phone: the challenge line is collapsed and fits one line; tapping it
+     opens and closes it; Morning Prime's time isn't cut off.
 2. **Then await explicit authorisation for the Push Notifications Foundation.**
 3. Shaun: create the GitHub Project (Open Q7); triage #6–#19.
 

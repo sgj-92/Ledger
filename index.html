@@ -422,16 +422,18 @@
   }
   .commitment-item:last-child { border-bottom: none; }
   .commitment-item:active { background: var(--surface); }
-  .commitment-item.done .commitment-body { opacity: 0.6; }
+  /* done steps back by colour, not opacity, so its title and meta stay readable */
+  .commitment-item.done .key-star { opacity: 0.6; }
   .commitment-status-dot {
     width: 21px; height: 21px; flex-shrink: 0; border-radius: 50%;
     border: 1.5px solid var(--line-2); background: none;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: background 0.14s ease, border-color 0.14s ease;
-    position: relative;
+    position: relative; padding: 0;
   }
+  /* (a button's default padding once squeezed this to a symmetric "v" — a chevron) */
   .commitment-status-dot::after {
-    content: ''; width: 9px; height: 5.5px; border-left: 1.7px solid var(--ink);
+    content: ''; flex-shrink: 0; width: 9px; height: 5.5px; border-left: 1.7px solid var(--ink);
     border-bottom: 1.7px solid var(--ink); transform: rotate(-45deg) translate(1px,-1px);
     opacity: 0; transition: opacity 0.12s ease;
   }
@@ -449,7 +451,7 @@
   .commitment-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
   .commitment-meta:empty { display: none; }
   .commitment-meta .commitment-matter { color: var(--text-3); }
-  .commitment-item.done .commitment-title { color: var(--text-2); }
+  .commitment-item.done .commitment-title { color: var(--text-3); }
 
   /* ---------- capsules: what an item is, at a glance ----------
      The category (or training type) colour as a soft tint with a coloured icon;
@@ -1256,21 +1258,46 @@
   .st-val.small { font-size: 19px; color: var(--text-2); }
   .st-rule { height: 1px; background: var(--line); }
 
-  /* ---- Today · the challenge, one line with a hairline of progress ---- */
+  /* ---- Today · the challenge: one quiet status line, opened in place ----
+     Its icon and chevron sit in Morning Prime's columns just below. The name gives way
+     before the day and the count do. */
+  .cz-head { display: flex; align-items: center; }
   .cz-strip {
-    display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 var(--sp-3); padding: 9px 4px 9px 2px;
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 14px 6px 0;
     border: none; background: none; text-align: left; font-family: var(--sans); color: var(--text); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
   .cz-strip:active { opacity: 0.7; }
   .cz-strip-ic { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-2); display: flex; align-items: center; justify-content: center; color: var(--gold); }
   .cz-strip-ic svg { width: 15px; height: 15px; display: block; }
-  .cz-strip-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-  .cz-strip-line { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .cz-strip-title { font-weight: 600; }
-  .cz-strip-day { color: var(--text-2); }
-  .cz-strip .cz-bar { height: 3px; flex: none; width: 100%; }
-  .cz-strip-chev { flex-shrink: 0; width: 15px; height: 15px; color: var(--text-3); display: flex; }
-  .cz-strip-chev svg { width: 100%; height: 100%; }
+  .cz-strip-line { flex: 1; min-width: 0; display: flex; align-items: baseline; font-size: 13px; white-space: nowrap; }
+  .cz-strip-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+  .cz-strip-day { flex-shrink: 0; color: var(--text-3); }
+  .cz-strip[aria-expanded="true"] .tsec-expand { transform: rotate(180deg); }
+  .cz-open {
+    width: 32px; height: 32px; padding: 0; border: none; background: none; border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: var(--text-3);
+  }
+  .cz-open svg { width: 15px; height: 15px; display: block; }
+  .cz-open:active { opacity: 0.6; }
+  .cz-more { overflow: hidden; max-height: 640px; opacity: 1; transition: max-height 0.26s ease, opacity 0.2s ease; }
+  .cz-more.collapsed { max-height: 0; opacity: 0; visibility: hidden; }
+  .cz-more-inner { padding: 0 0 var(--sp-2) 40px; display: flex; flex-direction: column; gap: 8px; }
+  .cz-prog { display: flex; align-items: center; gap: 12px; margin: -4px 0 -2px; }
+  .cz-prog .cz-bar { height: 3px; }
+  .cz-prog .cz-open { margin-right: 5px; }
+  /* the week's totals: context for the day's tasks, never another row of buttons */
+  .cz-week { display: flex; flex-direction: column; }
+  .cz-week-k { margin: 2px 0 2px; font-size: 11.5px; color: var(--text-3); }
+  .cz-wrow {
+    display: flex; align-items: baseline; gap: 12px; min-height: 26px; padding: 3px 0; margin: 0;
+    border: none; background: none; cursor: pointer; text-align: left;
+    font-family: var(--sans); font-size: 12.5px; color: var(--text-2); -webkit-tap-highlight-color: transparent;
+  }
+  .cz-wrow:active { opacity: 0.6; }
+  .cz-wrow-t { flex: 0 0 104px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cz-wrow-v { color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .cz-wrow.met .cz-wrow-v { color: var(--gold); }
   /* Plan and the Day Plan: the challenge in context, quietly */
   .pw-challenge { margin: calc(-1 * var(--sp-2)) 0 var(--sp-3); padding: 0 6px; font-size: 12px; color: var(--text-3); }
   .pw-challenge[hidden], .dp-challenge[hidden] { display: none; }
@@ -1286,9 +1313,9 @@
   .cz-today { font-size: 12px; color: var(--text-2); }
   .cz-today.met { color: var(--gold); }
   /* Today · the day's challenge tasks, one tap each, under the strip */
-  .cz-strip-wrap { margin: 0 0 var(--sp-3); }
-  .cz-strip-wrap .cz-strip { margin-bottom: 0; }
-  .cz-pills { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0 2px 44px; }
+  .cz-strip-wrap { margin: 0 0 var(--sp-1); }
+  .cz-strip-wrap.open { margin-bottom: var(--sp-2); }
+  .cz-pills { display: flex; flex-wrap: wrap; gap: 6px; }
   .cz-pill {
     display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 5px 11px 5px 6px;
     border-radius: 20px; border: 1px solid var(--line-2); background: none; cursor: pointer;
@@ -1365,8 +1392,6 @@
   .cz-task.off .cz-task-title, .cz-task.off .cz-task-meta { color: var(--text-3); }
   .cz-wbar { display: block; height: 3px; margin-top: 6px; border-radius: 2px; background: var(--line-2); overflow: hidden; }
   .cz-wbar i { display: block; height: 100%; background: var(--gold); border-radius: 2px; }
-  .cz-wpills { align-items: center; }
-  .cz-wpills-k { font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); margin-right: 2px; }
   .czw-week { margin: 0 0 var(--sp-4); padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--line); }
   .czw-week-head { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--text-2); }
   .czw-week-total { color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -2401,15 +2426,20 @@
   /* Completed: title and time share one line, so the card collapses to a single row */
   .mp-card.done .mp-head-body { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
   .mp-card.done .mp-title { font-size: 15.5px; white-space: nowrap; flex-shrink: 0; }
+  /* the time is the point of the line, so it never truncates: "Reopen" gives way first
+     (the chevron already says the row opens) */
   .mp-card.done .mp-sub {
     margin-top: 0; padding-left: 10px; border-left: 1px solid var(--line-2);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+    white-space: nowrap; flex-shrink: 0;
   }
+  .mp-card.done { container-type: inline-size; }
+  .wd-card.done .mp-sub { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .mp-reopen {
     flex-shrink: 0; font-size: 12px; font-weight: 500; color: var(--gold);
     letter-spacing: 0.01em;
   }
-  @media (max-width: 404px) { .mp-reopen { display: none; } }
+  @container (max-width: 379px) { .mp-reopen { display: none; } }
+  @supports not (container-type: inline-size) { @media (max-width: 440px) { .mp-reopen { display: none; } } }
   .mp-card.done .mp-sub { color: rgba(var(--gold-rgb),0.7); }
   .mp-chev {
     width: 15px; height: 15px; flex-shrink: 0; color: var(--text-3);
@@ -2707,6 +2737,9 @@
     color: var(--gold);
   }
   .key-star svg { width: 100%; height: 100%; display: block; }
+  /* the star is an annotation in front of the title: a wrapped title keeps its own edge, as in Flow */
+  .commitment-title:has(> .key-star) { display: flex; align-items: baseline; }
+  .commitment-title > .key-star { flex-shrink: 0; }
   .key-pill {
     flex-shrink: 0; font-size: 9.5px; font-weight: 500; letter-spacing: 0.14em;
     text-transform: uppercase; color: var(--gold);
@@ -3125,11 +3158,7 @@
     padding: 11px; border-radius: var(--r-md); border: 1px dashed rgba(var(--gold-rgb),0.35); background: none; cursor: pointer;
     font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--gold);
   }
-  .flow-wd svg, .mp-flow-link svg { width: 12px; height: 12px; display: block; }
-  .mp-flow-link {
-    display: flex; align-items: center; gap: 6px; margin: 8px 2px 0 auto; padding: 4px 0;
-    background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--gold);
-  }
+  .flow-wd svg { width: 12px; height: 12px; display: block; }
   .flow-sheet-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
   .flow-sheet-btns button:disabled { opacity: 0.4; }
   .flow-ctx-sec { padding: 14px 0; border-bottom: 1px solid var(--line); }
@@ -3648,20 +3677,34 @@
   .actions-summary { margin-top: -2px; }
   /* Backlog leads straight into the day */
   #view-log #backlogSection:not(:empty) + .actions-head { margin-top: 0; }
-  #backlogSection .tsec { margin-top: var(--sp-4); }
+  #backlogSection .tsec { margin-top: var(--sp-2); }
   /* done work steps back: a quiet tick, a dimmed capsule */
+  /* done is a quiet filled disc — never an empty ring with a mark that reads as a chevron */
   .commitment-item.done .commitment-status-dot.completed, .tl-row.done .commitment-status-dot.completed,
-  .dpa-row.done .commitment-status-dot.completed { background: none; border-color: var(--line-2); }
+  .dpa-row.done .commitment-status-dot.completed { background: var(--surface-3); border-color: var(--surface-3); }
   .commitment-item.done .commitment-status-dot.completed::after, .tl-row.done .commitment-status-dot.completed::after,
-  .dpa-row.done .commitment-status-dot.completed::after { border-color: var(--text-3); }
+  .dpa-row.done .commitment-status-dot.completed::after { border-color: var(--text-2); }
   .commitment-item.done .cap.done, .dpa-row.done .cap.done { opacity: 0.55; }
   /* the utility rows are one list — no gaps between them */
   #view-log .wd-wrap { margin-top: 0; }
 
   /* the mode switch: two words in a slim track, the chosen one raised */
-  .today-mode { padding: 2px; background: none; border-color: var(--line); }
+  .today-mode { padding: 2px; background: none; border-color: var(--line); margin-top: var(--sp-3); }
   .today-mode button { padding: 5px 15px; font-size: 12px; color: var(--text-3); }
   .today-mode button.sel { background: var(--surface-3); color: var(--text); }
+  /* Morning Prime done: Flow is the natural next step, so its side of the switch is lit */
+  .today-mode button.suggest:not(.sel) { color: var(--gold); }
+  html[data-theme="light"] .today-mode button.suggest:not(.sel) { color: var(--gold-2); }
+
+  /* Today's first viewport: the status area above the switch is context, so the
+     day's work starts soon after it (relationships only — the tokens are untouched) */
+  #view-log .catchup-banner { margin-bottom: var(--sp-3); }
+  #view-log #inboxSection:empty + #backlogSection:empty + .actions-head { margin-top: var(--sp-2); }
+  /* the Actions header: the title leads; Order/Groups are a quieter view control; the
+     count is a muted figure that does not compete with + */
+  .actions-head .view-switch button.sel { color: var(--text-2); }
+  html[data-theme="light"] .actions-head .view-switch button.sel { color: var(--text); }
+  #view-log .tsec-status { font-size: 12px; }
 
   /* ---------- Today section header: one shape everywhere ----------
      title (left) · status or count (right, muted) · chevron · an optional extra slot.
@@ -12563,7 +12606,7 @@
     var skipMode = expanded && !!mpSkipMode[dateStr];
     var backlogCount = backlogActions().length;
     var sub = st.completedAt
-      ? 'Completed at ' + mpTimeLabel(st.completedAt)
+      ? 'Completed ' + mpTimeLabel(st.completedAt)
       : (expanded ? 'Set yourself up for a focused day.' : mpProgressLabel(st));
 
     var html = '<div class="mp-card' + (st.completedAt ? ' done' : '') + '">' +
@@ -12605,13 +12648,16 @@
         '<button type="button" class="btn-primary mp-save" id="mpSaveBtn">' + (st.completedAt ? 'Update Morning Prime' : 'Save Morning Prime') + '</button>' +
         (st.complete ? '' : '<p class="mp-hint" id="mpHint">' + mpMissingLabel(st) + '</p>') +
       '</div></div>' +
-    '</div>' +
-    // finished for today: the natural next step is working the day in order
-    (st.completedAt && isToday && !expanded && todayMode === 'overview'
-      ? '<button type="button" class="mp-flow-link" id="mpFlowLink">Start the day in Flow' + UI_ICON.arrowRight + '</button>' : '');
+    '</div>';
     wrap.innerHTML = html;
-    var flowLink = document.getElementById('mpFlowLink');
-    if (flowLink) flowLink.addEventListener('click', function(){ setTodayMode('flow'); });
+    // finished for today: the natural next step is working the day in order, so the
+    // switch itself lights its Flow side rather than a second button offering it
+    var flowTab = document.querySelector('[data-today-mode="flow"]');
+    if (flowTab){
+      var suggest = !!st.completedAt && isToday && todayMode === 'overview';
+      flowTab.classList.toggle('suggest', suggest);
+      if (suggest) flowTab.title = 'Start the day in Flow'; else flowTab.removeAttribute('title');
+    }
 
     var allStates = st.planSec.items.concat(st.moveSec.items);
     fillRoutineLabels(wrap, allStates);
@@ -15401,9 +15447,24 @@
     }
   }
 
-  // Today: one quiet line with a hairline of progress, above Morning Prime — only on a
-  // day inside the challenge (or today, just before it starts). The day's tasks sit under
-  // it as small pills; each logs in one tap.
+  // Today: the challenge as one quiet status line above Morning Prime — only on a day
+  // inside the challenge (or today, just before it starts). Closed by default: the name,
+  // the day, how the day's tasks stand. Opened in place (˅), it shows the challenge's
+  // progress (with › to open the challenge itself), the day's tasks as one-tap pills and,
+  // quieter, the week's totals. Open or closed is remembered per day,
+  // on this device. With nothing to open (a future day, before the start) the line opens
+  // the challenge, as before.
+  var CZ_OPEN_KEY = 'ledger_cz_open';           // { 'YYYY-MM-DD': 1 } — a per-device preference
+  function czOpenDays(){
+    try { var m = JSON.parse(lsGet(CZ_OPEN_KEY, '{}')); return m && typeof m === 'object' ? m : {}; } catch(e){ return {}; }
+  }
+  function czSetOpen(ds, on){
+    var m = czOpenDays();
+    if (on) m[ds] = 1; else delete m[ds];
+    var days = Object.keys(m).sort();
+    while (days.length > 14) delete m[days.shift()];   // only recent days matter
+    lsSet(CZ_OPEN_KEY, JSON.stringify(m));
+  }
   function renderChallengeStrip(){
     var el = document.getElementById('challengeStrip');
     if (!el) return;
@@ -15416,32 +15477,41 @@
     var weekly = st.phase === 'during' && ds <= todayStr() ? czWeeklyOnDate(c, ds) : [];
     var wk = weekly.length ? czWeekOf(c, ds) : 0;
     var res = challengeDayResult(c, ds);
-    el.innerHTML = '<div class="cz-strip-wrap">' +
-      '<button type="button" class="cz-strip" id="czStripBtn">' +
-        '<span class="cz-strip-ic">' + UI_ICON.mountain + '</span>' +
-        '<span class="cz-strip-body"><span class="cz-strip-line"><span class="cz-strip-title" data-role="cz-title"></span><span class="cz-strip-day"> · ' + st.label +
-          (tasks.length ? ' · ' + res.met + ' of ' + res.total + ' done' : '') + '</span></span>' +
-        '<span class="cz-bar"><i style="width:' + st.pct + '%"></i></span></span>' +
-        '<span class="cz-strip-chev">' + UI_ICON.chevronRight + '</span></button>' +
-      (tasks.length ? '<div class="cz-pills">' + tasks.map(function(t){
-        var met = challengeTaskMet(c, t, ds);
-        return '<button type="button" class="cz-pill' + (met ? ' met' : '') + '" data-cz-task="' + t.id + '" aria-pressed="' + (met ? 'true' : 'false') + '">' +
-          '<span class="cz-pill-mark" aria-hidden="true">' + CHECK_SVG + '</span>' +
-          '<span class="cz-pill-title"></span>' +
-          '<span class="cz-pill-val">' + challengeTaskProgress(c, t, ds, true) + '</span></button>';
-      }).join('') + '</div>' : '') +
-      (weekly.length ? '<div class="cz-pills cz-wpills"><span class="cz-wpills-k">Week ' + wk + '</span>' + weekly.map(function(t){
-        var met = czWeeklyStatus(c, t, wk).met;
-        return '<button type="button" class="cz-pill' + (met ? ' met' : '') + '" data-czw-task="' + t.id + '">' +
-          '<span class="cz-pill-mark" aria-hidden="true">' + CHECK_SVG + '</span>' +
-          '<span class="cz-pill-title"></span>' +
-          '<span class="cz-pill-val">' + czWeeklyProgress(c, t, wk, true) + '</span></button>';
-      }).join('') + '</div>' : '') +
+    var more = tasks.length > 0 || weekly.length > 0;
+    var open = more && !!czOpenDays()[ds];
+    el.innerHTML = '<div class="cz-strip-wrap' + (open ? ' open' : '') + '">' +
+      '<div class="cz-head">' +
+        '<button type="button" class="cz-strip" id="czStripBtn"' + (more ? ' aria-expanded="' + open + '" aria-controls="czMore"' : '') + '>' +
+          '<span class="cz-strip-ic">' + UI_ICON.mountain + '</span>' +
+          '<span class="cz-strip-line"><span class="cz-strip-title" data-role="cz-title"></span><span class="cz-strip-day">\u00a0· ' + st.label +
+            (tasks.length ? ' · ' + res.met + ' of ' + res.total + ' done' : '') + '</span></span>' +
+          '<span class="tsec-chev' + (more ? ' tsec-expand' : '') + '">' + (more ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>' : UI_ICON.chevronRight) + '</span>' +
+        '</button>' +
+      '</div>' +
+      (more ? '<div class="cz-more' + (open ? '' : ' collapsed') + '" id="czMore"><div class="cz-more-inner">' +
+        // the whole challenge is one surface further: its progress, and › to open it
+        '<div class="cz-prog"><span class="cz-bar" role="img" aria-label="' + st.pct + '% of the challenge"><i style="width:' + st.pct + '%"></i></span>' +
+          '<button type="button" class="cz-open" id="czOpenBtn" aria-label="Open the challenge">' + UI_ICON.chevronRight + '</button></div>' +
+        (tasks.length ? '<div class="cz-pills">' + tasks.map(function(t){
+          var met = challengeTaskMet(c, t, ds);
+          return '<button type="button" class="cz-pill' + (met ? ' met' : '') + '" data-cz-task="' + t.id + '" aria-pressed="' + (met ? 'true' : 'false') + '">' +
+            '<span class="cz-pill-mark" aria-hidden="true">' + CHECK_SVG + '</span>' +
+            '<span class="cz-pill-title"></span>' +
+            '<span class="cz-pill-val">' + challengeTaskProgress(c, t, ds, true) + '</span></button>';
+        }).join('') + '</div>' : '') +
+        // the week's totals are context for today's tasks, so they read as a quiet list
+        (weekly.length ? '<div class="cz-week"><p class="cz-week-k">Week ' + wk + ' progress</p>' + weekly.map(function(t){
+          var met = czWeeklyStatus(c, t, wk).met;
+          return '<button type="button" class="cz-wrow' + (met ? ' met' : '') + '" data-czw-task="' + t.id + '">' +
+            '<span class="cz-wrow-t"></span>' +
+            '<span class="cz-wrow-v">' + czWeeklyProgress(c, t, wk, true) + '</span></button>';
+        }).join('') + '</div>' : '') +
+      '</div></div>' : '') +
     '</div>';
     el.querySelector('[data-role="cz-title"]').textContent = c.title;
     weekly.forEach(function(t){
       var b = el.querySelector('[data-czw-task="' + t.id + '"]');
-      b.querySelector('.cz-pill-title').textContent = t.title;     // user text
+      b.querySelector('.cz-wrow-t').textContent = t.title;     // user text
       b.setAttribute('aria-label', t.title + ', this week ' + czWeeklyProgress(c, t, wk) + ' — log');
       b.addEventListener('click', function(){ logWeeklyTarget(c, t, ds); });
     });
@@ -15451,7 +15521,17 @@
       b.setAttribute('aria-label', t.title + ', ' + challengeTaskProgress(c, t, ds) + ' — log');
       b.addEventListener('click', function(){ logChallengeTask(c, t, ds); });
     });
-    document.getElementById('czStripBtn').addEventListener('click', function(){ openChallengeSheet(c, ds); });
+    var btn = document.getElementById('czStripBtn');
+    if (!more){ btn.addEventListener('click', function(){ openChallengeSheet(c, ds); }); return; }
+    // opening and closing happen in place, so the body eases rather than being rebuilt
+    btn.addEventListener('click', function(){
+      var on = btn.getAttribute('aria-expanded') !== 'true';
+      czSetOpen(ds, on);
+      btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+      el.querySelector('.cz-strip-wrap').classList.toggle('open', on);
+      document.getElementById('czMore').classList.toggle('collapsed', !on);
+    });
+    document.getElementById('czOpenBtn').addEventListener('click', function(){ openChallengeSheet(c, ds); });
   }
 
   // Tapping the challenge anywhere opens what it asks of the day; with no challenge yet,
