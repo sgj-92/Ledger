@@ -26,12 +26,11 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
   profile role is `owner`. Records carry no per-record owner field. "Owner" is a
   role on this deployment, not a property stamped on each document. See
   "Ownership of existing records" below.
-- **A partner gets nothing from private collections**, now or later. Partner
-  Sharing (a later phase) will publish explicit projections into separate
-  collections (`ledger_share_members`, `ledger_shared_snapshots`,
-  `ledger_shared_requests`). Those are reserved in the rules and closed to
-  every client until that phase gives them their own narrow rules. Sharing is
-  never a filtered client-side view of private data.
+- **A partner gets nothing from private collections**, ever. Partner Sharing
+  is a projection, not access: the owner publishes share-safe display data
+  into three separate collections, and the partner reads only those. Sharing is
+  never a filtered client-side view of private data. See "Partner Sharing"
+  below.
 
 ### Collections
 
@@ -49,7 +48,10 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | `ledger_challenges` | challenges | owner |
 | `ledger_push_subscriptions` | devices for Pin now | owner |
 | `ledger_pins` | Pin now requests | owner |
-| `ledger_share_*`, `ledger_shared_*` | reserved for Partner Sharing | closed |
+| `ledger_meta/sharing` | what each publication was chosen to include | owner |
+| `ledger_share_members` | the owner–partner relationship | owner manages own; partner reads own |
+| `ledger_shared_snapshots` | published day and week projections | owner writes own; partner reads own, while active |
+| `ledger_shared_requests` | requests from the partner | partner creates/edits/withdraws own until processed; owner moves them on |
 | anything else | — | denied |
 
 ## The app's side
@@ -57,8 +59,11 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 Startup is: Firebase → auth state → role → then one of:
 
 - **Owner**: the private listeners start and Ledger opens.
-- **Partner**: a holding screen ("Shared Ledger access is being set up."). No
-  private listener or read is started.
+- **Partner**: their membership is read. With an active one, the partner's
+  Ledger opens: only what has been published to them, and their requests.
+  Without one, a holding screen ("Shared Ledger access is being set up.", with
+  their Account ID) or "Sharing is paused". No private listener or read is ever
+  started, and the device's stored copy of Ledger is never loaded.
 - **Signed in, no role**: "This account isn't set up for Ledger", showing the
   account ID to grant.
 - **Signed out**: the sign-in screen.
@@ -120,9 +125,60 @@ access to its own data.
 **Status:** rolled out 2026-10-07 (steps 1–6) and verified on the owner's
 devices.
 
-To add a partner later, sign them in once to get their Account ID, then add
-`ledger_users/{their uid}` with `role: partner`. Until Partner Sharing exists,
-they only see the holding screen.
+## Partner Sharing (Phase 2)
+
+**Publish the rules first.** Phase 2 adds rules for the shared collections. Until
+the current `firestore.rules` is published (Console → Firestore → Rules, as in
+step 6 above), the old rules keep those collections closed: Ledger works as
+before, and Settings → Partner sharing says the rules need publishing.
+
+### Adding Abi (manual, once)
+
+1. Abi opens Ledger and signs in with her email link. She sees "This account
+   isn't set up for Ledger" with her **Account ID**. She sends it to Shaun.
+2. Shaun, in the Firebase Console → Firestore → `ledger_users` → **Add
+   document**: Document ID = Abi's Account ID; fields `role` (string)
+   `partner`, `displayName` (string) `Abi`, `email` (string), `createdAt`
+   (string). A role is only ever granted here, never by the app.
+3. Shaun, in Ledger: Settings → Partner sharing → **Set up a partner**: paste
+   the Account ID, her name, and his name as she'll see it. This writes the
+   relationship (`ledger_share_members/{ownerUid}_{partnerUid}`, active). The
+   rules refuse it unless that account already holds the partner role.
+4. Abi reopens Ledger (or just waits — it follows live). She sees "Nothing
+   shared for today yet" until Shaun publishes.
+5. Shaun: Today → **Share snapshot** → **Abi** → review → **Publish to Abi**
+   (today, or **This week** with its checkpoint and review days).
+
+Pause / Resume and Remove are in Settings → Partner sharing. Pausing sets
+`active: false`: the rules then refuse every shared read, so Abi sees "Sharing
+is paused". Removing deletes the relationship and everything published to her.
+Her requests stay with Shaun.
+
+### What the rules allow
+
+- **Owner**: manages relationships it owns (only for an account holding the
+  partner role), writes projections only under its own uid and only to a
+  partner it has a relationship with, reads and processes requests addressed to
+  it, and may change a request only in `status`, `plannedDate`,
+  `linkedActionId`, `updatedAt`, `processedAt`. Never what was asked, or by whom.
+- **Partner**: reads its own relationship, and only while it is active, its own
+  projections and requests. It creates a request only through its own active
+  relationship, with status `requested` and no plan or link. Its id must look
+  like a generated id. It may edit the wording and timing, or withdraw it, only
+  while it is still `requested`. It can never set `ownerUid`, `partnerUid`,
+  `linkedActionId`, `plannedDate` or an owner status.
+- Everything else is denied. Partner queries must name `ownerUid` and
+  `partnerUid`. Rules are not filters.
+
+### What crosses the boundary
+
+A projection holds display fields only: per item `publicId`, `section`, `type`,
+`title`, `meta`, `category` (a label), `date`, `status`, `isKeyTask`,
+`sourceLabel`, and `sourceId`. `sourceId` is the private Action id, used only
+to say "Moved to …". What was chosen (the selection) stays private in
+`ledger_meta/sharing`. Presets are allow-lists: a section or Action category
+is shared only when named. A new kind of data is therefore not shared until
+someone chooses it. Day Notes and Communications are never offered.
 
 ## Ownership of existing records
 
@@ -163,6 +219,21 @@ cd tests/firestore-rules && npm install
 npx firebase emulators:exec --only firestore --project demo-ledger --config ../../firebase.json "node rules.test.js"
 ```
 
-It covers signed out, owner, partner, a signed-in account with no role, the
-reserved shared collections and an unlisted collection. All of them must pass
-before a rules change is deployed.
+It covers signed out, owner, a second owner, Partner A, Partner B, an inactive
+relationship, a signed-in account with no role, every private collection, the
+shared collections and an unlisted collection. All of them must pass before a
+rules change is deployed.
+
+`tests/e2e/` runs Partner Sharing end to end: the Firebase SDK version
+`index.html` loads, in two browsers (owner and partner), against the Auth and
+Firestore emulators enforcing these rules:
+
+```
+cd tests/e2e && npm install
+npx firebase emulators:exec --only firestore,auth --project ledger-6aec3 --config ../../firebase.json "node partner-sharing.test.js"
+```
+
+It uses the app's own project id so the page and the emulators agree; nothing
+touches the real project. `index.html` switches to the emulators only when it
+is served from localhost and the page has set `localStorage.ledger_emulator`.
+A deployed Ledger never can.

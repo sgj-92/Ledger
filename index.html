@@ -4087,6 +4087,177 @@
 
   @keyframes inspector-in { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
 
+
+  /* ============ Partner Sharing ============
+     The owner publishes; the partner reads. Owner-side pieces stay quiet (an Inbox
+     row, a one-line "live" note); the partner's Ledger is rows and whitespace. */
+  /* -- share sheet: partner mode -- */
+  .snap-modes { margin-bottom: var(--sp-4); }
+  .snap-period { margin-bottom: var(--sp-2); }
+  .snap-cats { margin: -4px 0 10px 34px; }
+  .snap-cats .bk-filter-chip { margin: 0 6px 6px 0; }
+  .share-state { margin: 0 0 var(--sp-3); font-size: 12.5px; line-height: 1.45; color: var(--text-3); }
+  .share-state.live { color: var(--gold); }
+  .share-state.live::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); margin-right: 7px; vertical-align: 1px; }
+  .share-state.paused { color: var(--text-2); }
+  .share-chips { margin: 2px 0 6px; }
+  .share-sub { margin: 6px 0 6px; font-size: 11.5px; color: var(--text-3); }
+  .share-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; margin-bottom: 4px; max-width: 420px; }
+  .share-days .bk-filter-chip { margin: 0; padding: 7px 0; text-align: center; }
+  .share-sub + .snap-cats { margin-left: 0; }
+  .share-preview {
+    margin: var(--sp-4) 0 0; padding: 4px 14px 12px; border-radius: var(--r-lg);
+    background: var(--surface-2); border: 1px solid var(--line);
+  }
+  .share-preview-head {
+    display: flex; justify-content: space-between; gap: 12px; padding: 12px 0 4px;
+    font-size: 10.5px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3);
+  }
+  .share-pv-sec { padding-top: 8px; }
+  .share-pv-label { font-family: var(--serif); font-size: 16px; color: var(--text); margin: 4px 0 2px; }
+  .share-pv-row {
+    display: flex; align-items: center; gap: 11px; width: 100%; padding: 8px 0;
+    background: none; border: none; text-align: left; font-family: var(--sans); color: var(--text); cursor: pointer;
+  }
+  .share-pv-row .cz-opt-box { width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0; }
+  .share-pv-row .cz-opt-box svg { width: 10px; height: 10px; }
+  .share-pv-row[aria-checked="true"] .cz-opt-box { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .share-pv-body { min-width: 0; display: flex; flex-direction: column; }
+  .share-pv-title { font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; }
+  .share-pv-meta { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+  .share-pv-meta:empty { display: none; }
+  .share-pv-row.off .share-pv-title { color: var(--text-3); text-decoration: line-through; text-decoration-color: rgba(var(--gold-rgb),0.3); }
+  .share-pv-foot { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 11.5px; line-height: 1.5; color: var(--text-3); }
+  .share-preview .snap-empty { padding: 24px 0; }
+  /* -- Today: the live note at the foot -- */
+  .share-live {
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+    margin: var(--sp-5) 0 2px; padding: 6px 0; background: none; border: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12px; color: var(--text-2);
+  }
+  .share-live[hidden] { display: none; }
+  .share-live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+  .share-live.paused .share-live-dot { background: var(--text-3); }
+  .share-live:active { opacity: 0.6; }
+  /* -- Today: Inbox -- */
+  .inbox-head .tsec-title { cursor: default; }
+  .ib-list { border-top: 1px solid var(--line); }
+  .ib-row { padding: 12px 2px; border-bottom: 1px solid var(--line); }
+  .ib-body { display: flex; flex-direction: column; min-width: 0; }
+  .ib-kicker { font-size: 9.5px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(var(--gold-rgb),0.85); margin-bottom: 3px; }
+  .ib-title { font-size: 15px; line-height: 1.35; color: var(--text); overflow-wrap: anywhere; }
+  .ib-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .ib-note { font-family: var(--serif); font-style: italic; font-size: 13px; color: var(--text-2); margin-top: 4px; overflow-wrap: anywhere; }
+  .ib-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .ib-actions .bk-btn { padding: 8px 11px; }
+  .ib-actions .ib-dismiss { margin-left: auto; color: var(--text-3); border-color: transparent; }
+  .ib-sheet-meta { margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: var(--text-3); overflow-wrap: anywhere; }
+  /* -- Settings -- */
+  .set-share-member { display: flex !important; align-items: center; justify-content: space-between; gap: 12px; }
+  .set-share-who { display: flex; flex-direction: column; min-width: 0; }
+  .set-share-name { font-family: var(--serif); font-size: 16px; color: var(--text); }
+  .set-share-state { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+  .set-share-state.live { color: var(--gold); }
+  .set-share-member .btn-link { flex-shrink: 0; }
+  .set-share-days { margin-top: 10px; }
+  .set-share-note { font-size: 13px; line-height: 1.5; color: var(--text-2); }
+  .set-share-remove { padding: 0; font-size: 11.5px; color: var(--danger); }
+  /* -- toast with an action -- */
+  .pin-toast.has-action { display: flex; align-items: center; gap: 14px; pointer-events: auto; padding: 9px 9px 9px 19px; }
+  .pin-toast-act {
+    border: none; background: none; padding: 5px 10px; border-radius: 100px; cursor: pointer;
+    font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--gold);
+  }
+  body.partner-on .pin-toast { z-index: 1700; bottom: calc(28px + env(safe-area-inset-bottom)); }
+
+  /* -- the partner's Ledger -- */
+  .partner-app {
+    position: fixed; inset: 0; z-index: 1500; overflow-y: auto; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    background: radial-gradient(120% 50% at 50% 0%, var(--surface) 0%, var(--bg) 70%) var(--bg);
+  }
+  .partner-app[hidden] { display: none; }
+  .pp-wrap {
+    max-width: 560px; margin: 0 auto;
+    padding: calc(26px + env(safe-area-inset-top)) 20px calc(36px + env(safe-area-inset-bottom));
+  }
+  .pp-head { margin-bottom: var(--sp-5); }
+  .pp-mark { width: 34px; height: 34px; border-radius: 9px; display: block; margin-bottom: 18px; }
+  .pp-kicker { margin: 0 0 6px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
+  .pp-title { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 34px; line-height: 1.12; letter-spacing: -0.015em; color: var(--text); overflow-wrap: anywhere; }
+  .pp-date { margin: 6px 0 0; font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--text-2); }
+  .pp-tabs { margin-bottom: var(--sp-5); }
+  .pp-sec { margin: 0 0 var(--sp-6); }
+  .pp-sec-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .pp-sec-title {
+    margin: 0 0 6px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-3);
+  }
+  .pp-sec.key .pp-sec-title { color: var(--gold); }
+  .pp-all { padding: 0; font-size: 12px; color: var(--text-2); }
+  .pp-list { border-top: 1px solid var(--line); }
+  .pp-row {
+    display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 10px 2px;
+    border: none; border-bottom: 1px solid var(--line); background: none; text-align: left;
+    font-family: var(--sans); color: var(--text);
+  }
+  button.pp-row { cursor: pointer; }
+  button.pp-row:active { opacity: 0.65; }
+  .pp-dot {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+    border: 1.6px solid rgba(var(--gold-rgb),0.4); display: flex; align-items: center; justify-content: center; color: var(--ink);
+  }
+  .pp-dot svg { width: 11px; height: 11px; display: block; }
+  .pp-row.st-done .pp-dot, .pp-req.rq-done .pp-dot { background: var(--gold); border-color: var(--gold); }
+  .pp-row.st-note .pp-dot, .pp-row.head .pp-dot { width: 7px; height: 7px; margin: 0 6.5px; border: none; background: rgba(var(--gold-rgb),0.65); }
+  .pp-row.st-moved .pp-dot, .pp-req.rq-dismissed .pp-dot { border-style: dashed; border-color: var(--line-2); }
+  .pp-row.st-in_progress .pp-dot { background: linear-gradient(90deg, rgba(var(--gold-rgb),0.6) 50%, transparent 50%); }
+  .pp-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .pp-row-title { font-size: 15.5px; line-height: 1.35; overflow-wrap: anywhere; }
+  .pp-row.head .pp-row-title { font-family: var(--serif); font-size: 18px; }
+  .pp-row.st-done .pp-row-title, .pp-row.st-moved .pp-row-title, .pp-req.rq-done .pp-row-title, .pp-req.rq-dismissed .pp-row-title { color: var(--text-2); }
+  .pp-row-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; overflow-wrap: anywhere; }
+  .pp-row-meta:empty { display: none; }
+  .pp-pill {
+    flex-shrink: 0; padding: 4px 9px; border-radius: 100px; font-size: 11px; font-weight: 500; white-space: nowrap;
+    color: var(--gold); background: rgba(var(--gold-rgb),0.09);
+  }
+  .pp-pill.quiet { color: var(--text-2); background: var(--surface-2); }
+  .pp-req.rq-dismissed .pp-pill { color: var(--text-3); background: none; }
+  .pp-add {
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 14px;
+    padding: 14px; border-radius: var(--r-md); border: 1px dashed rgba(var(--gold-rgb),0.45); background: none;
+    font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--gold); cursor: pointer;
+  }
+  .pp-add span { font-size: 18px; line-height: 1; }
+  .pp-add:active { background: rgba(var(--gold-rgb),0.07); }
+  .pp-check {
+    display: flex; align-items: center; gap: 14px; padding: 16px; margin: 0 0 var(--sp-6);
+    border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line);
+  }
+  .pp-check-ic { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--gold); background: rgba(var(--gold-rgb),0.08); }
+  .pp-check-ic svg { width: 18px; height: 18px; display: block; }
+  .pp-check-title { display: block; font-family: var(--serif); font-size: 18px; color: var(--text); }
+  .pp-check-sub { display: block; font-size: 12.5px; color: var(--text-3); margin-top: 2px; }
+  .pp-empty { padding: 36px 8px 40px; text-align: center; }
+  .pp-empty-title { margin: 0; font-family: var(--serif); font-size: 20px; color: var(--text); }
+  .pp-empty-sub { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--text-3); }
+  .pp-foot { margin-top: var(--sp-7); padding-top: var(--sp-5); border-top: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .pp-updated { margin: 0; font-size: 12px; color: var(--text-3); }
+  .pp-who { margin: 0; font-size: 12px; color: var(--text-3); text-align: center; overflow-wrap: anywhere; }
+  .pp-who .btn-link { padding: 0; font-size: 12px; color: var(--text-2); }
+  .pp-backdrop { z-index: 1600; }
+  #ppSheet .field label.pp-q { text-transform: none; letter-spacing: 0; font-family: var(--serif); font-size: 19px; font-weight: 400; color: var(--text); margin-bottom: 10px; }
+  .pp-opt { text-transform: none; letter-spacing: 0; color: var(--text-3); font-weight: 400; }
+  #ppSheet textarea {
+    width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: var(--r-md);
+    border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text);
+    font-family: var(--sans); font-size: 16px; line-height: 1.4; resize: vertical; outline: none;
+  }
+  #ppSheet textarea:focus { border-color: rgba(var(--gold-rgb),0.55); }
+  #ppSheet .bk-filter-pop { margin: 0; }
+  .pp-withdraw { color: var(--danger); }
+  html[data-theme="light"] .pp-check, html[data-theme="light"] .share-preview { box-shadow: var(--shadow-card); }
+
   /* ---------- identity gate: opaque, above everything, from first paint ---------- */
   body.auth-locked { overflow: hidden; }
   .auth-gate {
@@ -4141,6 +4312,9 @@
   </div>
 </div>
 
+<!-- A partner's Ledger: only what has been published to them (see Partner Sharing). -->
+<div class="partner-app" id="partnerApp" hidden></div>
+
 <header class="top">
   <div class="hdr-tex" aria-hidden="true"></div>
   <div class="hdr-bar">
@@ -4180,6 +4354,8 @@
     <div class="today-flow" id="todayFlow" hidden></div>
 
     <div class="today-main">
+    <!-- Inbox: requests from a partner, captured but not yet decided -->
+    <div id="inboxSection"></div>
     <!-- Backlog first: a quick look at unfinished earlier work before the day itself -->
     <div id="backlogSection"></div>
 
@@ -4280,6 +4456,7 @@
     <!-- the day's last ritual closes the page, after the evidence of the day -->
     <div class="wd-wrap" id="windDownSection"></div>
 
+    <button type="button" class="share-live" id="shareLiveLine" hidden><span class="share-live-dot" aria-hidden="true"></span><span class="share-live-text"></span></button>
     <div class="day-share-row">
       <button type="button" class="btn-link day-share-link snap" id="shareSnapFootBtn">Share snapshot →</button>
       <button type="button" class="btn-link day-share-link" id="shareDayFootBtn">Share day for Claude →</button>
@@ -5084,8 +5261,8 @@
   // what they may see is their role, read from ledger_users/{uid} — "owner" or
   // "partner" — which no client can write (see firestore.rules). Nothing private is
   // loaded, listened to or drawn until the signed-in user is confirmed as the owner:
-  //   Firebase init → auth state → role → owner: private data / partner: holding
-  //   screen / signed out: sign-in.
+  //   Firebase init → auth state → role → owner: private data / partner: the shared
+  //   view, if a relationship is active (Partner Sharing) / signed out: sign-in.
   // A build with no Firebase config (local development) has no accounts and runs on
   // this device's storage alone, as it always has.
   var LOCAL_ONLY = firebaseConfig.apiKey === "YOUR_API_KEY";
@@ -5145,7 +5322,7 @@
     if (!user){
       authUser = null; authRole = null; authProfile = null;
       // private data never outlives the session that loaded it
-      if (ownerDataStarted){ location.reload(); return; }
+      if (ownerDataStarted || pp.started){ location.reload(); return; }
       lockApp();
       // a sign-in screen already showing (with a message, or a half-typed address) stays as it is
       var shown = document.getElementById('authCard').getAttribute('data-state');
@@ -5162,13 +5339,17 @@
     authRole = role;
     authProfile = r.profile || authProfile;
     if (role === 'owner'){
+      if (pp.started){ location.reload(); return; }
       if (!ownerDataStarted){ unlockApp(); startOwnerData(); }
       return;
     }
     // not (or no longer) the owner: private data is neither shown nor kept on screen
     if (ownerDataStarted){ location.reload(); return; }
+    // a partner sees only what has been published to them — never this device's copy
+    if (role === 'partner'){ startPartner(); return; }
+    if (pp.started){ location.reload(); return; }
     lockApp();
-    renderGate(role === 'partner' ? 'partner' : (r.offline ? 'offline' : 'noaccess'));
+    renderGate(r.offline ? 'offline' : 'noaccess');
   }
 
   function signOutLedger(){
@@ -5241,8 +5422,13 @@
           '<p class="auth-error" id="authError" role="alert"></p>' +
         '</form>';
     } else if (state === 'partner'){
-      html += '<h1 class="auth-title">Shared Ledger access is being set up.</h1>' +
-        '<p class="auth-sub">You’re signed in as <strong data-role="auth-email"></strong>. Nothing has been shared with you yet — this is where it will appear.</p>' +
+      html += (info.paused
+          ? '<h1 class="auth-title">Sharing is paused</h1>' +
+            '<p class="auth-sub">You’re signed in as <strong data-role="auth-email"></strong>. Nothing is shown while sharing is paused.</p>'
+          : '<h1 class="auth-title">Shared Ledger access is being set up.</h1>' +
+            '<p class="auth-sub">You’re signed in as <strong data-role="auth-email"></strong>. Nothing has been shared with you yet — this is where it will appear.</p>' +
+            '<div class="auth-id"><span class="auth-label">Account ID</span><code data-role="auth-uid"></code>' +
+              '<button type="button" class="btn-link" id="authCopyUid">Copy</button></div>') +
         '<button type="button" class="btn-link auth-alt" id="authSignOut">Sign out</button>';
     } else if (state === 'noaccess'){
       html += '<h1 class="auth-title">This account isn’t set up for Ledger</h1>' +
@@ -5250,7 +5436,8 @@
         '<div class="auth-id"><span class="auth-label">Account ID</span><code data-role="auth-uid"></code>' +
           '<button type="button" class="btn-link" id="authCopyUid">Copy</button></div>' +
         '<p class="auth-fine">If this is your Ledger, give this account the owner role in the Firebase Console ' +
-          '(Firestore → ledger_users → a document with this ID, role: owner), then reopen Ledger.</p>' +
+          '(Firestore → ledger_users → a document with this ID, role: owner), then reopen Ledger. ' +
+          'If someone is sharing their Ledger with you, send them this Account ID.</p>' +
         '<button type="button" class="save-btn auth-btn" id="authRetry">I’ve done that — try again</button>' +
         '<button type="button" class="btn-link auth-alt" id="authSignOut">Sign out</button>';
     } else if (state === 'offline'){
@@ -5332,6 +5519,12 @@
     try {
       firebase.initializeApp(firebaseConfig);
       dbRef = firebase.firestore();
+      // automated tests only: the local Firebase emulators, and only when the page itself
+      // is served from this machine and asks for them — a deployed Ledger never can
+      if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && lsGet('ledger_emulator', '') === '1'){
+        dbRef.useEmulator('127.0.0.1', 8080);
+        if (firebase.auth) firebase.auth().useEmulator('http://127.0.0.1:9099', { disableWarnings: true });
+      }
     } catch(e){
       console.error('firebase init failed', e);
       lockApp(); renderGate('error'); return;
@@ -5373,6 +5566,7 @@
       dbRef.collection('ledger_sessions').orderBy('date','desc')
         .onSnapshot(function(snap){
           sessions = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return normalizeSession(data); });
+          if (!snap.metadata || !snap.metadata.fromCache) shareLoaded.sessions = true;
           renderAll();
         }, ownerDataError);
       dbRef.collection('ledger_meta').doc('presets').onSnapshot(function(doc){
@@ -5453,6 +5647,8 @@
           dayStatuses = snap.docs.map(function(d){ var data = d.data() || {}; data.date = d.id; return data; });
           renderLogView();
         }, function(err){ console.error('day status snapshot error', err); });
+      // Partner Sharing: the owner's side of the shared namespace (see firestore.rules)
+      startSharingListeners();
     } catch(e){
       console.error(e);
       fallbackMode();
@@ -6816,6 +7012,7 @@
     if (c.status === 'disrupted' && c.disruptionReason) bits.push(c.disruptionReason);
     if (opts.showCategory) bits.push(actionCategoryLabel(actionCategoryKey(c)));
     if (c.minVersion && !done) bits.push('Min: ' + c.minVersion);
+    if (c.sourceType === 'partner_request') bits.push('From ' + (c.sourceLabel || 'your partner'));
     var meta = row.querySelector('.commitment-meta');
     meta.textContent = bits.join(' · ');
     // the wider matter an action belongs to, quietly
@@ -7376,6 +7573,7 @@
         if (orig && orig !== existing.date){
           html += '<p class="commit-origin-note">' + addedLabel(orig) + '</p>';
         }
+        if (existing.sourceType === 'partner_request') html += '<p class="commit-origin-note" id="commitSourceNote"></p>';
         html += '<div class="field"><label>Status</label><div class="status-btn-grid" id="commitStatusGrid">' +
           ['completed','partial','disrupted','not_done'].map(function(s){
             return '<button type="button" class="status-btn' + (statusVal===s?' sel '+s:'') + '" data-s="' + s + '">' + COMMITMENT_STATUS_LABEL[s] + '</button>';
@@ -7439,6 +7637,8 @@
     function escOpt(t){ return String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
 
     sheetEl.innerHTML = buildHtml();
+    var srcNote = document.getElementById('commitSourceNote');
+    if (srcNote) srcNote.textContent = 'From ' + (existing.sourceLabel || 'your partner') + (existing.sourceNote ? ' · “' + existing.sourceNote + '”' : '');
     backdrop.classList.add('open');
     wireSheet();
 
@@ -9555,12 +9755,17 @@
   var SNAP_LAST_KEY = 'ledger_snap_preset';
   function snapUserPresets(){ return (presets.shareTemplates || []).filter(function(p){ return p && p.id && p.name; }); }
   function snapAllPresets(){ return SNAP_BUILTIN.concat(snapUserPresets()); }
-  function snapPresetById(id){ return snapAllPresets().find(function(p){ return p.id === id; }) || null; }
+  function snapPresetById(id){ return snapAllPresets().find(function(p){ return p.id === id; }) || (id === SHARE_DEFAULT_PRESET.id ? SHARE_DEFAULT_PRESET : null); }
   function saveSnapPresets(list){
     presets.shareTemplates = list;
     savePresets();
   }
 
+  // an Action as a snapshot row; cat is its category (for a preset's category allow-list)
+  function snapActionItem(x){
+    return { id: 'a:' + x.id, text: x.title, state: x.status === 'completed' ? 'done' : 'open', key: !!x.isKeyTask,
+      cat: actionCategoryKey(x), fromPartner: x.sourceType === 'partner_request' };
+  }
   // Everything the day holds that a snapshot can show, section by section. Items carry a
   // stable id so they can be left out one at a time. state: 'done' | 'open' | 'key'.
   function snapshotData(dateStr){
@@ -9588,9 +9793,9 @@
     var acts = sortByOrderHint(commitments.filter(function(x){ return x.date === dateStr && x.category !== 'roadblock'; }), dayActionOrder(dateStr));
     var keys = acts.filter(function(x){ return x.isKeyTask; });
     if (keys.length) out.keyTasks = { summary: keys.filter(function(x){ return x.status === 'completed'; }).length + ' of ' + keys.length + ' done',
-      items: keys.map(function(x){ return { id: 'a:' + x.id, text: x.title, state: x.status === 'completed' ? 'done' : 'open', key: true }; }) };
+      items: keys.map(function(x){ return snapActionItem(x); }) };
     if (acts.length) out.actions = { summary: acts.filter(function(x){ return x.status === 'completed'; }).length + ' of ' + acts.length + ' complete',
-      items: acts.map(function(x){ return { id: 'a:' + x.id, text: x.title, state: x.status === 'completed' ? 'done' : 'open', key: !!x.isKeyTask }; }) };
+      items: acts.map(function(x){ return snapActionItem(x); }) };
     // training: what was recorded, then anything planned that was not
     var recorded = sessions.filter(function(s){ return s.date === dateStr && PLAN_TRAINING_TYPES.indexOf(s.type) > -1; });
     var tr = recorded.map(function(s){
@@ -9760,7 +9965,8 @@
     if (keyShown){ heading('Key tasks', data.keyTasks.summary); kept(data.keyTasks.items).forEach(function(it){ row(it, { keepBright: true }); }); gap(18); }
     if (on('actions')){
       var aItems = kept(data.actions.items).filter(function(it){ return !(keyShown && it.key); })
-        .filter(function(it){ return sel.actionsMode === 'all' || it.state === 'done'; });
+        .filter(function(it){ return sel.actionsMode === 'all' || it.state === 'done'; })
+        .filter(function(it){ return !sel.cats || sel.cats[it.cat]; });
       if (aItems.length){ heading(keyShown ? 'Other actions' : 'Actions', data.actions.summary); aItems.forEach(function(it){ row(it); }); gap(18); }
     }
     if (on('training')){ heading('Training'); kept(data.training.items).forEach(function(it){ row(it, { big: true }); }); gap(18); }
@@ -9799,41 +10005,95 @@
   }
 
   // ---- the share sheet ----
+  // A preset is an allow-list: the sections it names and, for Actions, the categories it
+  // names (actionCategories). Anything it does not name is not included, so a new kind of
+  // data is never shared until someone chooses it. A preset without actionCategories (the
+  // image presets made before categories existed) means every category.
   function snapSelFromPreset(p, data){
-    var sel = { sections: {}, actionsMode: p.actionsMode || 'done', off: {} };
+    var sel = { sections: {}, actionsMode: p.actionsMode || 'done', off: {}, cats: null };
     (p.sections || []).forEach(function(k){ sel.sections[k] = true; });
     (p.offTasks || []).forEach(function(id){ sel.off['ct:' + id] = true; });
+    if (p.actionCategories){ sel.cats = {}; p.actionCategories.forEach(function(k){ sel.cats[k] = true; }); }
     return sel;
   }
+  function snapCatList(sel){ return sel.cats ? Object.keys(sel.cats).filter(function(k){ return sel.cats[k]; }).sort() : null; }
   function snapSelMatches(sel, p){
     var a = Object.keys(sel.sections).filter(function(k){ return sel.sections[k]; }).sort().join('|');
     var b = (p.sections || []).slice().sort().join('|');
     var offA = Object.keys(sel.off).filter(function(k){ return sel.off[k] && k.indexOf('ct:') === 0; }).map(function(k){ return k.slice(3); }).sort().join('|');
     var offB = (p.offTasks || []).slice().sort().join('|');
-    return a === b && offA === offB && (sel.actionsMode || 'done') === (p.actionsMode || 'done');
+    var ca = snapCatList(sel), cb = p.actionCategories ? p.actionCategories.slice().sort() : null;
+    var catsSame = ca === null ? cb === null : (cb !== null && ca.join('|') === cb.join('|'));
+    return a === b && offA === offB && catsSame && (sel.actionsMode || 'done') === (p.actionsMode || 'done');
   }
-  function openSnapshotSheet(dateStr, presetId){
+  // the category chips under Actions: what the day (or week) has, plus whatever is chosen
+  function snapCatChipsHtml(sel, present){
+    var keys = present.slice();
+    (snapCatList(sel) || []).forEach(function(k){ if (keys.indexOf(k) === -1) keys.push(k); });
+    keys.sort(function(a, b){ return categoryOrder(a) - categoryOrder(b); });
+    if (!keys.length) return '';
+    return '<div class="snap-cats" role="group" aria-label="Which categories">' + keys.map(function(k){
+      var on = !sel.cats || !!sel.cats[k];
+      return '<button type="button" class="bk-filter-chip' + (on ? ' sel' : '') + '" data-snap-cat="' + k + '" role="switch" aria-checked="' + (on ? 'true' : 'false') + '">' + categoryLabel(k) + '</button>';
+    }).join('') + '</div>';
+  }
+  // turning one category off from "every category" leaves the rest chosen
+  function snapToggleCat(sel, k, all){
+    if (!sel.cats){ sel.cats = {}; all.forEach(function(x){ sel.cats[x] = true; }); }
+    sel.cats[k] = !sel.cats[k];
+  }
+
+  // opts.mode: 'image' (default) or 'partner' — publishing a live view to the partner.
+  // opts.period: 'day' | 'week' (partner only).
+  function openSnapshotSheet(dateStr, presetId, opts){
+    opts = opts || {};
     editingId = null;
     activeSheetRefresh = null;
+    var member = shareMember();
+    var mode = opts.mode === 'partner' && member ? 'partner' : 'image';
+    var period = opts.period === 'week' ? 'week' : 'day';
     var data = snapshotData(dateStr);
-    var pid = presetId || lsGet(SNAP_LAST_KEY, 'hf');
-    if (!snapPresetById(pid)) pid = 'hf';
-    var sel = snapSelFromPreset(snapPresetById(pid), data);
+    var pid = null, sel = null;
     var open = {};           // section key -> its items are showing
     var naming = null;       // null | 'new' | 'rename'
-    var blob = null, drawSeq = 0, drawTimer = null;
+    var blob = null, drawSeq = 0, drawTimer = null, busy = false;
+    var checkpoint = null, review = null;
     var canShareFiles = !!(navigator.share && navigator.canShare);
 
+    function periodKey(){ return period === 'week' ? fmtDate(weekStartFor(dateStr)) : dateStr; }
+    function pubId(){ return shareSnapId(member, period, periodKey()); }
+    function published(){ var id = pubId(); return sharedSnaps.find(function(x){ return x.id === id; }) || null; }
+    function enterMode(){
+      if (mode === 'image'){
+        pid = presetId || lsGet(SNAP_LAST_KEY, 'hf');
+        if (!snapPresetById(pid)) pid = 'hf';
+        sel = snapSelFromPreset(snapPresetById(pid), data);
+      } else {
+        // what is live is what the sheet opens on; otherwise the partner's preset
+        var pub = sharingPublication(pubId());
+        pid = pub && pub.presetId && snapPresetById(pub.presetId) ? pub.presetId : sharePresetFor(member).id;
+        sel = pub && pub.sel ? snapSelFromStored(pub.sel) : snapSelFromPreset(snapPresetById(pid), data);
+        var rhythm = weekRhythmDefaults(member, periodKey());
+        checkpoint = (pub && pub.checkpointDate) || rhythm.checkpointDate;
+        review = (pub && pub.reviewDate) || rhythm.reviewDate;
+      }
+      presetId = null;   // an explicit preset applies to the first view only
+      naming = null;
+    }
+    enterMode();
+
     function activePreset(){ return snapPresetById(pid); }
+    function presetList(){
+      var list = snapAllPresets();
+      if (mode === 'partner' && pid === SHARE_DEFAULT_PRESET.id) list = list.concat(SHARE_DEFAULT_PRESET);
+      return list;
+    }
     function anyChosen(){ return SNAP_SECTIONS.some(function(s){ return sel.sections[s.key] && data[s.key]; }); }
 
-    function build(){
+    function presetsHtml(){
       var p = activePreset();
-      var avail = SNAP_SECTIONS.filter(function(s){ return !!data[s.key]; });
-      var html = '<div class="sheet-handle"></div>' +
-        sheetHead(UI_ICON.share, 'Share snapshot', shortDayLabel(dateStr) + ' · an image of the day', '') +
-        '<div class="snap-presets" role="radiogroup" aria-label="Presets">' +
-          snapAllPresets().map(function(x){
+      var html = '<div class="snap-presets" role="radiogroup" aria-label="Presets">' +
+          presetList().map(function(x){
             return '<button type="button" class="bk-filter-chip' + (x.id === pid ? ' sel' : '') + '" role="radio" aria-checked="' + (x.id === pid ? 'true' : 'false') + '" data-snap-preset="' + x.id + '"></button>';
           }).join('') +
           '<button type="button" class="bk-filter-chip snap-new" id="snapNewBtn">+ New preset</button>' +
@@ -9850,14 +10110,32 @@
           '<button type="button" class="btn-link" id="snapRename">Rename</button>' +
           '<button type="button" class="btn-link snap-del" id="snapDelete">Delete</button></div>';
       } else if (dirty){
-        html += '<div class="snap-tools"><span class="snap-tools-note">Changed from “' + p.name + '”</span>' +
+        html += '<div class="snap-tools"><span class="snap-tools-note">Changed from “<span data-role="snap-pname"></span>”</span>' +
           '<button type="button" class="btn-link" id="snapSaveAs">Save as a preset</button></div>';
       }
+      return html;
+    }
+    function modesHtml(){
+      if (!member) return '';
+      return '<div class="freq-period detail-period snap-modes" role="tablist" aria-label="Share as">' +
+        '<button type="button" role="tab" data-snap-mode-to="image" class="' + (mode === 'image' ? 'sel' : '') + '" aria-selected="' + (mode === 'image') + '">Image</button>' +
+        '<button type="button" role="tab" data-snap-mode-to="partner" class="' + (mode === 'partner' ? 'sel' : '') + '" aria-selected="' + (mode === 'partner') + '"><span data-role="pname"></span></button>' +
+      '</div>';
+    }
+
+    function build(){
+      if (mode === 'partner') return buildPartner();
+      var avail = SNAP_SECTIONS.filter(function(s){ return !!data[s.key]; });
+      var html = '<div class="sheet-handle"></div>' +
+        sheetHead(UI_ICON.share, 'Share snapshot', shortDayLabel(dateStr) + ' · an image of the day', '') +
+        modesHtml() + presetsHtml();
       html += '<div class="snap-preview" id="snapPreview"><img id="snapImg" alt="Snapshot preview"><p class="snap-empty" id="snapEmpty" hidden>Choose something to include.</p></div>';
       html += '<h3 class="cz-sec-title snap-include">Include</h3><div class="snap-secs">' +
         (avail.length ? avail.map(function(s){
           var d = data[s.key], items = d.items || [];
           var chosen = !!sel.sections[s.key];
+          var cats = [];
+          if (s.key === 'actions') items.forEach(function(it){ if (cats.indexOf(it.cat) === -1) cats.push(it.cat); });
           return '<div class="snap-sec' + (chosen ? ' on' : '') + '">' +
             '<div class="snap-sec-row">' +
               '<button type="button" class="snap-sec-hit" data-snap-sec="' + s.key + '" role="switch" aria-checked="' + (chosen ? 'true' : 'false') + '">' +
@@ -9871,7 +10149,8 @@
             (s.key === 'actions' && chosen
               ? '<div class="freq-period snap-mode" role="radiogroup" aria-label="Which actions">' +
                   '<button type="button" data-snap-mode="done" class="' + (sel.actionsMode !== 'all' ? 'sel' : '') + '">Done only</button>' +
-                  '<button type="button" data-snap-mode="all" class="' + (sel.actionsMode === 'all' ? 'sel' : '') + '">All, with what’s left</button></div>'
+                  '<button type="button" data-snap-mode="all" class="' + (sel.actionsMode === 'all' ? 'sel' : '') + '">All, with what’s left</button></div>' +
+                (cats.length > 1 || sel.cats ? snapCatChipsHtml(sel, cats) : '')
               : '') +
             (open[s.key] && items.length
               ? '<div class="snap-items">' + items.map(function(it){
@@ -9889,24 +10168,105 @@
       return html;
     }
 
+    // ---- partner: a live view, reviewed here before it is published ----
+    var cands = [];          // the rows the partner would see, with the ones switched off
+    function buildPartner(){
+      var key = periodKey(), pub = published();
+      var avail = shareAvailable(period, key);
+      cands = shareCandidates(period, key, sel, pub);
+      var shown = 0;
+      cands.forEach(function(s){ shown += s.items.filter(function(it){ return !it.off; }).length; });
+      var html = '<div class="sheet-handle"></div>' +
+        sheetHead(UI_ICON.share, 'Share snapshot', 'A live view — it follows your day as it changes', '') +
+        modesHtml() +
+        '<div class="freq-period snap-period" role="radiogroup" aria-label="What to share">' +
+          '<button type="button" role="radio" data-share-period="day" class="' + (period === 'day' ? 'sel' : '') + '" aria-checked="' + (period === 'day') + '">' + (dateStr === todayStr() ? 'Today' : shortDayLabel(dateStr)) + '</button>' +
+          '<button type="button" role="radio" data-share-period="week" class="' + (period === 'week' ? 'sel' : '') + '" aria-checked="' + (period === 'week') + '">' + relativeWeekLabel(fmtDate(weekStartFor(dateStr))) + '</button>' +
+        '</div>' +
+        '<p class="share-state' + (pub ? ' live' : '') + (member.active ? '' : ' paused') + '" id="shareState"></p>' +
+        presetsHtml();
+      html += '<h3 class="cz-sec-title snap-include">Include</h3>';
+      if (!avail.length){
+        html += '<p class="cz-empty">Nothing on ' + (period === 'week' ? 'this week' : 'this day') + ' to share yet.</p>';
+      } else {
+        html += '<div class="share-chips" role="group" aria-label="Sections">' + avail.map(function(k){
+          var on = !!sel.sections[k];
+          return '<button type="button" class="bk-filter-chip' + (on ? ' sel' : '') + '" data-share-sec="' + k + '" role="switch" aria-checked="' + (on ? 'true' : 'false') + '">' + shareSectionLabel(k) + '</button>';
+        }).join('') + '</div>';
+        if (sel.sections.actions && avail.indexOf('actions') > -1){
+          html += '<p class="share-sub">Actions from</p>' + snapCatChipsHtml(sel, shareCatsAvailable(period, key));
+        }
+      }
+      if (period === 'week'){
+        var days = weekDatesFor(key).map(fmtDate);
+        var dayChips = function(attr, cur){
+          return '<div class="share-days" role="radiogroup">' + days.map(function(d){
+            return '<button type="button" class="bk-filter-chip' + (d === cur ? ' sel' : '') + '" role="radio" aria-checked="' + (d === cur) + '" data-' + attr + '="' + d + '">' +
+              toLocalDate(d).toLocaleDateString(undefined, { weekday: 'short' }) + '</button>';
+          }).join('') + '</div>';
+        };
+        html += '<h3 class="cz-sec-title snap-include">Weekly rhythm</h3>' +
+          '<p class="share-sub">Checkpoint</p>' + dayChips('share-cp', checkpoint) +
+          '<p class="share-sub">Review</p>' + dayChips('share-rv', review);
+      }
+      html += '<div class="share-preview">' +
+        '<div class="share-preview-head"><span>What <span data-role="pname"></span> will see</span><span>' + (shown ? plural(shown, 'item') : '') + '</span></div>' +
+        (cands.length ? cands.map(function(s){
+          return '<div class="share-pv-sec"><div class="share-pv-label" data-share-label="' + cands.indexOf(s) + '"></div>' +
+            s.items.map(function(it){
+              return '<button type="button" class="share-pv-row' + (it.off ? ' off' : '') + ' st-' + it.status + '" data-share-item="' + it.id + '" role="switch" aria-checked="' + (it.off ? 'false' : 'true') + '">' +
+                '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+                '<span class="share-pv-body"><span class="share-pv-title"></span><span class="share-pv-meta"></span></span>' +
+              '</button>';
+            }).join('') + '</div>';
+        }).join('') : '<p class="snap-empty">Choose something to include.</p>') +
+        '<p class="share-pv-foot">Day Notes, Communications and anything not chosen here stay private.</p>' +
+      '</div>';
+      html += '<div class="sheet-actionbar">' +
+        (pub ? '<button type="button" class="btn-secondary" id="shareStopBtn">Stop sharing</button>' : '') +
+        '<button type="button" class="btn-primary" id="sharePublishBtn"' + (shown && !busy ? '' : ' disabled') + '></button>' +
+      '</div>';
+      return html;
+    }
+
     function render(){
       var scroll = sheetEl.scrollTop;
       sheetEl.innerHTML = build();
-      // preset names and item text are user content — set as text
-      sheetEl.querySelectorAll('[data-snap-preset]').forEach(function(b){ b.textContent = snapPresetById(b.dataset.snapPreset).name; });
-      var pn = sheetEl.querySelector('[data-role="snap-pname"]');
-      if (pn) pn.textContent = activePreset().name;
-      SNAP_SECTIONS.forEach(function(s){
-        var sum = sheetEl.querySelector('[data-snap-sum="' + s.key + '"]');
-        if (sum && data[s.key]) sum.textContent = s.key === 'intention' ? '' : (data[s.key].summary || '');
-        (data[s.key] && data[s.key].items || []).forEach(function(it){
-          var b = sheetEl.querySelector('[data-snap-item="' + it.id + '"] .snap-item-text');
-          if (b) b.textContent = it.text + (it.value ? ' · ' + it.value : '');
+      // preset names, partner names and item text are user content — set as text
+      sheetEl.querySelectorAll('[data-snap-preset]').forEach(function(b){ b.textContent = presetList().find(function(x){ return x.id === b.dataset.snapPreset; }).name; });
+      sheetEl.querySelectorAll('[data-role="snap-pname"]').forEach(function(el){ el.textContent = activePreset() ? activePreset().name : ''; });
+      sheetEl.querySelectorAll('[data-role="pname"]').forEach(function(el){ el.textContent = partnerName(member); });
+      if (mode === 'partner') fillPartner();
+      else {
+        SNAP_SECTIONS.forEach(function(s){
+          var sum = sheetEl.querySelector('[data-snap-sum="' + s.key + '"]');
+          if (sum && data[s.key]) sum.textContent = s.key === 'intention' ? '' : (data[s.key].summary || '');
+          (data[s.key] && data[s.key].items || []).forEach(function(it){
+            var b = sheetEl.querySelector('[data-snap-item="' + it.id + '"] .snap-item-text');
+            if (b) b.textContent = it.text + (it.value ? ' · ' + it.value : '');
+          });
         });
-      });
+      }
       wire();
       sheetEl.scrollTop = scroll;
-      redraw();
+      if (mode === 'image') redraw();
+    }
+    function fillPartner(){
+      var name = partnerName(member), pub = published();
+      cands.forEach(function(s, i){ var l = sheetEl.querySelector('[data-share-label="' + i + '"]'); if (l) l.textContent = s.label; });
+      cands.forEach(function(s){
+        s.items.forEach(function(it){
+          var row = sheetEl.querySelector('[data-share-item="' + cssId(it.id) + '"]');
+          if (!row) return;
+          row.querySelector('.share-pv-title').textContent = it.title;
+          row.querySelector('.share-pv-meta').textContent = it.off ? 'Not shared' : [it.meta, it.status === 'done' ? 'Done' : (it.status === 'in_progress' ? 'In progress' : '')].filter(Boolean).join(' · ');
+        });
+      });
+      var st = document.getElementById('shareState');
+      st.textContent = pub
+        ? (member.active ? 'Live for ' + name + ' · updated ' + shareTimeLabel(pub.updatedAt) : 'Published · sharing with ' + name + ' is paused')
+        : (member.active ? 'Not shared yet. ' + name + ' sees it once you publish.' : 'Sharing with ' + name + ' is paused — they’ll see this when you resume.');
+      document.getElementById('sharePublishBtn').textContent = busy ? 'Sharing…' : (pub ? 'Update for ' : 'Publish to ') + name;
     }
 
     function redraw(){
@@ -9934,9 +10294,16 @@
 
     function wire(){
       document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      sheetEl.querySelectorAll('[data-snap-mode-to]').forEach(function(b){
+        b.addEventListener('click', function(){
+          if (b.dataset.snapModeTo === mode) return;
+          mode = b.dataset.snapModeTo; enterMode(); sheetEl.scrollTop = 0; render();
+        });
+      });
       sheetEl.querySelectorAll('[data-snap-preset]').forEach(function(b){
         b.addEventListener('click', function(){
-          pid = b.dataset.snapPreset; lsSet(SNAP_LAST_KEY, pid);
+          pid = b.dataset.snapPreset;
+          if (mode === 'image') lsSet(SNAP_LAST_KEY, pid);
           sel = snapSelFromPreset(activePreset(), data); naming = null; render();
         });
       });
@@ -9958,6 +10325,43 @@
       sheetEl.querySelectorAll('[data-snap-mode]').forEach(function(b){
         b.addEventListener('click', function(){ sel.actionsMode = b.dataset.snapMode; render(); });
       });
+      sheetEl.querySelectorAll('[data-snap-cat]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var all = [].map.call(sheetEl.querySelectorAll('[data-snap-cat]'), function(x){ return x.dataset.snapCat; });
+          snapToggleCat(sel, b.dataset.snapCat, all); render();
+        });
+      });
+      // partner
+      sheetEl.querySelectorAll('[data-share-period]').forEach(function(b){
+        b.addEventListener('click', function(){
+          if (b.dataset.sharePeriod === period) return;
+          period = b.dataset.sharePeriod; enterMode(); render();
+        });
+      });
+      sheetEl.querySelectorAll('[data-share-sec]').forEach(function(b){
+        b.addEventListener('click', function(){ var k = b.dataset.shareSec; sel.sections[k] = !sel.sections[k]; if (k === 'actions' && sel.sections[k]) sel.actionsMode = 'all'; render(); });
+      });
+      sheetEl.querySelectorAll('[data-share-item]').forEach(function(b){
+        b.addEventListener('click', function(){ var id = b.dataset.shareItem; sel.off[id] = !sel.off[id]; render(); });
+      });
+      sheetEl.querySelectorAll('[data-share-cp]').forEach(function(b){ b.addEventListener('click', function(){ checkpoint = b.dataset.shareCp; render(); }); });
+      sheetEl.querySelectorAll('[data-share-rv]').forEach(function(b){ b.addEventListener('click', function(){ review = b.dataset.shareRv; render(); }); });
+      var pubBtn = document.getElementById('sharePublishBtn');
+      if (pubBtn) pubBtn.addEventListener('click', function(){
+        if (busy) return;
+        busy = true; render();
+        publishShare({ member: member, periodType: period, periodKey: periodKey(), sel: sel, presetId: pid,
+          checkpointDate: period === 'week' ? checkpoint : null, reviewDate: period === 'week' ? review : null })
+          .then(function(){ busy = false; showPinToast('Shared with ' + partnerName(member), false, CHECK_SVG); if (document.getElementById('shareState')) render(); })
+          .catch(function(e){ console.error('publish failed', e); busy = false; showPinToast('Couldn’t share — check your connection and try again.', true); if (document.getElementById('shareState')) render(); });
+      });
+      var stopBtn = document.getElementById('shareStopBtn');
+      if (stopBtn) stopBtn.addEventListener('click', function(){
+        if (!confirm('Stop sharing this ' + (period === 'week' ? 'week' : 'day') + ' with ' + partnerName(member) + '? It disappears from their Ledger.')) return;
+        unpublishShare(pubId()).then(function(){ showPinToast('No longer shared', false, CHECK_SVG); if (document.getElementById('shareState')) render(); })
+          .catch(function(e){ console.error(e); showPinToast('Couldn’t stop sharing — try again.', true); });
+      });
+      // preset tools
       var upd = document.getElementById('snapUpdate');
       if (upd) upd.addEventListener('click', function(){
         var p = activePreset();
@@ -9974,7 +10378,9 @@
         var p = activePreset();
         if (!confirm('Delete the preset “' + p.name + '”?')) return;
         saveSnapPresets(snapUserPresets().filter(function(x){ return x.id !== p.id; }));
-        pid = 'hf'; lsSet(SNAP_LAST_KEY, pid); render();
+        pid = mode === 'partner' ? sharePresetFor(member).id : 'hf';
+        if (mode === 'image') lsSet(SNAP_LAST_KEY, pid);
+        render();
       });
       var nameSave = document.getElementById('snapNameSave');
       if (nameSave){
@@ -9985,7 +10391,8 @@
           if (naming === 'new'){
             var np = Object.assign({ id: uid(), name: name, createdAt: new Date().toISOString() }, presetFields());
             saveSnapPresets(snapUserPresets().concat(np));
-            pid = np.id; lsSet(SNAP_LAST_KEY, pid);
+            pid = np.id;
+            if (mode === 'image') lsSet(SNAP_LAST_KEY, pid);
           } else {
             var cur = activePreset();
             saveSnapPresets(snapUserPresets().map(function(x){ return x.id === cur.id ? Object.assign({}, x, { name: name }) : x; }));
@@ -9996,7 +10403,8 @@
         input.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); commit(); } });
         document.getElementById('snapNameCancel').addEventListener('click', function(){ naming = null; render(); });
       }
-      document.getElementById('snapSaveBtn').addEventListener('click', function(){
+      var saveBtn = document.getElementById('snapSaveBtn');
+      if (saveBtn) saveBtn.addEventListener('click', function(){
         if (!blob) return;
         var url = URL.createObjectURL(blob), a = document.createElement('a');
         a.href = url; a.download = fileName(); document.body.appendChild(a); a.click();
@@ -10011,18 +10419,913 @@
       });
       syncButtons();
     }
-    // what a preset keeps: the sections, the actions choice, and any challenge tasks left out
+    // what a preset keeps: the sections, the actions choice, the categories, and any
+    // challenge tasks left out
     function presetFields(){
-      return {
+      var out = {
         sections: SNAP_SECTIONS.map(function(s){ return s.key; }).filter(function(k){ return sel.sections[k]; }),
         actionsMode: sel.actionsMode || 'done',
-        offTasks: Object.keys(sel.off).filter(function(k){ return sel.off[k] && k.indexOf('ct:') === 0; }).map(function(k){ return k.slice(3); })
+        offTasks: Object.keys(sel.off).filter(function(k){ return sel.off[k] && k.indexOf('ct:') === 0; }).map(function(k){ return k.slice(3); }),
+        actionCategories: snapCatList(sel)
       };
+      if (!out.actionCategories) delete out.actionCategories;
+      return out;
     }
     function focusName(v){ var i = document.getElementById('snapName'); if (i){ i.value = v; setTimeout(function(){ i.focus(); }, 30); } }
 
+    // a publish elsewhere (or the live sync) changes what this sheet says is live
+    shareSheetRefresh = function(){ if (mode === 'partner' && document.getElementById('shareState') && !naming && !busy) render(); };
     render();
     backdrop.classList.add('open');
+  }
+
+  // ============ Partner Sharing: the owner's side ============
+  // Ledger stays private. A partner never reads a private collection; they see only what
+  // the owner publishes to them — a projection: display fields rebuilt from the private
+  // records, written to the shared namespace (ledger_share_members, ledger_shared_snapshots,
+  // ledger_shared_requests), which firestore.rules keep apart from everything else.
+  //   membership  ledger_share_members/{owner}_{partner}   the relationship; active or paused
+  //   projection  ledger_shared_snapshots/{owner}_{partner}_{day|week}_{key}
+  //   request     ledger_shared_requests/{auto}            from the partner, decided here
+  // What each publication was chosen to include is the owner's own business, so it lives
+  // privately in ledger_meta/sharing. After publishing, the projection follows the day:
+  // the live sync rebuilds it from that choice when the records change — publishing
+  // itself is never automatic.
+  var shareMembers = [], sharedSnaps = [], sharedRequests = [];
+  var sharingMeta = null;
+  var shareLoaded = { members: false, snaps: false, requests: false, meta: false, sessions: false };
+  var shareUnavailable = false;   // the shared namespace refused the owner (rules not yet published)
+  var shareSheetRefresh = null;
+  var SHARE_DEFAULT_PRESET = { id: 'partner-default', name: 'Shared view', sections: ['keyTasks', 'actions', 'training'],
+    actionsMode: 'all', actionCategories: ['family', 'personal'], builtIn: true };
+  var SHARE_WEEK_SECTIONS = ['keyTasks', 'actions', 'training'];
+  var WEEKDAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+  function shareDoc(d){ var x = d.data() || {}; x.id = d.id; return x; }
+  function shareOn(){ return !LOCAL_ONLY && !!authUser && authRole === 'owner' && !!dbRef; }
+  function shareMember(){ return shareMembers.find(function(m){ return m.active; }) || shareMembers[0] || null; }
+  function partnerName(m){ m = m || shareMember(); return (m && m.displayName) || 'your partner'; }
+  function shareSnapId(m, periodType, periodKey){ return m.ownerUid + '_' + m.partnerUid + '_' + periodType + '_' + periodKey; }
+  function sharingPublication(id){ return ((sharingMeta && sharingMeta.publications) || {})[id] || null; }
+  function sharePresetFor(m){ return (m && m.presetId && snapPresetById(m.presetId)) || SHARE_DEFAULT_PRESET; }
+  function shareSectionLabel(k){
+    if (k === 'keyTasks') return 'Key outcomes';
+    var s = SNAP_SECTIONS.find(function(x){ return x.key === k; });
+    return s ? s.label : k;
+  }
+  function shareTimeLabel(iso){
+    if (!iso) return '';
+    var d = new Date(iso), day = fmtDate(d);
+    return (day === todayStr() ? '' : shortDayLabel(day) + ' ') + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  }
+  function cssId(v){ return String(v).replace(/["\\]/g, '\\$&'); }
+  // a stable, meaningless id for a shared row
+  function sharePublicId(id){
+    var h = 5381;
+    for (var i = 0; i < id.length; i++) h = ((h << 5) + h + id.charCodeAt(i)) | 0;
+    return 'p' + (h >>> 0).toString(36);
+  }
+  // key order is not guaranteed back from Firestore, so compare canonically
+  function shareCanon(v){
+    if (Array.isArray(v)) return '[' + v.map(shareCanon).join(',') + ']';
+    if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map(function(k){ return JSON.stringify(k) + ':' + shareCanon(v[k]); }).join(',') + '}';
+    return JSON.stringify(v === undefined ? null : v);
+  }
+
+  function snapSelToStored(sel){
+    return {
+      sections: Object.keys(sel.sections).filter(function(k){ return sel.sections[k]; }),
+      actionsMode: sel.actionsMode || 'all',
+      off: Object.keys(sel.off).filter(function(k){ return sel.off[k]; }),
+      cats: snapCatList(sel)
+    };
+  }
+  function snapSelFromStored(st){
+    var sel = { sections: {}, actionsMode: st.actionsMode || 'all', off: {}, cats: null };
+    (st.sections || []).forEach(function(k){ sel.sections[k] = true; });
+    (st.off || []).forEach(function(k){ sel.off[k] = true; });
+    if (st.cats){ sel.cats = {}; st.cats.forEach(function(k){ sel.cats[k] = true; }); }
+    return sel;
+  }
+
+  // ---- the weekly rhythm: a checkpoint and a review, as dates inside the week ----
+  function weekDayIn(startStr, weekday){
+    var dates = weekDatesFor(startStr).map(fmtDate), dow = WEEKDAY_KEYS.indexOf(weekday);
+    return dates.find(function(d){ return toLocalDate(d).getDay() === dow; }) || dates[0];
+  }
+  function weekRhythmDefaults(m, startStr){
+    var dates = weekDatesFor(startStr).map(fmtDate);
+    return {
+      checkpointDate: weekDayIn(startStr, (m && m.checkpointWeekday) || 'wednesday'),
+      reviewDate: m && m.reviewWeekday ? weekDayIn(startStr, m.reviewWeekday) : dates[6]
+    };
+  }
+
+  // ---- the projection ----
+  function shareActionStatus(c){ return c.status === 'completed' ? 'done' : (c.status === 'partial' ? 'in_progress' : 'planned'); }
+  // Every row the partner would see for a day or a week, section by section. Rows the owner
+  // switched off stay in the list (off: true) so the review can switch them back on.
+  // prev: the projection already published, so an Action moved off this day or week can
+  // say where it went instead of silently vanishing. A deleted Action simply drops out.
+  function shareCandidates(periodType, periodKey, sel, prev){
+    var week = periodType === 'week';
+    var dates = week ? weekDatesFor(periodKey).map(fmtDate) : [periodKey];
+    var order = week ? SHARE_WEEK_SECTIONS : SNAP_SECTIONS.map(function(s){ return s.key; });
+    var byKey = {}, seen = {};
+    var keyOn = !!sel.sections.keyTasks;
+    function sec(key, label){ return byKey[key] || (byKey[key] = { key: key, label: label, items: [] }); }
+    function push(s, it){
+      it.off = !!sel.off[it.id];
+      seen[it.id] = true;
+      s.items.push(Object.assign({ type: 'item', meta: '', status: 'note', date: null, isKeyTask: false, category: '', sourceId: null }, it));
+    }
+    function dayTag(d){ return week ? toLocalDate(d).toLocaleDateString(undefined, { weekday: 'short' }) : ''; }
+    function stateOf(st){ return st === 'done' ? 'done' : (st === 'open' ? 'planned' : 'note'); }
+    function joinMeta(){ return [].slice.call(arguments).filter(function(x){ return !!x; }).join(' · '); }
+    dates.forEach(function(d){
+      var data = snapshotData(d);
+      function rid(id){ return week ? d + '|' + id : id; }
+      order.forEach(function(k){
+        if (!sel.sections[k] || !data[k]) return;
+        var D = data[k];
+        if (k === 'keyTasks' || k === 'actions'){
+          (D.items || []).forEach(function(it){
+            var c = commitments.find(function(x){ return 'a:' + x.id === it.id; });
+            if (!c || seen[it.id]) return;
+            if (k === 'actions'){
+              if (keyOn && it.key) return;
+              if (it.fromPartner) return;      // a request is shown to the partner as theirs, not twice
+              if (sel.cats && !sel.cats[it.cat]) return;
+              if (sel.actionsMode !== 'all' && it.state !== 'done') return;
+            }
+            var t = actionTime(c);
+            push(k === 'keyTasks' ? sec('keyTasks', 'Key outcomes') : sec('cat:' + it.cat, categoryLabel(it.cat)), {
+              id: it.id, type: 'action', title: c.title, meta: joinMeta(dayTag(d), t ? niceActivityTime(t) : ''),
+              status: shareActionStatus(c), date: d, isKeyTask: !!c.isKeyTask, category: categoryLabel(it.cat), sourceId: it.id });
+          });
+          return;
+        }
+        var s = sec(k, shareSectionLabel(k));
+        if (k === 'intention') push(s, { id: rid('intention'), type: 'note', title: D.text, meta: dayTag(d), date: d });
+        else if (k === 'nutritionPlan') push(s, { id: rid('nutritionPlan'), type: 'note', title: D.value, meta: dayTag(d), date: d });
+        else if (k === 'steps') push(s, { id: rid('steps'), type: 'stat', title: D.value + ' steps', meta: joinMeta(dayTag(d), D.target ? 'Target ' + D.target : ''), status: D.met ? 'done' : 'note', date: d });
+        else if (k === 'weight') push(s, { id: rid('weight'), type: 'stat', title: D.value, meta: dayTag(d), date: d });
+        else if (k === 'challenge'){
+          push(s, { id: rid('challenge'), type: 'challenge', title: D.title, meta: joinMeta(dayTag(d), D.day), date: d });
+          (D.items || []).forEach(function(it){ push(s, { id: rid(it.id), type: 'task', title: it.text, meta: it.value || '', status: stateOf(it.state), date: d }); });
+        } else (D.items || []).forEach(function(it){
+          push(s, { id: rid(it.id), type: k === 'training' ? 'training' : (k === 'routines' ? 'routine' : 'item'),
+            title: it.text, meta: joinMeta(dayTag(d), it.value), status: k === 'foodDiary' ? 'note' : stateOf(it.state), date: d });
+        });
+      });
+    });
+    // an Action that was shared here and has since moved to another day
+    var prevLabels = {};
+    ((prev && prev.sections) || []).forEach(function(s){ prevLabels[s.key] = s.label; });
+    ((prev && prev.items) || []).forEach(function(p){
+      if (!p.sourceId || p.sourceId.indexOf('a:') !== 0 || seen[p.sourceId]) return;
+      var c = commitments.find(function(x){ return 'a:' + x.id === p.sourceId; });
+      if (!c || dates.indexOf(c.date) > -1) return;
+      push(sec(p.section, prevLabels[p.section] || p.category || 'Actions'), {
+        id: p.sourceId, type: 'action', title: c.title, meta: 'Moved to ' + shortDayLabel(c.date),
+        status: c.status === 'completed' ? 'done' : 'moved', date: c.date, category: p.category || '', sourceId: p.sourceId });
+    });
+    var out = [];
+    order.forEach(function(k){
+      if (k === 'actions'){
+        Object.keys(byKey).filter(function(x){ return x.indexOf('cat:') === 0; })
+          .sort(function(a, b){ return categoryOrder(a.slice(4)) - categoryOrder(b.slice(4)); })
+          .forEach(function(x){ out.push(byKey[x]); });
+      } else if (byKey[k]) out.push(byKey[k]);
+    });
+    return out.filter(function(s){ return s.items.length; });
+  }
+  function shareAllOn(periodType){
+    var sel = { sections: {}, actionsMode: 'all', off: {}, cats: null };
+    (periodType === 'week' ? SHARE_WEEK_SECTIONS : SNAP_SECTIONS.map(function(s){ return s.key; })).forEach(function(k){ sel.sections[k] = true; });
+    return sel;
+  }
+  // the sections there is anything to share in, for the Include chips
+  function shareAvailable(periodType, periodKey){
+    var out = [];
+    shareCandidates(periodType, periodKey, shareAllOn(periodType), null).forEach(function(s){
+      var k = s.key.indexOf('cat:') === 0 ? 'actions' : s.key;
+      if (out.indexOf(k) === -1) out.push(k);
+    });
+    // an Action that is only a key task still makes Actions worth offering
+    if (out.indexOf('keyTasks') > -1 && out.indexOf('actions') === -1) out.push('actions');
+    return out;
+  }
+  function shareCatsAvailable(periodType, periodKey){
+    var sel = shareAllOn(periodType); sel.sections.keyTasks = false;
+    return shareCandidates(periodType, periodKey, sel, null)
+      .filter(function(s){ return s.key.indexOf('cat:') === 0; }).map(function(s){ return s.key.slice(4); });
+  }
+  // the share-safe document body: display fields only
+  function shareProjection(periodType, periodKey, sel, prev){
+    var sections = [], items = [];
+    shareCandidates(periodType, periodKey, sel, prev).forEach(function(s){
+      var kept = s.items.filter(function(it){ return !it.off; });
+      if (!kept.length) return;
+      sections.push({ key: s.key, label: s.label });
+      kept.forEach(function(it){
+        items.push({ publicId: sharePublicId(it.id), section: s.key, type: it.type, title: String(it.title || ''),
+          meta: it.meta || '', category: it.category || '', date: it.date || null, status: it.status,
+          isKeyTask: !!it.isKeyTask, sourceLabel: '', sourceId: it.sourceId || null });
+      });
+    });
+    return { sections: sections, items: items };
+  }
+  function sharePeriodBounds(periodType, key){
+    return periodType === 'week' ? { start: key, end: fmtDate(addDays(key, 6)) } : { start: key, end: key };
+  }
+  function shareTitle(periodType, key){
+    var d = toLocalDate(key);
+    return periodType === 'week'
+      ? 'Week of ' + d.getDate() + ' ' + d.toLocaleDateString(undefined, { month: 'long' })
+      : d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  function shareSnapBody(snap){ var x = Object.assign({}, snap); delete x.id; return x; }
+  function saveSharingMeta(patch){
+    sharingMeta = Object.assign({}, sharingMeta || {}, patch, { updatedAt: new Date().toISOString() });
+    return dbRef.collection('ledger_meta').doc('sharing').set(sharingMeta);
+  }
+
+  // o: { member, periodType, periodKey, sel, presetId, checkpointDate, reviewDate }
+  function publishShare(o){
+    var m = o.member, id = shareSnapId(m, o.periodType, o.periodKey);
+    var prev = sharedSnaps.find(function(x){ return x.id === id; }) || null;
+    var proj = shareProjection(o.periodType, o.periodKey, o.sel, prev);
+    var now = new Date().toISOString(), b = sharePeriodBounds(o.periodType, o.periodKey);
+    var doc = {
+      ownerUid: m.ownerUid, partnerUid: m.partnerUid, ownerName: m.ownerName || '',
+      periodType: o.periodType, periodKey: o.periodKey, periodStart: b.start, periodEnd: b.end,
+      title: shareTitle(o.periodType, o.periodKey), sections: proj.sections, items: proj.items,
+      checkpointDate: o.checkpointDate || null, reviewDate: o.reviewDate || null,
+      publishedAt: (prev && prev.publishedAt) || now, updatedAt: now
+    };
+    var pubs = Object.assign({}, (sharingMeta && sharingMeta.publications) || {});
+    pubs[id] = { partnerUid: m.partnerUid, periodType: o.periodType, periodKey: o.periodKey, periodEnd: b.end,
+      presetId: o.presetId || null, sel: snapSelToStored(o.sel),
+      checkpointDate: doc.checkpointDate, reviewDate: doc.reviewDate, publishedAt: doc.publishedAt };
+    return dbRef.collection('ledger_shared_snapshots').doc(id).set(doc).then(function(){
+      return saveSharingMeta({ publications: pubs });
+    });
+  }
+  function unpublishShare(id){
+    var pubs = Object.assign({}, (sharingMeta && sharingMeta.publications) || {});
+    delete pubs[id];
+    return dbRef.collection('ledger_shared_snapshots').doc(id).delete().then(function(){ return saveSharingMeta({ publications: pubs }); });
+  }
+
+  // ---- live: a published day or week follows the records it was built from ----
+  var shareSyncTimer = null;
+  function scheduleShareSync(){
+    if (!shareOn() || !dbReady || shareUnavailable || !sharedSnaps.length) return;
+    clearTimeout(shareSyncTimer);
+    shareSyncTimer = setTimeout(syncSharedSnapshots, 1200);
+  }
+  function syncSharedSnapshots(){
+    var ready = shareLoaded.members && shareLoaded.snaps && shareLoaded.meta && shareLoaded.sessions &&
+      czLoaded.commitments && czLoaded.plans && czLoaded.challenges && presetsLoaded;
+    if (!ready || !dbReady) return;
+    var today = todayStr();
+    sharedSnaps.forEach(function(snap){
+      var pub = sharingPublication(snap.id);
+      if (!pub || !pub.sel) return;
+      if ((snap.periodEnd || snap.periodKey) < today) return;   // a day or week gone by stays as it was shared
+      if (!shareMembers.some(function(m){ return m.partnerUid === snap.partnerUid; })) return;
+      var proj = shareProjection(snap.periodType, snap.periodKey, snapSelFromStored(pub.sel), snap);
+      if (shareCanon(proj.sections) === shareCanon(snap.sections) && shareCanon(proj.items) === shareCanon(snap.items)) return;
+      dbRef.collection('ledger_shared_snapshots').doc(snap.id)
+        .set(Object.assign(shareSnapBody(snap), { sections: proj.sections, items: proj.items, updatedAt: new Date().toISOString() }))
+        .catch(function(e){ console.error('shared snapshot sync failed', e); });
+    });
+  }
+
+  // ---- requests: the partner asks; the owner decides, here, on purpose ----
+  function inboxRequests(){
+    return sharedRequests.filter(function(r){ return r.status === 'requested'; })
+      .sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1; });
+  }
+  function weekdayName(dateStr){ return toLocalDate(dateStr).toLocaleDateString(undefined, { weekday: 'long' }); }
+  function requestTimingLabel(r){
+    if (r.requestedTiming === 'today') return fmtDate(new Date(r.createdAt || Date.now())) === todayStr() ? 'For today' : 'For ' + shortDayLabel(fmtDate(new Date(r.createdAt)));
+    if (r.requestedTiming === 'week') return 'This week';
+    if (r.requestedTiming === 'date' && r.requestedDate) return 'For ' + shortDayLabel(r.requestedDate);
+    return '';
+  }
+  function requestedWhenLabel(r){
+    if (!r.createdAt) return 'Requested';
+    var d = fmtDate(new Date(r.createdAt));
+    return 'Requested ' + (d === todayStr() ? 'today' : (d === yesterdayStr() ? 'yesterday' : shortDayLabel(d)));
+  }
+  function requestSuggestedDate(r){
+    var today = todayStr();
+    if (r.requestedTiming === 'date' && r.requestedDate && r.requestedDate > today) return r.requestedDate;
+    return today;
+  }
+  function requestRef(id){ return dbRef.collection('ledger_shared_requests').doc(id); }
+  // Accepting makes ONE ordinary Action, marked with where it came from, and tells the
+  // request where it went. Nothing about the request becomes a category.
+  function acceptRequest(r, dateStr){
+    if (r.linkedActionId && commitments.some(function(c){ return c.id === r.linkedActionId; })) return Promise.resolve();
+    var m = shareMembers.find(function(x){ return x.partnerUid === r.partnerUid; });
+    var extra = { category: 'family', sourceType: 'partner_request', sourceRequestId: r.id, sourceLabel: partnerName(m) };
+    if (r.note) extra.sourceNote = r.note;
+    var a = createQuickAction(dateStr, r.text, extra);
+    var now = new Date().toISOString();
+    return requestRef(r.id).update({ status: 'planned', plannedDate: dateStr, linkedActionId: a.id, updatedAt: now, processedAt: now })
+      .then(function(){ showPinToast('Planned for ' + (dateStr === todayStr() ? 'today' : shortDayLabel(dateStr)), false, CHECK_SVG); })
+      .catch(function(e){ console.error('request accept failed', e); showPinToast('Couldn’t update the request — try again.', true); });
+  }
+  function dismissRequest(r){
+    var now = new Date().toISOString();
+    requestRef(r.id).update({ status: 'dismissed', updatedAt: now, processedAt: now }).then(function(){
+      showActionToast('Set aside', 'Undo', function(){
+        requestRef(r.id).update({ status: 'requested', updatedAt: new Date().toISOString(), processedAt: null }).catch(function(){});
+      });
+    }).catch(function(e){ console.error(e); showPinToast('Couldn’t update the request — try again.', true); });
+  }
+  // The request follows its Action: done when it is done, its day when it moves. An Action
+  // that no longer exists never reads as done — the request goes back to the Inbox.
+  // Another device's new Action can arrive after the request that links to it (they are
+  // separate listeners), so a missing Action counts as deleted only once this device has
+  // seen it exist, or when the link is old enough that it cannot still be on its way.
+  var shareSeenActions = {};
+  function reconcileRequests(){
+    if (!shareOn() || !dbReady || !shareLoaded.requests || !czLoaded.commitments) return;
+    commitments.forEach(function(c){ shareSeenActions[c.id] = true; });
+    sharedRequests.forEach(function(r){
+      if (!r.linkedActionId || (r.status !== 'planned' && r.status !== 'done')) return;
+      var a = commitments.find(function(c){ return c.id === r.linkedActionId; });
+      var patch = null;
+      if (!a){
+        var settled = !r.processedAt || Date.now() - new Date(r.processedAt).getTime() > 120000;
+        if (!shareSeenActions[r.linkedActionId] && !settled) return;
+        patch = { status: 'requested', plannedDate: null, linkedActionId: null };
+      }
+      else if (a.status === 'completed' && r.status !== 'done') patch = { status: 'done', plannedDate: a.date };
+      else if (a.status !== 'completed' && r.status === 'done') patch = { status: 'planned', plannedDate: a.date };
+      else if (a.date !== r.plannedDate) patch = { plannedDate: a.date };
+      if (!patch) return;
+      patch.updatedAt = new Date().toISOString();
+      Object.assign(r, patch);   // so a second pass before the snapshot returns does not repeat it
+      requestRef(r.id).update(patch).catch(function(e){ console.error('request sync failed', e); });
+    });
+  }
+
+  // ---- the owner's listeners: started with the private data, never before ----
+  function startSharingListeners(){
+    if (!shareOn()) return;
+    var me = authUser.uid;
+    function refused(what){
+      return function(err){
+        console.warn('sharing ' + what + ' unavailable', err && err.code);
+        if (err && err.code === 'permission-denied'){ shareUnavailable = true; sharingChanged(); }
+      };
+    }
+    dbRef.collection('ledger_share_members').where('ownerUid', '==', me).onSnapshot(function(snap){
+      shareMembers = snap.docs.map(shareDoc); shareLoaded.members = true; shareUnavailable = false; sharingChanged();
+    }, refused('members'));
+    dbRef.collection('ledger_shared_snapshots').where('ownerUid', '==', me).onSnapshot(function(snap){
+      sharedSnaps = snap.docs.map(shareDoc); shareLoaded.snaps = true; sharingChanged();
+    }, refused('snapshots'));
+    dbRef.collection('ledger_shared_requests').where('ownerUid', '==', me).onSnapshot(function(snap){
+      sharedRequests = snap.docs.map(shareDoc); shareLoaded.requests = true; reconcileRequests(); sharingChanged();
+    }, refused('requests'));
+    dbRef.collection('ledger_meta').doc('sharing').onSnapshot(function(doc){
+      sharingMeta = doc.exists ? (doc.data() || {}) : { publications: {} }; shareLoaded.meta = true; scheduleShareSync();
+    }, refused('publications'));
+  }
+  // anything the owner's records change may change a projection or a request
+  function sharingSourcesChanged(){ reconcileRequests(); scheduleShareSync(); }
+  function sharingChanged(){
+    renderInboxSection();
+    renderShareLiveLine();
+    renderSharingSettings();
+    scheduleShareSync();
+    if (shareSheetRefresh) shareSheetRefresh();
+  }
+
+  // ---- Today: the Inbox — what the partner asked for, not yet decided ----
+  function renderInboxSection(){
+    var wrap = document.getElementById('inboxSection');
+    if (!wrap) return;
+    var items = shareOn() && viewedDate === todayStr() ? inboxRequests() : [];
+    if (!items.length){ wrap.innerHTML = ''; return; }
+    wrap.innerHTML =
+      '<div class="tsec inbox-head"><span class="tsec-title">Inbox</span><span class="tsec-status">' + items.length + '</span></div>' +
+      '<div class="ib-list">' + items.map(function(r, i){
+        return '<div class="ib-row" data-ib-row="' + i + '">' +
+          '<div class="ib-body">' +
+            '<span class="ib-kicker"></span>' +
+            '<span class="ib-title"></span>' +
+            '<span class="ib-meta"></span>' +
+            (r.note ? '<span class="ib-note"></span>' : '') +
+          '</div>' +
+          '<div class="ib-actions">' +
+            '<button type="button" class="bk-btn gold" data-ib-today="' + i + '">' + BK_PLUS_SVG + 'Today</button>' +
+            '<button type="button" class="bk-btn" data-ib-day="' + i + '">' + UI_ICON.calendar + 'Choose day</button>' +
+            '<button type="button" class="bk-btn ib-dismiss" data-ib-dismiss="' + i + '">Dismiss</button>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+    // ids are the partner's to choose, so rows are found by position, never by id in markup
+    items.forEach(function(r, i){
+      var row = wrap.querySelector('[data-ib-row="' + i + '"]');
+      var m = shareMembers.find(function(x){ return x.partnerUid === r.partnerUid; });
+      row.querySelector('.ib-kicker').textContent = 'From ' + partnerName(m);
+      row.querySelector('.ib-title').textContent = r.text;
+      row.querySelector('.ib-meta').textContent = [requestedWhenLabel(r), requestTimingLabel(r)].filter(Boolean).join(' · ');
+      var note = row.querySelector('.ib-note');
+      if (note) note.textContent = '“' + r.note + '”';
+    });
+    wrap.querySelectorAll('[data-ib-today]').forEach(function(b){
+      b.addEventListener('click', function(){ var r = items[Number(b.dataset.ibToday)]; if (r) acceptRequest(r, todayStr()); });
+    });
+    wrap.querySelectorAll('[data-ib-day]').forEach(function(b){
+      b.addEventListener('click', function(){ var r = items[Number(b.dataset.ibDay)]; if (r) openRequestDaySheet(r); });
+    });
+    wrap.querySelectorAll('[data-ib-dismiss]').forEach(function(b){
+      b.addEventListener('click', function(){ var r = items[Number(b.dataset.ibDismiss)]; if (r) dismissRequest(r); });
+    });
+  }
+  function openRequestDaySheet(r){
+    activeSheetRefresh = null;
+    editingId = null;
+    var suggested = requestSuggestedDate(r);
+    var quick = [
+      { label: 'Today', date: todayStr() },
+      { label: 'Tomorrow', date: nextDateStr(todayStr()) },
+      { label: 'In 3 days', date: fmtDate(addDays(todayStr(), 3)) },
+      { label: 'Next week', date: fmtDate(addDays(todayStr(), 7)) }
+    ];
+    if (suggested !== todayStr() && !quick.some(function(q){ return q.date === suggested; }))
+      quick.splice(1, 0, { label: shortDayLabel(suggested), date: suggested });
+    sheetEl.innerHTML =
+      '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.calendar, 'Choose a day', '', '') +
+      '<div class="field"><label>Request</label><div class="pd-title" id="rqTitle"></div><p class="ib-sheet-meta" id="rqMeta"></p></div>' +
+      '<div class="field"><label>Plan it for</label><div class="bk-filter-pop" id="rqQuick">' +
+        quick.map(function(q){
+          return '<button type="button" class="bk-filter-chip' + (q.date === suggested ? ' sel' : '') + '" data-rq-quick="' + q.date + '">' + q.label + '</button>';
+        }).join('') +
+      '</div></div>' +
+      fieldDate('f_rqDay', 'Or choose a date', suggested) +
+      '<button type="button" class="btn-primary" id="rqConfirmBtn">Plan it</button>' +
+      '<button type="button" class="btn-quiet" id="rqCancelBtn">Leave in Inbox</button>';
+    backdrop.classList.add('open');
+    var m = shareMembers.find(function(x){ return x.partnerUid === r.partnerUid; });
+    document.getElementById('rqTitle').textContent = r.text;
+    document.getElementById('rqMeta').textContent = ['From ' + partnerName(m), requestTimingLabel(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('rqCancelBtn').addEventListener('click', closeSheet);
+    sheetEl.querySelectorAll('[data-rq-quick]').forEach(function(el){
+      el.addEventListener('click', function(){
+        document.getElementById('f_rqDay').value = el.dataset.rqQuick;
+        sheetEl.querySelectorAll('[data-rq-quick]').forEach(function(x){ x.classList.remove('sel'); });
+        el.classList.add('sel');
+      });
+    });
+    document.getElementById('rqConfirmBtn').addEventListener('click', function(){
+      var dateStr = document.getElementById('f_rqDay').value;
+      if (!dateStr) return;
+      closeSheet();
+      acceptRequest(r, dateStr);
+    });
+  }
+
+  // ---- the quiet "it's live" line at the foot of Today ----
+  function renderShareLiveLine(){
+    var el = document.getElementById('shareLiveLine');
+    if (!el) return;
+    var m = shareMember();
+    if (!shareOn() || !m){ el.hidden = true; return; }
+    var dayId = shareSnapId(m, 'day', viewedDate), wk = fmtDate(weekStartFor(viewedDate));
+    var day = sharedSnaps.find(function(x){ return x.id === dayId; });
+    var week = sharedSnaps.find(function(x){ return x.id === shareSnapId(m, 'week', wk); });
+    var s = day || week;
+    if (!s){ el.hidden = true; return; }
+    el.hidden = false;
+    el.dataset.period = day ? 'day' : 'week';
+    el.querySelector('.share-live-text').textContent = (day ? 'Shared with ' : 'This week shared with ') + partnerName(m) +
+      (m.active ? ' · updated ' + shareTimeLabel(s.updatedAt) : ' · paused');
+    el.classList.toggle('paused', !m.active);
+  }
+
+  // ---- Settings: who the partner is, and whether sharing is on ----
+  function renderSharingSettings(){
+    var wrap = document.getElementById('setSharing');
+    if (!wrap) return;
+    var m = shareMember();
+    var html;
+    if (shareUnavailable){
+      html = '<div class="set-card"><div class="set-row static"><span class="set-share-note">Partner Sharing needs the updated security rules to be published (docs/SECURITY.md).</span></div></div>';
+    } else if (!shareLoaded.members){
+      html = '<div class="set-card"><div class="set-row static"><span class="set-share-note">Loading…</span></div></div>';
+    } else if (!m){
+      html = '<div class="set-card">' + settingsRow('setPartnerAdd', 'Set up a partner', '') + '</div>' +
+        '<p class="set-note">A partner sees only the days and weeks you publish to them, and can send you requests. Never your Ledger.</p>';
+    } else {
+      var cp = m.checkpointWeekday || 'wednesday';
+      var order = weekdayLabels('short');
+      html = '<div class="set-card">' +
+        '<div class="set-row static set-share-member">' +
+          '<span class="set-share-who"><span class="set-share-name" id="setShareName"></span>' +
+            '<span class="set-share-state' + (m.active ? ' live' : '') + '">' + (m.active ? 'Sharing on' : 'Paused') + '</span></span>' +
+          '<button type="button" class="btn-link" id="setShareToggle">' + (m.active ? 'Pause' : 'Resume') + '</button>' +
+        '</div>' +
+        '<div class="set-row static">' +
+          '<span class="appearance-label">Weekly checkpoint</span>' +
+          '<div class="share-days set-share-days" role="radiogroup" aria-label="Weekly checkpoint">' + order.map(function(lbl){
+            var key = WEEKDAY_KEYS[['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(lbl)];
+            return '<button type="button" class="bk-filter-chip' + (key === cp ? ' sel' : '') + '" role="radio" aria-checked="' + (key === cp) + '" data-set-cp="' + key + '">' + lbl + '</button>';
+          }).join('') + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<p class="set-note">Share a day or a week from Share snapshot. Pausing hides everything from them until you resume; nothing is deleted. ' +
+        '<button type="button" class="btn-link set-share-remove" id="setShareRemove">Remove partner</button></p>';
+    }
+    wrap.innerHTML = '<span class="set-group-label">Partner sharing</span>' + html;
+    var add = document.getElementById('setPartnerAdd');
+    if (add) add.addEventListener('click', openPartnerSetupSheet);
+    if (!m || shareUnavailable) return;
+    document.getElementById('setShareName').textContent = partnerName(m);
+    var ref = dbRef.collection('ledger_share_members').doc(m.id);
+    document.getElementById('setShareToggle').addEventListener('click', function(){
+      ref.update({ active: !m.active, updatedAt: new Date().toISOString() }).catch(function(e){ console.error(e); showPinToast('Couldn’t change sharing — try again.', true); });
+    });
+    wrap.querySelectorAll('[data-set-cp]').forEach(function(b){
+      b.addEventListener('click', function(){ ref.update({ checkpointWeekday: b.dataset.setCp, updatedAt: new Date().toISOString() }).catch(function(){}); });
+    });
+    document.getElementById('setShareRemove').addEventListener('click', function(){
+      if (!confirm('Remove ' + partnerName(m) + '? Everything you shared with them is taken down. Their requests stay with you.')) return;
+      var pubs = Object.assign({}, (sharingMeta && sharingMeta.publications) || {});
+      var mine = sharedSnaps.filter(function(s){ return s.partnerUid === m.partnerUid; });
+      mine.forEach(function(s){ delete pubs[s.id]; });
+      Promise.all(mine.map(function(s){ return dbRef.collection('ledger_shared_snapshots').doc(s.id).delete(); }))
+        .then(function(){ return saveSharingMeta({ publications: pubs }); })
+        .then(function(){ return ref.delete(); })
+        .catch(function(e){ console.error(e); showPinToast('Couldn’t remove — try again.', true); });
+    });
+  }
+  // The relationship only: a role is never granted here. The account must already hold the
+  // partner role (Firebase Console), which the rules check again on create.
+  function openPartnerSetupSheet(){
+    activeSheetRefresh = null;
+    editingId = null;
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.people, 'Set up a partner', 'They see what you publish to them — never your Ledger.', '') +
+      '<div class="field"><label for="f_pUid">Their Account ID</label><input type="text" id="f_pUid" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Shown on their Ledger after they sign in"></div>' +
+      '<div class="field"><label for="f_pName">Their name</label><input type="text" id="f_pName" maxlength="40" autocomplete="off" placeholder="e.g. Abi"></div>' +
+      '<div class="field"><label for="f_pOwner">Your name, as they’ll see it</label><input type="text" id="f_pOwner" maxlength="40" autocomplete="off"></div>' +
+      '<p class="set-note">Nothing is shared until you publish a day or a week to them. Their account needs the partner role first (Firebase Console → Firestore → ledger_users → their Account ID, role: partner).</p>' +
+      '<p class="auth-error" id="pSetupErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="pSetupBtn">Set up</button>';
+    backdrop.classList.add('open');
+    document.getElementById('f_pOwner').value = (authProfile && authProfile.displayName) || '';
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    var btn = document.getElementById('pSetupBtn'), err = document.getElementById('pSetupErr');
+    btn.addEventListener('click', function(){
+      var pu = document.getElementById('f_pUid').value.trim();
+      var name = document.getElementById('f_pName').value.trim();
+      var ownerName = document.getElementById('f_pOwner').value.trim();
+      err.textContent = '';
+      if (!/^[A-Za-z0-9]{6,128}$/.test(pu)){ err.textContent = 'That doesn’t look like an Account ID. Copy it from their Ledger.'; return; }
+      if (pu === authUser.uid){ err.textContent = 'That’s your own account.'; return; }
+      if (!name){ err.textContent = 'Add their name.'; return; }
+      if (!ownerName){ err.textContent = 'Add your name, as they’ll see it.'; return; }
+      btn.disabled = true; btn.textContent = 'Setting up…';
+      var fail = function(t){ btn.disabled = false; btn.textContent = 'Set up'; err.textContent = t; };
+      dbRef.collection('ledger_users').doc(pu).get().then(function(doc){
+        if (!doc.exists || (doc.data() || {}).role !== 'partner'){
+          fail('That account isn’t set up as a partner yet. In the Firebase Console, add ledger_users/' + pu + ' with role: partner, then try again.');
+          return;
+        }
+        var now = new Date().toISOString(), presetId = 'partner-' + pu;
+        if (!snapUserPresets().some(function(p){ return p.id === presetId; })){
+          saveSnapPresets(snapUserPresets().concat({ id: presetId, name: name, sections: SHARE_DEFAULT_PRESET.sections.slice(),
+            actionsMode: 'all', actionCategories: SHARE_DEFAULT_PRESET.actionCategories.slice(), offTasks: [], createdAt: now }));
+        }
+        return dbRef.collection('ledger_share_members').doc(authUser.uid + '_' + pu).set({
+          ownerUid: authUser.uid, partnerUid: pu, role: 'partner', displayName: name, ownerName: ownerName,
+          active: true, presetId: presetId, checkpointWeekday: 'wednesday', reviewWeekday: null, createdAt: now, updatedAt: now
+        }).then(function(){
+          closeSheet();
+          showPinToast(name + ' is set up. Share a day to show them.', false, CHECK_SVG);
+        });
+      }).catch(function(e){ console.error(e); fail('Couldn’t set up the partner. Check your connection and try again.'); });
+    });
+  }
+
+  // a toast with one action, for undo
+  function showActionToast(text, label, onAction){
+    var existing = document.querySelector('.pin-toast');
+    if (existing) existing.remove();
+    var el = document.createElement('div');
+    el.className = 'pin-toast has-action';
+    var t = document.createElement('span'); t.textContent = text; el.appendChild(t);
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'pin-toast-act'; b.textContent = label; el.appendChild(b);
+    var gone = false;
+    function hide(){ if (gone) return; gone = true; el.classList.remove('show'); setTimeout(function(){ el.remove(); }, 250); }
+    b.addEventListener('click', function(){ hide(); onAction(); });
+    document.body.appendChild(el);
+    requestAnimationFrame(function(){ el.classList.add('show'); });
+    setTimeout(hide, 5000);
+  }
+
+  // ============ Partner Sharing: the partner's Ledger ============
+  // A partner's whole Ledger is this page: what has been published to them and their own
+  // requests. It starts only after auth → partner role → an active membership, reads only
+  // the shared namespace, and never touches this device's stored copy of anyone's Ledger.
+  var pp = { started: false, seen: false, member: null, snaps: [], requests: [], tab: 'today', stops: [], denied: false };
+  function startPartner(){
+    if (pp.started) return;
+    pp.started = true;
+    lockApp(); renderGate('splash');
+    var me = authUser.uid;
+    var timer = setTimeout(function(){ if (!pp.seen) renderGate('offline'); }, 10000);
+    dbRef.collection('ledger_share_members').where('partnerUid', '==', me).onSnapshot(function(snap){
+      if (snap.metadata && snap.metadata.fromCache && snap.empty) return;   // not an answer yet
+      pp.seen = true; clearTimeout(timer);
+      var list = snap.docs.map(shareDoc);
+      var m = list.find(function(x){ return x.active; });
+      if (!m){
+        stopPartnerData(); pp.member = null; hidePortal();
+        lockApp(); renderGate('partner', { paused: list.length > 0 });
+        return;
+      }
+      if (!pp.member || pp.member.id !== m.id){ stopPartnerData(); pp.member = m; startPartnerData(m); }
+      else pp.member = m;
+      showPortal();
+      renderPortal();
+    }, function(err){
+      console.error('membership read failed', err);
+      pp.seen = true; clearTimeout(timer);
+      hidePortal(); lockApp(); renderGate(err && err.code === 'permission-denied' ? 'partner' : 'offline');
+    });
+  }
+  function startPartnerData(m){
+    var me = authUser.uid;
+    pp.denied = false;
+    function q(coll){ return dbRef.collection(coll).where('ownerUid', '==', m.ownerUid).where('partnerUid', '==', me); }
+    function refused(err){ console.warn('shared read refused', err && err.code); pp.denied = true; renderPortal(); }
+    pp.stops.push(q('ledger_shared_snapshots').onSnapshot(function(snap){ pp.snaps = snap.docs.map(shareDoc); pp.snapsLoaded = true; renderPortal(); }, refused));
+    pp.stops.push(q('ledger_shared_requests').onSnapshot(function(snap){ pp.requests = snap.docs.map(shareDoc); pp.reqLoaded = true; renderPortal(); }, refused));
+  }
+  function stopPartnerData(){
+    pp.stops.forEach(function(f){ try { f(); } catch(e){} });
+    pp.stops = []; pp.snaps = []; pp.requests = []; pp.snapsLoaded = false; pp.reqLoaded = false;
+  }
+  function portalEl(){ return document.getElementById('partnerApp'); }
+  function showPortal(){
+    lockApp();
+    authGateEl().hidden = true;
+    portalEl().hidden = false;
+    document.body.classList.add('partner-on');
+  }
+  function hidePortal(){ portalEl().hidden = true; document.body.classList.remove('partner-on'); }
+
+  function ppToday(){ return todayStr(); }
+  function ppDaySnap(){ var t = ppToday(); return pp.snaps.find(function(s){ return s.periodType === 'day' && s.periodKey === t; }) || null; }
+  function ppWeekSnap(){
+    var t = ppToday();
+    return pp.snaps.filter(function(s){ return s.periodType === 'week' && s.periodStart <= t && t <= s.periodEnd; })
+      .sort(function(a, b){ return a.periodStart < b.periodStart ? 1 : -1; })[0] || null;
+  }
+  function ppStatusClass(r){ return ['requested', 'planned', 'done', 'dismissed'].indexOf(r.status) > -1 ? r.status : 'requested'; }
+  function ppRequestStatus(r){
+    var t = ppToday();
+    if (r.status === 'done') return 'Done ✓';
+    if (r.status === 'dismissed') return 'Set aside';
+    if (r.status === 'planned'){
+      var d = r.plannedDate;
+      if (!d) return 'Planned';
+      if (d === t) return 'Planned today';
+      if (d === nextDateStr(t)) return 'Planned tomorrow';
+      if (d < t) return 'On the list';
+      if (d <= fmtDate(addDays(t, 6))) return 'Planned ' + weekdayName(d);
+      return 'Planned ' + shortDayLabel(d);
+    }
+    return 'Requested';
+  }
+  // what "From you" shows: anything still open, and what was settled in the last few days
+  function ppActiveRequests(){
+    var since = fmtDate(addDays(ppToday(), -3));
+    var rank = { requested: 0, planned: 1, done: 2, dismissed: 3 };
+    return pp.requests.filter(function(r){
+      return r.status === 'requested' || r.status === 'planned' || fmtDate(new Date(r.updatedAt || r.createdAt || 0)) >= since;
+    }).sort(function(a, b){
+      return (rank[a.status] - rank[b.status]) || ((a.createdAt || '') < (b.createdAt || '') ? 1 : -1);
+    });
+  }
+  function ppCheckpoint(week){
+    if (!week || !week.checkpointDate) return null;
+    var t = ppToday(), cp = week.checkpointDate, rv = week.reviewDate;
+    if (t < cp) return { title: 'Checkpoint ' + weekdayName(cp), sub: rv ? 'Review ' + weekdayName(rv) : '' };
+    if (t === cp) return { title: 'Checkpoint today', sub: rv ? 'Review ' + weekdayName(rv) : '' };
+    if (rv && t < rv) return { title: 'Review ' + weekdayName(rv), sub: '' };
+    if (rv && t === rv) return { title: 'Review today', sub: '' };
+    return null;
+  }
+
+  function renderPortal(){
+    var el = portalEl();
+    if (!el || !pp.member) return;
+    var m = pp.member, owner = m.ownerName || 'Your partner';
+    var day = ppDaySnap(), week = ppWeekSnap();
+    var shown = pp.tab === 'week' ? week : day;
+    var reqs = ppActiveRequests();
+    var cp = ppCheckpoint(week);
+    var scroll = el.scrollTop;
+    var html = '<div class="pp-wrap">' +
+      '<header class="pp-head">' +
+        '<img class="pp-mark" src="icon-192.png" alt="" width="34" height="34">' +
+        '<p class="pp-kicker">Shared with you</p>' +
+        '<h1 class="pp-title" id="ppTitle"></h1>' +
+        '<p class="pp-date" id="ppDate"></p>' +
+      '</header>' +
+      '<div class="freq-period detail-period pp-tabs" role="tablist" aria-label="View">' +
+        '<button type="button" role="tab" data-pp-tab="today" class="' + (pp.tab === 'today' ? 'sel' : '') + '" aria-selected="' + (pp.tab === 'today') + '">Today</button>' +
+        '<button type="button" role="tab" data-pp-tab="week" class="' + (pp.tab === 'week' ? 'sel' : '') + '" aria-selected="' + (pp.tab === 'week') + '">This week</button>' +
+      '</div>';
+    if (pp.denied){
+      html += '<div class="pp-empty"><p class="pp-empty-title">Sharing is paused</p><p class="pp-empty-sub">Nothing is shown while it’s paused.</p></div>';
+    } else if (!pp.snapsLoaded){
+      html += '<div class="pp-empty"><p class="pp-empty-sub">Opening…</p></div>';
+    } else if (!shown){
+      html += '<div class="pp-empty"><p class="pp-empty-title">' + (pp.tab === 'week' ? 'This week isn’t shared yet' : 'Nothing shared for today yet') + '</p>' +
+        '<p class="pp-empty-sub" id="ppEmptySub"></p></div>';
+    } else {
+      html += (shown.sections || []).map(function(s, si){
+        var items = (shown.items || []).filter(function(it){ return it.section === s.key; });
+        if (!items.length) return '';
+        return '<section class="pp-sec' + (s.key === 'keyTasks' ? ' key' : '') + '"><h2 class="pp-sec-title" data-pp-sec="' + si + '"></h2>' +
+          '<div class="pp-list">' + items.map(function(it){
+            return '<div class="pp-row st-' + it.status + (it.type === 'challenge' ? ' head' : '') + '" data-pp-item="' + it.publicId + '">' +
+              '<span class="pp-dot" aria-hidden="true">' + (it.status === 'done' ? CHECK_SVG : '') + '</span>' +
+              '<span class="pp-row-body"><span class="pp-row-title"></span><span class="pp-row-meta"></span></span>' +
+              (it.status === 'in_progress' ? '<span class="pp-pill">In progress</span>' : (it.status === 'moved' ? '<span class="pp-pill quiet">Moved</span>' : '')) +
+            '</div>';
+          }).join('') + '</div></section>';
+      }).join('');
+    }
+    if (!pp.denied){
+      html += '<section class="pp-sec pp-requests"><div class="pp-sec-row"><h2 class="pp-sec-title">From you</h2>' +
+          (pp.requests.length > reqs.length ? '<button type="button" class="btn-link pp-all" id="ppAllReq">All requests</button>' : '') + '</div>' +
+        '<div class="pp-list">' + reqs.map(function(r, i){
+          return '<button type="button" class="pp-row pp-req rq-' + ppStatusClass(r) + '" data-pp-req="' + i + '">' +
+            '<span class="pp-dot" aria-hidden="true">' + (r.status === 'done' ? CHECK_SVG : '') + '</span>' +
+            '<span class="pp-row-body"><span class="pp-row-title"></span><span class="pp-row-meta"></span></span>' +
+            '<span class="pp-pill' + (ppStatusClass(r) === 'requested' ? ' quiet' : '') + '"></span>' +
+          '</button>';
+        }).join('') + '</div>' +
+        '<button type="button" class="pp-add" id="ppAddReq"><span aria-hidden="true">+</span> Request something</button>' +
+      '</section>';
+      if (cp) html += '<div class="pp-check"><span class="pp-check-ic">' + UI_ICON.calendar + '</span>' +
+        '<span><span class="pp-check-title">' + cp.title + '</span>' + (cp.sub ? '<span class="pp-check-sub">' + cp.sub + '</span>' : '') + '</span></div>';
+    }
+    html += '<footer class="pp-foot">' +
+        (shown && shown.updatedAt ? '<p class="pp-updated">Updated ' + shareTimeLabel(shown.updatedAt) + '</p>' : '') +
+        '<div class="theme-switch" id="themeSwitch" aria-label="Theme">' +
+          '<button type="button" data-theme-set="dark">Dark</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="system">System</button>' +
+        '</div>' +
+        '<p class="pp-who"><span id="ppWho"></span> · <button type="button" class="btn-link" id="ppSignOut">Sign out</button></p>' +
+      '</footer>' +
+    '</div>' +
+    '<div class="sheet-backdrop pp-backdrop" id="ppBackdrop"><div class="sheet" id="ppSheet" role="dialog" aria-modal="true"></div></div>';
+    var sheetOpen = document.getElementById('ppBackdrop') && document.getElementById('ppBackdrop').classList.contains('open');
+    if (sheetOpen) return;   // never redraw under an open request sheet
+    el.innerHTML = html;
+    // everything below is user content — written as text
+    document.getElementById('ppTitle').textContent = owner + (pp.tab === 'week' ? '’s week' : '’s day');
+    document.getElementById('ppDate').textContent = pp.tab === 'week'
+      ? (week ? week.title : 'Week of ' + shortDayLabel(fmtDate(weekStartFor(ppToday()))))
+      : toLocalDate(ppToday()).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+    var es = document.getElementById('ppEmptySub');
+    if (es) es.textContent = 'When ' + owner + ' shares ' + (pp.tab === 'week' ? 'the week' : 'the day') + ', it appears here.';
+    if (shown) (shown.sections || []).forEach(function(s, si){
+      var h = el.querySelector('[data-pp-sec="' + si + '"]'); if (h) h.textContent = s.label;
+    });
+    if (shown) (shown.items || []).forEach(function(it){
+      var row = el.querySelector('[data-pp-item="' + cssId(it.publicId) + '"]');
+      if (!row) return;
+      row.querySelector('.pp-row-title').textContent = it.title;
+      row.querySelector('.pp-row-meta').textContent = it.meta || '';
+    });
+    reqs.forEach(function(r, i){
+      var row = el.querySelector('[data-pp-req="' + i + '"]');
+      row.querySelector('.pp-row-title').textContent = r.text;
+      row.querySelector('.pp-row-meta').textContent = r.status === 'requested' ? [requestTimingLabel(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ') : '';
+      row.querySelector('.pp-pill').textContent = ppRequestStatus(r);
+    });
+    var who = document.getElementById('ppWho'); if (who) who.textContent = (authUser && authUser.email) || '';
+    el.querySelectorAll('[data-pp-tab]').forEach(function(b){
+      b.addEventListener('click', function(){ pp.tab = b.dataset.ppTab; renderPortal(); el.scrollTop = 0; });
+    });
+    el.querySelectorAll('[data-pp-req]').forEach(function(b){
+      b.addEventListener('click', function(){ var r = reqs[Number(b.dataset.ppReq)]; if (r) ppOpenRequest(r); });
+    });
+    var add = document.getElementById('ppAddReq'); if (add) add.addEventListener('click', function(){ ppOpenRequest(null); });
+    var all = document.getElementById('ppAllReq'); if (all) all.addEventListener('click', ppOpenAllRequests);
+    document.getElementById('ppSignOut').addEventListener('click', function(){ if (confirm('Sign out of Ledger on this device?')) signOutLedger(); });
+    renderThemeSwitch();
+    el.querySelectorAll('[data-theme-set]').forEach(function(b){ b.addEventListener('click', function(){ setThemePref(b.dataset.themeSet); }); });
+    el.scrollTop = scroll;
+  }
+
+  function ppSheetOpen(html){
+    var bd = document.getElementById('ppBackdrop'), sh = document.getElementById('ppSheet');
+    sh.innerHTML = html;
+    bd.classList.add('open');
+    bd.onclick = function(e){ if (e.target === bd) ppSheetClose(); };
+    var x = sh.querySelector('.sheet-close'); if (x) x.addEventListener('click', ppSheetClose);
+    return sh;
+  }
+  function ppSheetClose(){
+    var bd = document.getElementById('ppBackdrop');
+    if (bd) bd.classList.remove('open');
+    renderPortal();
+  }
+  // a request: one plain question, a timing, an optional note — nothing internal
+  function ppOpenRequest(r){
+    var owner = (pp.member && pp.member.ownerName) || 'them';
+    var editable = !r || r.status === 'requested';
+    var timing = r ? r.requestedTiming : 'today';
+    var sh = ppSheetOpen('<div class="sheet-handle"></div>' +
+      sheetHead('', r ? (editable ? 'Your request' : 'Request') : 'Request something', '', '') +
+      (editable
+        ? '<div class="field"><label for="ppReqText" id="ppReqLabel" class="pp-q"></label><textarea id="ppReqText" rows="2" maxlength="280"></textarea></div>' +
+          '<div class="field"><label>When</label><div class="bk-filter-pop" id="ppTiming" role="radiogroup">' +
+            [['today', 'Today'], ['week', 'This week'], ['date', 'Choose date'], ['none', 'No preference']].map(function(t){
+              return '<button type="button" class="bk-filter-chip' + (timing === t[0] ? ' sel' : '') + '" role="radio" aria-checked="' + (timing === t[0]) + '" data-pp-timing="' + t[0] + '">' + t[1] + '</button>';
+            }).join('') +
+          '</div></div>' +
+          '<div id="ppDateField"' + (timing === 'date' ? '' : ' hidden') + '>' + fieldDate('ppReqDate', 'Date', (r && r.requestedDate) || nextDateStr(ppToday())) + '</div>' +
+          '<div class="field"><label for="ppReqNote">Note <span class="pp-opt">optional</span></label><textarea id="ppReqNote" rows="2" maxlength="500"></textarea></div>' +
+          '<p class="auth-error" id="ppReqErr" role="alert"></p>' +
+          '<button type="button" class="btn-primary" id="ppReqSave"></button>' +
+          (r ? '<button type="button" class="btn-quiet pp-withdraw" id="ppReqWithdraw">Withdraw request</button>' : '')
+        : '<div class="field"><div class="pd-title" id="ppReqRead"></div><p class="ib-sheet-meta" id="ppReqReadMeta"></p></div>' +
+          '<p class="set-note">' + 'It’s been picked up, so it can’t be changed here. Send a new request if something’s different.' + '</p>'));
+    if (!editable){
+      document.getElementById('ppReqRead').textContent = r.text;
+      document.getElementById('ppReqReadMeta').textContent = [ppRequestStatus(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ');
+      return;
+    }
+    document.getElementById('ppReqLabel').textContent = 'What do you need ' + owner + ' to do?';
+    document.getElementById('ppReqSave').textContent = r ? 'Save' : 'Send to ' + owner;
+    var text = document.getElementById('ppReqText'), note = document.getElementById('ppReqNote');
+    text.value = r ? r.text : ''; note.value = r && r.note ? r.note : '';
+    if (!r) setTimeout(function(){ try { text.focus(); } catch(e){} }, 60);
+    sh.querySelectorAll('[data-pp-timing]').forEach(function(b){
+      b.addEventListener('click', function(){
+        timing = b.dataset.ppTiming;
+        sh.querySelectorAll('[data-pp-timing]').forEach(function(x){ x.classList.toggle('sel', x === b); x.setAttribute('aria-checked', x === b ? 'true' : 'false'); });
+        document.getElementById('ppDateField').hidden = timing !== 'date';
+      });
+    });
+    var err = document.getElementById('ppReqErr');
+    document.getElementById('ppReqSave').addEventListener('click', function(){
+      var t = text.value.trim(), n = note.value.trim();
+      if (!t){ err.textContent = 'Say what you need.'; text.focus(); return; }
+      var d = timing === 'date' ? document.getElementById('ppReqDate').value : null;
+      if (timing === 'date' && !d){ err.textContent = 'Choose a date.'; return; }
+      var now = new Date().toISOString();
+      var body = { text: t.slice(0, 280), note: n ? n.slice(0, 500) : null, requestedTiming: timing, requestedDate: d || null, updatedAt: now };
+      var save = r
+        ? dbRef.collection('ledger_shared_requests').doc(r.id).update(body)
+        : dbRef.collection('ledger_shared_requests').add(Object.assign({ ownerUid: pp.member.ownerUid, partnerUid: authUser.uid,
+            createdAt: now, status: 'requested', plannedDate: null, linkedActionId: null }, body));
+      var btn = document.getElementById('ppReqSave'); btn.disabled = true;
+      save.then(function(){ ppSheetClose(); showPinToast(r ? 'Request updated' : 'Sent to ' + owner, false, CHECK_SVG); })
+        .catch(function(e){ console.error(e); btn.disabled = false; err.textContent = r ? 'It’s already been picked up, so it can’t be changed.' : 'Couldn’t send — check your connection and try again.'; });
+    });
+    var wd = document.getElementById('ppReqWithdraw');
+    if (wd) wd.addEventListener('click', function(){
+      if (!confirm('Withdraw this request?')) return;
+      dbRef.collection('ledger_shared_requests').doc(r.id).delete()
+        .then(function(){ ppSheetClose(); showPinToast('Request withdrawn', false, CHECK_SVG); })
+        .catch(function(e){ console.error(e); err.textContent = 'It’s already been picked up, so it can’t be withdrawn.'; });
+    });
+  }
+  function ppOpenAllRequests(){
+    var list = pp.requests.slice().sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? 1 : -1; });
+    var sh = ppSheetOpen('<div class="sheet-handle"></div>' + sheetHead('', 'All requests', '', '') +
+      '<div class="pp-list">' + list.map(function(r, i){
+        return '<button type="button" class="pp-row pp-req rq-' + ppStatusClass(r) + '" data-pp-all="' + i + '">' +
+          '<span class="pp-dot" aria-hidden="true">' + (r.status === 'done' ? CHECK_SVG : '') + '</span>' +
+          '<span class="pp-row-body"><span class="pp-row-title"></span><span class="pp-row-meta"></span></span>' +
+          '<span class="pp-pill' + (ppStatusClass(r) === 'requested' ? ' quiet' : '') + '"></span></button>';
+      }).join('') + '</div>');
+    list.forEach(function(r, i){
+      var row = sh.querySelector('[data-pp-all="' + i + '"]');
+      row.querySelector('.pp-row-title').textContent = r.text;
+      row.querySelector('.pp-row-meta').textContent = r.createdAt ? 'Sent ' + shortDayLabel(fmtDate(new Date(r.createdAt))) : '';
+      row.querySelector('.pp-pill').textContent = ppRequestStatus(r);
+      row.addEventListener('click', function(){ ppOpenRequest(r); });
+    });
   }
 
   // ============ Morning Prime ============
@@ -11982,6 +13285,7 @@
         '</div></div>' +
         (LOCAL_ONLY ? '<p class="set-note">This copy of Ledger has no account and keeps everything on this device.</p>' : '') +
       '</div>' +
+      (shareOn() ? '<div class="set-group" id="setSharing"></div>' : '') +
 
       '<div class="set-group">' +
         '<span class="set-group-label">Appearance</span>' +
@@ -12063,6 +13367,7 @@
       if (confirm('Sign out of Ledger on this device?')) signOutLedger();
     });
     renderThemeSwitch();
+    renderSharingSettings();
     sheetEl.querySelectorAll('[data-theme-set]').forEach(function(btn){
       btn.addEventListener('click', function(){ setThemePref(btn.dataset.themeSet); });
     });
@@ -12627,8 +13932,11 @@
     renderWindDown();
     renderCommitments();
     renderAccountabilityMessage();
+    renderInboxSection();
     renderBacklogSection();
     renderCatchUpBanner();
+    renderShareLiveLine();
+    sharingSourcesChanged();
     renderTodayPlanWidget();
     if (document.getElementById('dayNavSub')) renderHeader();
     var dateStr = viewedDate;
@@ -12671,6 +13979,9 @@
 
   document.getElementById('shareDayFootBtn').addEventListener('click', function(){ openShareDaySheet(viewedDate); });
   document.getElementById('shareSnapFootBtn').addEventListener('click', function(){ openSnapshotSheet(viewedDate); });
+  document.getElementById('shareLiveLine').addEventListener('click', function(){
+    openSnapshotSheet(viewedDate, null, { mode: 'partner', period: this.dataset.period === 'week' ? 'week' : 'day' });
+  });
 
   document.getElementById('viewHistoryBtn').addEventListener('click', function(){
     selectedDay = viewedDate;

@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-07 (Partner Sharing step 1 live and verified; Pin now found never deployed, #20)
+Last updated: 2026-10-07 (Partner Sharing Phase 2 built: shared projections, partner view, requests and Inbox; rules need publishing)
 
 ---
 
@@ -283,26 +283,51 @@ fallback** — the app works entirely offline/unconfigured. Collections:
 `ledger_commitments`, `ledger_plans`, `ledger_sessions`, `ledger_day_status`,
 `ledger_priorities`, `ledger_focus`, `ledger_meals`, `ledger_meta`,
 `ledger_pins`, `ledger_push_subscriptions`, `ledger_matters`,
-`ledger_conversations`, `ledger_challenges`, and `ledger_users` (roles). Live
+`ledger_conversations`, `ledger_challenges`, `ledger_users` (roles), and the
+shared namespace `ledger_share_members`, `ledger_shared_snapshots`,
+`ledger_shared_requests` (Partner Sharing). Live
 `onSnapshot` listeners drive re-renders. Deployed to GitHub Pages
 (`https://sgj-92.github.io/Ledger/`).
 
 ### Identity and security
 **Firebase Authentication (passwordless email link) is the identity boundary.**
 Roles live in `ledger_users/{uid}` (`owner` | `partner`), granted in the Firebase
-Console only. Every `ledger_*` collection is **owner-only** in the
+Console only. Every private `ledger_*` collection is **owner-only** in the
 version-controlled `firestore.rules`; a partner has no access to private
-collections, and Partner Sharing will use explicit shared collections
-(`ledger_share_members`, `ledger_shared_snapshots`, `ledger_shared_requests`,
-reserved and closed). The app shows an opaque gate from first paint and starts
-private listeners only after the owner role is confirmed; a partner sees a holding
-screen; a signed-in account without a role sees its Account ID to grant. Offline,
+collections and reads only the shared namespace (see Partner Sharing below). The
+app shows an opaque gate from first paint and starts private listeners only after
+the owner role is confirmed; a partner gets the partner view (or a holding screen
+without an active relationship); a signed-in account without a role sees its
+Account ID to grant. Offline,
 an owner already confirmed on this device can open Ledger (Firebase Auth's
 persisted session + the remembered role); nothing else unlocks local data. A build
 with no Firebase config stays local and account-free. Runbook and rollout order:
 `docs/SECURITY.md`. **Rollout status (2026-10-07): live.** Email-link sign-in
 enabled, owner profile created, `firestore.rules` published from the Console, and
 Shaun has confirmed Ledger opens with all data on his devices. #5 closed.
+
+### Partner Sharing (Phase 2 — built 2026-10-07; live once the rules are republished)
+A projection, not access. The owner publishes a day or a week to the partner from
+**Share snapshot → Abi** (Image | Abi; Today | This week), reviewing exactly what
+she will see. Publishing writes share-safe display rows to
+`ledger_shared_snapshots/{owner}_{partner}_{day|week}_{key}`; what was chosen stays
+private in `ledger_meta/sharing`, and a **live sync** rebuilds published, current
+projections when the records change (completed, moved → "Moved to …", new Actions
+in shared categories). The partner's preset (`partner-{uid}` in
+`presets.shareTemplates`) is an allow-list: key outcomes, Family + Personal Actions,
+training; snapshot presets gained `actionCategories`. The week carries a
+checkpoint and review date ("Checkpoint Wednesday" → "Checkpoint today" →
+"Review Sunday"). Today's foot shows "Shared with Abi · updated 09:14".
+**Partner view**: Today | This week, "From you" (her requests with status) and
+"+ Request something" (what, when, optional note). **Owner Inbox** on Today (above
+Backlog, only when something waits): From Abi · text · Requested today — Today /
+Choose day / Dismiss (Undo). Accepting makes one normal Action with
+`sourceType: 'partner_request'`, `sourceRequestId`, `sourceLabel` ("From Abi" on
+the row); the request follows it (planned → done; moved date; back to Requested if
+the Action disappears). Settings → Partner sharing: set up (relationship only, never
+a role), pause/resume, weekly checkpoint day, remove. Manual onboarding:
+`docs/SECURITY.md` → Partner Sharing. Tests: rules 143 (emulator), end to end 71
+(`tests/e2e/`, real SDK, two browsers, Auth + Firestore emulators).
 
 ---
 
@@ -434,6 +459,31 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-07 — Partner Sharing is a projection, published on purpose and live after
+**Decision (Shaun's Phase 2 brief):** Ledger stays private; a partner sees only
+projections the owner publishes, in the shared namespace, enforced by
+`firestore.rules` (partner reads own, only while the relationship is active;
+creates requests only through it; never touches owner-controlled fields). Never a
+filtered client-side view of private data, and never automatic publishing. Once
+published, a current day or week follows its records (live sync); a past one is
+frozen. Presets are allow-lists (sections and, now, Action categories), so new data
+types are not shared by default; Day Notes and Communications are never offered.
+Partner requests are capture: they land in the **Inbox** (the name reserved on
+2026-10-03, now used for exactly "captured, not yet decided") and become an Action
+only by the owner's choice: one ordinary Action with provenance fields, category
+Family by default — the request's origin is provenance, not a category. A request
+never reads Done unless its Action is completed; a vanished Action returns it to
+Requested. Dismissed is a status ("Set aside"), not a deletion. One partner;
+roles are still granted only in the Console; the app's "Set up a partner" writes
+the relationship only. Request ids must look generated (rules), and no
+partner-chosen string is ever put into markup.
+**Why:** a calm, trustworthy shared view for Abi without weakening the private
+boundary built in step 1.
+**Implications:** the published rules must be updated before sharing works
+(`docs/SECURITY.md`). Not in Phase 2: notifications (scheduled or push), multiple
+partners or admin UI, chat/comments, partner editing Actions, calendar sharing,
+automatic sharing on plan change.
 
 ### 2026-10-06 — Firebase Auth is the identity boundary; private data is owner-only
 **Decision (Shaun's direction, Partner Sharing step 1; supersedes "Firestore rules
@@ -1322,14 +1372,19 @@ No active handoff.
 
 ### Claude Code
 
-No active handoff. Partner Sharing step 1 is complete and verified on Shaun's
-devices (2026-10-07). Phase 2 (shared projections, partner view, requests) starts
-only on Shaun's explicit brief.
+No active handoff. Partner Sharing Phase 2 is built and tested on the emulators
+(2026-10-07). Next is Shaun's manual rollout (Next 1); Phase 3 (notifications and
+beyond) starts only on his explicit brief.
 
 ---
 
 ## Recently Completed
 
+- (2026-10-07) — Partner Sharing Phase 2: shared-namespace rules (143 emulator
+  tests), owner publish (day/week, Abi preset, review, live sync, checkpoint),
+  partner view (Today / This week / requests), owner Inbox with request → Action
+  provenance and completion/move/delete sync, Settings → Partner sharing, end-to-end
+  suite in `tests/e2e/` (71 checks, real SDK on emulators).
 - (2026-10-07) — Auth + owner-only rules rolled out and verified on Shaun's devices;
   #5 closed. Pin now found never deployed (Spark plan) → #20.
 - (2026-10-06) — Partner Sharing step 1: Firebase Auth (email link) gate with
@@ -1447,10 +1502,10 @@ only on Shaun's explicit brief.
 
 ## Next
 
-1. **Shaun:** create the GitHub Project (Open Q7). Configuration is recorded in
-   `docs/ROAD_TO_SHIPPABLE.md` → Appendix. Nothing else can be prioritised
-   properly until it exists.
-2. Partner Sharing Phase 2, when Shaun briefs it (step 1, auth + rules, is live).
+1. **Shaun:** republish `firestore.rules` from the Console, then add Abi
+   (`docs/SECURITY.md` → Partner Sharing → Adding Abi) and publish a day to her.
+2. **Shaun:** create the GitHub Project (Open Q7). Configuration is recorded in
+   `docs/ROAD_TO_SHIPPABLE.md` → Appendix.
 3. Triage #6–#19 into the board, then decide what, if anything, to build.
 
 Everything else is on the board. Do not duplicate it here.

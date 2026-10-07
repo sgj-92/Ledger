@@ -1,0 +1,13 @@
+{
+  "name": "ledger-partner-sharing-e2e",
+  "private": true,
+  "description": "Partner Sharing end to end: the real Firebase SDK in two browsers against the Auth and Firestore emulators (needs Java).",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore,auth --project ledger-6aec3 --config ../../firebase.json \"node partner-sharing.test.js\""
+  },
+  "devDependencies": {
+    "firebase": "10.12.2",
+    "firebase-tools": "^14.0.0",
+    "playwright": "^1.45.0"
+  }
+}

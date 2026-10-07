@@ -25,9 +25,9 @@ manager. Every decision may be optimised for one user's real life.
 One owner. Ledger has one person's private data in it. Since 2026-10-06 it
 signs in (Firebase Authentication), and a partner can be given a role. A partner
 will only ever see what the owner explicitly shares, through separate shared
-collections, never the owner's private Ledger. Partner Sharing beyond the
-identity boundary is a later phase. See
-[Privacy and data](#privacy-and-data) and `docs/SECURITY.md`.
+collections, never the owner's private Ledger. Since 2026-10-07 that is real:
+see [Partner Sharing](#partner-sharing), [Privacy and data](#privacy-and-data)
+and `docs/SECURITY.md`.
 
 ## Core loop
 
@@ -187,6 +187,37 @@ beyond the exclusion above. Where they appear, they are destinations a human
 pastes into. Do not infer a roadmap from this section — any integration is an
 open product decision.
 
+## Partner Sharing
+
+Ledger stays private. A partner (Abi) gets a calm view of what the owner chooses
+to share, and a simple way to ask for something. She does not get access to
+Ledger.
+
+- **A projection, not access.** Publishing writes share-safe display data (a
+  title, a day, a status) into shared collections. The partner never reads a
+  private record, and no filtered view of private data exists.
+- **Live after publishing, never published automatically.** A day or a week is
+  shared only when the owner publishes it. After that, it follows the day:
+  completed, moved and newly added Actions in shared categories update without
+  republishing. A day or week that has passed stays as it was shared.
+- **Presets are allow-lists.** Sections and Action categories are shared only
+  when named. The partner's default: key outcomes, Family and Personal Actions,
+  training. Never Day Notes or Communications. The owner reviews exactly what
+  will be shown, and can leave items out, before publishing.
+- **The partner's Ledger** is two views, Today and This week, plus her requests
+  ("From you") and the week's checkpoint. Rows and whitespace. No scores, no
+  shaming, no admin.
+- **Requests are capture, not Actions.** A request lands in the owner's
+  **Inbox** (separate from Backlog). Today or Choose day makes one ordinary
+  Action, marked as from the partner. Dismiss sets it aside. The request then
+  follows its Action: Planned, Done, or back to Requested if the Action
+  disappears. Never Done unless it was done.
+- Image sharing is separate and unchanged. Share image is a one-off picture for
+  anyone. Publish to Abi is the live view.
+
+Not yet: notifications of any kind, more than one partner, chat or comments,
+the partner editing Actions, calendar sharing.
+
 ## Privacy and data
 
 - Firebase Firestore (project `ledger-6aec3`) with a complete localStorage
@@ -196,6 +227,9 @@ open product decision.
 - **Access:** Firebase Authentication (email link) and owner-only Firestore
   rules (`firestore.rules`, `docs/SECURITY.md`). The client config is public by
   design; the rules, not secrecy, protect the data.
+- **Partner data:** a partner reads only the shared collections, only their
+  own, and only while sharing is active. This is enforced by the rules, not by
+  the app. A partner's device never loads the owner's stored data.
 
 ## Product success principles
 

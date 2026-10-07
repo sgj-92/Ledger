@@ -236,10 +236,13 @@ These are observed facts about this repo, useful before making changes.
 - Live `onSnapshot` listeners drive re-renders; a save generally triggers a
   render rather than the caller updating the DOM directly.
 - **Firebase Authentication is the identity boundary.** Firestore rules are in
-  `firestore.rules` (owner-only private data; roles in `ledger_users`; reserved,
-  closed shared namespace), with emulator tests in `tests/firestore-rules/`.
+  `firestore.rules` (owner-only private data; roles in `ledger_users`; a narrow
+  shared namespace for Partner Sharing), with emulator tests in
+  `tests/firestore-rules/` and an end-to-end suite in `tests/e2e/`.
   Private listeners start only after the owner role is confirmed — never add a
-  read of private data before that. Runbook: `docs/SECURITY.md`. A build with
+  read of private data before that. A partner reads only published projections;
+  never give a partner a view of a private collection, and never put a
+  partner-written string (including a document id) into markup. Runbook: `docs/SECURITY.md`. A build with
   `apiKey: "YOUR_API_KEY"` (tests, local dev) stays local and account-free.
 
 ## Deploys and the build stamp
