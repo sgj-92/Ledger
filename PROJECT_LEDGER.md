@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-07 (Partner Sharing Phase 2.5: request Updates timeline; rules need publishing)
+Last updated: 2026-10-07 (sign-in on ledger.sgj.luxe: daily email quota diagnosed, error codes shown, continue URL hardened)
 
 ---
 
@@ -286,8 +286,13 @@ fallback** — the app works entirely offline/unconfigured. Collections:
 `ledger_conversations`, `ledger_challenges`, `ledger_users` (roles), and the
 shared namespace `ledger_share_members`, `ledger_shared_snapshots`,
 `ledger_shared_requests` (Partner Sharing). Live
-`onSnapshot` listeners drive re-renders. Deployed to GitHub Pages
-(`https://sgj-92.github.io/Ledger/`).
+`onSnapshot` listeners drive re-renders. **Production is now
+`https://ledger.sgj.luxe`, served by Vercel** (deployments by `vercel[bot]` from
+`main`). GitHub Pages (`https://sgj-92.github.io/Ledger/`) still builds too.
+*Mismatch to resolve in the hosting audit (not started):* the deploy and build-stamp
+notes in `CLAUDE.md` describe Pages only. Vercel doesn't render
+`buildInfo.pages.js`, so production shows "local build". `functions/index.js`
+still defaults `APP_URL` to the Pages address.
 
 ### Identity and security
 **Firebase Authentication (passwordless email link) is the identity boundary.**
@@ -305,6 +310,13 @@ with no Firebase config stays local and account-free. Runbook and rollout order:
 `docs/SECURITY.md`. **Rollout status (2026-10-07): live.** Email-link sign-in
 enabled, owner profile created, `firestore.rules` published from the Console, and
 Shaun has confirmed Ledger opens with all data on his devices. #5 closed.
+**2026-10-07, ledger.sgj.luxe:** "Something went wrong" on Send link was Firebase
+refusing the send with `QUOTA_EXCEEDED`, the Spark plan's small daily email-link
+quota. The new address signs every device out, so every device needs a new link.
+The domain was fine: a send from `ledger.sgj.luxe` with that return address was
+accepted. The sign-in screen now names the reason and shows the Firebase code. The
+emailed link returns to the page's own address only on known hosts
+(`ledger.sgj.luxe`, the Pages address, localhost), otherwise to production.
 
 ### Partner Sharing (Phase 2 — built 2026-10-07; live once the rules are republished)
 A projection, not access. The owner publishes a day or a week to the partner from
@@ -1412,6 +1424,10 @@ beyond) starts only on his explicit brief.
 
 ## Recently Completed
 
+- (2026-10-07) — Sign-in on ledger.sgj.luxe: root cause was the daily email-link
+  quota hidden behind "Something went wrong". Errors now named, with the Firebase
+  code; continue URL limited to known hosts; e2e covers the quota refusal and a
+  reload staying signed in.
 - (2026-10-07) — Partner Sharing Phase 2.5: request Updates timeline (comments +
   lifecycle entries), owner/partner request detail with composer, read marks and
   "updated" signals, Inbox update rows, transactional accept/dismiss/sync, withdraw
@@ -1538,8 +1554,9 @@ beyond) starts only on his explicit brief.
 
 ## Next
 
-1. **Shaun:** republish `firestore.rules` from the Console (Phase 2.5 changed it
-   again), then add Abi
+1. **Shaun:** sign in on ledger.sgj.luxe once the daily email quota resets
+   (or use a link already received), then confirm on each device. Then republish
+   `firestore.rules` from the Console (Phase 2.5 changed it again), then add Abi
    (`docs/SECURITY.md` → Partner Sharing → Adding Abi) and publish a day to her.
 2. **Shaun:** create the GitHub Project (Open Q7). Configuration is recorded in
    `docs/ROAD_TO_SHIPPABLE.md` → Appendix.

@@ -88,6 +88,15 @@ signed-out or non-owner session. Signing out forgets the remembered role.
 A build with no Firebase config (`apiKey: "YOUR_API_KEY"`, used for local
 development and tests) has no accounts and runs on device storage, as before.
 
+**The daily email limit.** On the free (Spark) plan, Firebase sends only a few
+sign-in emails per project per day. Every device signing in, and every resend,
+uses one. Moving Ledger to a new address signs every device out, because sign-in
+is kept per address. When the limit is reached, the sign-in screen says so
+(`auth/quota-exceeded`). Use a link already received, or wait for the daily reset
+(midnight Pacific). The Blaze plan raises the limit. Any other refusal shows its
+Firebase code after the message, e.g. "Couldn't send the sign-in link ·
+auth/internal-error".
+
 **Email links on the installed app.** On iOS, an email link opens in Safari,
 not the Home Screen app, and the two keep separate storage. The "Check your
 email" screen therefore offers a field to paste the link. Press and hold the
@@ -101,7 +110,10 @@ access to its own data.
 
 1. **Firebase Console → Authentication → Sign-in method**: enable
    **Email/Password** and, inside it, **Email link (passwordless sign-in)**.
-2. **Authentication → Settings → Authorized domains**: add `sgj-92.github.io`.
+2. **Authentication → Settings → Authorized domains**: add `sgj-92.github.io`
+   and the production domain `ledger.sgj.luxe` (Vercel). The emailed link returns
+   to the address it was requested from. From an address Ledger doesn't know
+   (a Vercel preview), it returns to `https://ledger.sgj.luxe/`.
 3. Open Ledger, enter your email, and finish sign-in from the link. Ledger
    shows "This account isn't set up for Ledger" with your **Account ID**. Copy
    it.

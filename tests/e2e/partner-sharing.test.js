@@ -111,17 +111,19 @@ async function oobLink(email){
     await ctx.addInitScript(t => { localStorage.setItem('ledger_emulator', '1'); localStorage.setItem('ledger_theme', t); }, theme);
     const p = await ctx.newPage(); p.errs = []; p.name = name;
     p.on('pageerror', e => p.errs.push(String(e)));
-    p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|permission|Missing or insufficient|offline|net::ERR/i.test(m.text())) p.errs.push('console: ' + m.text()); });
+    p.on('console', m => { if (m.type() === 'error' && !/sending the sign-in link failed|Failed to load resource|permission|Missing or insufficient|offline|net::ERR/i.test(m.text())) p.errs.push('console: ' + m.text()); });
     p.on('response', r => { if (r.status() === 404) p.errs.push('404 ' + r.url()); });
     p.dialogs = []; p.on('dialog', d => { p.dialogs.push(d.message()); d.accept(); });
     return p;
   }
+  let lastLink = null;
   async function signIn(p, email){
     await p.goto(APP);
     await p.waitForSelector('#authEmail', { timeout: 20000 });
     await p.fill('#authEmail', email); await p.click('#authSend');
     await p.waitForSelector('#authLink', { timeout: 15000 });
-    await p.fill('#authLink', await oobLink(email));
+    lastLink = await oobLink(email);
+    await p.fill('#authLink', lastLink);
     await p.click('#authPasteForm button[type=submit]');
   }
   const until = async (p, fn, arg, t) => { try { await p.waitForFunction(fn, arg, { timeout: t || 12000 }); return true; } catch (e){ return false; } };
@@ -141,10 +143,25 @@ async function oobLink(email){
   async function completeRow(p, t){ await p.locator(rowSel(t) + ' .commitment-status-dot').scrollIntoViewIfNeeded(); await p.click(rowSel(t) + ' .commitment-status-dot'); }
   async function editRow(p, t){ await p.locator(rowSel(t) + ' .ct-text').scrollIntoViewIfNeeded(); await p.click(rowSel(t) + ' .ct-text'); await p.waitForSelector('#saveCommitBtn'); }
 
-  // 1 — Shaun signs in and Ledger opens with his data
+  // 0 — when Firebase refuses to send a link (here: the daily email quota, the real
+  // production failure of 2026-10-07), the sign-in screen names the reason and its code
   const S = await session('shaun');
+  await S.route(/accounts:sendOobCode/, r => r.fulfill({ status: 400, contentType: 'application/json',
+    body: JSON.stringify({ error: { code: 400, message: 'QUOTA_EXCEEDED : Exceeded daily quota for email sign-in.', errors: [{ message: 'QUOTA_EXCEEDED', domain: 'global', reason: 'invalid' }] } }) }));
+  await S.goto(APP); await S.waitForSelector('#authEmail', { timeout: 20000 });
+  await S.fill('#authEmail', SHAUN); await S.click('#authSend');
+  check(await until(S, () => /auth\/quota-exceeded$/.test(document.getElementById('authError').textContent) && /for today/.test(document.getElementById('authError').textContent)),
+    '0 a refused send names the reason and its code: ' + await S.evaluate(() => document.getElementById('authError').textContent));
+  await S.unroute(/accounts:sendOobCode/);
+
+  // 1 — Shaun signs in and Ledger opens with his data
   await signIn(S, SHAUN);
   check(await until(S, () => /Book swimming lessons/.test(document.querySelector('main').innerText)), '1 owner signs in; private Ledger opens');
+  const shaunLink = lastLink;
+  check(new URL(shaunLink).searchParams.get('continueUrl') === APP, '1 the link returns to the address it was sent from: ' + new URL(shaunLink).searchParams.get('continueUrl'));
+  check(await S.evaluate(() => JSON.parse(localStorage.getItem('ledger_auth_role')).role === 'owner'), '1 resolves as owner');
+  await S.reload();
+  check(await until(S, () => /Book swimming lessons/.test(document.querySelector('main').innerText) && document.getElementById('authGate').hidden), '1 a reload stays signed in, with the data');
 
   // 2 — Abi signs in and sees her Account ID
   const A = await session('abi');

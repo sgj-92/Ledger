@@ -5439,16 +5439,38 @@
     forgetRole();
     firebase.auth().signOut().catch(function(){ location.reload(); });
   }
-  function authContinueUrl(){ return location.origin + location.pathname; }
+  // Where an emailed sign-in link brings you back to. Firebase accepts a return address
+  // only on a domain authorised in Firebase Authentication, so a known Ledger address
+  // returns to itself (production, the old GitHub Pages address, local development) and
+  // anything else — a Vercel preview, say — returns to production.
+  var AUTH_HOME = 'https://ledger.sgj.luxe/';
+  var AUTH_HOSTS = ['ledger.sgj.luxe', 'sgj-92.github.io', 'localhost', '127.0.0.1'];
+  function authContinueUrl(){
+    return AUTH_HOSTS.indexOf(location.hostname) > -1 ? location.origin + location.pathname : AUTH_HOME;
+  }
   function cleanAuthUrl(){ try { history.replaceState(null, '', location.pathname); } catch(e){} }
-  function authErrorText(e){
+  // Firebase's error code, shown after the message so a failure can be diagnosed from a
+  // screenshot. Codes are fixed identifiers (one names the blocked web address); nothing
+  // secret is in them, and they are reduced to identifier characters before showing.
+  function authErrorCode(e){
+    var code = String((e && e.code) || 'unknown').replace(/[^A-Za-z0-9/._:-]/g, '').slice(0, 90);
+    return code || 'unknown';
+  }
+  // action: 'send' (asking for a link) or 'finish' (opening one)
+  function authErrorText(e, action){
     var code = (e && e.code) || '';
+    var msg;
     if (code === 'auth/invalid-email') return 'That doesn’t look like an email address.';
-    if (code === 'auth/network-request-failed') return 'No connection. Try again when you’re online.';
-    if (code === 'auth/invalid-action-code' || code === 'auth/expired-action-code') return 'That link has expired or was already used. Send a new one.';
-    if (code === 'auth/operation-not-allowed' || code === 'auth/unauthorized-continue-uri' || code === 'auth/unauthorized-domain')
-      return 'Email-link sign-in isn’t switched on for this Ledger yet (Firebase Console → Authentication).';
-    return 'Something went wrong. Please try again.';
+    if (code === 'auth/network-request-failed') msg = 'No connection. Try again when you’re online.';
+    else if (code === 'auth/invalid-action-code' || code === 'auth/expired-action-code') msg = 'That link has expired or was already used. Send a new one.';
+    else if (code === 'auth/quota-exceeded') msg = 'Ledger has sent all the sign-in emails Firebase allows for today. Use a link already in your inbox, or try again tomorrow.';
+    else if (code === 'auth/too-many-requests') msg = 'Too many attempts from this device. Wait a few minutes, then try again.';
+    else if (code === 'auth/operation-not-allowed') msg = 'Email-link sign-in isn’t switched on for this Ledger (Firebase Console → Authentication → Sign-in method).';
+    else if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri' || code === 'auth/unauthorized-domain')
+      msg = 'This address isn’t an authorised domain for Ledger’s sign-in (Firebase Console → Authentication → Settings → Authorized domains).';
+    else if (/^auth\/requests-from-referer/.test(code)) msg = 'Ledger’s Firebase key doesn’t allow requests from this address (Google Cloud → Credentials → the browser key’s website restrictions).';
+    else msg = action === 'finish' ? 'Couldn’t finish signing in.' : 'Couldn’t send the sign-in link.';
+    return msg + ' · ' + authErrorCode(e);
   }
   function completeEmailLink(email, link){
     authLinkPending = true;
@@ -5461,7 +5483,8 @@
     }).catch(function(e){
       authLinkPending = false;
       cleanAuthUrl();
-      renderGate('signin', { error: authErrorText(e) });
+      console.error('email-link sign-in failed', e);
+      renderGate('signin', { error: authErrorText(e, 'finish') });
     });
   }
 
@@ -5562,7 +5585,8 @@
           renderGate('sent', { email: email });
         }).catch(function(e){
           btn.disabled = false; btn.textContent = 'Email me a sign-in link';
-          err(authErrorText(e));
+          console.error('sending the sign-in link failed', e);
+          err(authErrorText(e, 'send'));
         });
       });
     }
