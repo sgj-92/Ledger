@@ -4365,6 +4365,10 @@
   }
   .auth-input:focus { border-color: rgba(var(--gold-rgb),0.55); }
   .auth-btn { width: 100%; margin-top: 14px; }
+  .auth-label-gap { margin-top: 14px; }
+  .auth-alts { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 14px; }
+  .auth-alts .btn-link { padding: 6px 0; color: var(--text-2); font-size: 13.5px; }
+  .vh { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); border: 0; opacity: 0; pointer-events: none; }
   .auth-btn[disabled] { opacity: 0.6; }
   .auth-error { min-height: 18px; margin: 10px 0 0; font-size: 13px; line-height: 1.45; color: var(--danger); }
   .auth-error:empty { min-height: 0; margin: 0; }
@@ -5410,7 +5414,7 @@
       // a sign-in screen already showing (with a message, or a half-typed address) stays as it is
       var shown = document.getElementById('authCard').getAttribute('data-state');
       if (authLinkPending) renderGate('splash');
-      else if (['signin', 'sent', 'confirm'].indexOf(shown) === -1) renderGate('signin');
+      else if (['signin', 'sent', 'confirm', 'reset'].indexOf(shown) === -1) renderGate('signin');
       return;
     }
     authUser = user;
@@ -5433,6 +5437,59 @@
     if (pp.started){ location.reload(); return; }
     lockApp();
     renderGate(r.offline ? 'offline' : 'noaccess');
+  }
+
+  // Setting or changing the password of the account already signed in: the same account,
+  // so its id, role and data are untouched. The (hidden) username field lets the phone's
+  // password manager save the pair. Firebase may want a recent sign-in first; then the
+  // password email does the same job from any device.
+  function passwordFormHtml(){
+    return '<form class="pw-form" id="pwForm" novalidate>' +
+      '<input class="vh" type="email" id="pwUser" name="email" autocomplete="username" tabindex="-1" aria-hidden="true" readonly>' +
+      '<div class="field"><label for="pwNew">New password</label><input type="password" id="pwNew" name="new-password" autocomplete="new-password" minlength="8"></div>' +
+      '<div class="field"><label for="pwAgain">Same again</label><input type="password" id="pwAgain" autocomplete="new-password" minlength="8"></div>' +
+      '<p class="auth-error" id="pwErr" role="alert"></p>' +
+      '<button type="submit" class="btn-primary" id="pwSave">Save password</button>' +
+      '<button type="button" class="btn-quiet" id="pwEmail" hidden>Email me a link to set it instead</button>' +
+    '</form>';
+  }
+  function wirePasswordForm(root, onDone){
+    var user = firebase.auth().currentUser;
+    var err = root.querySelector('#pwErr'), save = root.querySelector('#pwSave'), viaEmail = root.querySelector('#pwEmail');
+    root.querySelector('#pwUser').value = (user && user.email) || '';
+    root.querySelector('#pwForm').addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var a = root.querySelector('#pwNew').value, b = root.querySelector('#pwAgain').value;
+      err.textContent = '';
+      if (a.length < 8){ err.textContent = 'Use at least 8 characters.'; return; }
+      if (a !== b){ err.textContent = 'Those two don’t match.'; return; }
+      save.disabled = true; save.textContent = 'Saving…';
+      user.updatePassword(a).then(function(){
+        showPinToast('Password saved', false, CHECK_SVG);
+        onDone();
+      }).catch(function(e){
+        console.warn('saving the password failed', e && e.code);
+        save.disabled = false; save.textContent = 'Save password';
+        err.textContent = authErrorText(e, 'change');
+        if (e && e.code === 'auth/requires-recent-login') viaEmail.hidden = false;
+      });
+    });
+    viaEmail.addEventListener('click', function(){
+      viaEmail.disabled = true;
+      firebase.auth().sendPasswordResetEmail(user.email, { url: authContinueUrl() }).then(function(){
+        showPinToast('Link sent to ' + user.email, false, CHECK_SVG);
+        onDone();
+      }).catch(function(e){ viaEmail.disabled = false; err.textContent = authErrorText(e, 'reset'); });
+    });
+  }
+  function openPasswordSheet(){
+    activeSheetRefresh = null;
+    editingId = null;
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead('', 'Password', 'Sign in with your email and this password.', '') + passwordFormHtml();
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    wirePasswordForm(sheetEl, closeSheet);
   }
 
   function signOutLedger(){
@@ -5461,15 +5518,23 @@
     var code = (e && e.code) || '';
     var msg;
     if (code === 'auth/invalid-email') return 'That doesn’t look like an email address.';
+    if (code === 'auth/missing-password') return 'Enter your password.';
     if (code === 'auth/network-request-failed') msg = 'No connection. Try again when you’re online.';
     else if (code === 'auth/invalid-action-code' || code === 'auth/expired-action-code') msg = 'That link has expired or was already used. Send a new one.';
-    else if (code === 'auth/quota-exceeded') msg = 'Ledger has sent all the sign-in emails Firebase allows for today. Use a link already in your inbox, or try again tomorrow.';
+    else if (code === 'auth/quota-exceeded') msg = action === 'send'
+      ? 'Ledger has sent all the sign-in links Firebase allows for today. Sign in with your password, or use a link already in your inbox.'
+      : 'Firebase’s daily email limit has been reached. Try again tomorrow.';
+    else if (code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials' || code === 'auth/wrong-password' || code === 'auth/user-not-found')
+      msg = 'That email and password don’t match. No password yet? Use “Set or reset your password” below.';
+    else if (code === 'auth/weak-password') msg = 'Choose a longer password — at least 8 characters.';
+    else if (code === 'auth/requires-recent-login') msg = 'For safety, Firebase wants a recent sign-in before changing the password.';
     else if (code === 'auth/too-many-requests') msg = 'Too many attempts from this device. Wait a few minutes, then try again.';
     else if (code === 'auth/operation-not-allowed') msg = 'Email-link sign-in isn’t switched on for this Ledger (Firebase Console → Authentication → Sign-in method).';
     else if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri' || code === 'auth/unauthorized-domain')
       msg = 'This address isn’t an authorised domain for Ledger’s sign-in (Firebase Console → Authentication → Settings → Authorized domains).';
     else if (/^auth\/requests-from-referer/.test(code)) msg = 'Ledger’s Firebase key doesn’t allow requests from this address (Google Cloud → Credentials → the browser key’s website restrictions).';
-    else msg = action === 'finish' ? 'Couldn’t finish signing in.' : 'Couldn’t send the sign-in link.';
+    else msg = { finish: 'Couldn’t finish signing in.', password: 'Couldn’t sign in.', reset: 'Couldn’t send the password email.',
+      change: 'Couldn’t save the password.' }[action] || 'Couldn’t send the sign-in link.';
     return msg + ' · ' + authErrorCode(e);
   }
   function completeEmailLink(email, link){
@@ -5483,7 +5548,7 @@
     }).catch(function(e){
       authLinkPending = false;
       cleanAuthUrl();
-      console.error('email-link sign-in failed', e);
+      console.warn('email-link sign-in failed', e && e.code);
       renderGate('signin', { error: authErrorText(e, 'finish') });
     });
   }
@@ -5497,15 +5562,27 @@
     if (state === 'splash'){
       html += '<h1 class="auth-title">Ledger</h1><p class="auth-sub">Opening…</p>';
     } else if (state === 'signin'){
+      // email and password first; the emailed link stays as the way back in without one
       html += '<h1 class="auth-title">Ledger</h1>' +
         '<p class="auth-sub">A more intentional you.</p>' +
         '<form class="auth-form" id="authForm" novalidate>' +
           '<label class="auth-label" for="authEmail">Email</label>' +
-          '<input class="auth-input" type="email" id="authEmail" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required>' +
-          '<button type="submit" class="save-btn auth-btn" id="authSend">Email me a sign-in link</button>' +
+          '<input class="auth-input" type="email" id="authEmail" name="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required>' +
+          '<label class="auth-label auth-label-gap" for="authPassword">Password</label>' +
+          '<input class="auth-input" type="password" id="authPassword" name="password" autocomplete="current-password" required>' +
+          '<button type="submit" class="save-btn auth-btn" id="authSignIn">Sign in</button>' +
           '<p class="auth-error" id="authError" role="alert"></p>' +
         '</form>' +
-        '<p class="auth-fine">No password. The link signs you in on this device.</p>';
+        '<div class="auth-alts">' +
+          '<button type="button" class="btn-link" id="authReset">Set or reset your password</button>' +
+          '<button type="button" class="btn-link" id="authSend">Email me a sign-in link instead</button>' +
+        '</div>' +
+        '<p class="auth-fine">You stay signed in on this device.</p>';
+    } else if (state === 'reset'){
+      html += '<h1 class="auth-title">Check your email</h1>' +
+        '<p class="auth-sub">A link to set your password is on its way to <strong data-role="auth-email"></strong>.</p>' +
+        '<p class="auth-fine">Choose a password there, then come back and sign in with it. The link works on any device.</p>' +
+        '<button type="button" class="save-btn auth-btn" id="authRestart">Back to sign in</button>';
     } else if (state === 'sent'){
       html += '<h1 class="auth-title">Check your email</h1>' +
         '<p class="auth-sub">A sign-in link is on its way to <strong data-role="auth-email"></strong>.</p>' +
@@ -5572,20 +5649,47 @@
     var err = function(t){ var e = document.getElementById('authError'); if (e) e.textContent = t || ''; };
     var form = document.getElementById('authForm');
     if (form){
-      var emailEl = document.getElementById('authEmail');
+      var emailEl = document.getElementById('authEmail'), passEl = document.getElementById('authPassword');
       try { emailEl.value = localStorage.getItem(AUTH_EMAIL_KEY) || ''; } catch(e){}
+      var validEmail = function(){
+        var email = emailEl.value.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ err('That doesn’t look like an email address.'); emailEl.focus(); return null; }
+        return email;
+      };
+      var remember = function(email){ try { localStorage.setItem(AUTH_EMAIL_KEY, email); } catch(e){} };
       form.addEventListener('submit', function(ev){
         ev.preventDefault();
-        var email = emailEl.value.trim();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ err('That doesn’t look like an email address.'); emailEl.focus(); return; }
+        var email = validEmail(); if (!email) return;
+        if (!passEl.value){ err('Enter your password.'); passEl.focus(); return; }
+        var btn = document.getElementById('authSignIn');
+        btn.disabled = true; btn.textContent = 'Signing in…'; err('');
+        firebase.auth().signInWithEmailAndPassword(email, passEl.value).then(function(){
+          remember(email);
+          renderGate('splash');   // onAuthStateChanged takes it from here
+        }).catch(function(e){
+          btn.disabled = false; btn.textContent = 'Sign in';
+          console.warn('password sign-in failed', e && e.code);
+          err(authErrorText(e, 'password'));
+        });
+      });
+      document.getElementById('authReset').addEventListener('click', function(){
+        var email = validEmail(); if (!email) return;
+        err('');
+        firebase.auth().sendPasswordResetEmail(email, { url: authContinueUrl() }).then(function(){
+          remember(email);
+          renderGate('reset', { email: email });
+        }).catch(function(e){ console.warn('sending the password email failed', e && e.code); err(authErrorText(e, 'reset')); });
+      });
+      document.getElementById('authSend').addEventListener('click', function(){
+        var email = validEmail(); if (!email) return;
         var btn = document.getElementById('authSend');
         btn.disabled = true; btn.textContent = 'Sending…'; err('');
         firebase.auth().sendSignInLinkToEmail(email, { url: authContinueUrl(), handleCodeInApp: true }).then(function(){
-          try { localStorage.setItem(AUTH_EMAIL_KEY, email); } catch(e){}
+          remember(email);
           renderGate('sent', { email: email });
         }).catch(function(e){
-          btn.disabled = false; btn.textContent = 'Email me a sign-in link';
-          console.error('sending the sign-in link failed', e);
+          btn.disabled = false; btn.textContent = 'Email me a sign-in link instead';
+          console.warn('sending the sign-in link failed', e && e.code, e && e.message);
           err(authErrorText(e, 'send'));
         });
       });
@@ -11653,7 +11757,7 @@
         '<div class="theme-switch" id="themeSwitch" aria-label="Theme">' +
           '<button type="button" data-theme-set="dark">Dark</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="system">System</button>' +
         '</div>' +
-        '<p class="pp-who"><span id="ppWho"></span> · <button type="button" class="btn-link" id="ppSignOut">Sign out</button></p>' +
+        '<p class="pp-who"><span id="ppWho"></span> · <button type="button" class="btn-link" id="ppPassword">Password</button> · <button type="button" class="btn-link" id="ppSignOut">Sign out</button></p>' +
       '</footer>' +
     '</div>' +
     '<div class="sheet-backdrop pp-backdrop" id="ppBackdrop"><div class="sheet" id="ppSheet" role="dialog" aria-modal="true"></div></div>';
@@ -11692,6 +11796,10 @@
     var add = document.getElementById('ppAddReq'); if (add) add.addEventListener('click', function(){ ppOpenRequest(null); });
     var all = document.getElementById('ppAllReq'); if (all) all.addEventListener('click', ppOpenAllRequests);
     document.getElementById('ppSignOut').addEventListener('click', function(){ if (confirm('Sign out of Ledger on this device?')) signOutLedger(); });
+    document.getElementById('ppPassword').addEventListener('click', function(){
+      var sh = ppSheetOpen('<div class="sheet-handle"></div>' + sheetHead('', 'Password', 'Sign in with your email and this password.', '') + passwordFormHtml());
+      wirePasswordForm(sh, ppSheetClose);
+    });
     renderThemeSwitch();
     el.querySelectorAll('[data-theme-set]').forEach(function(b){ b.addEventListener('click', function(){ setThemePref(b.dataset.themeSet); }); });
     el.scrollTop = scroll;
@@ -13800,7 +13908,9 @@
         '<div class="set-card"><div class="set-row static set-account">' +
           '<span class="set-account-who" id="setAccountWho"></span>' +
           (LOCAL_ONLY ? '' : '<button type="button" class="btn-link" id="setSignOut">Sign out</button>') +
-        '</div></div>' +
+        '</div>' +
+        (LOCAL_ONLY ? '' : settingsRow('setPassword', 'Password', 'Set or change')) +
+        '</div>' +
         (LOCAL_ONLY ? '<p class="set-note">This copy of Ledger has no account and keeps everything on this device.</p>' : '') +
       '</div>' +
       (shareOn() ? '<div class="set-group" id="setSharing"></div>' : '') +
@@ -13880,6 +13990,8 @@
     document.getElementById('setAccountWho').textContent = LOCAL_ONLY ? 'This device only'
       : 'Signed in as ' + ((authProfile && authProfile.displayName) || (authUser && authUser.email) || 'the owner') +
         (authProfile && authProfile.displayName && authUser && authUser.email ? ' \u00b7 ' + authUser.email : '');
+    var pwBtn = document.getElementById('setPassword');
+    if (pwBtn) pwBtn.addEventListener('click', openPasswordSheet);
     var signOutBtn = document.getElementById('setSignOut');
     if (signOutBtn) signOutBtn.addEventListener('click', function(){
       if (confirm('Sign out of Ledger on this device?')) signOutLedger();

@@ -5,9 +5,11 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 
 ## The model
 
-- **Identity is Firebase Authentication** (passwordless email link). Signing in
-  proves who someone is. It grants nothing on its own: anyone can create an
-  email-link account against this project, because the web config is public.
+- **Identity is Firebase Authentication**: email and password first, with the
+  emailed sign-in link kept as a backup (both are Firebase's Email/Password
+  provider, so they are the same account). Signing in proves who someone is. It
+  grants nothing on its own: anyone can create an account against this project,
+  because the web config is public.
 - **Authority is a role**, read from `ledger_users/{uid}`:
 
   ```
@@ -88,14 +90,21 @@ signed-out or non-owner session. Signing out forgets the remembered role.
 A build with no Firebase config (`apiKey: "YOUR_API_KEY"`, used for local
 development and tests) has no accounts and runs on device storage, as before.
 
+**Passwords.** The sign-in screen asks for email and password. "Set or reset
+your password" emails a link to Firebase's own page for choosing one. That works
+for an account that has only ever used email links: it gains a password and keeps
+its Account ID, role and data. Signed in, Settings → Account → Password (and
+Password at the foot of the partner's page) sets or changes it directly. If
+Firebase wants a recent sign-in first, it offers the email instead. Passwords are
+at least 8 characters and are never seen or stored by Ledger, only by Firebase.
+
 **The daily email limit.** On the free (Spark) plan, Firebase sends only a few
-sign-in emails per project per day. Every device signing in, and every resend,
-uses one. Moving Ledger to a new address signs every device out, because sign-in
-is kept per address. When the limit is reached, the sign-in screen says so
-(`auth/quota-exceeded`). Use a link already received, or wait for the daily reset
-(midnight Pacific). The Blaze plan raises the limit. Any other refusal shows its
-Firebase code after the message, e.g. "Couldn't send the sign-in link ·
-auth/internal-error".
+sign-in *link* emails per project per day. This is why the link is now the backup,
+not the main way in (2026-10-07: every device signing in again on the new address
+used it up). When the limit is reached, the sign-in screen says so
+(`auth/quota-exceeded`) and points to the password. Password emails are counted
+separately, with a much larger allowance. Any other refusal shows its Firebase
+code after the message, e.g. "Couldn't sign in · auth/internal-error".
 
 **Email links on the installed app.** On iOS, an email link opens in Safari,
 not the Home Screen app, and the two keep separate storage. The "Check your
@@ -147,7 +156,9 @@ before, and Settings → Partner sharing says the rules need publishing.
 
 ### Adding Abi (manual, once)
 
-1. Abi opens Ledger and signs in with her email link. She sees "This account
+1. Abi opens Ledger, enters her email and taps "Set or reset your password",
+   chooses a password from the email, then signs in (or uses "Email me a sign-in
+   link instead"). She sees "This account
    isn't set up for Ledger" with her **Account ID**. She sends it to Shaun.
 2. Shaun, in the Firebase Console → Firestore → `ledger_users` → **Add
    document**: Document ID = Abi's Account ID; fields `role` (string)

@@ -111,7 +111,7 @@ async function oobLink(email){
     await ctx.addInitScript(t => { localStorage.setItem('ledger_emulator', '1'); localStorage.setItem('ledger_theme', t); }, theme);
     const p = await ctx.newPage(); p.errs = []; p.name = name;
     p.on('pageerror', e => p.errs.push(String(e)));
-    p.on('console', m => { if (m.type() === 'error' && !/sending the sign-in link failed|Failed to load resource|permission|Missing or insufficient|offline|net::ERR/i.test(m.text())) p.errs.push('console: ' + m.text()); });
+    p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|permission|Missing or insufficient|offline|net::ERR/i.test(m.text())) p.errs.push('console: ' + m.text()); });
     p.on('response', r => { if (r.status() === 404) p.errs.push('404 ' + r.url()); });
     p.dialogs = []; p.on('dialog', d => { p.dialogs.push(d.message()); d.accept(); });
     return p;
@@ -512,6 +512,48 @@ async function oobLink(email){
   check(await S.evaluate(() => document.querySelectorAll('[data-snap-preset]').length >= 3), '18 presets still listed (incl. Abi)');
   await S.screenshot({ path: `${shots}/${tag}-18-owner-image-mode.png` });
   await S.click('#sheetCloseBtn');
+
+  // ---------- password sign-in (the main way in), the email link kept as a backup ----------
+  const IDT = `http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1`;
+  const post = async (path, body) => (await fetch(`${IDT}/${path}?key=fake`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })).json();
+  const codeFor = async (email, type) => (await (await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PID}/oobCodes`)).json()).oobCodes.filter(c => c.email === email && c.requestType === type).pop();
+  // an account made by email link alone gains a password through the password email — same account
+  await post('accounts:sendOobCode', { requestType: 'EMAIL_SIGNIN', email: 'linkonly@example.com', continueUrl: APP, canHandleCodeInApp: true });
+  const lo = await post('accounts:signInWithEmailLink', { email: 'linkonly@example.com', oobCode: (await codeFor('linkonly@example.com', 'EMAIL_SIGNIN')).oobCode });
+  await post('accounts:sendOobCode', { requestType: 'PASSWORD_RESET', email: 'linkonly@example.com' });
+  await post('accounts:resetPassword', { oobCode: (await codeFor('linkonly@example.com', 'PASSWORD_RESET')).oobCode, newPassword: 'linkonly-pass-1' });
+  const lo2 = await post('accounts:signInWithPassword', { email: 'linkonly@example.com', password: 'linkonly-pass-1', returnSecureToken: true });
+  check(lo.localId && lo2.localId === lo.localId, 'P1 a link-only account gains a password and keeps its account id');
+  // Shaun sets a password in Settings
+  await openSettings(S); await S.waitForSelector('#setPassword');
+  await S.click('#setPassword'); await S.waitForSelector('#pwNew');
+  await S.fill('#pwNew', 'short'); await S.fill('#pwAgain', 'short'); await S.click('#pwSave');
+  check(/at least 8/.test(await txt(S, '#pwErr')), 'P2 a short password is refused');
+  await S.fill('#pwNew', 'correct-horse-9'); await S.fill('#pwAgain', 'correct-horse-9'); await S.click('#pwSave');
+  check(await until(S, () => /Password saved/.test((document.querySelector('.pin-toast') || {}).textContent || '')), 'P2 owner sets a password from Settings');
+  // sign out, then back in with it
+  await openSettings(S); await S.waitForSelector('#setSignOut'); await S.click('#setSignOut');
+  check(await until(S, () => (document.getElementById('authCard') || { getAttribute: () => null }).getAttribute('data-state') === 'signin' && !!document.getElementById('authPassword'), null, 20000), 'P3 signed out: the sign-in screen');
+  check(await S.evaluate(() => !!document.getElementById('authPassword') && /Sign in/.test(document.getElementById('authSignIn').textContent) && !!document.getElementById('authSend')), 'P3 password first, email link offered underneath');
+  await S.screenshot({ path: `${shots}/${tag}-P3-signin.png` });
+  await S.fill('#authEmail', SHAUN); await S.fill('#authPassword', 'not-the-password'); await S.click('#authSignIn');
+  check(await until(S, () => /don.t match/.test(document.getElementById('authError').textContent) && /· auth\//.test(document.getElementById('authError').textContent)), 'P4 a wrong password is named, with its code: ' + await S.evaluate(() => document.getElementById('authError').textContent));
+  await S.fill('#authPassword', 'correct-horse-9'); await S.click('#authSignIn');
+  check(await until(S, () => /Book swimming lessons/.test(document.querySelector('main').innerText) && document.getElementById('authGate').hidden, null, 20000), 'P5 password sign-in opens Ledger with its data');
+  check(await S.evaluate(o => { const r = JSON.parse(localStorage.getItem('ledger_auth_role')); return r.uid === o && r.role === 'owner'; }, owner), 'P5 same account, still the owner');
+  await S.reload();
+  check(await until(S, () => /Book swimming lessons/.test(document.querySelector('main').innerText) && document.getElementById('authGate').hidden), 'P5 a reload stays signed in');
+  // Abi sets one through the password email, then signs in with it
+  await A.click('#ppSignOut');
+  check(await until(A, () => (document.getElementById('authCard') || { getAttribute: () => null }).getAttribute('data-state') === 'signin' && !!document.getElementById('authPassword'), null, 20000), 'P6 partner signed out');
+  await A.fill('#authEmail', ABI); await A.click('#authReset');
+  check(await until(A, () => (document.getElementById('authCard') || { getAttribute: () => null }).getAttribute('data-state') === 'reset'), 'P6 "Set or reset your password" sends the password email');
+  const rs = await codeFor(ABI, 'PASSWORD_RESET');
+  check(!!rs && new URL(rs.oobLink).searchParams.get('continueUrl') === APP, 'P6 its link comes back to Ledger');
+  await post('accounts:resetPassword', { oobCode: rs.oobCode, newPassword: 'abi-new-pass-1' });
+  await A.click('#authRestart'); await A.waitForSelector('#authPassword');
+  await A.fill('#authEmail', ABI); await A.fill('#authPassword', 'abi-new-pass-1'); await A.click('#authSignIn');
+  check(await until(A, () => !document.getElementById('partnerApp').hidden && /Book swimming/.test(document.getElementById('partnerApp').innerText), null, 20000), 'P7 partner signs in with the new password: her shared view, as before');
 
   // layout: no sideways scroll anywhere we looked
   const sx = async p => p.evaluate(() => { const el = document.getElementById('partnerApp'); return Math.max(document.documentElement.scrollWidth, el && !el.hidden ? el.scrollWidth : 0) <= innerWidth + 1; });

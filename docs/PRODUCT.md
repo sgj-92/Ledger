@@ -234,7 +234,8 @@ Actions, calendar sharing.
   fallback. The app is required to work with no network and no Firebase config.
 - Ten collections, listed in `PROJECT_LEDGER.md` → Current State.
 - The data is personal: health, food, symptoms, weight, photographs, plans.
-- **Access:** Firebase Authentication (email link) and owner-only Firestore
+- **Access:** Firebase Authentication (email and password; an emailed link as a
+  backup) and owner-only Firestore
   rules (`firestore.rules`, `docs/SECURITY.md`). The client config is public by
   design; the rules, not secrecy, protect the data.
 - **Partner data:** a partner reads only the shared collections, only their

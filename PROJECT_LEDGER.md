@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-07 (sign-in on ledger.sgj.luxe: daily email quota diagnosed, error codes shown, continue URL hardened)
+Last updated: 2026-10-07 (sign-in: email + password is the main way in; email link kept as backup)
 
 ---
 
@@ -295,7 +295,8 @@ notes in `CLAUDE.md` describe Pages only. Vercel doesn't render
 still defaults `APP_URL` to the Pages address.
 
 ### Identity and security
-**Firebase Authentication (passwordless email link) is the identity boundary.**
+**Firebase Authentication is the identity boundary** — email + password first,
+the emailed link as a backup (since 2026-10-07; same accounts, same UIDs).
 Roles live in `ledger_users/{uid}` (`owner` | `partner`), granted in the Firebase
 Console only. Every private `ledger_*` collection is **owner-only** in the
 version-controlled `firestore.rules`; a partner has no access to private
@@ -483,6 +484,20 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-07 — Password first; the email link becomes the backup
+**Decision (Shaun: the link is "too cumbersome" as the main way in):** the sign-in
+screen is email + password ("Sign in"), with "Set or reset your password" and "Email
+me a sign-in link instead" beneath. Both methods belong to Firebase's Email/Password
+provider, so a password is just another way into the same account. UIDs, roles,
+profiles and data are unchanged. A password is set through Firebase's password email
+(which works for link-only accounts) or from Settings → Account → Password (the
+partner: Password at the foot of her page). Google sign-in was considered and not
+chosen: it needs auth-domain proxying to work in Safari and the Home Screen app.
+**Why:** one step on a new device, filled by the phone's password manager, and the
+daily link-email quota stops mattering.
+**Supersedes:** "passwordless email link" as the sign-in method in the 2026-10-06
+identity decision (the identity boundary itself is unchanged).
 
 ### 2026-10-07 — Partner Requests have Updates: a shared history, not a chat
 **Decision (Shaun's Phase 2.5 brief):** every Partner Request has a shared
@@ -1424,6 +1439,9 @@ beyond) starts only on his explicit brief.
 
 ## Recently Completed
 
+- (2026-10-07) — Password sign-in as the main way in (email link as backup):
+  sign-in screen, password email, Settings and partner password sheet; e2e 121
+  checks, including a link-only account gaining a password with the same UID.
 - (2026-10-07) — Sign-in on ledger.sgj.luxe: root cause was the daily email-link
   quota hidden behind "Something went wrong". Errors now named, with the Firebase
   code; continue URL limited to known hosts; e2e covers the quota refusal and a
@@ -1554,8 +1572,9 @@ beyond) starts only on his explicit brief.
 
 ## Next
 
-1. **Shaun:** sign in on ledger.sgj.luxe once the daily email quota resets
-   (or use a link already received), then confirm on each device. Then republish
+1. **Shaun:** on ledger.sgj.luxe, enter your email → "Set or reset your
+   password" → choose one from the email → sign in (once per device; let the phone
+   save it). Abi the same. Then republish
    `firestore.rules` from the Console (Phase 2.5 changed it again), then add Abi
    (`docs/SECURITY.md` → Partner Sharing → Adding Abi) and publish a day to her.
 2. **Shaun:** create the GitHub Project (Open Q7). Configuration is recorded in
