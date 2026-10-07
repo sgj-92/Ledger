@@ -51,7 +51,8 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | `ledger_meta/sharing` | what each publication was chosen to include | owner |
 | `ledger_share_members` | the owner–partner relationship | owner manages own; partner reads own |
 | `ledger_shared_snapshots` | published day and week projections | owner writes own; partner reads own, while active |
-| `ledger_shared_requests` | requests from the partner | partner creates/edits/withdraws own until processed; owner moves them on |
+| `ledger_shared_requests` | requests from the partner | partner creates/edits/withdraws own until processed; owner moves them on; each keeps own read mark |
+| `ledger_shared_request_updates` | a request's Updates (comments and lifecycle entries) | append-only; each side writes only as itself, see below |
 | anything else | — | denied |
 
 ## The app's side
@@ -167,15 +168,42 @@ Her requests stay with Shaun.
   like a generated id. It may edit the wording and timing, or withdraw it, only
   while it is still `requested`. It can never set `ownerUid`, `partnerUid`,
   `linkedActionId`, `plannedDate` or an owner status.
+- **Requests are never deleted.** Withdrawn (partner, while still requested)
+  and dismissed (owner) are states, so a request's history survives. The owner
+  cannot revive a withdrawn request.
+- **Summary and read marks.** The request carries a small summary of its latest
+  update (`latestUpdate*`, `latestComment*`) and each side's `ownerLastReadAt` /
+  `partnerLastReadAt`. Each side may sign the summary only as itself (the owner
+  also as `system`) and may set only its own read mark. The partner may do so at
+  any status, but this never touches the plan, the link or the status.
+- **Updates** (`ledger_shared_request_updates`) are append-only: no edits, no
+  deletes. Every entry must name an existing request of the same relationship
+  (checked against the request itself, not the client's word), be written by the
+  signed-in user (`actorUid`), at the server's time (`createdAt == request.time`),
+  with only the known fields.
+  - The partner (active relationship only) writes `comment` entries, plus the two
+    facts that are hers alone: `request_created` and `withdrawn`. Each of those
+    can be written once, on a fixed id, and only while the request says so. She
+    can never write as the owner or as `system`.
+  - The owner writes `comment` entries as `owner`. Lifecycle entries as `system`
+    (`planned`, `moved`, `status`, `dismissed`) are accepted only when the request
+    itself shows that state (status, planned date, linked Action). The app writes
+    each one in the same transaction as the request change, so none is faked or
+    repeated.
+  - Reads: the owner reads its own; the partner reads her own, only while the
+    relationship is active.
 - Everything else is denied. Partner queries must name `ownerUid` and
-  `partnerUid`. Rules are not filters.
+  `partnerUid` (and, for Updates, `requestId`). Rules are not filters.
 
 ### What crosses the boundary
 
 A projection holds display fields only: per item `publicId`, `section`, `type`,
 `title`, `meta`, `category` (a label), `date`, `status`, `isKeyTask`,
 `sourceLabel`, and `sourceId`. `sourceId` is the private Action id, used only
-to say "Moved to …". What was chosen (the selection) stays private in
+to say "Moved to …". A request's Updates hold only what someone typed for the
+other to read, and lifecycle facts (planned for, moved to, done) derived from the
+request itself. No Action notes, Day Notes or other private text is ever copied
+into them. What was chosen (the selection) stays private in
 `ledger_meta/sharing`. Presets are allow-lists: a section or Action category
 is shared only when named. A new kind of data is therefore not shared until
 someone chooses it. Day Notes and Communications are never offered.

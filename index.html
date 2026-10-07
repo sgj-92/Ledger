@@ -4143,7 +4143,6 @@
   .inbox-head .tsec-title { cursor: default; }
   .ib-list { border-top: 1px solid var(--line); }
   .ib-row { padding: 12px 2px; border-bottom: 1px solid var(--line); }
-  .ib-body { display: flex; flex-direction: column; min-width: 0; }
   .ib-kicker { font-size: 9.5px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(var(--gold-rgb),0.85); margin-bottom: 3px; }
   .ib-title { font-size: 15px; line-height: 1.35; color: var(--text); overflow-wrap: anywhere; }
   .ib-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
@@ -4169,6 +4168,90 @@
     font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--gold);
   }
   body.partner-on .pin-toast { z-index: 1700; bottom: calc(28px + env(safe-area-inset-bottom)); }
+
+
+  /* -- a request, opened: state, then a quiet history, then room to add one more line -- */
+  .rq-head .sheet-title-wrap { min-width: 0; }
+  .rq-kicker { margin: 0 0 4px; font-size: 10px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(var(--gold-rgb),0.85); }
+  .rq-title { overflow-wrap: anywhere; }
+  .rq-state { margin: 2px 0 2px; font-family: var(--serif); font-size: 18px; color: var(--text); }
+  .rq-state.st-done { color: var(--gold); }
+  .rq-state.st-dismissed, .rq-state.st-withdrawn { color: var(--text-2); }
+  .rq-meta { margin: 0 0 var(--sp-3); font-size: 12.5px; line-height: 1.5; color: var(--text-3); overflow-wrap: anywhere; }
+  .rq-meta:empty { display: none; }
+  .rq-act .ib-actions { margin: 0 0 var(--sp-2); }
+  .rq-own { display: flex; gap: 20px; margin: -4px 0 var(--sp-2); }
+  .rq-own:empty { display: none; }
+  .rq-own .btn-link { padding: 4px 0; font-size: 12.5px; color: var(--text-2); }
+  .rq-own .rq-withdraw { color: var(--danger); }
+  .rq-action {
+    display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 10px; width: 100%;
+    margin: 0 0 var(--sp-2); padding: 11px 0; background: none; border: none; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    text-align: left; font-family: var(--sans); color: var(--text); cursor: pointer;
+  }
+  .rq-action:active { opacity: 0.6; }
+  .rq-action-k { grid-column: 1; font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); }
+  .rq-action-t { grid-column: 1; font-size: 14.5px; margin-top: 3px; overflow-wrap: anywhere; }
+  .rq-action-m { grid-column: 1; font-size: 12px; color: var(--text-3); margin-top: 1px; }
+  .rq-action-chev { grid-column: 2; grid-row: 1 / span 3; color: var(--text-3); display: flex; }
+  .rq-action-chev svg { width: 15px; height: 15px; }
+  .rq-upd-title { margin-top: var(--sp-4); margin-bottom: var(--sp-2); }
+  .rq-tl { position: relative; padding: 2px 0 4px 20px; }
+  .rq-tl::before { content: ''; position: absolute; left: 4px; top: 8px; bottom: 10px; width: 1px; background: var(--line-2); }
+  .rq-ev { position: relative; padding: 7px 0; }
+  .rq-ev::before { content: ''; position: absolute; left: -19px; top: 13px; width: 7px; height: 7px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 1.5px var(--line-2); }
+  .rq-ev.human::before { background: rgba(var(--gold-rgb),0.85); box-shadow: 0 0 0 3px var(--surface); }
+  .rq-ev.human.self::before { background: var(--text-3); }
+  .rq-ev.sys.done::before { background: var(--gold); box-shadow: 0 0 0 3px var(--surface); }
+  .rq-ev-head { display: flex; align-items: baseline; gap: 8px; }
+  .rq-who { font-size: 13px; font-weight: 500; color: var(--text); }
+  .rq-when { font-size: 11.5px; color: var(--text-3); white-space: nowrap; }
+  .rq-text { margin: 3px 0 0; font-size: 15px; line-height: 1.45; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .rq-ev.sys { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; padding: 5px 0; }
+  .rq-sys { font-size: 12.5px; color: var(--text-2); }
+  .rq-ev.sys.done .rq-sys { color: var(--gold); }
+  .rq-empty { margin: 4px 0 8px; font-size: 13px; color: var(--text-3); }
+  .rq-tl .rq-empty { margin-left: -20px; }
+  .rq-compose {
+    position: sticky; z-index: 3; bottom: calc(-24px - env(safe-area-inset-bottom));
+    display: flex; align-items: flex-end; gap: 10px;
+    margin: var(--sp-4) -22px calc(-24px - env(safe-area-inset-bottom));
+    padding: 10px 22px calc(10px + env(safe-area-inset-bottom));
+    background: var(--surface); border-top: 1px solid var(--line);
+  }
+  .rq-compose textarea {
+    flex: 1; min-width: 0; box-sizing: border-box; min-height: 42px; max-height: 140px; padding: 10px 14px;
+    border-radius: 21px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text);
+    font-family: var(--sans); font-size: 16px; line-height: 1.35; resize: none; outline: none;
+  }
+  .rq-compose textarea:focus { border-color: rgba(var(--gold-rgb),0.5); }
+  .rq-send {
+    flex-shrink: 0; height: 42px; padding: 0 16px; border: none; border-radius: 21px; cursor: pointer;
+    background: var(--gold); color: var(--ink); font-family: var(--sans); font-size: 13.5px; font-weight: 600;
+    transition: opacity 0.15s ease;
+  }
+  .rq-send:disabled { opacity: 0.35; cursor: default; }
+  .rq-origin { display: flex; align-items: center; gap: 4px; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--sans); text-align: left; }
+  .rq-origin svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .rq-list { border-top: 1px solid var(--line); }
+  .rq-li { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 0; border: none; border-bottom: 1px solid var(--line); background: none; text-align: left; cursor: pointer; font-family: var(--sans); color: var(--text); }
+  .rq-li:active { opacity: 0.6; }
+  .rq-li-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .rq-li-t { font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; }
+  .rq-li-m { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .rq-li-m.unread, .pp-row-meta.unread { color: var(--gold); }
+  .rq-li-chev { color: var(--text-3); display: flex; }
+  .rq-li-chev svg { width: 15px; height: 15px; }
+  .ib-body { display: flex; flex-direction: column; min-width: 0; width: 100%; padding: 0; background: none; border: none; text-align: left; cursor: pointer; font-family: var(--sans); color: inherit; }
+  .ib-body:active { opacity: 0.6; }
+  .ib-quote { font-family: var(--serif); font-style: italic; font-size: 14px; line-height: 1.4; color: var(--text); margin-top: 4px; overflow-wrap: anywhere; }
+  .ib-body .ib-meta { margin-top: 4px; }
+  .ib-update .ib-kicker { color: var(--gold); }
+  #ppSheet .rq-compose textarea { font-size: 16px; }
+  .pp-req.rq-in_progress .pp-dot { background: linear-gradient(90deg, rgba(var(--gold-rgb),0.6) 50%, transparent 50%); }
+  .pp-req.rq-withdrawn .pp-row-title { color: var(--text-2); }
+  .pp-req.rq-withdrawn .pp-dot { border-style: dashed; border-color: var(--line-2); }
+  .pp-req.rq-withdrawn .pp-pill { color: var(--text-3); background: none; }
 
   /* -- the partner's Ledger -- */
   .partner-app {
@@ -7573,7 +7656,9 @@
         if (orig && orig !== existing.date){
           html += '<p class="commit-origin-note">' + addedLabel(orig) + '</p>';
         }
-        if (existing.sourceType === 'partner_request') html += '<p class="commit-origin-note" id="commitSourceNote"></p>';
+        if (existing.sourceType === 'partner_request') html += (shareOn() && sharedRequests.some(function(x){ return x.id === existing.sourceRequestId; })
+          ? '<button type="button" class="commit-origin-note rq-origin" id="commitSourceNote"><span></span>' + UI_ICON.chevronRight + '</button>'
+          : '<p class="commit-origin-note" id="commitSourceNote"></p>');
         html += '<div class="field"><label>Status</label><div class="status-btn-grid" id="commitStatusGrid">' +
           ['completed','partial','disrupted','not_done'].map(function(s){
             return '<button type="button" class="status-btn' + (statusVal===s?' sel '+s:'') + '" data-s="' + s + '">' + COMMITMENT_STATUS_LABEL[s] + '</button>';
@@ -7638,7 +7723,13 @@
 
     sheetEl.innerHTML = buildHtml();
     var srcNote = document.getElementById('commitSourceNote');
-    if (srcNote) srcNote.textContent = 'From ' + (existing.sourceLabel || 'your partner') + (existing.sourceNote ? ' · “' + existing.sourceNote + '”' : '');
+    if (srcNote){
+      var srcText = 'From ' + (existing.sourceLabel || 'your partner') + (existing.sourceNote ? ' · “' + existing.sourceNote + '”' : '');
+      if (srcNote.tagName === 'BUTTON'){
+        srcNote.querySelector('span').textContent = srcText + ' · Updates';
+        srcNote.addEventListener('click', function(){ openRequestDetailSheet(existing.sourceRequestId); });
+      } else srcNote.textContent = srcText;
+    }
     backdrop.classList.add('open');
     wireSheet();
 
@@ -10704,10 +10795,6 @@
   }
 
   // ---- requests: the partner asks; the owner decides, here, on purpose ----
-  function inboxRequests(){
-    return sharedRequests.filter(function(r){ return r.status === 'requested'; })
-      .sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1; });
-  }
   function weekdayName(dateStr){ return toLocalDate(dateStr).toLocaleDateString(undefined, { weekday: 'long' }); }
   function requestTimingLabel(r){
     if (r.requestedTiming === 'today') return fmtDate(new Date(r.createdAt || Date.now())) === todayStr() ? 'For today' : 'For ' + shortDayLabel(fmtDate(new Date(r.createdAt)));
@@ -10726,52 +10813,389 @@
     return today;
   }
   function requestRef(id){ return dbRef.collection('ledger_shared_requests').doc(id); }
-  // Accepting makes ONE ordinary Action, marked with where it came from, and tells the
-  // request where it went. Nothing about the request becomes a category.
-  function acceptRequest(r, dateStr){
-    if (r.linkedActionId && commitments.some(function(c){ return c.id === r.linkedActionId; })) return Promise.resolve();
-    var m = shareMembers.find(function(x){ return x.partnerUid === r.partnerUid; });
-    var extra = { category: 'family', sourceType: 'partner_request', sourceRequestId: r.id, sourceLabel: partnerName(m) };
-    if (r.note) extra.sourceNote = r.note;
-    var a = createQuickAction(dateStr, r.text, extra);
-    var now = new Date().toISOString();
-    return requestRef(r.id).update({ status: 'planned', plannedDate: dateStr, linkedActionId: a.id, updatedAt: now, processedAt: now })
-      .then(function(){ showPinToast('Planned for ' + (dateStr === todayStr() ? 'today' : shortDayLabel(dateStr)), false, CHECK_SVG); })
-      .catch(function(e){ console.error('request accept failed', e); showPinToast('Couldn’t update the request — try again.', true); });
+  function rqMember(r){ return shareMembers.find(function(x){ return x.partnerUid === r.partnerUid; }) || null; }
+  // a day as people say it: today, tomorrow, Thursday — or the date, once it is further off
+  function rqDayWord(dateStr){
+    if (!dateStr) return '';
+    var t = todayStr(), diff = Math.round((toLocalDate(dateStr) - toLocalDate(t)) / 86400000);
+    if (diff === 0) return 'today';
+    if (diff === 1) return 'tomorrow';
+    if (diff === -1) return 'yesterday';
+    if (diff > 1 && diff < 7) return weekdayName(dateStr);
+    return shortDayLabel(dateStr);
   }
-  function dismissRequest(r){
-    var now = new Date().toISOString();
-    requestRef(r.id).update({ status: 'dismissed', updatedAt: now, processedAt: now }).then(function(){
-      showActionToast('Set aside', 'Undo', function(){
-        requestRef(r.id).update({ status: 'requested', updatedAt: new Date().toISOString(), processedAt: null }).catch(function(){});
+  // the request's one current state; the Updates carry the nuance
+  function rqStatusLabel(r){
+    if (r.status === 'done') return 'Done ✓';
+    if (r.status === 'dismissed') return 'Set aside';
+    if (r.status === 'withdrawn') return 'Withdrawn';
+    if (r.status === 'in_progress') return 'In progress';
+    if (r.status === 'planned'){
+      var d = r.plannedDate;
+      if (!d) return 'Planned';
+      if (d < todayStr()) return 'On the list';
+      var w = rqDayWord(d);
+      return 'Planned ' + w;
+    }
+    return 'Requested';
+  }
+  function rqStatusClass(r){ return ['requested', 'planned', 'in_progress', 'done', 'dismissed', 'withdrawn'].indexOf(r.status) > -1 ? r.status : 'requested'; }
+
+  // ============ Partner Requests: Updates ============
+  // Each request has a short shared history in ledger_shared_request_updates: what either
+  // side said (comments) and what happened (asked, planned, moved, status, set aside,
+  // withdrawn). It is context, never work: nothing here changes an Action, and nothing
+  // private ever flows into it — an update is only ever text someone typed for the other
+  // to read, or a fact about the request itself. The request keeps a small summary of the
+  // latest update and each side's "read up to", so lists never load the history.
+  var RQ_UPD = 'ledger_shared_request_updates';
+  var rqTimelineStop = null;
+  var rqDetailRefresh = null;
+  function rqUpdatesQuery(r){
+    return dbRef.collection(RQ_UPD).where('requestId', '==', r.id).where('ownerUid', '==', r.ownerUid).where('partnerUid', '==', r.partnerUid);
+  }
+  function rqEvent(r, type, role, text, meta){
+    return { requestId: r.id, ownerUid: r.ownerUid, partnerUid: r.partnerUid, type: type, actorUid: authUser.uid, actorRole: role,
+      text: text || null, createdAt: firebase.firestore.FieldValue.serverTimestamp(), metadata: meta || {} };
+  }
+  function rqSummary(role, type, text, at){
+    var s = { latestUpdateAt: at, latestUpdateBy: role, latestUpdateType: type };
+    if (type === 'comment'){ s.latestCommentAt = at; s.latestCommentBy = role; s.latestCommentText = text; }
+    return s;
+  }
+  // something the other side said that this side has not opened yet
+  function rqUnread(r, role){
+    var other = role === 'owner' ? 'partner' : 'owner';
+    return r.latestCommentBy === other && (r.latestCommentAt || '') > (r[role + 'LastReadAt'] || '');
+  }
+  function rqMarkRead(r, role){
+    if (!r || !rqUnread(r, role)) return;
+    var at = new Date().toISOString();
+    if ((r.latestCommentAt || '') > at) at = r.latestCommentAt;   // another device's clock may run ahead
+    var patch = {}; patch[role + 'LastReadAt'] = at;
+    r[role + 'LastReadAt'] = at;
+    requestRef(r.id).update(patch).catch(function(e){ console.warn('mark read failed', e && e.code); });
+  }
+  function rqAgo(iso){
+    var mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm';
+    if (mins < 24 * 60) return Math.round(mins / 60) + 'h';
+    var d = fmtDate(new Date(iso));
+    return d === yesterdayStr() ? 'yesterday' : shortDayLabel(d);
+  }
+  function rqWhen(date){
+    var day = fmtDate(date), t = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    if (day === todayStr()) return 'Today, ' + t;
+    if (day === yesterdayStr()) return 'Yesterday, ' + t;
+    var diff = Math.round((toLocalDate(todayStr()) - toLocalDate(day)) / 86400000);
+    if (diff > 0 && diff < 7) return date.toLocaleDateString(undefined, { weekday: 'short' }) + ', ' + t;
+    return shortDayLabel(day) + ', ' + t;
+  }
+  // what happened, said from the facts recorded — never stored prose
+  function rqEventText(e, names, selfRole){
+    var m = e.metadata || {};
+    if (e.type === 'request_created') return selfRole === 'partner' ? 'You asked' : 'Asked by ' + names.partner;
+    if (e.type === 'planned') return 'Planned for ' + rqDayWord(m.toDate);
+    if (e.type === 'moved') return 'Moved to ' + rqDayWord(m.toDate);
+    if (e.type === 'dismissed') return 'Set aside';
+    if (e.type === 'withdrawn') return selfRole === 'partner' ? 'You withdrew it' : 'Withdrawn by ' + names.partner;
+    if (e.type === 'status'){
+      if (m.status === 'done') return 'Done ✓';
+      if (m.status === 'in_progress') return 'In progress';
+      if (m.status === 'planned') return 'Reopened';
+      if (m.status === 'requested') return 'Back to requested';
+    }
+    return 'Updated';
+  }
+  // one timeline renderer for both sides: a quiet rail, people above facts
+  function rqRenderTimeline(el, evs, names, selfRole){
+    el.innerHTML = '';
+    if (!evs.length){
+      var empty = document.createElement('p'); empty.className = 'rq-empty'; empty.textContent = 'No updates yet';
+      el.appendChild(empty); return;
+    }
+    evs.forEach(function(e){
+      var item = document.createElement('div');
+      var when = document.createElement('span'); when.className = 'rq-when'; when.textContent = rqWhen(e.at);
+      if (e.type === 'comment'){
+        item.className = 'rq-ev human' + (e.actorRole === selfRole ? ' self' : '');
+        var head = document.createElement('div'); head.className = 'rq-ev-head';
+        var who = document.createElement('span'); who.className = 'rq-who';
+        who.textContent = e.actorRole === selfRole ? 'You' : (e.actorRole === 'owner' ? names.owner : names.partner);
+        head.appendChild(who); head.appendChild(when);
+        var p = document.createElement('p'); p.className = 'rq-text'; p.textContent = e.text || '';
+        item.appendChild(head); item.appendChild(p);
+      } else {
+        item.className = 'rq-ev sys' + (e.type === 'status' && (e.metadata || {}).status === 'done' ? ' done' : '');
+        var s = document.createElement('span'); s.className = 'rq-sys'; s.textContent = rqEventText(e, names, selfRole);
+        item.appendChild(s); item.appendChild(when);
+      }
+      el.appendChild(item);
+    });
+  }
+  // the history loads only while a request is open, and stops when it closes
+  function rqWatchTimeline(r, names, el, selfRole, onChange){
+    if (rqTimelineStop){ rqTimelineStop(); rqTimelineStop = null; }
+    var stop = rqUpdatesQuery(r).onSnapshot(function(snap){
+      var shown = document.body.contains(el) && !!el.closest('.sheet-backdrop.open');
+      if (!shown){ stop(); if (rqTimelineStop === stop) rqTimelineStop = null; return; }
+      var evs = snap.docs.map(function(d){
+        var x = d.data({ serverTimestamps: 'estimate' }) || {};
+        x.at = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date();
+        return x;
+      }).sort(function(a, b){ return (a.at - b.at) || (((a.metadata || {}).order || 0) - ((b.metadata || {}).order || 0)); });
+      rqRenderTimeline(el, evs, names, selfRole);
+      if (onChange) onChange();
+    }, function(err){
+      console.warn('updates unavailable', err && err.code);
+      if (document.body.contains(el)){ el.innerHTML = ''; var p = document.createElement('p'); p.className = 'rq-empty'; p.textContent = 'Updates aren’t available right now.'; el.appendChild(p); }
+    });
+    rqTimelineStop = stop;
+  }
+  // a closed request stops listening to its history at once
+  function rqStopDetail(){
+    if (rqTimelineStop){ rqTimelineStop(); rqTimelineStop = null; }
+    rqDetailRefresh = null;
+    ppDetailRefresh = null;
+  }
+  function rqComposerHtml(){
+    return '<div class="rq-compose">' +
+      '<textarea id="rqText" rows="1" maxlength="500" aria-label="Add an update"></textarea>' +
+      '<button type="button" class="rq-send" id="rqSend" disabled>Send</button>' +
+    '</div>';
+  }
+  // one shared update: the entry, and the request's summary of it, in one write
+  function rqSendComment(r, role, text){
+    var now = new Date().toISOString(), b = dbRef.batch();
+    b.set(dbRef.collection(RQ_UPD).doc(), rqEvent(r, 'comment', role, text, {}));
+    var s = rqSummary(role, 'comment', text, now);
+    s[role + 'LastReadAt'] = now;
+    b.update(requestRef(r.id), s);
+    return b.commit();
+  }
+  function rqWireComposer(root, getReq, role, placeholder){
+    var ta = root.querySelector('#rqText'), send = root.querySelector('#rqSend');
+    ta.placeholder = placeholder;
+    function size(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 140) + 'px'; }
+    ta.addEventListener('input', function(){ send.disabled = !ta.value.trim(); size(); });
+    send.addEventListener('click', function(){
+      var text = ta.value.trim(), r = getReq();
+      if (!text || !r) return;
+      send.disabled = true; ta.disabled = true;
+      rqSendComment(r, role, text.slice(0, 500)).then(function(){
+        ta.value = ''; ta.disabled = false; size();
+      }).catch(function(e){
+        console.error('update failed', e); ta.disabled = false; send.disabled = false;
+        showPinToast('Couldn’t send the update — try again.', true);
       });
-    }).catch(function(e){ console.error(e); showPinToast('Couldn’t update the request — try again.', true); });
+    });
   }
-  // The request follows its Action: done when it is done, its day when it moves. An Action
+
+  // Accepting makes ONE ordinary Action, marked with where it came from, and tells the
+  // request where it went — together, in one transaction that first checks the request
+  // is still waiting, so two devices (or two taps) can never make two Actions.
+  function acceptRequest(r, dateStr){
+    if (!dbReady){ showPinToast('You’re offline — try again when you’re connected.', true); return Promise.resolve(); }
+    var m = rqMember(r), now = new Date().toISOString(), aid = uid();
+    var item = { date: dateStr, originalDate: dateStr, title: r.text, priorityId: null, minVersion: null, status: 'planned',
+      disruptionReason: null, category: 'family', createdAt: now,
+      sourceType: 'partner_request', sourceRequestId: r.id, sourceLabel: partnerName(m) };
+    if (r.note) item.sourceNote = r.note;
+    var ref = requestRef(r.id);
+    return dbRef.runTransaction(function(tx){
+      return tx.get(ref).then(function(snap){
+        var cur = snap.exists ? Object.assign({ id: r.id }, snap.data()) : null;
+        if (!cur || cur.status !== 'requested') throw { code: 'already-processed' };
+        tx.set(dbRef.collection('ledger_commitments').doc(aid), item);
+        tx.update(ref, Object.assign({ status: 'planned', plannedDate: dateStr, linkedActionId: aid, updatedAt: now, processedAt: now },
+          rqSummary('system', 'planned', null, now)));
+        tx.set(dbRef.collection(RQ_UPD).doc(), rqEvent(cur, 'planned', 'system', null, { toDate: dateStr }));
+      });
+    }).then(function(){
+      showPinToast('Planned for ' + rqDayWord(dateStr), false, CHECK_SVG);
+    }).catch(function(e){
+      if (e && e.code === 'already-processed') return;
+      console.error('request accept failed', e); showPinToast('Couldn’t plan the request — try again.', true);
+    });
+  }
+  // Dismissing waits for its Undo before anything is written, so an undone dismissal
+  // leaves no trace in the shared history.
+  var rqPendingDismiss = {};
+  function dismissRequest(r){
+    if (rqPendingDismiss[r.id]) return;
+    rqPendingDismiss[r.id] = setTimeout(function(){ rqCommitDismiss(r.id); }, 5200);
+    renderInboxSection();
+    if (rqDetailRefresh) rqDetailRefresh();
+    showActionToast('Set aside', 'Undo', function(){
+      clearTimeout(rqPendingDismiss[r.id]); delete rqPendingDismiss[r.id];
+      renderInboxSection();
+      if (rqDetailRefresh) rqDetailRefresh();
+    });
+  }
+  function rqCommitDismiss(id){
+    clearTimeout(rqPendingDismiss[id]);
+    var ref = requestRef(id), now = new Date().toISOString();
+    return dbRef.runTransaction(function(tx){
+      return tx.get(ref).then(function(snap){
+        if (!snap.exists || snap.data().status !== 'requested') return;
+        tx.update(ref, Object.assign({ status: 'dismissed', updatedAt: now, processedAt: now }, rqSummary('system', 'dismissed', null, now)));
+        tx.set(dbRef.collection(RQ_UPD).doc(), rqEvent(Object.assign({ id: id }, snap.data()), 'dismissed', 'system', null, {}));
+      });
+    }).catch(function(e){ console.error('dismiss failed', e); showPinToast('Couldn’t set it aside — try again.', true); })
+      .then(function(){ delete rqPendingDismiss[id]; renderInboxSection(); });
+  }
+  // a dismissal waiting on its Undo is written before the page goes away
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'hidden') Object.keys(rqPendingDismiss).forEach(rqCommitDismiss);
+  });
+
+  // The request follows its Action: in progress, done, its day when it moves. An Action
   // that no longer exists never reads as done — the request goes back to the Inbox.
   // Another device's new Action can arrive after the request that links to it (they are
   // separate listeners), so a missing Action counts as deleted only once this device has
   // seen it exist, or when the link is old enough that it cannot still be on its way.
+  // Each change and its Updates entry are written in one transaction that re-reads the
+  // request first: a change already recorded (by a re-render, or another device) is
+  // never recorded twice. Category, key task and Flow order are private and never logged.
   var shareSeenActions = {};
+  var rqSyncing = {};
+  function rqActionStatus(a){ return a.status === 'completed' ? 'done' : (a.status === 'partial' ? 'in_progress' : 'planned'); }
+  function rqLinkedMissingSettled(r){
+    return shareSeenActions[r.linkedActionId] || !r.processedAt || Date.now() - new Date(r.processedAt).getTime() > 120000;
+  }
+  // what the request should now say, and the entries that say what happened
+  function rqWanted(cur, a){
+    var events = [], patch = {};
+    if (!a){
+      patch = { status: 'requested', plannedDate: null, linkedActionId: null };
+      events.push(['status', { status: 'requested', fromDate: cur.plannedDate || null }]);
+    } else {
+      if (a.date !== cur.plannedDate){ patch.plannedDate = a.date; events.push(['moved', { fromDate: cur.plannedDate || null, toDate: a.date }]); }
+      var st = rqActionStatus(a);
+      if (st !== cur.status){ patch.status = st; events.push(['status', { status: st }]); }
+    }
+    return events.length ? { patch: patch, events: events } : null;
+  }
   function reconcileRequests(){
     if (!shareOn() || !dbReady || !shareLoaded.requests || !czLoaded.commitments) return;
     commitments.forEach(function(c){ shareSeenActions[c.id] = true; });
     sharedRequests.forEach(function(r){
-      if (!r.linkedActionId || (r.status !== 'planned' && r.status !== 'done')) return;
+      if (!r.linkedActionId || ['planned', 'in_progress', 'done'].indexOf(r.status) === -1 || rqSyncing[r.id]) return;
       var a = commitments.find(function(c){ return c.id === r.linkedActionId; });
-      var patch = null;
-      if (!a){
-        var settled = !r.processedAt || Date.now() - new Date(r.processedAt).getTime() > 120000;
-        if (!shareSeenActions[r.linkedActionId] && !settled) return;
-        patch = { status: 'requested', plannedDate: null, linkedActionId: null };
-      }
-      else if (a.status === 'completed' && r.status !== 'done') patch = { status: 'done', plannedDate: a.date };
-      else if (a.status !== 'completed' && r.status === 'done') patch = { status: 'planned', plannedDate: a.date };
-      else if (a.date !== r.plannedDate) patch = { plannedDate: a.date };
-      if (!patch) return;
-      patch.updatedAt = new Date().toISOString();
-      Object.assign(r, patch);   // so a second pass before the snapshot returns does not repeat it
-      requestRef(r.id).update(patch).catch(function(e){ console.error('request sync failed', e); });
+      if (!a && !rqLinkedMissingSettled(r)) return;
+      if (!rqWanted(r, a)) return;
+      rqSyncing[r.id] = true;
+      rqApplySync(r.id).catch(function(e){ console.error('request sync failed', e); })
+        .then(function(){ delete rqSyncing[r.id]; });
+    });
+  }
+  function rqApplySync(id){
+    var ref = requestRef(id);
+    return dbRef.runTransaction(function(tx){
+      return tx.get(ref).then(function(snap){
+        if (!snap.exists) return;
+        var cur = Object.assign({ id: id }, snap.data());
+        if (!cur.linkedActionId || ['planned', 'in_progress', 'done'].indexOf(cur.status) === -1) return;
+        var a = commitments.find(function(c){ return c.id === cur.linkedActionId; });
+        if (!a && !rqLinkedMissingSettled(cur)) return;
+        var w = rqWanted(cur, a);
+        if (!w) return;
+        var now = new Date().toISOString(), last = w.events[w.events.length - 1][0];
+        tx.update(ref, Object.assign({}, w.patch, { updatedAt: now }, rqSummary('system', last, null, now)));
+        w.events.forEach(function(e, i){
+          tx.set(dbRef.collection(RQ_UPD).doc(), rqEvent(cur, e[0], 'system', null, Object.assign({ order: i }, e[1])));
+        });
+      });
+    });
+  }
+
+  // ---- the request, opened: where it stands, what happened, and room to say more ----
+  function openRequestDetailSheet(reqId){
+    activeSheetRefresh = null;
+    editingId = null;
+    var r0 = sharedRequests.find(function(x){ return x.id === reqId; });
+    if (!r0) return;
+    var m = rqMember(r0), names = { owner: 'You', partner: partnerName(m) };
+    function cur(){ return sharedRequests.find(function(x){ return x.id === reqId; }) || null; }
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      '<div class="sheet-head rq-head"><div class="sheet-title-wrap">' +
+        '<p class="rq-kicker" id="rqKicker"></p><div class="sheet-title rq-title" id="rqTitle"></div>' +
+      '</div><button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<p class="rq-state" id="rqState"></p>' +
+      '<p class="rq-meta" id="rqMeta"></p>' +
+      '<div class="rq-act" id="rqAct"></div>' +
+      '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
+      '<div class="rq-tl" id="rqTimeline"><p class="rq-empty">Loading…</p></div>' +
+      rqComposerHtml();
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    var sheetMark = sheetEl.querySelector('#rqState');
+    function open(){ return backdrop.classList.contains('open') && sheetEl.contains(sheetMark); }
+    function paint(){
+      var r = cur();
+      if (!r || !open()) return false;
+      document.getElementById('rqKicker').textContent = 'From ' + names.partner;
+      document.getElementById('rqTitle').textContent = r.text;
+      var stEl = document.getElementById('rqState');
+      stEl.textContent = rqPendingDismiss[r.id] ? 'Set aside' : rqStatusLabel(r);
+      stEl.className = 'rq-state st-' + rqStatusClass(r);
+      document.getElementById('rqMeta').textContent = [requestedWhenLabel(r), requestTimingLabel(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ');
+      var act = document.getElementById('rqAct');
+      var a = r.linkedActionId ? commitments.find(function(c){ return c.id === r.linkedActionId; }) : null;
+      if (r.status === 'requested' && !rqPendingDismiss[r.id]){
+        act.innerHTML = '<div class="ib-actions">' +
+          '<button type="button" class="bk-btn gold" id="rqToday">' + BK_PLUS_SVG + 'Today</button>' +
+          '<button type="button" class="bk-btn" id="rqDay">' + UI_ICON.calendar + 'Choose day</button>' +
+          '<button type="button" class="bk-btn ib-dismiss" id="rqDismiss">Dismiss</button></div>';
+        document.getElementById('rqToday').addEventListener('click', function(){ acceptRequest(cur(), todayStr()); });
+        document.getElementById('rqDay').addEventListener('click', function(){ openRequestDaySheet(cur()); });
+        document.getElementById('rqDismiss').addEventListener('click', function(){ dismissRequest(cur()); });
+      } else if (a){
+        // the Action itself stays private: its title and state, and a way into it
+        act.innerHTML = '<button type="button" class="rq-action" id="rqAction">' +
+          '<span class="rq-action-k">Your action</span>' +
+          '<span class="rq-action-t"></span><span class="rq-action-m"></span>' +
+          '<span class="rq-action-chev">' + UI_ICON.chevronRight + '</span></button>';
+        act.querySelector('.rq-action-t').textContent = a.title;
+        act.querySelector('.rq-action-m').textContent = (a.status === 'completed' ? 'Done' : (a.status === 'partial' ? 'In progress' : 'Planned')) + ' · ' + shortDayLabel(a.date);
+        document.getElementById('rqAction').addEventListener('click', function(){ openCommitmentSheet(a); });
+      } else act.innerHTML = '';
+      return true;
+    }
+    paint();
+    rqDetailRefresh = function(){
+      if (!paint()){ rqDetailRefresh = null; return; }
+      rqMarkRead(cur(), 'owner');
+    };
+    rqWatchTimeline(r0, names, document.getElementById('rqTimeline'), 'owner', function(){ if (open()) rqMarkRead(cur(), 'owner'); });
+    rqWireComposer(sheetEl, cur, 'owner', 'Add an update for ' + names.partner + '…');
+    rqMarkRead(r0, 'owner');
+  }
+  // every request, newest first — the history a processed request lives in
+  function openRequestsListSheet(){
+    activeSheetRefresh = null;
+    editingId = null;
+    var list = sharedRequests.slice().sort(function(a, b){
+      var ka = a.latestUpdateAt || a.createdAt || '', kb = b.latestUpdateAt || b.createdAt || '';
+      return ka < kb ? 1 : -1;
+    });
+    var m = shareMember();
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' + sheetHead('', 'Requests', '', '') +
+      (list.length ? '<div class="rq-list">' + list.map(function(r, i){
+        return '<button type="button" class="rq-li" data-rq-li="' + i + '">' +
+          '<span class="rq-li-body"><span class="rq-li-t"></span><span class="rq-li-m"></span></span>' +
+          '<span class="rq-li-chev">' + UI_ICON.chevronRight + '</span></button>';
+      }).join('') + '</div>' : '<p class="rq-empty">No requests yet</p>');
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    list.forEach(function(r, i){
+      var row = sheetEl.querySelector('[data-rq-li="' + i + '"]');
+      row.querySelector('.rq-li-t').textContent = r.text;
+      var meta = row.querySelector('.rq-li-m');
+      if (rqUnread(r, 'owner')){ meta.textContent = partnerName(m) + ' updated · ' + rqAgo(r.latestCommentAt); meta.classList.add('unread'); }
+      else meta.textContent = rqStatusLabel(r);
+      row.addEventListener('click', function(){ openRequestDetailSheet(r.id); });
     });
   }
 
@@ -10799,56 +11223,77 @@
     }, refused('publications'));
   }
   // anything the owner's records change may change a projection or a request
-  function sharingSourcesChanged(){ reconcileRequests(); scheduleShareSync(); }
+  function sharingSourcesChanged(){ reconcileRequests(); scheduleShareSync(); if (rqDetailRefresh) rqDetailRefresh(); }
   function sharingChanged(){
     renderInboxSection();
+    if (rqDetailRefresh) rqDetailRefresh();
     renderShareLiveLine();
     renderSharingSettings();
     scheduleShareSync();
     if (shareSheetRefresh) shareSheetRefresh();
   }
 
-  // ---- Today: the Inbox — what the partner asked for, not yet decided ----
+  // ---- Today: the Inbox — what the partner asked for or said, not yet looked at ----
+  // Two kinds, one row per request: a new request (with anything added to it since), and
+  // a request already planned that has a new update from the partner. An update is
+  // context, never another task.
+  function inboxItems(){
+    var fresh = sharedRequests.filter(function(r){ return r.status === 'requested' && !rqPendingDismiss[r.id]; })
+      .sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1; });
+    var updated = sharedRequests.filter(function(r){ return r.status !== 'requested' && r.status !== 'withdrawn' && rqUnread(r, 'owner'); })
+      .sort(function(a, b){ return (a.latestCommentAt || '') < (b.latestCommentAt || '') ? 1 : -1; });
+    return fresh.map(function(r){ return { r: r, kind: 'new' }; }).concat(updated.map(function(r){ return { r: r, kind: 'update' }; }));
+  }
   function renderInboxSection(){
     var wrap = document.getElementById('inboxSection');
     if (!wrap) return;
-    var items = shareOn() && viewedDate === todayStr() ? inboxRequests() : [];
+    var items = shareOn() && viewedDate === todayStr() ? inboxItems() : [];
     if (!items.length){ wrap.innerHTML = ''; return; }
     wrap.innerHTML =
       '<div class="tsec inbox-head"><span class="tsec-title">Inbox</span><span class="tsec-status">' + items.length + '</span></div>' +
-      '<div class="ib-list">' + items.map(function(r, i){
-        return '<div class="ib-row" data-ib-row="' + i + '">' +
-          '<div class="ib-body">' +
+      '<div class="ib-list">' + items.map(function(it, i){
+        var r = it.r, upd = it.kind === 'update' || rqUnread(r, 'owner');
+        return '<div class="ib-row' + (it.kind === 'update' ? ' ib-update' : '') + '" data-ib-row="' + i + '">' +
+          '<button type="button" class="ib-body" data-ib-open="' + i + '">' +
             '<span class="ib-kicker"></span>' +
             '<span class="ib-title"></span>' +
+            (upd && r.latestCommentText ? '<span class="ib-quote"></span>' : (r.note ? '<span class="ib-note"></span>' : '')) +
             '<span class="ib-meta"></span>' +
-            (r.note ? '<span class="ib-note"></span>' : '') +
-          '</div>' +
+          '</button>' +
           '<div class="ib-actions">' +
-            '<button type="button" class="bk-btn gold" data-ib-today="' + i + '">' + BK_PLUS_SVG + 'Today</button>' +
-            '<button type="button" class="bk-btn" data-ib-day="' + i + '">' + UI_ICON.calendar + 'Choose day</button>' +
-            '<button type="button" class="bk-btn ib-dismiss" data-ib-dismiss="' + i + '">Dismiss</button>' +
+            (it.kind === 'update'
+              ? '<button type="button" class="bk-btn gold" data-ib-open="' + i + '">Review</button>'
+              : '<button type="button" class="bk-btn gold" data-ib-today="' + i + '">' + BK_PLUS_SVG + 'Today</button>' +
+                '<button type="button" class="bk-btn" data-ib-day="' + i + '">' + UI_ICON.calendar + 'Choose day</button>' +
+                '<button type="button" class="bk-btn ib-dismiss" data-ib-dismiss="' + i + '">Dismiss</button>') +
           '</div>' +
         '</div>';
       }).join('') + '</div>';
     // ids are the partner's to choose, so rows are found by position, never by id in markup
-    items.forEach(function(r, i){
-      var row = wrap.querySelector('[data-ib-row="' + i + '"]');
-      var m = shareMembers.find(function(x){ return x.partnerUid === r.partnerUid; });
-      row.querySelector('.ib-kicker').textContent = 'From ' + partnerName(m);
+    items.forEach(function(it, i){
+      var r = it.r, row = wrap.querySelector('[data-ib-row="' + i + '"]');
+      var name = partnerName(rqMember(r));
+      row.querySelector('.ib-kicker').textContent = (it.kind === 'update' ? 'Update from ' : 'From ') + name;
       row.querySelector('.ib-title').textContent = r.text;
-      row.querySelector('.ib-meta').textContent = [requestedWhenLabel(r), requestTimingLabel(r)].filter(Boolean).join(' · ');
+      var q = row.querySelector('.ib-quote');
+      if (q) q.textContent = '“' + r.latestCommentText + '”';
       var note = row.querySelector('.ib-note');
       if (note) note.textContent = '“' + r.note + '”';
+      row.querySelector('.ib-meta').textContent = it.kind === 'update'
+        ? [name + ' updated · ' + rqAgo(r.latestCommentAt), rqStatusLabel(r)].join(' · ')
+        : [requestedWhenLabel(r), requestTimingLabel(r)].concat(rqUnread(r, 'owner') ? [name + ' updated · ' + rqAgo(r.latestCommentAt)] : []).filter(Boolean).join(' · ');
+    });
+    wrap.querySelectorAll('[data-ib-open]').forEach(function(b){
+      b.addEventListener('click', function(){ var it = items[Number(b.dataset.ibOpen)]; if (it) openRequestDetailSheet(it.r.id); });
     });
     wrap.querySelectorAll('[data-ib-today]').forEach(function(b){
-      b.addEventListener('click', function(){ var r = items[Number(b.dataset.ibToday)]; if (r) acceptRequest(r, todayStr()); });
+      b.addEventListener('click', function(){ var it = items[Number(b.dataset.ibToday)]; if (it) acceptRequest(it.r, todayStr()); });
     });
     wrap.querySelectorAll('[data-ib-day]').forEach(function(b){
-      b.addEventListener('click', function(){ var r = items[Number(b.dataset.ibDay)]; if (r) openRequestDaySheet(r); });
+      b.addEventListener('click', function(){ var it = items[Number(b.dataset.ibDay)]; if (it) openRequestDaySheet(it.r); });
     });
     wrap.querySelectorAll('[data-ib-dismiss]').forEach(function(b){
-      b.addEventListener('click', function(){ var r = items[Number(b.dataset.ibDismiss)]; if (r) dismissRequest(r); });
+      b.addEventListener('click', function(){ var it = items[Number(b.dataset.ibDismiss)]; if (it) dismissRequest(it.r); });
     });
   }
   function openRequestDaySheet(r){
@@ -10943,6 +11388,10 @@
             return '<button type="button" class="bk-filter-chip' + (key === cp ? ' sel' : '') + '" role="radio" aria-checked="' + (key === cp) + '" data-set-cp="' + key + '">' + lbl + '</button>';
           }).join('') + '</div>' +
         '</div>' +
+        settingsRow('setShareReq', 'Requests', (function(){
+          var n = sharedRequests.filter(function(r){ return rqUnread(r, 'owner'); }).length;
+          return n ? n + ' new' : (sharedRequests.length ? String(sharedRequests.length) : '');
+        })()) +
       '</div>' +
       '<p class="set-note">Share a day or a week from Share snapshot. Pausing hides everything from them until you resume; nothing is deleted. ' +
         '<button type="button" class="btn-link set-share-remove" id="setShareRemove">Remove partner</button></p>';
@@ -10952,6 +11401,7 @@
     if (add) add.addEventListener('click', openPartnerSetupSheet);
     if (!m || shareUnavailable) return;
     document.getElementById('setShareName').textContent = partnerName(m);
+    document.getElementById('setShareReq').addEventListener('click', openRequestsListSheet);
     var ref = dbRef.collection('ledger_share_members').doc(m.id);
     document.getElementById('setShareToggle').addEventListener('click', function(){
       ref.update({ active: !m.active, updatedAt: new Date().toISOString() }).catch(function(e){ console.error(e); showPinToast('Couldn’t change sharing — try again.', true); });
@@ -11072,7 +11522,10 @@
     function q(coll){ return dbRef.collection(coll).where('ownerUid', '==', m.ownerUid).where('partnerUid', '==', me); }
     function refused(err){ console.warn('shared read refused', err && err.code); pp.denied = true; renderPortal(); }
     pp.stops.push(q('ledger_shared_snapshots').onSnapshot(function(snap){ pp.snaps = snap.docs.map(shareDoc); pp.snapsLoaded = true; renderPortal(); }, refused));
-    pp.stops.push(q('ledger_shared_requests').onSnapshot(function(snap){ pp.requests = snap.docs.map(shareDoc); pp.reqLoaded = true; renderPortal(); }, refused));
+    pp.stops.push(q('ledger_shared_requests').onSnapshot(function(snap){
+      pp.requests = snap.docs.map(shareDoc); pp.reqLoaded = true; renderPortal();
+      if (ppDetailRefresh) ppDetailRefresh();
+    }, refused));
   }
   function stopPartnerData(){
     pp.stops.forEach(function(f){ try { f(); } catch(e){} });
@@ -11094,28 +11547,13 @@
     return pp.snaps.filter(function(s){ return s.periodType === 'week' && s.periodStart <= t && t <= s.periodEnd; })
       .sort(function(a, b){ return a.periodStart < b.periodStart ? 1 : -1; })[0] || null;
   }
-  function ppStatusClass(r){ return ['requested', 'planned', 'done', 'dismissed'].indexOf(r.status) > -1 ? r.status : 'requested'; }
-  function ppRequestStatus(r){
-    var t = ppToday();
-    if (r.status === 'done') return 'Done ✓';
-    if (r.status === 'dismissed') return 'Set aside';
-    if (r.status === 'planned'){
-      var d = r.plannedDate;
-      if (!d) return 'Planned';
-      if (d === t) return 'Planned today';
-      if (d === nextDateStr(t)) return 'Planned tomorrow';
-      if (d < t) return 'On the list';
-      if (d <= fmtDate(addDays(t, 6))) return 'Planned ' + weekdayName(d);
-      return 'Planned ' + shortDayLabel(d);
-    }
-    return 'Requested';
-  }
   // what "From you" shows: anything still open, and what was settled in the last few days
   function ppActiveRequests(){
     var since = fmtDate(addDays(ppToday(), -3));
-    var rank = { requested: 0, planned: 1, done: 2, dismissed: 3 };
+    var rank = { requested: 0, in_progress: 1, planned: 1, done: 2, dismissed: 3, withdrawn: 4 };
     return pp.requests.filter(function(r){
-      return r.status === 'requested' || r.status === 'planned' || fmtDate(new Date(r.updatedAt || r.createdAt || 0)) >= since;
+      return r.status === 'requested' || r.status === 'planned' || r.status === 'in_progress' || rqUnread(r, 'partner') ||
+        fmtDate(new Date(r.latestUpdateAt || r.updatedAt || r.createdAt || 0)) >= since;
     }).sort(function(a, b){
       return (rank[a.status] - rank[b.status]) || ((a.createdAt || '') < (b.createdAt || '') ? 1 : -1);
     });
@@ -11175,10 +11613,10 @@
       html += '<section class="pp-sec pp-requests"><div class="pp-sec-row"><h2 class="pp-sec-title">From you</h2>' +
           (pp.requests.length > reqs.length ? '<button type="button" class="btn-link pp-all" id="ppAllReq">All requests</button>' : '') + '</div>' +
         '<div class="pp-list">' + reqs.map(function(r, i){
-          return '<button type="button" class="pp-row pp-req rq-' + ppStatusClass(r) + '" data-pp-req="' + i + '">' +
+          return '<button type="button" class="pp-row pp-req rq-' + rqStatusClass(r) + '" data-pp-req="' + i + '">' +
             '<span class="pp-dot" aria-hidden="true">' + (r.status === 'done' ? CHECK_SVG : '') + '</span>' +
             '<span class="pp-row-body"><span class="pp-row-title"></span><span class="pp-row-meta"></span></span>' +
-            '<span class="pp-pill' + (ppStatusClass(r) === 'requested' ? ' quiet' : '') + '"></span>' +
+            '<span class="pp-pill' + (rqStatusClass(r) === 'requested' ? ' quiet' : '') + '"></span>' +
           '</button>';
         }).join('') + '</div>' +
         '<button type="button" class="pp-add" id="ppAddReq"><span aria-hidden="true">+</span> Request something</button>' +
@@ -11217,8 +11655,8 @@
     reqs.forEach(function(r, i){
       var row = el.querySelector('[data-pp-req="' + i + '"]');
       row.querySelector('.pp-row-title').textContent = r.text;
-      row.querySelector('.pp-row-meta').textContent = r.status === 'requested' ? [requestTimingLabel(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ') : '';
-      row.querySelector('.pp-pill').textContent = ppRequestStatus(r);
+      ppRowMeta(row.querySelector('.pp-row-meta'), r, owner, r.status === 'requested' ? [requestTimingLabel(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ') : '');
+      row.querySelector('.pp-pill').textContent = rqStatusLabel(r);
     });
     var who = document.getElementById('ppWho'); if (who) who.textContent = (authUser && authUser.email) || '';
     el.querySelectorAll('[data-pp-tab]').forEach(function(b){
@@ -11246,34 +11684,80 @@
   function ppSheetClose(){
     var bd = document.getElementById('ppBackdrop');
     if (bd) bd.classList.remove('open');
+    rqStopDetail();
     renderPortal();
   }
-  // a request: one plain question, a timing, an optional note — nothing internal
+  // a request, opened: where it stands, what has happened, and room to add something.
+  // The partner can say anything here; none of it moves the Action — the owner decides.
+  var ppDetailRefresh = null;
   function ppOpenRequest(r){
+    if (!r){ ppEditRequest(null); return; }
+    var reqId = r.id, owner = (pp.member && pp.member.ownerName) || 'them';
+    var names = { owner: owner, partner: 'You' };
+    function cur(){ return pp.requests.find(function(x){ return x.id === reqId; }) || null; }
+    var sh = ppSheetOpen('<div class="sheet-handle"></div>' +
+      '<div class="sheet-head rq-head"><div class="sheet-title-wrap">' +
+        '<p class="rq-kicker">Your request</p><div class="sheet-title rq-title" id="rqTitle"></div>' +
+      '</div><button class="sheet-close" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<p class="rq-state" id="rqState"></p>' +
+      '<p class="rq-meta" id="rqMeta"></p>' +
+      '<div class="rq-own" id="rqOwn"></div>' +
+      '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
+      '<div class="rq-tl" id="rqTimeline"><p class="rq-empty">Loading…</p></div>' +
+      rqComposerHtml());
+    var sheetMark = sh.querySelector('#rqState');
+    function open(){ var bd = document.getElementById('ppBackdrop'); return !!bd && bd.classList.contains('open') && sh.contains(sheetMark); }
+    function paint(){
+      var x = cur();
+      if (!x || !open()) return false;
+      document.getElementById('rqTitle').textContent = x.text;
+      var st = document.getElementById('rqState');
+      st.textContent = rqStatusLabel(x); st.className = 'rq-state st-' + rqStatusClass(x);
+      document.getElementById('rqMeta').textContent = [requestTimingLabel(x), x.note ? '“' + x.note + '”' : ''].filter(Boolean).join(' · ');
+      var own = document.getElementById('rqOwn');
+      // until it is picked up it is still hers to change or take back
+      if (x.status === 'requested'){
+        own.innerHTML = '<button type="button" class="btn-link" id="rqEdit">Edit request</button>' +
+          '<button type="button" class="btn-link rq-withdraw" id="rqWithdraw">Withdraw</button>';
+        document.getElementById('rqEdit').addEventListener('click', function(){ ppEditRequest(cur()); });
+        document.getElementById('rqWithdraw').addEventListener('click', function(){ ppWithdraw(cur()); });
+      } else own.innerHTML = '';
+      return true;
+    }
+    paint();
+    ppDetailRefresh = function(){
+      if (!paint()){ ppDetailRefresh = null; return; }
+      rqMarkRead(cur(), 'partner');
+    };
+    rqWatchTimeline(r, names, document.getElementById('rqTimeline'), 'partner', function(){ if (open()) rqMarkRead(cur(), 'partner'); });
+    rqWireComposer(sh, cur, 'partner', 'Add an update for ' + owner + '…');
+    rqMarkRead(r, 'partner');
+  }
+  // withdrawing keeps the request and its history: it is a state, recorded once
+  function ppWithdraw(r){
+    if (!r || !confirm('Withdraw this request?')) return;
+    var now = new Date().toISOString(), b = dbRef.batch();
+    b.update(requestRef(r.id), { status: 'withdrawn', updatedAt: now, latestUpdateAt: now, latestUpdateBy: 'partner', latestUpdateType: 'withdrawn' });
+    b.set(dbRef.collection(RQ_UPD).doc(r.id + '_withdrawn'), rqEvent(r, 'withdrawn', 'partner', null, {}));
+    b.commit().then(function(){ ppSheetClose(); showPinToast('Request withdrawn', false, CHECK_SVG); })
+      .catch(function(e){ console.error(e); showPinToast('It’s already been picked up, so it can’t be withdrawn.', true); });
+  }
+  // a request: one plain question, a timing, an optional note — nothing internal
+  function ppEditRequest(r){
     var owner = (pp.member && pp.member.ownerName) || 'them';
-    var editable = !r || r.status === 'requested';
     var timing = r ? r.requestedTiming : 'today';
     var sh = ppSheetOpen('<div class="sheet-handle"></div>' +
-      sheetHead('', r ? (editable ? 'Your request' : 'Request') : 'Request something', '', '') +
-      (editable
-        ? '<div class="field"><label for="ppReqText" id="ppReqLabel" class="pp-q"></label><textarea id="ppReqText" rows="2" maxlength="280"></textarea></div>' +
-          '<div class="field"><label>When</label><div class="bk-filter-pop" id="ppTiming" role="radiogroup">' +
-            [['today', 'Today'], ['week', 'This week'], ['date', 'Choose date'], ['none', 'No preference']].map(function(t){
-              return '<button type="button" class="bk-filter-chip' + (timing === t[0] ? ' sel' : '') + '" role="radio" aria-checked="' + (timing === t[0]) + '" data-pp-timing="' + t[0] + '">' + t[1] + '</button>';
-            }).join('') +
-          '</div></div>' +
-          '<div id="ppDateField"' + (timing === 'date' ? '' : ' hidden') + '>' + fieldDate('ppReqDate', 'Date', (r && r.requestedDate) || nextDateStr(ppToday())) + '</div>' +
-          '<div class="field"><label for="ppReqNote">Note <span class="pp-opt">optional</span></label><textarea id="ppReqNote" rows="2" maxlength="500"></textarea></div>' +
-          '<p class="auth-error" id="ppReqErr" role="alert"></p>' +
-          '<button type="button" class="btn-primary" id="ppReqSave"></button>' +
-          (r ? '<button type="button" class="btn-quiet pp-withdraw" id="ppReqWithdraw">Withdraw request</button>' : '')
-        : '<div class="field"><div class="pd-title" id="ppReqRead"></div><p class="ib-sheet-meta" id="ppReqReadMeta"></p></div>' +
-          '<p class="set-note">' + 'It’s been picked up, so it can’t be changed here. Send a new request if something’s different.' + '</p>'));
-    if (!editable){
-      document.getElementById('ppReqRead').textContent = r.text;
-      document.getElementById('ppReqReadMeta').textContent = [ppRequestStatus(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ');
-      return;
-    }
+      sheetHead('', r ? 'Edit request' : 'Request something', '', '') +
+      '<div class="field"><label for="ppReqText" id="ppReqLabel" class="pp-q"></label><textarea id="ppReqText" rows="2" maxlength="280"></textarea></div>' +
+      '<div class="field"><label>When</label><div class="bk-filter-pop" id="ppTiming" role="radiogroup">' +
+        [['today', 'Today'], ['week', 'This week'], ['date', 'Choose date'], ['none', 'No preference']].map(function(t){
+          return '<button type="button" class="bk-filter-chip' + (timing === t[0] ? ' sel' : '') + '" role="radio" aria-checked="' + (timing === t[0]) + '" data-pp-timing="' + t[0] + '">' + t[1] + '</button>';
+        }).join('') +
+      '</div></div>' +
+      '<div id="ppDateField"' + (timing === 'date' ? '' : ' hidden') + '>' + fieldDate('ppReqDate', 'Date', (r && r.requestedDate) || nextDateStr(ppToday())) + '</div>' +
+      '<div class="field"><label for="ppReqNote">Note <span class="pp-opt">optional</span></label><textarea id="ppReqNote" rows="2" maxlength="500"></textarea></div>' +
+      '<p class="auth-error" id="ppReqErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="ppReqSave"></button>');
     document.getElementById('ppReqLabel').textContent = 'What do you need ' + owner + ' to do?';
     document.getElementById('ppReqSave').textContent = r ? 'Save' : 'Send to ' + owner;
     var text = document.getElementById('ppReqText'), note = document.getElementById('ppReqNote');
@@ -11294,38 +11778,48 @@
       if (timing === 'date' && !d){ err.textContent = 'Choose a date.'; return; }
       var now = new Date().toISOString();
       var body = { text: t.slice(0, 280), note: n ? n.slice(0, 500) : null, requestedTiming: timing, requestedDate: d || null, updatedAt: now };
-      var save = r
-        ? dbRef.collection('ledger_shared_requests').doc(r.id).update(body)
-        : dbRef.collection('ledger_shared_requests').add(Object.assign({ ownerUid: pp.member.ownerUid, partnerUid: authUser.uid,
-            createdAt: now, status: 'requested', plannedDate: null, linkedActionId: null }, body));
+      var save;
+      if (r) save = requestRef(r.id).update(body);
+      else {
+        // the request and its first entry ("asked") together
+        var ref = dbRef.collection('ledger_shared_requests').doc(), b = dbRef.batch();
+        var doc = Object.assign({ ownerUid: pp.member.ownerUid, partnerUid: authUser.uid, createdAt: now, status: 'requested',
+          plannedDate: null, linkedActionId: null, latestUpdateAt: now, latestUpdateBy: 'partner', latestUpdateType: 'request_created' }, body);
+        b.set(ref, doc);
+        b.set(dbRef.collection(RQ_UPD).doc(ref.id + '_created'),
+          rqEvent(Object.assign({ id: ref.id }, doc), 'request_created', 'partner', null, { timing: timing, date: d || null }));
+        save = b.commit();
+      }
       var btn = document.getElementById('ppReqSave'); btn.disabled = true;
-      save.then(function(){ ppSheetClose(); showPinToast(r ? 'Request updated' : 'Sent to ' + owner, false, CHECK_SVG); })
-        .catch(function(e){ console.error(e); btn.disabled = false; err.textContent = r ? 'It’s already been picked up, so it can’t be changed.' : 'Couldn’t send — check your connection and try again.'; });
+      save.then(function(){
+        if (r) ppOpenRequest(cur2()); else ppSheetClose();
+        showPinToast(r ? 'Request updated' : 'Sent to ' + owner, false, CHECK_SVG);
+      }).catch(function(e){ console.error(e); btn.disabled = false; err.textContent = r ? 'It’s already been picked up, so it can’t be changed — add an update instead.' : 'Couldn’t send — check your connection and try again.'; });
     });
-    var wd = document.getElementById('ppReqWithdraw');
-    if (wd) wd.addEventListener('click', function(){
-      if (!confirm('Withdraw this request?')) return;
-      dbRef.collection('ledger_shared_requests').doc(r.id).delete()
-        .then(function(){ ppSheetClose(); showPinToast('Request withdrawn', false, CHECK_SVG); })
-        .catch(function(e){ console.error(e); err.textContent = 'It’s already been picked up, so it can’t be withdrawn.'; });
-    });
+    function cur2(){ return pp.requests.find(function(x){ return x.id === r.id; }) || r; }
   }
   function ppOpenAllRequests(){
     var list = pp.requests.slice().sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? 1 : -1; });
     var sh = ppSheetOpen('<div class="sheet-handle"></div>' + sheetHead('', 'All requests', '', '') +
       '<div class="pp-list">' + list.map(function(r, i){
-        return '<button type="button" class="pp-row pp-req rq-' + ppStatusClass(r) + '" data-pp-all="' + i + '">' +
+        return '<button type="button" class="pp-row pp-req rq-' + rqStatusClass(r) + '" data-pp-all="' + i + '">' +
           '<span class="pp-dot" aria-hidden="true">' + (r.status === 'done' ? CHECK_SVG : '') + '</span>' +
           '<span class="pp-row-body"><span class="pp-row-title"></span><span class="pp-row-meta"></span></span>' +
-          '<span class="pp-pill' + (ppStatusClass(r) === 'requested' ? ' quiet' : '') + '"></span></button>';
+          '<span class="pp-pill' + (rqStatusClass(r) === 'requested' ? ' quiet' : '') + '"></span></button>';
       }).join('') + '</div>');
+    var owner = (pp.member && pp.member.ownerName) || 'They';
     list.forEach(function(r, i){
       var row = sh.querySelector('[data-pp-all="' + i + '"]');
       row.querySelector('.pp-row-title').textContent = r.text;
-      row.querySelector('.pp-row-meta').textContent = r.createdAt ? 'Sent ' + shortDayLabel(fmtDate(new Date(r.createdAt))) : '';
-      row.querySelector('.pp-pill').textContent = ppRequestStatus(r);
+      ppRowMeta(row.querySelector('.pp-row-meta'), r, owner, r.createdAt ? 'Sent ' + shortDayLabel(fmtDate(new Date(r.createdAt))) : '');
+      row.querySelector('.pp-pill').textContent = rqStatusLabel(r);
       row.addEventListener('click', function(){ ppOpenRequest(r); });
     });
+  }
+  // a row's quiet second line: news from the owner first, otherwise the given text
+  function ppRowMeta(el, r, owner, fallback){
+    if (rqUnread(r, 'partner')){ el.textContent = owner + ' updated · ' + rqAgo(r.latestCommentAt); el.classList.add('unread'); }
+    else el.textContent = fallback || '';
   }
 
   // ============ Morning Prime ============
@@ -18060,6 +18554,7 @@
     backdrop.classList.remove('open');
     editingId = null;
     activeSheetRefresh = null;
+    rqStopDetail();
   }
   backdrop.addEventListener('click', function(e){ if (e.target === backdrop) closeSheet(); });
 

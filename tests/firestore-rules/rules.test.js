@@ -11,6 +11,9 @@ const path = require('path');
 const {
   initializeTestEnvironment, assertSucceeds, assertFails
 } = require('@firebase/rules-unit-testing');
+const firebase = require('firebase/compat/app');
+require('firebase/compat/firestore');
+const NOW = () => firebase.firestore.FieldValue.serverTimestamp();
 
 const PRIVATE = [
   'ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_day_status',
@@ -46,6 +49,8 @@ async function check(name, fn){
     await db.doc('ledger_shared_snapshots/owner1_partner2_day_2026-10-07').set({ ownerUid: 'owner1', partnerUid: 'partner2', periodType: 'day', periodKey: '2026-10-07', items: [] });
     await db.doc('ledger_shared_requests/reqA').set({ ownerUid: 'owner1', partnerUid: 'partner1', text: 'Pick up nappies', note: null, requestedTiming: 'today', requestedDate: null, status: 'requested', plannedDate: null, linkedActionId: null, createdAt: 'x', updatedAt: 'x' });
     await db.doc('ledger_shared_requests/reqPlanned').set({ ownerUid: 'owner1', partnerUid: 'partner1', text: 'Call landlord', note: null, requestedTiming: 'week', requestedDate: null, status: 'planned', plannedDate: '2026-10-08', linkedActionId: 'act1', createdAt: 'x', updatedAt: 'x' });
+    await db.doc('ledger_shared_request_updates/seedA').set({ requestId: 'reqPlanned', ownerUid: 'owner1', partnerUid: 'partner1', type: 'comment', actorUid: 'partner1', actorRole: 'partner', text: 'Larger size please', createdAt: 'x', metadata: {} });
+    await db.doc('ledger_shared_request_updates/seedB').set({ requestId: 'reqB', ownerUid: 'owner1', partnerUid: 'partner2', type: 'comment', actorUid: 'partner2', actorRole: 'partner', text: 'B note', createdAt: 'x', metadata: {} });
     await db.doc('ledger_shared_requests/reqB').set({ ownerUid: 'owner1', partnerUid: 'partner2', text: 'B thing', note: null, requestedTiming: 'none', requestedDate: null, status: 'requested', plannedDate: null, linkedActionId: null, createdAt: 'x', updatedAt: 'x' });
   });
 
@@ -58,6 +63,13 @@ async function check(name, fn){
   const newRequest = (o) => Object.assign({ ownerUid: 'owner1', partnerUid: 'partner1', text: 'Buy milk', note: null,
     requestedTiming: 'today', requestedDate: null, status: 'requested', plannedDate: null, linkedActionId: null,
     createdAt: '2026-10-07T09:00:00Z', updatedAt: '2026-10-07T09:00:00Z' }, o || {});
+  // an entry on a request's Updates timeline
+  const upd = (o) => Object.assign({ requestId: 'reqPlanned', ownerUid: 'owner1', partnerUid: 'partner1', type: 'comment',
+    actorUid: 'partner1', actorRole: 'partner', text: 'An update', createdAt: NOW(), metadata: {} }, o || {});
+  const ownerUpd = (o) => upd(Object.assign({ actorUid: 'owner1', actorRole: 'owner' }, o || {}));
+  const sysUpd = (o) => upd(Object.assign({ actorUid: 'owner1', actorRole: 'system', text: null }, o || {}));
+  const UPD = 'ledger_shared_request_updates';
+  const forReq = (db, id, p) => db.collection(UPD).where('requestId', '==', id).where('ownerUid', '==', 'owner1').where('partnerUid', '==', p || 'partner1');
 
   // ---- signed out ----
   await check('signed out: cannot read private plans', () => assertFails(anon.doc('ledger_plans/seed').get()));
@@ -118,6 +130,9 @@ async function check(name, fn){
   await check('owner: cannot publish under another id shape', () => assertFails(owner.doc('ledger_shared_snapshots/x').set({ ownerUid: 'owner1', partnerUid: 'partner1', periodType: 'day', periodKey: '2026-10-07' })));
   await check('owner: cannot publish to someone with no relationship', () => assertFails(owner.doc('ledger_shared_snapshots/owner1_stranger1_day_2026-10-07').set({ ownerUid: 'owner1', partnerUid: 'stranger1', periodType: 'day', periodKey: '2026-10-07' })));
   await check('owner: can read requests addressed to them (query)', () => assertSucceeds(owner.collection('ledger_shared_requests').where('ownerUid', '==', 'owner1').get()));
+  await check('owner: can mark a request in progress', () => assertSucceeds(owner.doc('ledger_shared_requests/reqPlanned').update({ status: 'in_progress', updatedAt: 'now' })));
+  await check('owner: cannot mark a request withdrawn', () => assertFails(owner.doc('ledger_shared_requests/reqPlanned').update({ status: 'withdrawn' })));
+  await env.withSecurityRulesDisabled(async (ctx) => { await ctx.firestore().doc('ledger_shared_requests/reqPlanned').update({ status: 'planned' }); });
   await check('owner: can plan a request', () => assertSucceeds(owner.doc('ledger_shared_requests/reqA').update({ status: 'planned', plannedDate: '2026-10-07', linkedActionId: 'act9', updatedAt: 'now', processedAt: 'now' })));
   await check('owner: cannot rewrite what was asked', () => assertFails(owner.doc('ledger_shared_requests/reqA').update({ text: 'Something else' })));
   await check('owner: cannot reassign a request to another partner', () => assertFails(owner.doc('ledger_shared_requests/reqA').update({ partnerUid: 'partner2' })));
@@ -162,8 +177,93 @@ async function check(name, fn){
   await check('partner A: cannot mark own request done', () => assertFails(partner.doc('ledger_shared_requests/reqA').update({ status: 'done' })));
   await check('partner A: cannot set plannedDate', () => assertFails(partner.doc('ledger_shared_requests/reqA').update({ plannedDate: '2026-10-07' })));
   await check('partner A: cannot edit once planned', () => assertFails(partner.doc('ledger_shared_requests/reqPlanned').update({ text: 'changed' })));
-  await check('partner A: cannot withdraw once planned', () => assertFails(partner.doc('ledger_shared_requests/reqPlanned').delete()));
-  await check('partner A: can withdraw before it is processed', () => assertSucceeds(partner.doc('ledger_shared_requests/reqA').delete()));
+  await check('partner A: cannot delete a request (withdrawing is a state)', () => assertFails(partner.doc('ledger_shared_requests/reqA').delete()));
+  await check('partner A: cannot withdraw once planned', () => assertFails(partner.doc('ledger_shared_requests/reqPlanned').update({ status: 'withdrawn', updatedAt: 'now' })));
+
+  // ---- Partner Request Updates ----
+  // signed out / no role
+  await check('updates: signed out cannot read', () => assertFails(forReq(anon, 'reqPlanned').get()));
+  await check('updates: signed out cannot write', () => assertFails(anon.collection(UPD).add(upd())));
+  await check('updates: no role cannot read', () => assertFails(forReq(stranger, 'reqPlanned').get()));
+  await check('updates: no role cannot write', () => assertFails(stranger.collection(UPD).add(upd({ actorUid: 'stranger1' }))));
+  // partner A
+  await check('updates: partner A can read own request updates', () => assertSucceeds(forReq(partner, 'reqPlanned').get()));
+  await check('updates: partner A can add a comment to own request', () => assertSucceeds(partner.collection(UPD).add(upd({ text: 'Please get the larger size.' }))));
+  await check('updates: partner A can add a comment to a processed request', () => assertSucceeds(partner.collection(UPD).add(upd({ requestId: 'reqPlanned' }))));
+  await check('updates: partner A cannot read partner B updates', () => assertFails(forReq(partner, 'reqB', 'partner2').get()));
+  await check('updates: partner A cannot comment on partner B request', () => assertFails(partner.collection(UPD).add(upd({ requestId: 'reqB', partnerUid: 'partner2' }))));
+  await check('updates: partner A cannot attach to B request under own uid', () => assertFails(partner.collection(UPD).add(upd({ requestId: 'reqB' }))));
+  await check('updates: partner A cannot attach to a request that does not exist', () => assertFails(partner.collection(UPD).add(upd({ requestId: 'nope' }))));
+  await check('updates: partner A cannot write as the owner (actorUid)', () => assertFails(partner.collection(UPD).add(upd({ actorUid: 'owner1' }))));
+  await check('updates: partner A cannot claim actorRole owner', () => assertFails(partner.collection(UPD).add(upd({ actorRole: 'owner' }))));
+  await check('updates: partner A cannot claim actorRole system', () => assertFails(partner.collection(UPD).add(upd({ actorRole: 'system' }))));
+  await check('updates: partner A cannot fake a moved event', () => assertFails(partner.collection(UPD).add(upd({ type: 'moved', text: null, metadata: { toDate: '2026-10-08' } }))));
+  await check('updates: partner A cannot fake a done/status event', () => assertFails(partner.collection(UPD).add(upd({ type: 'status', text: null, metadata: { status: 'planned' } }))));
+  await check('updates: partner A cannot fake a planned event', () => assertFails(partner.collection(UPD).add(upd({ type: 'planned', text: null }))));
+  await check('updates: partner A cannot fake a dismissed event', () => assertFails(partner.collection(UPD).add(upd({ type: 'dismissed', text: null }))));
+  await check('updates: partner A cannot backdate an update', () => assertFails(partner.collection(UPD).add(upd({ createdAt: '2020-01-01T00:00:00Z' }))));
+  await check('updates: partner A cannot send an empty comment', () => assertFails(partner.collection(UPD).add(upd({ text: '' }))));
+  await check('updates: partner A cannot add unknown fields', () => assertFails(partner.collection(UPD).add(upd({ urgent: true }))));
+  await check('updates: partner A cannot edit an update', () => assertFails(partner.doc(UPD + '/seedA').update({ text: 'changed' })));
+  await check('updates: partner A cannot delete an update', () => assertFails(partner.doc(UPD + '/seedA').delete()));
+  await check('updates: partner A can mark "asked" once, on its fixed id', () => assertSucceeds(partner.doc(UPD + '/reqA_created').set(upd({ requestId: 'reqA', type: 'request_created', text: null }))));
+  await check('updates: partner A cannot repeat "asked"', () => assertFails(partner.doc(UPD + '/reqA_created').set(upd({ requestId: 'reqA', type: 'request_created', text: null }))));
+  await check('updates: partner A cannot mark "asked" under any other id', () => assertFails(partner.collection(UPD).add(upd({ requestId: 'reqA', type: 'request_created', text: null }))));
+  await check('updates: partner A cannot claim "asked" for a processed request', () => assertFails(partner.doc(UPD + '/reqPlanned_created').set(upd({ type: 'request_created', text: null }))));
+  await check('updates: partner A cannot mark withdrawn while it is not', () => assertFails(partner.doc(UPD + '/reqA_withdrawn').set(upd({ requestId: 'reqA', type: 'withdrawn', text: null }))));
+  await check('updates: partner A can create a request and its "asked" entry together', () => {
+    const b = partner.batch();
+    b.set(partner.doc('ledger_shared_requests/newReq1'), newRequest({ latestUpdateAt: 'now', latestUpdateBy: 'partner', latestUpdateType: 'request_created' }));
+    b.set(partner.doc(UPD + '/newReq1_created'), upd({ requestId: 'newReq1', type: 'request_created', text: null }));
+    return assertSucceeds(b.commit());
+  });
+  await check('updates: partner A cannot create a request summarised as the owner', () => assertFails(partner.doc('ledger_shared_requests/newReq2').set(newRequest({ latestUpdateBy: 'owner' }))));
+  // the request's summary and read marks
+  await check('summary: partner A can record their update and read mark', () => assertSucceeds(partner.doc('ledger_shared_requests/reqPlanned').update({
+    latestUpdateAt: 'now', latestUpdateBy: 'partner', latestUpdateType: 'comment', latestCommentAt: 'now', latestCommentBy: 'partner', latestCommentText: 'Larger size', partnerLastReadAt: 'now' })));
+  await check('summary: partner A cannot sign the summary as the owner', () => assertFails(partner.doc('ledger_shared_requests/reqPlanned').update({ latestCommentBy: 'owner', latestCommentAt: 'now2' })));
+  await check('summary: partner A cannot sign it as the system', () => assertFails(partner.doc('ledger_shared_requests/reqPlanned').update({ latestUpdateBy: 'system', latestUpdateAt: 'now2' })));
+  await check("summary: partner A cannot set the owner's read mark", () => assertFails(partner.doc('ledger_shared_requests/reqPlanned').update({ ownerLastReadAt: 'now' })));
+  await check('summary: partner A still cannot change the plan with it', () => assertFails(partner.doc('ledger_shared_requests/reqPlanned').update({ partnerLastReadAt: 'now3', plannedDate: '2026-10-09' })));
+  // withdrawing: a state, with its one entry
+  await check('withdraw: partner A can withdraw an unprocessed request, with its entry', () => {
+    const b = partner.batch();
+    b.update(partner.doc('ledger_shared_requests/newReq1'), { status: 'withdrawn', updatedAt: 'now', latestUpdateAt: 'now', latestUpdateBy: 'partner', latestUpdateType: 'withdrawn' });
+    b.set(partner.doc(UPD + '/newReq1_withdrawn'), upd({ requestId: 'newReq1', type: 'withdrawn', text: null }));
+    return assertSucceeds(b.commit());
+  });
+  await check('withdraw: the owner cannot revive a withdrawn request', () => assertFails(owner.doc('ledger_shared_requests/newReq1').update({ status: 'planned', plannedDate: '2026-10-08', linkedActionId: 'x' })));
+  // partner B (paused)
+  await check('updates: partner B (inactive) cannot read own request updates', () => assertFails(forReq(partnerB, 'reqB', 'partner2').get()));
+  await check('updates: partner B (inactive) cannot comment', () => assertFails(partnerB.collection(UPD).add(upd({ requestId: 'reqB', partnerUid: 'partner2', actorUid: 'partner2' }))));
+  await check('updates: partner B cannot read partner A updates', () => assertFails(forReq(partnerB, 'reqPlanned').get()));
+  // owner
+  await check('updates: owner can read updates of own requests', () => assertSucceeds(forReq(owner, 'reqPlanned').get()));
+  await check('updates: owner can add an update', () => assertSucceeds(owner.collection(UPD).add(ownerUpd({ text: "I'll do this after lunch." }))));
+  await check('updates: owner can add an update to a request still in the Inbox', () => assertSucceeds(owner.collection(UPD).add(ownerUpd({ requestId: 'reqA' }))));
+  await check('updates: owner cannot write as the partner', () => assertFails(owner.collection(UPD).add(ownerUpd({ actorUid: 'partner1' }))));
+  await check('updates: owner cannot claim actorRole partner', () => assertFails(owner.collection(UPD).add(ownerUpd({ actorRole: 'partner' }))));
+  await check('updates: owner can log "planned" for a planned request', () => assertSucceeds(owner.collection(UPD).add(sysUpd({ type: 'planned', metadata: { toDate: '2026-10-08' } }))));
+  await check('updates: owner cannot log "planned" for a request still in the Inbox', () => assertFails(owner.collection(UPD).add(sysUpd({ requestId: 'reqA', type: 'planned', metadata: { toDate: '2026-10-08' } }))));
+  await check('updates: owner can log "moved" to the date the request now holds', () => assertSucceeds(owner.collection(UPD).add(sysUpd({ type: 'moved', metadata: { fromDate: '2026-10-07', toDate: '2026-10-08' } }))));
+  await check('updates: owner cannot log a move the request does not show', () => assertFails(owner.collection(UPD).add(sysUpd({ type: 'moved', metadata: { toDate: '2026-12-25' } }))));
+  await check('updates: owner cannot log "done" before the request is done', () => assertFails(owner.collection(UPD).add(sysUpd({ type: 'status', metadata: { status: 'done' } }))));
+  await check('updates: owner can mark done and log it in one write', () => {
+    const b = owner.batch();
+    b.update(owner.doc('ledger_shared_requests/reqPlanned'), { status: 'done', updatedAt: 'now', latestUpdateAt: 'now', latestUpdateBy: 'system', latestUpdateType: 'status' });
+    b.set(owner.collection(UPD).doc(), sysUpd({ type: 'status', metadata: { status: 'done' } }));
+    return assertSucceeds(b.commit());
+  });
+  await check('updates: owner cannot backdate', () => assertFails(owner.collection(UPD).add(ownerUpd({ createdAt: '2020-01-01T00:00:00Z' }))));
+  await check('updates: owner cannot attach to a request of another relationship', () => assertFails(owner.collection(UPD).add(ownerUpd({ requestId: 'reqB' }))));
+  await check('updates: another owner cannot write to owner1 requests', () => assertFails(owner2.collection(UPD).add(ownerUpd({ actorUid: 'owner2' }))));
+  await check('updates: another owner cannot claim it as theirs', () => assertFails(owner2.collection(UPD).add(ownerUpd({ actorUid: 'owner2', ownerUid: 'owner2' }))));
+  await check('updates: another owner cannot read owner1 updates', () => assertFails(owner2.doc(UPD + '/seedA').get()));
+  await check('updates: owner cannot edit or remove history', () => assertFails(owner.doc(UPD + '/seedA').delete()));
+  await check('summary: owner can record their update and read mark', () => assertSucceeds(owner.doc('ledger_shared_requests/reqPlanned').update({
+    latestUpdateAt: 'now4', latestUpdateBy: 'owner', latestUpdateType: 'comment', latestCommentAt: 'now4', latestCommentBy: 'owner', latestCommentText: 'After lunch', ownerLastReadAt: 'now4' })));
+  await check('summary: owner cannot sign the summary as the partner', () => assertFails(owner.doc('ledger_shared_requests/reqPlanned').update({ latestCommentBy: 'partner', latestCommentAt: 'now5' })));
+  await check("summary: owner cannot set the partner's read mark", () => assertFails(owner.doc('ledger_shared_requests/reqPlanned').update({ partnerLastReadAt: 'now5' })));
   await check('partner A: still cannot read private plans', () => assertFails(partner.collection('ledger_plans').get()));
   await check('partner A: still cannot read actions', () => assertFails(partner.doc('ledger_commitments/seed').get()));
 

@@ -300,30 +300,155 @@ async function oobLink(email){
   check(gate.status === 'requested' && !gate.linkedActionId && !gate.plannedDate, '13 deleting the Action returns the request to Requested (never Done)');
   check(await until(S, () => /Fix the gate/.test(document.getElementById('inboxSection').innerText)), '13 …and it is back in the Inbox');
 
-  // 14 — dismiss, with undo; then dismiss for real
+  // 14 — dismiss, with undo; then dismiss for real. An undone dismissal writes nothing.
   await S.click('[data-ib-dismiss]');
   check(await until(S, () => /Set aside/.test((document.querySelector('.pin-toast') || {}).textContent || '')), '14 dismiss: "Set aside" with Undo');
+  check(await until(S, () => !/Fix the gate/.test(document.getElementById('inboxSection').innerText)), '14 the row leaves the Inbox at once');
   await S.click('.pin-toast-act');
-  await sleep(1000);
-  check((await all('ledger_shared_requests')).find(r => r.text === 'Fix the gate').status === 'requested', '14 undo restores it');
-  await S.click('[data-ib-dismiss]'); await sleep(1000);
+  check(await until(S, () => /Fix the gate/.test(document.getElementById('inboxSection').innerText)), '14 undo brings it back');
+  await sleep(6000);
+  check((await all('ledger_shared_requests')).find(r => r.text === 'Fix the gate').status === 'requested', '14 undo restores it — nothing was written');
+  const gateId = (await all('ledger_shared_requests')).find(r => r.text === 'Fix the gate').id;
+  check(!(await all('ledger_shared_request_updates')).some(u => u.requestId === gateId && u.type === 'dismissed'), '14 an undone dismissal leaves no trace in Updates');
+  await S.click('[data-ib-dismiss]'); await sleep(7000);
   const dis = (await all('ledger_shared_requests')).find(r => r.text === 'Fix the gate');
   check(dis.status === 'dismissed', '14 dismissed is a status, not a deletion');
+  check((await all('ledger_shared_request_updates')).filter(u => u.requestId === gateId && u.type === 'dismissed').length === 1, '14 one "dismissed" entry');
   check(await until(A, () => /Set aside/.test(document.getElementById('partnerApp').innerText)), '14 partner sees gentle "Set aside"');
 
-  // 15 — partner edits before processing; after, reference only
+  // 15 — partner edits before processing; withdraws as a state; after processing, Updates only
   await A.click('#ppAddReq'); await A.fill('#ppReqText', 'Ring the plumber'); await A.click('[data-pp-timing="none"]'); await A.click('#ppReqSave');
   await sleep(800);
   await A.click('.pp-req:has-text("Ring the plumber")');
-  await A.waitForSelector('#ppReqWithdraw');
+  await A.waitForSelector('#rqEdit');
+  await A.click('#rqEdit'); await A.waitForSelector('#ppReqText');
   await A.fill('#ppReqText', 'Ring the plumber about the boiler'); await A.click('#ppReqSave');
-  check(await until(A, () => /Ring the plumber about the boiler/.test(document.getElementById('partnerApp').innerText)), '15 partner can edit an unprocessed request');
-  await A.click('.pp-req:has-text("Ring the plumber")'); await A.waitForSelector('#ppReqWithdraw'); await A.click('#ppReqWithdraw');
-  check(await until(A, () => !/Ring the plumber/.test(document.getElementById('partnerApp').innerText)), '15 …or withdraw it');
+  check(await until(A, () => /Ring the plumber about the boiler/.test((document.getElementById('rqTitle') || {}).textContent || '')), '15 partner can edit an unprocessed request');
+  await A.click('#rqWithdraw');
+  check(await until(A, () => /Ring the plumber about the boiler[\s\S]{0,40}Withdrawn/.test(document.getElementById('partnerApp').innerText)), '15 …or withdraw it (kept, as Withdrawn)');
+  await sleep(1200);
+  const plumber = (await all('ledger_shared_requests')).find(r => /plumber/.test(r.text));
+  check(plumber.status === 'withdrawn', '15 withdrawn is a status');
+  const plumberUpd = (await all('ledger_shared_request_updates')).filter(u => u.requestId === plumber.id).map(u => u.type).sort().join(',');
+  check(plumberUpd === 'request_created,withdrawn', '15 its history: asked, withdrawn (' + plumberUpd + ')');
+  check(await until(S, () => !/plumber/.test(document.getElementById('inboxSection').innerText)), '15 a withdrawn request is not in the Inbox');
   await A.click('.pp-req:has-text("Pick up nappies")');
-  await A.waitForSelector('#ppReqRead');
-  check(!(await A.$('#ppReqText')) && /can.t be changed/.test(await txt(A, '#ppSheet')), '15 a processed request is reference only');
+  await A.waitForSelector('#rqTimeline');
+  check(!(await A.$('#rqEdit')) && !!(await A.$('#rqText')), '15 a processed request is reference only — but can take an update');
   await A.click('#ppSheet .sheet-close');
+
+  // ---------- Updates: a request's shared history (Phase 2.5) ----------
+  // U1 — Abi asks
+  await A.click('#ppAddReq'); await A.fill('#ppReqText', 'Pick up prescription'); await A.click('#ppReqSave');
+  // U2 — it reaches Shaun's Inbox
+  check(await until(S, () => /Pick up prescription/.test(document.getElementById('inboxSection').innerText)), 'U2 the request reaches the Inbox');
+  let rx = (await all('ledger_shared_requests')).find(r => r.text === 'Pick up prescription');
+  const evOf = async (type) => (await all('ledger_shared_request_updates')).filter(u => u.requestId === rx.id && (!type || u.type === type));
+  // U3 — "asked" is recorded
+  check((await evOf('request_created')).length === 1, 'U3 a request_created entry exists');
+  // U4 — Shaun opens it
+  await S.click('.ib-row:has-text("Pick up prescription") .ib-body');
+  await S.waitForSelector('#rqTimeline');
+  check(await until(S, () => /Asked by Abi/.test(document.getElementById('rqTimeline').innerText)), 'U4 the detail shows the request and "Asked by Abi"');
+  check(/Requested/.test(await txt(S, '#rqState')), 'U4 current state: Requested');
+  // U5 — Today, from the detail
+  await S.click('#rqToday');
+  check(await until(S, () => /Planned for today/.test(document.getElementById('rqTimeline').innerText)), 'U7 the timeline shows "Planned for today"');
+  // U6 — exactly one Action
+  await sleep(800);
+  let rxActs = (await all('ledger_commitments')).filter(c => c.sourceRequestId === rx.id);
+  check(rxActs.length === 1, 'U6 exactly one Action for the request');
+  // a private detail on that Action, which must never reach the partner
+  { const { id, ...rest } = rxActs[0]; await put('ledger_commitments/' + id, Object.assign(rest, { minVersion: 'PRIVATE-MIN note about the pharmacy' })); }
+  check(await until(S, () => /Your action/i.test(document.getElementById('rqAct').innerText)), 'U6 the detail links the Action');
+  // U8 — Shaun adds an update
+  await S.fill('#rqText', "I'll do this after lunch."); await S.click('#rqSend');
+  check(await until(S, () => /I.ll do this after lunch\./.test(document.getElementById('rqTimeline').innerText)), 'U8 the owner update appears in the timeline');
+  await S.screenshot({ path: `${shots}/${tag}-U08-owner-detail.png` });
+  await S.click('#sheetCloseBtn');   // an update arriving while the request is open is read on arrival
+  // U9 — Abi sees it, first as a quiet signal
+  check(await until(A, () => /Shaun updated/.test(document.getElementById('partnerApp').innerText)), 'U9 partner list says "Shaun updated"');
+  await A.screenshot({ path: `${shots}/${tag}-U09-partner-signal.png`, fullPage: true });
+  await A.click('.pp-req:has-text("Pick up prescription")');
+  check(await until(A, () => /I.ll do this after lunch\./.test(document.getElementById('rqTimeline').innerText)), 'U9 partner sees the update in the timeline');
+  // U10 — Abi replies
+  await A.fill('#rqText', 'Please get the larger size.'); await A.click('#rqSend');
+  check(await until(A, () => /Please get the larger size\./.test(document.getElementById('rqTimeline').innerText)), 'U10 partner update appears');
+  await A.screenshot({ path: `${shots}/${tag}-U10-partner-detail.png` });
+  await A.click('#ppSheet .sheet-close');
+  check(await until(A, () => !/Shaun updated/.test(document.getElementById('partnerApp').innerText)), 'U10 opening it cleared the partner signal');
+  // U11 — Shaun gets "Update from Abi", one coherent row
+  check(await until(S, () => /Update from Abi/i.test(document.getElementById('inboxSection').innerText) && /Please get the larger size/.test(document.getElementById('inboxSection').innerText)), 'U11 Inbox: "Update from Abi" with the update');
+  const ibText = await txt(S, '#inboxSection');
+  check((ibText.match(/Pick up prescription/g) || []).length === 1 && /Review/.test(ibText), 'U11 one row, with Review');
+  await S.evaluate(() => document.getElementById('inboxSection').scrollIntoView({ block: 'center' }));
+  await S.screenshot({ path: `${shots}/${tag}-U11-owner-inbox-update.png` });
+  // U12 — no new Action
+  check((await all('ledger_commitments')).filter(c => c.sourceRequestId === rx.id).length === 1, 'U12 an update never makes another Action');
+  // U13 — Review clears it
+  await S.click('.ib-row:has-text("Pick up prescription") [data-ib-open]:not(.ib-body)');
+  await S.waitForSelector('#rqTimeline');
+  await sleep(800);
+  rx = (await all('ledger_shared_requests')).find(r => r.text === 'Pick up prescription');
+  check(rx.ownerLastReadAt >= rx.latestCommentAt, 'U13 opening marks it read (ownerLastReadAt)');
+  // a second owner device is open meanwhile: its syncing must not double anything
+  const S2 = await session('shaun-2');
+  await signIn(S2, SHAUN);
+  await until(S2, () => /Book swimming lessons/.test(document.querySelector('main').innerText), null, 20000);
+  // U14 — Shaun moves the Action to tomorrow (from the request, into the Action's editor)
+  await S.click('#rqAction'); await S.waitForSelector('#f_commitDate');
+  await S.fill('#f_commitDate', plus(1)); await S.click('#saveCommitBtn');
+  await sleep(2500);
+  check((await evOf('moved')).length === 1, 'U15 one "moved" entry (two owner devices open)');
+  check(!/Pick up prescription/.test(await txt(S, '#inboxSection')), 'U13 the Inbox row has cleared');
+  // U16 — complete it from its editor
+  await S.click('.tab-btn[data-view="focus"]'); await openSettings(S); await S.waitForSelector('#setShareReq');
+  await S.click('#setShareReq'); await S.waitForSelector('.rq-li');
+  await S.click('.rq-li:has-text("Pick up prescription")'); await S.waitForSelector('#rqTimeline');
+  check(await until(S, () => /Moved to tomorrow/.test(document.getElementById('rqTimeline').innerText)), 'U15 the timeline shows a quiet "Moved to tomorrow"');
+  await S.click('#rqAction'); await S.waitForSelector('#commitStatusGrid');
+  await S.click('#commitStatusGrid [data-s="completed"]'); await S.click('#saveCommitBtn');
+  await sleep(2500);
+  check((await evOf('status')).filter(u => (u.metadata || {}).status === 'done').length === 1, 'U17 one "done" entry');
+  await backToToday(S);
+  await S.click('.tab-btn[data-view="focus"]'); await openSettings(S); await S.waitForSelector('#setShareReq');
+  await S.click('#setShareReq'); await S.waitForSelector('.rq-li');
+  await S.click('.rq-li:has-text("Pick up prescription")'); await S.waitForSelector('#rqTimeline');
+  check(await until(S, () => /Done ✓/.test(document.getElementById('rqTimeline').innerText) && /Done ✓/.test(document.getElementById('rqState').innerText)), 'U17 the timeline and state say Done ✓');
+  await S.screenshot({ path: `${shots}/${tag}-U17-owner-history.png` });
+  await S.click('#sheetCloseBtn'); await backToToday(S);
+  // re-renders and a reload of the second device do not repeat anything
+  await S2.reload(); await sleep(4000);
+  const kinds = (await evOf()).map(u => u.type + ((u.metadata || {}).status ? ':' + u.metadata.status : '')).sort().join(',');
+  check(kinds === 'comment,comment,moved,planned,request_created,status:done', 'U21 history is exactly asked, planned, 2 updates, moved, done — idempotent (' + kinds + ')');
+  // U18 — Abi sees Done and the whole story
+  await A.click('.pp-req:has-text("Pick up prescription")'); await A.waitForSelector('#rqTimeline');
+  check(await until(A, () => {
+    const t = document.getElementById('rqTimeline').innerText;
+    return /Done ✓/.test(document.getElementById('rqState').innerText) && /You asked/.test(t) && /Planned for today/.test(t) && /after lunch/.test(t) && /larger size/.test(t) && /Moved to tomorrow/.test(t) && /Done ✓/.test(t);
+  }), 'U18 partner sees Done ✓ and the full history');
+  await A.screenshot({ path: `${shots}/${tag}-U18-partner-history.png` });
+  await A.click('#ppSheet .sheet-close');
+  // U19 — Abi cannot touch the Action, nor plan through the request
+  const touch = await A.evaluate(async (ids) => {
+    const db = firebase.firestore(), out = {};
+    const tryIt = async (k, f) => { try { await f(); out[k] = 'ALLOWED'; } catch (e){ out[k] = e.code; } };
+    await tryIt('read action', () => db.collection('ledger_commitments').doc(ids.act).get());
+    await tryIt('move action', () => db.collection('ledger_commitments').doc(ids.act).update({ date: '2030-01-01' }));
+    await tryIt('complete action', () => db.collection('ledger_commitments').doc(ids.act).update({ status: 'completed' }));
+    await tryIt('replan request', () => db.collection('ledger_shared_requests').doc(ids.req).update({ plannedDate: '2030-01-01' }));
+    await tryIt('fake done event', () => db.collection('ledger_shared_request_updates').add({ requestId: ids.req, ownerUid: ids.owner, partnerUid: ids.abi,
+      type: 'status', actorUid: ids.abi, actorRole: 'system', text: null, createdAt: firebase.firestore.FieldValue.serverTimestamp(), metadata: { status: 'done' } }));
+    await tryIt('comment as Shaun', () => db.collection('ledger_shared_request_updates').add({ requestId: ids.req, ownerUid: ids.owner, partnerUid: ids.abi,
+      type: 'comment', actorUid: ids.owner, actorRole: 'owner', text: 'fake', createdAt: firebase.firestore.FieldValue.serverTimestamp(), metadata: {} }));
+    return out;
+  }, { act: rxActs[0].id, req: rx.id, owner, abi });
+  check(Object.values(touch).every(v => v === 'permission-denied'), 'U19 partner cannot read, move or complete the Action, replan, or fake an entry: ' + JSON.stringify(touch));
+  // U20 — nothing private crosses
+  const updJson = JSON.stringify(await all('ledger_shared_request_updates'));
+  check(!/SECRET|PRIVATE-MIN|Harbour|Porridge/.test(updJson), 'U20 no private notes in shared Updates');
+  check(!/SECRET|PRIVATE-MIN/.test(await A.evaluate(() => document.documentElement.innerHTML)), 'U20 …nor on the partner page');
+  await S2.context().close();
 
   // 16 — the boundary: Abi cannot reach private data, by any route the SDK offers
   const probe = await A.evaluate(async (ids) => {

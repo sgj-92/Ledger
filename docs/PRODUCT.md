@@ -212,11 +212,21 @@ Ledger.
   Action, marked as from the partner. Dismiss sets it aside. The request then
   follows its Action: Planned, Done, or back to Requested if the Action
   disappears. Never Done unless it was done.
+- **Each request has Updates**: a short shared history, not a chat. It holds what
+  either side wrote ("Tried twice, no answer", "They need it tomorrow now") and
+  the meaningful things that happened (asked, planned, moved, in progress, done,
+  set aside, withdrawn). The current status stays simple; the Updates carry the
+  nuance. An update never changes the Action: "Can this be Friday?" is
+  information, and the owner decides. Nothing private flows into Updates
+  automatically. A new update from the other side shows quietly ("Abi updated ·
+  20m"). For the owner, a processed request with news from Abi returns to the
+  Inbox as one row (Update from Abi → Review), never as a second task.
 - Image sharing is separate and unchanged. Share image is a one-off picture for
   anyone. Publish to Abi is the live view.
 
-Not yet: notifications of any kind, more than one partner, chat or comments,
-the partner editing Actions, calendar sharing.
+Not yet: notifications of any kind, more than one partner, general chat or
+comments outside requests, attachments, reactions, mentions, the partner editing
+Actions, calendar sharing.
 
 ## Privacy and data
 

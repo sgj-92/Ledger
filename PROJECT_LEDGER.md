@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-07 (Partner Sharing Phase 2 built: shared projections, partner view, requests and Inbox; rules need publishing)
+Last updated: 2026-10-07 (Partner Sharing Phase 2.5: request Updates timeline; rules need publishing)
 
 ---
 
@@ -326,8 +326,20 @@ Choose day / Dismiss (Undo). Accepting makes one normal Action with
 the row); the request follows it (planned → done; moved date; back to Requested if
 the Action disappears). Settings → Partner sharing: set up (relationship only, never
 a role), pause/resume, weekly checkpoint day, remove. Manual onboarding:
-`docs/SECURITY.md` → Partner Sharing. Tests: rules 143 (emulator), end to end 71
+`docs/SECURITY.md` → Partner Sharing. Tests: rules 205 (emulator), end to end 104
 (`tests/e2e/`, real SDK, two browsers, Auth + Firestore emulators).
+**Phase 2.5 — Updates.** Each request has a shared, append-only history in
+`ledger_shared_request_updates`: comments from either side plus lifecycle entries
+(asked, planned, moved, in progress, done, back to requested, set aside, withdrawn).
+The request keeps summary fields (`latestUpdate*`, `latestComment*`) and each
+side's read mark. Request detail (owner: from the Inbox, the Action's "From Abi ·
+Updates" link, or Settings → Partner sharing → Requests; partner: any request row)
+shows state, the linked Action (owner only), the timeline and an "Add an update…"
+composer. The Inbox now shows new requests and "Update from Abi → Review" for
+processed requests with unread news, one row per request. Accept, dismiss and the
+Action-driven sync are Firestore transactions that write the change and its entry
+together; Dismiss waits for its Undo before writing. Withdraw is a status (requests
+are never deleted). Request statuses gain `in_progress` and `withdrawn`.
 
 ---
 
@@ -459,6 +471,26 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-07 — Partner Requests have Updates: a shared history, not a chat
+**Decision (Shaun's Phase 2.5 brief):** every Partner Request has a shared
+**Updates** timeline combining human comments (either side) and meaningful lifecycle
+entries (asked, planned, moved, in progress, done, back to requested, set aside,
+withdrawn). Category, key-task, Flow order and other private changes are never
+logged. Human updates never modify the owner's Action ("Can this be Friday?" is
+information; Shaun decides), never create Actions, and a request still maps to at
+most one Action. Private Ledger text (Action fields, Day Notes, Communications)
+never flows into Updates; lifecycle entries are structured facts (dates, statuses)
+rendered as words, not stored prose. The current status stays simple; the timeline
+carries the nuance. The Inbox surfaces both new requests and new partner updates on
+processed requests, one row per request. Entries are append-only and rule-checked
+against the request; the partner may record only her own comments and her own two
+facts (asked, withdrawn), once each; system entries come only from the owner's
+device, in the same transaction as the change they describe (idempotent across
+re-renders and devices). Requests are no longer deleted: withdrawn is a state.
+**Why:** "open a request and understand what has happened with it".
+**Implications:** rules must be republished. Not built: general chat, attachments,
+reactions, mentions, comments on other Actions, AI summaries, notifications.
 
 ### 2026-10-07 — Partner Sharing is a projection, published on purpose and live after
 **Decision (Shaun's Phase 2 brief):** Ledger stays private; a partner sees only
@@ -1372,14 +1404,18 @@ No active handoff.
 
 ### Claude Code
 
-No active handoff. Partner Sharing Phase 2 is built and tested on the emulators
-(2026-10-07). Next is Shaun's manual rollout (Next 1); Phase 3 (notifications and
+No active handoff. Partner Sharing Phase 2.5 (request Updates) is built and tested
+on the emulators (2026-10-07). Next is Shaun's manual rollout (Next 1); Phase 3 (notifications and
 beyond) starts only on his explicit brief.
 
 ---
 
 ## Recently Completed
 
+- (2026-10-07) — Partner Sharing Phase 2.5: request Updates timeline (comments +
+  lifecycle entries), owner/partner request detail with composer, read marks and
+  "updated" signals, Inbox update rows, transactional accept/dismiss/sync, withdraw
+  as a state; rules 205 and end-to-end 104 checks.
 - (2026-10-07) — Partner Sharing Phase 2: shared-namespace rules (143 emulator
   tests), owner publish (day/week, Abi preset, review, live sync, checkpoint),
   partner view (Today / This week / requests), owner Inbox with request → Action
@@ -1502,7 +1538,8 @@ beyond) starts only on his explicit brief.
 
 ## Next
 
-1. **Shaun:** republish `firestore.rules` from the Console, then add Abi
+1. **Shaun:** republish `firestore.rules` from the Console (Phase 2.5 changed it
+   again), then add Abi
    (`docs/SECURITY.md` → Partner Sharing → Adding Abi) and publish a day to her.
 2. **Shaun:** create the GitHub Project (Open Q7). Configuration is recorded in
    `docs/ROAD_TO_SHIPPABLE.md` → Appendix.

@@ -121,18 +121,34 @@ service cloud.firestore {
     // Requests from a partner: capture for the owner to decide on, never an Action.
     // The partner creates them (through their own active relationship), may edit or
     // withdraw one until the owner has acted on it, and reads their own. Only the owner
-    // moves a request on — planned, done, dismissed — and links it to an Action.
+    // moves a request on — planned, in progress, done, dismissed — and links it to an
+    // Action. Either side keeps the request's small summary of its latest update and
+    // their own "last read" mark, never the other side's.
     function requestText(d) {
       return d.text is string && d.text.size() > 0 && d.text.size() <= 280
           && (!('note' in d) || d.note == null || (d.note is string && d.note.size() <= 500))
           && d.requestedTiming in ['today', 'week', 'date', 'none']
           && (!('requestedDate' in d) || d.requestedDate == null || d.requestedDate is string);
     }
+    // the summary of the latest update may only name the side writing it
+    function summaryBy(role) {
+      let d = request.resource.data;
+      let o = resource == null ? {} : resource.data;
+      return (d.get('latestUpdateBy', null) == o.get('latestUpdateBy', null)
+              || (role == 'owner' && d.latestUpdateBy in ['owner', 'system'])
+              || (role == 'partner' && d.latestUpdateBy == 'partner'))
+          && (d.get('latestCommentBy', null) == o.get('latestCommentBy', null) || d.latestCommentBy == role)
+          && (d.get('latestCommentText', null) == null
+              || (d.latestCommentText is string && d.latestCommentText.size() <= 500));
+    }
+    function partnerCanReach(data) {
+      return isPartner()
+          && data.partnerUid == request.auth.uid
+          && activeMember(data.ownerUid, request.auth.uid);
+    }
     match /ledger_shared_requests/{requestId} {
       allow read: if (isOwner() && resource.data.ownerUid == request.auth.uid)
-                  || (isPartner()
-                      && resource.data.partnerUid == request.auth.uid
-                      && activeMember(resource.data.ownerUid, request.auth.uid));
+                  || partnerCanReach(resource.data);
       // the id is the partner's to choose, so it is held to the shape of an ordinary
       // generated id — it is never more than an id wherever it is shown
       allow create: if isPartner()
@@ -140,28 +156,95 @@ service cloud.firestore {
                     && request.resource.data.partnerUid == request.auth.uid
                     && activeMember(request.resource.data.ownerUid, request.auth.uid)
                     && request.resource.data.keys().hasOnly(['ownerUid', 'partnerUid', 'text', 'note', 'requestedTiming',
-                         'requestedDate', 'createdAt', 'updatedAt', 'status', 'plannedDate', 'linkedActionId'])
+                         'requestedDate', 'createdAt', 'updatedAt', 'status', 'plannedDate', 'linkedActionId',
+                         'latestUpdateAt', 'latestUpdateBy', 'latestUpdateType', 'partnerLastReadAt'])
                     && request.resource.data.status == 'requested'
                     && (!('plannedDate' in request.resource.data) || request.resource.data.plannedDate == null)
                     && (!('linkedActionId' in request.resource.data) || request.resource.data.linkedActionId == null)
+                    && request.resource.data.get('latestUpdateBy', 'partner') == 'partner'
                     && requestText(request.resource.data);
-      // the partner: wording and timing only, and only while it is still a request
-      allow update: if (isPartner()
-                        && resource.data.partnerUid == request.auth.uid
-                        && activeMember(resource.data.ownerUid, request.auth.uid)
-                        && resource.data.status == 'requested'
-                        && request.resource.data.diff(resource.data).affectedKeys()
-                             .hasOnly(['text', 'note', 'requestedTiming', 'requestedDate', 'updatedAt'])
-                        && requestText(request.resource.data))
+      allow update: if (partnerCanReach(resource.data)
+                        && (
+                          // wording and timing, only while it is still a request
+                          (resource.data.status == 'requested'
+                           && request.resource.data.diff(resource.data).affectedKeys()
+                                .hasOnly(['text', 'note', 'requestedTiming', 'requestedDate', 'updatedAt'])
+                           && requestText(request.resource.data))
+                          // withdrawing it, only while it is still a request
+                          || (resource.data.status == 'requested'
+                              && request.resource.data.status == 'withdrawn'
+                              && request.resource.data.diff(resource.data).affectedKeys()
+                                   .hasOnly(['status', 'updatedAt', 'latestUpdateAt', 'latestUpdateBy', 'latestUpdateType'])
+                              && summaryBy('partner'))
+                          // their update's summary, and their own read mark, at any time
+                          || (request.resource.data.diff(resource.data).affectedKeys()
+                                .hasOnly(['latestUpdateAt', 'latestUpdateBy', 'latestUpdateType', 'latestCommentAt',
+                                          'latestCommentBy', 'latestCommentText', 'partnerLastReadAt', 'updatedAt'])
+                              && summaryBy('partner'))))
                     // the owner: where it went, never what was asked or by whom
                     || (ownsIt(resource.data)
                         && request.resource.data.diff(resource.data).affectedKeys()
-                             .hasOnly(['status', 'plannedDate', 'linkedActionId', 'updatedAt', 'processedAt'])
-                        && request.resource.data.status in ['requested', 'planned', 'done', 'dismissed']);
-      allow delete: if isPartner()
-                    && resource.data.partnerUid == request.auth.uid
-                    && resource.data.status == 'requested'
-                    && (!('linkedActionId' in resource.data) || resource.data.linkedActionId == null);
+                             .hasOnly(['status', 'plannedDate', 'linkedActionId', 'updatedAt', 'processedAt',
+                                       'latestUpdateAt', 'latestUpdateBy', 'latestUpdateType', 'latestCommentAt',
+                                       'latestCommentBy', 'latestCommentText', 'ownerLastReadAt'])
+                        && request.resource.data.status in ['requested', 'planned', 'in_progress', 'done', 'dismissed']
+                        && (resource.data.status != 'withdrawn' || request.resource.data.status == 'withdrawn')
+                        && summaryBy('owner'));
+      // a request is never deleted: withdrawn and dismissed are states, so its history stays
+      allow delete: if false;
+    }
+
+    // A request's Updates: a short shared history — what either side said, and what
+    // happened. Entries are never edited or removed. Every entry must belong to an
+    // existing request of the same relationship, written by the signed-in user, at the
+    // server's time. The partner writes what they said (a comment) and the two facts that
+    // are theirs alone — they asked, they withdrew — each once; everything that happened
+    // to the Action (planned, moved, status, dismissed) comes only from the owner, and only
+    // when the request itself says so.
+    function requestPath(id) {
+      return /databases/$(database)/documents/ledger_shared_requests/$(id);
+    }
+    function updateShape(d) {
+      return d.keys().hasOnly(['requestId', 'ownerUid', 'partnerUid', 'type', 'actorUid', 'actorRole', 'text', 'createdAt', 'metadata'])
+          && d.requestId is string
+          && d.actorUid == request.auth.uid
+          && d.createdAt == request.time
+          && (!('text' in d) || d.text == null || (d.text is string && d.text.size() <= 500))
+          && (!('metadata' in d) || d.metadata is map);
+    }
+    function isComment(d) {
+      return d.type == 'comment' && d.text is string && d.text.size() > 0;
+    }
+    function ownerUpdate(d, p) {
+      return isOwner()
+          && d.ownerUid == request.auth.uid
+          && ((d.actorRole == 'owner' && isComment(d))
+              || (d.actorRole == 'system'
+                  && ((d.type == 'planned' && p.status == 'planned' && p.linkedActionId != null)
+                      || (d.type == 'moved' && p.plannedDate == d.metadata.toDate)
+                      || (d.type == 'status' && p.status == d.metadata.status)
+                      || (d.type == 'dismissed' && p.status == 'dismissed'))));
+    }
+    function partnerUpdate(d, p, updateId) {
+      return isPartner()
+          && d.partnerUid == request.auth.uid
+          && d.actorRole == 'partner'
+          && activeMember(d.ownerUid, request.auth.uid)
+          && (isComment(d)
+              || (d.type == 'request_created' && updateId == d.requestId + '_created' && p.status == 'requested')
+              || (d.type == 'withdrawn' && updateId == d.requestId + '_withdrawn' && p.status == 'withdrawn'));
+    }
+    match /ledger_shared_request_updates/{updateId} {
+      allow read: if (isOwner() && resource.data.ownerUid == request.auth.uid)
+                  || partnerCanReach(resource.data);
+      allow create: if signedIn()
+                    && updateShape(request.resource.data)
+                    && existsAfter(requestPath(request.resource.data.requestId))
+                    && getAfter(requestPath(request.resource.data.requestId)).data.ownerUid == request.resource.data.ownerUid
+                    && getAfter(requestPath(request.resource.data.requestId)).data.partnerUid == request.resource.data.partnerUid
+                    && (ownerUpdate(request.resource.data, getAfter(requestPath(request.resource.data.requestId)).data)
+                        || partnerUpdate(request.resource.data, getAfter(requestPath(request.resource.data.requestId)).data, updateId));
+      allow update, delete: if false;
     }
   }
 }
