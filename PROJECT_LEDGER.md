@@ -498,7 +498,11 @@ shown with its dates. Targets are scoped like daily tasks: just this week or eve
 week from this week, edited or stopped per week (`fromWeek`/`untilWeek`, `versions`,
 `weekEdits`). The challenge sheet shows them under Days complete with what is left
 and roughly what a day needs. Today shows them as "Week N" pills. The share snapshot
-lists them.
+lists them. **A weekly target's daily goal is also a daily task** (added
+2026-10-07 at Shaun's request). It sits in Daily tasks and on Today's daily pills,
+reads the same day figure (one log feeds both), counts towards the day's "x of y" and
+Days complete, and is edited with its weekly target. Steps is skipped if the challenge
+already has its own daily steps task.
 **Why:** the challenge group set weekly totals for week one, possibly continuing.
 
 ### 2026-10-07 — Password first; the email link becomes the backup

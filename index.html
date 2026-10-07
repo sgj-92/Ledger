@@ -5107,7 +5107,20 @@
     return e.removed && !withRemoved ? null : e;
   }
   function challengeTasksOn(c, dateStr){
-    return challengeTasks(c).map(function(t){ return challengeTaskOn(c, t, dateStr); }).filter(function(t){ return !!t; });
+    var own = challengeTasks(c).map(function(t){ return challengeTaskOn(c, t, dateStr); }).filter(function(t){ return !!t; });
+    return own.concat(czWeeklyDailyTasks(c, dateStr, own));
+  }
+  // A weekly target's daily goal is also one of the day's tasks: the same figure, so a
+  // day's press ups count towards both, and steps still come from the Steps record.
+  // (Not when the challenge already has its own daily steps task — one steps line a day.)
+  function czWeeklyDailyTasks(c, dateStr, own){
+    var hasSteps = (own || []).some(function(t){ return t.kind === 'steps'; });
+    return czWeeklyOnDate(c, dateStr).filter(function(t){
+      return Number(t.dailyGoal) > 0 && !(t.kind === 'steps' && hasSteps);
+    }).map(function(t){
+      return { id: 'wg-' + t.id, weeklyId: t.id, fromWeekly: true, title: t.title, kind: t.kind,
+        target: Number(t.dailyGoal), unit: t.kind === 'count' ? (t.unit || 'reps') : null, asAction: false };
+    });
   }
   // the day's own Action for a task, wherever it has since been moved
   function czLinkedAction(c, t, dateStr){
@@ -5119,7 +5132,7 @@
       return r ? parseInt(r.steps, 10) : null;
     }
     var p = getPlanForDate(dateStr);
-    var e = p && p.challengeLog && p.challengeLog[c.id] && p.challengeLog[c.id][t.id];
+    var e = p && p.challengeLog && p.challengeLog[c.id] && p.challengeLog[c.id][t.weeklyId || t.id];
     return e ? e.value : null;
   }
   // t: the task as it stands that day. Completing its Action in Today or Flow counts for a
@@ -15351,6 +15364,12 @@
   // One task, logged for a date (t: as it stands that day): a yes/no toggles; a count
   // opens its log; steps opens the Steps log itself. onDone: where to come back to.
   function logChallengeTask(c, t, dateStr, onDone){
+    if (t.fromWeekly){
+      // a weekly target's daily goal logs as the weekly target does — one figure for both
+      var w = czWeeklyListOn(c, czWeekOf(c, dateStr)).find(function(x){ return x.id === t.weeklyId; });
+      if (w) logWeeklyTarget(c, w, dateStr, onDone);
+      return;
+    }
     if (t.kind === 'check'){
       var on = !challengeTaskMet(c, t, dateStr);
       setChallengeTaskValue(c, t, dateStr, on ? true : null);
@@ -15473,7 +15492,7 @@
               '<span class="cz-task-mark" aria-hidden="true">' + CHECK_SVG + '</span>' +
               '<span class="cz-task-text"><span class="cz-task-title"></span>' +
                 '<span class="cz-task-meta">' + (started ? challengeTaskProgress(c, t, day) : czTargetLabel(t)) +
-                  (t.kind === 'steps' ? ' \u00b7 linked to Steps' : '') +
+                  (t.fromWeekly ? ' \u00b7 daily goal of the weekly target' : (t.kind === 'steps' ? ' \u00b7 linked to Steps' : '')) +
                   (t.asAction && !(started && /in Actions$/.test(challengeTaskProgress(c, t, day))) ? ' \u00b7 in Actions' : '') + '</span></span>' +
             '</button>' +
             '<button type="button" class="kt-more" data-cz-edit="' + t.id + '" aria-label="Edit task">' + KT_MORE_SVG + '</button>' +
@@ -15564,8 +15583,9 @@
       if (notes) notes.textContent = c.notes;
       sheetEl.querySelectorAll('[data-cz-row]').forEach(function(row){
         var def = challengeTasks(c).find(function(t){ return t.id === row.dataset.czRow; });
-        var t = def && (challengeTaskOn(c, def, day, true) || def);
-        if (t) row.querySelector('.cz-task-title').textContent = t.title;
+        var t = def ? (challengeTaskOn(c, def, day, true) || def)
+          : challengeTasksOn(c, day).find(function(x){ return x.id === row.dataset.czRow; });
+        if (t) row.querySelector('.cz-task-title').textContent = t.title;     // user text
       });
       document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
       sheetEl.querySelectorAll('[data-cz-log]').forEach(function(b){
@@ -15576,7 +15596,14 @@
       });
       sheetEl.querySelectorAll('[data-cz-edit]').forEach(function(b){
         b.addEventListener('click', function(){
-          var t = challengeTasks(getC()).find(function(x){ return x.id === b.dataset.czEdit; });
+          var id = b.dataset.czEdit;
+          if (id.indexOf('wg-') === 0){
+            // a weekly target's daily goal is edited with its weekly target
+            var wt = czWeeklyTargets(getC()).find(function(x){ return 'wg-' + x.id === id; });
+            if (wt) openWeeklyTargetSheet(getC(), wt, day, reopen);
+            return;
+          }
+          var t = challengeTasks(getC()).find(function(x){ return x.id === id; });
           if (t) openChallengeTaskSheet(getC(), t, day, reopen);
         });
       });
