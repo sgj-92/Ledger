@@ -104,13 +104,21 @@ access to its own data.
    (string), `email` (string), `createdAt` (string, e.g. `2026-10-06`).
 5. In Ledger, tap "I've done that — try again". Ledger opens with all your
    data. Sign in on your other devices the same way.
-6. Only now **deploy the rules** from a machine with the Firebase CLI:
-   `firebase deploy --only firestore:rules`. The project is already set in
-   `.firebaserc`. Then reload Ledger on each device and check it still opens
-   with everything there.
-7. **Deploy the function** (optional, recommended):
-   `firebase deploy --only functions`. It sends each Pin now only to the
-   devices of the account that created it.
+6. Only now **publish the rules**. Either paste `firestore.rules` into
+   Firestore → **Rules** → **Publish** in the Console (keep a copy of the old
+   rules; the Rules tab's history can restore them), or run
+   `npx -y firebase-tools@latest deploy --only firestore:rules`. The project is
+   already set in `.firebaserc`. Then reload Ledger on each device and check it
+   still opens with everything there.
+7. **Deploying the function** needs the Blaze plan. The project is on Spark,
+   and no function has ever been deployed (#20). On Blaze, run `npm install` in
+   `functions/`, then `npx -y firebase-tools@latest deploy --only functions`
+   from the repo root. Don't use `npm install -g`: on a Mac it fails with
+   EACCES. The function sends each Pin now only to the devices of the account
+   that created it.
+
+**Status:** rolled out 2026-10-07 (steps 1–6) and verified on the owner's
+devices.
 
 To add a partner later, sign them in once to get their Account ID, then add
 `ledger_users/{their uid}` with `role: partner`. Until Partner Sharing exists,

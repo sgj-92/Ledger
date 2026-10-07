@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-06 (Partner Sharing step 1: Firebase Auth identity boundary + owner-only Firestore rules)
+Last updated: 2026-10-07 (Partner Sharing step 1 live and verified; Pin now found never deployed, #20)
 
 ---
 
@@ -240,7 +240,11 @@ Competitor, Veteran, Elite) with per-tier avatar art and a day streak.
 Web Push. Client writes to `ledger_pins`; `functions/index.js` (Firebase Cloud
 Function, `onDocumentCreated`) sends the push via `web-push`. VAPID private key
 lives in Secret Manager, never in the repo. Device subscriptions in
-`ledger_push_subscriptions`.
+`ledger_push_subscriptions`. **Mismatch found 2026-10-07: the function has never
+been deployed** — the project is on the Spark plan (functions need Blaze) and the
+Functions APIs were never enabled, so Pin now has never delivered a notification
+(Shaun confirms). Possibly no VAPID private key exists either. Tracked in **#20**;
+deliberately not pursued for now.
 
 ### Theming
 Three modes — **Dark** (default and primary identity), **Light** (warm parchment
@@ -296,9 +300,9 @@ screen; a signed-in account without a role sees its Account ID to grant. Offline
 an owner already confirmed on this device can open Ledger (Firebase Auth's
 persisted session + the remembered role); nothing else unlocks local data. A build
 with no Firebase config stays local and account-free. Runbook and rollout order:
-`docs/SECURITY.md`. **Rollout status:** app gate deployed; the rules are written
-and emulator-tested but go live only after Shaun has created his owner profile and
-deployed them (see Handoffs).
+`docs/SECURITY.md`. **Rollout status (2026-10-07): live.** Email-link sign-in
+enabled, owner profile created, `firestore.rules` published from the Console, and
+Shaun has confirmed Ledger opens with all data on his devices. #5 closed.
 
 ---
 
@@ -1316,26 +1320,18 @@ No active handoff.
 
 No active handoff.
 
-### Shaun
-
-Partner Sharing step 1 is in code and live on `main`; finish the rollout, in order
-(`docs/SECURITY.md` → Rollout): (1) Console: enable Email link sign-in and authorise
-`sgj-92.github.io`; (2) sign in on the phone, copy the Account ID; (3) create
-`ledger_users/{that id}` with `role: owner`; (4) confirm Ledger opens with all data
-on each device; (5) `firebase deploy --only firestore:rules`, reload, confirm again;
-(6) `firebase deploy --only functions`. Then confirm here that it works on real
-devices.
-
 ### Claude Code
 
-No active handoff. **Do not start Partner Sharing Phase 2** (shared projections,
-partner portal, requests) until Shaun confirms authentication works on his real
-devices and the rules are deployed.
+No active handoff. Partner Sharing step 1 is complete and verified on Shaun's
+devices (2026-10-07). Phase 2 (shared projections, partner view, requests) starts
+only on Shaun's explicit brief.
 
 ---
 
 ## Recently Completed
 
+- (2026-10-07) — Auth + owner-only rules rolled out and verified on Shaun's devices;
+  #5 closed. Pin now found never deployed (Spark plan) → #20.
 - (2026-10-06) — Partner Sharing step 1: Firebase Auth (email link) gate with
   owner / partner / no-role / signed-out states, owner-only `firestore.rules`
   (emulator-tested), push ownership, `docs/SECURITY.md`.
@@ -1454,8 +1450,7 @@ devices and the rules are deployed.
 1. **Shaun:** create the GitHub Project (Open Q7). Configuration is recorded in
    `docs/ROAD_TO_SHIPPABLE.md` → Appendix. Nothing else can be prioritised
    properly until it exists.
-2. #5 (open Firestore rules): fixed in code; **Shaun** to complete the Console
-   steps and deploy the rules (`docs/SECURITY.md` → Rollout).
+2. Partner Sharing Phase 2, when Shaun briefs it (step 1, auth + rules, is live).
 3. Triage #6–#19 into the board, then decide what, if anything, to build.
 
 Everything else is on the board. Do not duplicate it here.
