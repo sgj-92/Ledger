@@ -119,10 +119,12 @@ access to its own data.
 
 1. **Firebase Console → Authentication → Sign-in method**: enable
    **Email/Password** and, inside it, **Email link (passwordless sign-in)**.
-2. **Authentication → Settings → Authorized domains**: add `sgj-92.github.io`
-   and the production domain `ledger.sgj.luxe` (Vercel). The emailed link returns
-   to the address it was requested from. From an address Ledger doesn't know
-   (a Vercel preview), it returns to `https://ledger.sgj.luxe/`.
+2. **Authentication → Settings → Authorized domains**: the production domain
+   `ledger.sgj.luxe` (Vercel), plus `sgj-92.github.io` while the legacy copy
+   lives. Emailed links (sign-in and password) return to production, or to the
+   page's own address on production and localhost. From anywhere else (the
+   legacy GitHub copy, a Vercel preview) they return to
+   `https://ledger.sgj.luxe/`.
 3. Open Ledger, enter your email, and finish sign-in from the link. Ledger
    shows "This account isn't set up for Ledger" with your **Account ID**. Copy
    it.
@@ -137,10 +139,12 @@ access to its own data.
    `npx -y firebase-tools@latest deploy --only firestore:rules`. The project is
    already set in `.firebaserc`. Then reload Ledger on each device and check it
    still opens with everything there.
-7. **Deploying the function** needs the Blaze plan. The project is on Spark,
-   and no function has ever been deployed (#20). On Blaze, run `npm install` in
-   `functions/`, then `npx -y firebase-tools@latest deploy --only functions`
-   from the repo root. Don't use `npm install -g`: on a Mac it fails with
+7. **Deploying the function** needs the Blaze plan. The project moved to Blaze
+   on 2026-10-07, so this is no longer blocked. No function has been deployed
+   yet (#20), and the next push phase redesigns it, so don't deploy the old one
+   now. When it is time: run `npm install` in `functions/`, then
+   `npx -y firebase-tools@latest deploy --only functions` from the repo root. Its
+   `APP_URL` param defaults to `https://ledger.sgj.luxe/`. Don't use `npm install -g`: on a Mac it fails with
    EACCES. The function sends each Pin now only to the devices of the account
    that created it.
 
@@ -230,6 +234,29 @@ into them. What was chosen (the selection) stays private in
 `ledger_meta/sharing`. Presets are allow-lists: a section or Action category
 is shared only when named. A new kind of data is therefore not shared until
 someone chooses it. Day Notes and Communications are never offered.
+
+## Hosting and origins
+
+Production is `https://ledger.sgj.luxe` (Vercel). GitHub Pages
+(`sgj-92.github.io/Ledger/`) is a legacy copy that still works and links to the
+new address; it never redirects. Moving host changes nothing about security: the
+boundary is Firebase Authentication and `firestore.rules`, the same for every
+origin. No hosting token, Firebase Admin credential or VAPID private key is in
+the client or the repository.
+
+**What does not move between addresses.** A browser keeps these per origin, so
+`ledger.sgj.luxe` starts without the old address's:
+
+- signed-in Firebase session: sign in once per device;
+- localStorage: theme, Today view mode, collapsed sections, the remembered
+  role (re-confirmed online at first sign-in) and the local fallback copy;
+- service worker and installed app: install again from `ledger.sgj.luxe`
+  (Share → Add to Home Screen), and remove the old icon;
+- notification permission and push subscriptions: created afresh against
+  `ledger.sgj.luxe` when push is built.
+
+Firestore data is not per origin: everything appears once signed in. Nothing
+copies storage across origins, by design.
 
 ## Ownership of existing records
 

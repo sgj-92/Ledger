@@ -246,38 +246,46 @@ These are observed facts about this repo, useful before making changes.
   `apiKey: "YOUR_API_KEY"` (tests, local dev) stays local and account-free.
 
 ## Deploys and the build stamp
-- GitHub Pages deploys `main` by the legacy branch source ("pages build and
-  deployment", event `dynamic`), which runs Jekyll (github-pages 232). The same
-  mechanism as Money Padel (`MP-Dashboard-NewRatings`).
-- `buildInfo.pages.js` is a Liquid template the Pages build renders to
-  `buildInfo.js` with `site.github.build_revision` (the commit being built) and
-  the build time (Europe/London, from `_config.yml`). The committed
-  `buildInfo.js` is a placeholder (`sha: null` → "local build") that
-  `_config.yml` excludes so it can never overwrite the stamp. **Never write a SHA
-  into it by hand.** `index.html` has no front matter, so Jekyll publishes it
-  byte for byte; keep it that way.
+- **Production is `https://ledger.sgj.luxe`, on Vercel**, deployed from `main` on
+  every push (GitHub deployments by `vercel[bot]`, environment `Production`). It is
+  the one canonical origin: browser code works from the page's own origin and names
+  production once (`LEDGER_HOME` in `index.html`) for emailed links and the legacy
+  note. Cloud Functions take it from the `APP_URL` param, which defaults to it.
+  Deep links are query strings on the root (`?openAction=`, `?request=`, `?view=`),
+  so there are no routes and nothing to 404.
+- `vercel.json` only sets the build command, `node scripts/vercel-build-info.js`.
+  That script writes `buildInfo.js` from Vercel's build metadata
+  (`VERCEL_GIT_COMMIT_SHA`). No framework, rewrites or routes. Keep it that way.
+- **Standing practice after pushing:** confirm the Vercel Production deployment
+  for the pushed SHA reached `success`
+  (`GET /repos/sgj-92/Ledger/deployments?environment=Production`, then its
+  statuses). `ledger.sgj.luxe` and `*.vercel.app` are not reachable from Claude
+  Code sessions, so live checks are Shaun's.
+- **GitHub Pages is legacy/transitional.** It still builds `main` with Jekyll
+  (github-pages 232; "pages build and deployment"), shows a "Ledger has moved"
+  link, and never redirects. Its stamp is `buildInfo.pages.js`, a Liquid template
+  rendered with `site.github.build_revision`. `_config.yml` excludes the
+  placeholder `buildInfo.js`, `scripts/` and `vercel.json`.
+- The committed `buildInfo.js` is a placeholder (`sha: null` → "local build").
+  **Never write a SHA into it by hand.** `index.html` has no front matter; keep it
+  that way.
 - **Markdown in this repo is rendered through Liquid on Pages.** github-pages
   enables `jekyll-optional-front-matter` by default, so every `.md` file here —
   this one, `PROJECT_LEDGER.md`, `docs/` — is published as HTML via Liquid. A
   double opening brace or a brace-percent pair in any of them is a Liquid tag,
-  and an unterminated one fails the whole Pages build. Write them in words.
-- The Focus footer shows the stamp. The stamp is loaded with the page and is
-  never fetched from GitHub; only the freshness *comparison* reads GitHub, via
-  the public, unauthenticated commits API. **No token ever goes in client code.**
-- **Standing practice after pushing (from Money Padel, NEXT #15h):** confirm a
-  "pages build and deployment" run appeared for the pushed SHA
-  (`GET /repos/sgj-92/Ledger/actions/runs`). If a push produced no run, make the
-  last change through the GitHub API (a commit authored that way reliably
-  triggers Pages), then confirm the run. The Pages API itself is not reachable
-  from Claude Code sessions; the Actions runs and Deployments APIs are.
-- To verify a change to the stamp or `_config.yml` locally, build with
-  github-pages 232 and diff the published file set before and after; nothing
-  but `buildInfo.js` should differ.
+  and an unterminated one fails the Pages build. Write them in words.
+- The Focus footer shows the stamp ("Build abc1234 · Live: Up to date"). The stamp
+  is loaded with the page and never fetched from GitHub. Only the freshness
+  *comparison* reads GitHub, via the public, unauthenticated commits API. **No
+  token ever goes in client code** — no GitHub, Vercel or Firebase Admin
+  credential.
 
 ## Verifying changes
-- There are no automated tests in the repo. Changes are verified by driving the
-  app in a headless browser (Playwright against a local static server) and by
-  reading the rendered result — not by assuming.
+- Automated tests live in `tests/firestore-rules/` (rules, emulator) and
+  `tests/e2e/` (Partner Sharing, auth, deep links and PWA basics against the Auth
+  and Firestore emulators). Everything else is verified by driving the app in a
+  headless browser (Playwright against a local static server) and reading the
+  rendered result — not by assuming.
 - A JS syntax check over the inline `<script>` block is a cheap first gate
   before any browser run.
 - For layout changes, screenshot every tab and the main sheets at 390px before

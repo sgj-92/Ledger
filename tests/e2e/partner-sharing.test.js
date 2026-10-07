@@ -32,7 +32,9 @@ const plus = n => { const d = new Date(now); d.setDate(d.getDate() + n); return 
 // the repository, served as it is
 const TYPES = { '.html': 'text/html', '.js': 'application/javascript', '.json': 'application/json', '.png': 'image/png', '.webp': 'image/webp', '.woff2': 'font/woff2', '.svg': 'image/svg+xml' };
 const server = http.createServer((req, res) => {
-  const f = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]));
+  let rel = decodeURIComponent(req.url.split('?')[0]);
+  if (rel.endsWith('/')) rel += 'index.html';      // as Vercel serves the root
+  const f = path.join(ROOT, rel);
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()){ res.writeHead(404); res.end(); return; }
   res.writeHead(200, { 'content-type': TYPES[path.extname(f)] || 'application/octet-stream' });
   fs.createReadStream(f).pipe(res);
@@ -512,6 +514,58 @@ async function oobLink(email){
   check(await S.evaluate(() => document.querySelectorAll('[data-snap-preset]').length >= 3), '18 presets still listed (incl. Abi)');
   await S.screenshot({ path: `${shots}/${tag}-18-owner-image-mode.png` });
   await S.click('#sheetCloseBtn');
+
+  // ---------- deep links: query strings on the root, so a refresh is the same page ----------
+  // owner: a Partner Request, opened cold from its link
+  await S.goto(APP + '?request=' + rx.id);
+  check(await until(S, () => /Pick up prescription/.test((document.getElementById('rqTitle') || {}).textContent || '') && !!document.getElementById('rqTimeline'), null, 20000),
+    'D1 ?request= opens that request (with its Updates) for the owner');
+  check(await until(S, () => location.search === ''), 'D1 …and leaves the address clean');
+  await S.reload();
+  check(await until(S, () => /Book swimming lessons/.test(document.querySelector('main').innerText) && document.getElementById('authGate').hidden, null, 20000), 'D1 refreshing afterwards is ordinary Ledger');
+  // owner: an Action
+  await S.goto(APP + '?openAction=' + rxActs[0].id);
+  check(await until(S, () => (document.getElementById('f_commitTitle') || {}).value === 'Pick up prescription', null, 20000), 'D2 ?openAction= opens that Action');
+  await S.click('#sheetCloseBtn').catch(() => {});
+  // owner: a link to something that does not exist lands on Today, quietly
+  await S.goto(APP + '?request=doesNotExist');
+  check(await until(S, () => /Book swimming lessons/.test(document.querySelector('main').innerText) && !document.getElementById('sheetBackdrop').classList.contains('open'), null, 20000), 'D3 an unknown request lands on Today');
+  // partner: the week view, and a request's detail
+  await A.goto(APP + '?view=week&request=' + rx.id);
+  check(await until(A, () => !document.getElementById('partnerApp').hidden && /Shaun.s week/.test(document.getElementById('partnerApp').innerText) &&
+    /Pick up prescription/.test((document.getElementById('rqTitle') || {}).textContent || ''), null, 20000), 'D4 ?view=week&request= opens the partner\'s week and that request');
+  await A.click('#ppSheet .sheet-close');
+  // partner: an owner-only link is ignored, never an error
+  await A.goto(APP + '?openAction=' + rxActs[0].id);
+  check(await until(A, () => !document.getElementById('partnerApp').hidden && location.search === '', null, 20000), 'D5 an Action link on the partner\'s device is ignored');
+
+  // ---------- the app at the root: manifest, icons, service worker ----------
+  {
+    const ctx = await b.newContext();
+    await ctx.route(/api\.github\.com/, r => r.abort());
+    await ctx.route(/gstatic\.com\/firebasejs\/10\.12\.2\/(firebase-[a-z-]+\.js)/, r => {
+      const f = r.request().url().match(/(firebase-[a-z-]+\.js)/)[1];
+      r.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(SDK + f) });
+    });
+    const P = await ctx.newPage();
+    await P.goto(`http://127.0.0.1:${PORT}/`);
+    const pwa = await P.evaluate(async () => {
+      const link = document.querySelector('link[rel="manifest"]');
+      const mUrl = new URL(link.getAttribute('href'), location.href).href;
+      const m = await (await fetch(mUrl)).json();
+      const icons = await Promise.all(m.icons.map(async i => (await fetch(new URL(i.src, mUrl).href)).status));
+      const reg = await navigator.serviceWorker.ready;
+      return { start: new URL(m.start_url, mUrl).href, scope: new URL(m.scope, mUrl).href, icons, sw: reg.scope, display: m.display,
+        touch: (await fetch(document.querySelector('link[rel="apple-touch-icon"]').href)).status };
+    });
+    const root = `http://127.0.0.1:${PORT}/`;
+    check(pwa.start === root && pwa.scope === root && pwa.display === 'standalone', 'W1 manifest: starts and scopes at the site root, standalone (' + pwa.start + ')');
+    check(pwa.icons.every(x => x === 200) && pwa.touch === 200, 'W2 every manifest icon and the touch icon load');
+    check(pwa.sw === root, 'W3 the service worker registers at the root scope: ' + pwa.sw);
+    await P.goto(root + '?request=x'); await P.reload();
+    check(await P.evaluate(() => !!document.getElementById('authGate')), 'W4 a deep link with a refresh is the same page (no route to 404)');
+    await ctx.close();
+  }
 
   // ---------- password sign-in (the main way in), the email link kept as a backup ----------
   const IDT = `http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1`;

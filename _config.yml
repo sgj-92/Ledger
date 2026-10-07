@@ -1,3 +1,6 @@
+# LEGACY / TRANSITIONAL HOST. Production is https://ledger.sgj.luxe on Vercel (see
+# vercel.json); this file only shapes the GitHub Pages copy, which still builds.
+#
 # GitHub Pages builds this site with Jekyll on every push to main (the legacy
 # "pages build and deployment" run). This file exists for one purpose: stamping
 # the deployed build, so the foot of Focus can say exactly which commit a device
@@ -16,3 +19,5 @@ timezone: Europe/London
 exclude:
   - buildInfo.js
   - tests
+  - scripts
+  - vercel.json

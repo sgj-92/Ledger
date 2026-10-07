@@ -34,7 +34,10 @@ const VAPID_PRIVATE_KEY = defineSecret('VAPID_PRIVATE_KEY');
 // index.html by design), but keeping them as params avoids hardcoding here too.
 const VAPID_PUBLIC_KEY = defineString('VAPID_PUBLIC_KEY');
 const VAPID_SUBJECT = defineString('VAPID_SUBJECT', { default: 'mailto:example@example.com' });
-const APP_URL = defineString('APP_URL', { default: 'https://sgj-92.github.io/Ledger/' });
+// Where a notification opens Ledger: the canonical production origin. A deploy-time param
+// (functions/.env or the deploy prompt), so a different host never needs a code change.
+// Deep links are query strings on this root (?openAction=, ?request=, ?view=) — no routes.
+const APP_URL = defineString('APP_URL', { default: 'https://ledger.sgj.luxe/' });
 
 exports.sendPinNotification = onDocumentCreated(
   { document: 'ledger_pins/{pinId}', secrets: [VAPID_PRIVATE_KEY] },

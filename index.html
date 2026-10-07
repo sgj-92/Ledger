@@ -31,7 +31,8 @@
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Ledger</title>
-<!-- The build this page is: rendered by the Pages build (buildInfo.pages.js),
+<!-- The build this page is: written by the host's build (Vercel: scripts/vercel-build-info.js;
+     legacy GitHub Pages: buildInfo.pages.js),
      a placeholder locally. Loaded with the app, never asked of GitHub. -->
 <script src="buildInfo.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -4353,6 +4354,15 @@
   .pp-withdraw { color: var(--danger); }
   html[data-theme="light"] .pp-check, html[data-theme="light"] .share-preview { box-shadow: var(--shadow-card); }
 
+  /* ---------- the legacy GitHub Pages copy: a quiet pointer to the new address ---------- */
+  .moved-note {
+    position: fixed; z-index: 2100; left: 50%; transform: translateX(-50%);
+    top: calc(8px + env(safe-area-inset-top)); max-width: calc(100% - 32px);
+    padding: 7px 14px; border-radius: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    background: var(--surface-2); border: 1px solid rgba(var(--gold-rgb),0.45); box-shadow: var(--shadow-toast);
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--gold); text-decoration: none;
+  }
+
   /* ---------- identity gate: opaque, above everything, from first paint ---------- */
   body.auth-locked { overflow: hidden; }
   .auth-gate {
@@ -5619,15 +5629,18 @@
     forgetRole();
     firebase.auth().signOut().catch(function(){ location.reload(); });
   }
-  // Where an emailed sign-in link brings you back to. Firebase accepts a return address
-  // only on a domain authorised in Firebase Authentication, so a known Ledger address
-  // returns to itself (production, the old GitHub Pages address, local development) and
-  // anything else — a Vercel preview, say — returns to production.
-  var AUTH_HOME = 'https://ledger.sgj.luxe/';
-  var AUTH_HOSTS = ['ledger.sgj.luxe', 'sgj-92.github.io', 'localhost', '127.0.0.1'];
+  // Ledger's one canonical production address (Vercel). The browser otherwise works from
+  // the page's own origin; this is named once, for the two places that must point at
+  // production from elsewhere: emailed links, and the note on the old GitHub address.
+  var LEDGER_HOME = 'https://ledger.sgj.luxe/';
+  // Where an emailed link (password, or sign-in) brings you back to. Production and local
+  // development return to themselves; anywhere else — the legacy GitHub Pages copy, a
+  // Vercel preview — returns to production, so new sign-ins land on the canonical origin.
+  var AUTH_HOSTS = ['ledger.sgj.luxe', 'localhost', '127.0.0.1'];
   function authContinueUrl(){
-    return AUTH_HOSTS.indexOf(location.hostname) > -1 ? location.origin + location.pathname : AUTH_HOME;
+    return AUTH_HOSTS.indexOf(location.hostname) > -1 ? location.origin + location.pathname : LEDGER_HOME;
   }
+  var LEGACY_HOSTS = ['sgj-92.github.io'];
   function cleanAuthUrl(){ try { history.replaceState(null, '', location.pathname); } catch(e){} }
   // Firebase's error code, shown after the message so a failure can be diagnosed from a
   // screenshot. Codes are fixed identifiers (one names the blocked web address); nothing
@@ -5983,6 +5996,7 @@
         }, function(err){ console.error('day status snapshot error', err); });
       // Partner Sharing: the owner's side of the shared namespace (see firestore.rules)
       startSharingListeners();
+      startDeepLinkClock();
     } catch(e){
       console.error(e);
       fallbackMode();
@@ -11473,6 +11487,7 @@
     }, refused('snapshots'));
     dbRef.collection('ledger_shared_requests').where('ownerUid', '==', me).onSnapshot(function(snap){
       sharedRequests = snap.docs.map(shareDoc); shareLoaded.requests = true; reconcileRequests(); sharingChanged();
+      tryHandleDeepLink();
     }, refused('requests'));
     dbRef.collection('ledger_meta').doc('sharing').onSnapshot(function(doc){
       sharingMeta = doc.exists ? (doc.data() || {}) : { publications: {} }; shareLoaded.meta = true; scheduleShareSync();
@@ -11762,7 +11777,7 @@
         lockApp(); renderGate('partner', { paused: list.length > 0 });
         return;
       }
-      if (!pp.member || pp.member.id !== m.id){ stopPartnerData(); pp.member = m; startPartnerData(m); }
+      if (!pp.member || pp.member.id !== m.id){ stopPartnerData(); pp.member = m; startPartnerData(m); startDeepLinkClock(); }
       else pp.member = m;
       showPortal();
       renderPortal();
@@ -11781,6 +11796,7 @@
     pp.stops.push(q('ledger_shared_requests').onSnapshot(function(snap){
       pp.requests = snap.docs.map(shareDoc); pp.reqLoaded = true; renderPortal();
       if (ppDetailRefresh) ppDetailRefresh();
+      ppHandleDeepLink();
     }, refused));
   }
   function stopPartnerData(){
@@ -13794,17 +13810,19 @@
   }
 
 
-  // ============ Build & Pages freshness ============
+  // ============ Build & deploy freshness ============
   // Which commit this device is running, and whether it is the newest one.
   // Three SHAs from three sources, never confused with each other:
-  //   loaded  window.LEDGER_BUILD — rendered into buildInfo.js by the Pages build
-  //           and loaded with this page, so it describes the code executing now.
-  //           Never fetched later or asked of GitHub (Money Padel's rule).
-  //   served  buildInfo.js fetched again, no-store: what Pages is handing out now.
+  //   loaded  window.LEDGER_BUILD — written into buildInfo.js by the host's build
+  //           (Vercel: scripts/vercel-build-info.js from its build metadata; the legacy
+  //           GitHub Pages copy: buildInfo.pages.js through Jekyll) and loaded with this
+  //           page, so it describes the code executing now. Never fetched later.
+  //   served  buildInfo.js fetched again, no-store: what this host is serving now.
   //   latest  HEAD of main from GitHub's public API: the newest pushed commit.
-  // served != latest -> Pages has not deployed the newest commit yet.
-  // loaded != served -> Pages has, and this device is still on an older copy.
-  // No token exists anywhere in this: the commit read is public and anonymous.
+  // served != latest -> the host has not finished deploying the newest commit yet.
+  // loaded != served -> it has, and this device is still on an older copy.
+  // No token exists anywhere in this: the commit read is public and anonymous, and
+  // the build metadata is the host's own, written at build time.
 
   var LEDGER_REPO = 'sgj-92/Ledger';
   var BUILD_CHECK_KEY = 'ledger_build_check';
@@ -13835,7 +13853,7 @@
       app:   !f.served ? 'unknown' : (f.served === f.loaded ? 'current' : 'refresh')
     };
   }
-  var PAGES_LABEL = { current: 'Current', pending: 'Update pending', unknown: 'Unable to verify', checking: 'Checking\u2026' };
+  var PAGES_LABEL = { current: 'Up to date', pending: 'Deploying newer build', unknown: 'Unable to verify', checking: 'Checking\u2026' };
 
   // the last result survives a reload, but only for the build it was taken on
   var buildState = { checking: false, served: null, latest: null, at: null, pending: null };
@@ -13851,7 +13869,7 @@
   function fetchServedSha(){
     return fetch('buildInfo.js?check=' + Date.now(), { cache: 'no-store' })
       .then(function(r){ return r.ok ? r.text() : Promise.reject(r.status); })
-      .then(function(t){ var m = /sha:\s*"([0-9a-f]{7,40})"/i.exec(t); return m ? shortSha(m[1]) : null; });
+      .then(function(t){ var m = /"?sha"?\s*:\s*"([0-9a-f]{7,40})"/i.exec(t); return m ? shortSha(m[1]) : null; });
   }
   function fetchLatestSha(){
     // the .sha media type answers with the bare hash — a few bytes, not a commit
@@ -13907,7 +13925,7 @@
     el.innerHTML =
       '<span class="build-foot-line">Build <span class="build-foot-sha">' + b.sha + '</span>' +
         (b.when ? ' \u00b7 ' + b.when : '') + '</span>' +
-      '<span class="build-foot-state">Pages: ' + PAGES_LABEL[f.pages] +
+      '<span class="build-foot-state">Live: ' + PAGES_LABEL[f.pages] +
         (f.app === 'refresh' ? ' \u00b7 <span class="attn">App: Refresh available</span>' : '') +
       '</span>';
   }
@@ -13917,22 +13935,23 @@
     var f = currentFreshness();
     var when = buildState.at ? new Date(buildState.at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }) : '\u2014';
     var explain = !b.sha
-      ? 'This is a local copy, not a Pages build, so there is nothing to compare.'
+      ? 'This is a local copy, not a deployed build, so there is nothing to compare.'
       : f.pages === 'pending'
-        ? 'GitHub has a newer commit than Pages is serving. Pages usually catches up within a minute or two of a push.'
+        ? 'GitHub has a newer commit than this site is serving yet. A deploy usually finishes within a minute or two of a push.'
         : f.app === 'refresh'
-          ? 'Pages has a newer build than this device is running. Refresh to load it.'
+          ? 'This site has a newer build than this device is running. Refresh to load it.'
           : f.pages === 'current' && f.app === 'current'
             ? 'This device is running the newest deployed build.'
-            : f.pages === 'checking' ? 'Checking\u2026' : 'Couldn\u2019t reach Pages or GitHub just now \u2014 offline, or the hourly limit for anonymous checks.';
+            : f.pages === 'checking' ? 'Checking\u2026' : 'Couldn\u2019t reach the site or GitHub just now \u2014 offline, or the hourly limit for anonymous checks.';
     var row = function(k, v){ return '<tr><td>' + k + '</td><td>' + (v || '\u2014') + '</td></tr>'; };
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
       sheetHead('', 'Build', 'Which Ledger this device is running.', '') +
       '<table class="build-detail">' +
         row('This device', b.sha ? b.sha + (b.when ? ' \u00b7 ' + b.when : '') : 'local build') +
-        row('Pages serving', buildState.served) +
+        row('Served from', location.host + (LEGACY_HOSTS.indexOf(location.hostname) > -1 ? ' (legacy)' : '')) +
+        row('Site serving', buildState.served) +
         row('Latest commit', buildState.latest) +
-        row('Pages', PAGES_LABEL[f.pages] || '\u2014') +
+        row('Live', PAGES_LABEL[f.pages] || '\u2014') +
         row('This app', f.app === 'refresh' ? 'Refresh available' : (f.app === 'current' ? 'Current' : (f.app === 'local' ? 'Local' : 'Unknown'))) +
         row('Last checked', when) +
       '</table>' +
@@ -13995,8 +14014,8 @@
   }
   function refreshToLatest(){
     lsWrite(UPDATE_TRIED_KEY, buildState.served);
-    // Warm the HTTP cache with the new copies first. Pages serves with a
-    // 10-minute max-age, and a plain reload could pull the old ones back out.
+    // Warm the HTTP cache with the new copies first. A host may serve with a max-age
+    // (GitHub Pages: 10 minutes), and a plain reload could pull the old ones back out.
     Promise.all([
       fetch('./', { cache: 'reload' }).catch(function(){}),
       fetch('buildInfo.js', { cache: 'reload' }).catch(function(){})
@@ -19952,29 +19971,72 @@
     if (currentView === 'plan') renderPlan();
   }
 
-  // ---------- deep link from a pinned reminder notification (?openAction=<commitmentId>) ----------
+  // ---------- deep links ----------
+  //   ?openAction=<id>   an Action (owner)               — Pin now, later reminders
+  //   ?request=<id>      a Partner Request and its Updates (owner or partner)
+  //   ?view=today|week   the partner's shared view
+  // Query strings on the root page, so a link opened cold, refreshed, or followed from a
+  // notification is always the same static file on every host — there is no route to
+  // 404. Each waits for sign-in and its data, then opens once and leaves the address bar
+  // clean. Ids are only ever compared, never written into the page.
   var deepLinkParams = new URLSearchParams(window.location.search);
-  var deepLinkHandled = false;
+  var DEEP = { action: deepLinkParams.get('openAction'), request: deepLinkParams.get('request'), view: deepLinkParams.get('view') };
+  var deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view);
+  function deepLinkDone(){
+    if (DEEP.action || DEEP.request || DEEP.view) return;
+    if (!deepLinkHandled){ deepLinkHandled = true; try { history.replaceState(null, '', window.location.pathname); } catch(e){} }
+  }
+  // once the data has started, a link that never finds its record is dropped quietly
+  function startDeepLinkClock(){
+    if (deepLinkHandled) return;
+    setTimeout(function(){ DEEP = {}; deepLinkDone(); }, 10000);
+  }
   function tryHandleDeepLink(){
     if (deepLinkHandled) return;
-    var actionId = deepLinkParams.get('openAction');
-    if (!actionId) { deepLinkHandled = true; return; }
-    var commitment = commitments.find(function(c){ return c.id === actionId; });
-    if (!commitment) return; // data may not have loaded yet — retried from the commitments snapshot
-    deepLinkHandled = true;
-    viewedDate = commitment.date;
-    currentView = 'log';
-    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.view === 'log'); });
-    document.querySelectorAll('.view').forEach(function(v){ v.classList.toggle('active', v.id === 'view-log'); });
-    renderAll();
-    openCommitmentSheet(commitment);
-    history.replaceState(null, '', window.location.pathname);
+    if (DEEP.view && ownerDataStarted) DEEP.view = null; // the shared view is the partner's
+    if (DEEP.action){
+      var commitment = commitments.find(function(c){ return c.id === DEEP.action; });
+      if (!commitment) return; // data may not have loaded yet — retried from the commitments snapshot
+      DEEP.action = null;
+      viewedDate = commitment.date;
+      currentView = 'log';
+      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.view === 'log'); });
+      document.querySelectorAll('.view').forEach(function(v){ v.classList.toggle('active', v.id === 'view-log'); });
+      renderAll();
+      openCommitmentSheet(commitment);
+    } else if (DEEP.request && ownerDataStarted){
+      if (!shareLoaded.requests) return;  // retried from the requests snapshot
+      var reqId = DEEP.request;
+      DEEP.request = null;
+      if (sharedRequests.some(function(r){ return r.id === reqId; })) openRequestDetailSheet(reqId);
+    }
+    deepLinkDone();
   }
-  if (deepLinkParams.get('openAction')){
-    // give Firestore a few seconds to stream the data in before giving up and just landing on Today
-    setTimeout(function(){
-      if (!deepLinkHandled){ deepLinkHandled = true; history.replaceState(null, '', window.location.pathname); }
-    }, 4000);
+  // the partner's side: called as their shared data arrives
+  function ppHandleDeepLink(){
+    if (deepLinkHandled) return;
+    DEEP.action = null;                                 // an Action is never the partner's
+    if (DEEP.view === 'week' || DEEP.view === 'today'){ pp.tab = DEEP.view; DEEP.view = null; renderPortal(); }
+    else DEEP.view = null;
+    if (DEEP.request){
+      if (!pp.reqLoaded) return;
+      var r = pp.requests.find(function(x){ return x.id === DEEP.request; });
+      DEEP.request = null;
+      if (r) ppOpenRequest(r);
+    }
+    deepLinkDone();
+  }
+
+  // The old GitHub Pages copy is transitional: it still works, and says where Ledger now
+  // lives — a link, never an automatic redirect (so nothing can loop, and a device signed
+  // in there is not thrown out). The link carries any deep link with it.
+  if (LEGACY_HOSTS.indexOf(location.hostname) > -1){
+    var moved = document.createElement('a');
+    moved.className = 'moved-note';
+    moved.href = LEDGER_HOME + location.search;
+    moved.textContent = 'Ledger has moved to ledger.sgj.luxe \u2192';
+    document.body.appendChild(moved);
+    document.body.classList.add('legacy-host');
   }
 
   renderHeader();

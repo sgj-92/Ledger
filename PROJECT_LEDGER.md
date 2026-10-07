@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-07 (challenges gain weekly targets)
+Last updated: 2026-10-07 (ledger.sgj.luxe is the canonical production origin; Vercel migration audit done; Blaze enabled)
 
 ---
 
@@ -207,7 +207,7 @@ The three reflective tabs have one job each: **Focus** — where am I going?
 - **Focus** — player card (XP/level/tier/streak/avatar), priorities (optionally
   linked to evidence, with a signal and **View progress →**), target weight,
   focus items (optionally supporting a priority), the entry to Settings, and at its foot a muted **build
-  footer**: `Build 7f3a2c1 · 29 Sep, 04:31` / `Pages: Current`. Tapping it opens a
+  footer**: `Build 7f3a2c1 · 29 Sep, 04:31` / `Live: Up to date`. Tapping it opens a
   small detail sheet.
 
 ### Nutrition
@@ -241,10 +241,23 @@ Web Push. Client writes to `ledger_pins`; `functions/index.js` (Firebase Cloud
 Function, `onDocumentCreated`) sends the push via `web-push`. VAPID private key
 lives in Secret Manager, never in the repo. Device subscriptions in
 `ledger_push_subscriptions`. **Mismatch found 2026-10-07: the function has never
-been deployed** — the project is on the Spark plan (functions need Blaze) and the
-Functions APIs were never enabled, so Pin now has never delivered a notification
-(Shaun confirms). Possibly no VAPID private key exists either. Tracked in **#20**;
-deliberately not pursued for now.
+been deployed**, so Pin now has never delivered a notification (Shaun confirms).
+Possibly no VAPID private key exists either. Tracked in **#20**. The Spark-plan
+blocker is gone: **Shaun upgraded `ledger-6aec3` to Blaze on 2026-10-07**, so
+Cloud Functions can be deployed. The old function is not to be deployed as-is;
+the next push phase redesigns delivery (below). `APP_URL` now defaults to
+`https://ledger.sgj.luxe/`.
+
+**Future push architecture (agreed direction, not built).** Device subscriptions
+belong to the **authenticated user** (Shaun's devices to Shaun's UID, Abi's to
+Abi's), not to "the owner". Server-side events decide the recipient. Triggers will
+include: new Partner Request; Partner Request Update; Shaun's update to Abi; request
+planned/completed; Pin now; timed Action reminders; relative reminders; later the
+weekly accountability/checkpoint notifications. The notification is only delivery:
+Firestore stays the source of truth, and a tap opens a deep link (`?openAction=`,
+`?request=`, `?view=`) on `ledger.sgj.luxe`. The current owner-only Pin now is not
+to be extended ad hoc. Push starts only after the domain is verified and Shaun
+authorises the Push Notifications Foundation.
 
 ### Theming
 Three modes — **Dark** (default and primary identity), **Light** (warm parchment
@@ -265,17 +278,21 @@ does not authorise building it; see the workflow rules in `CLAUDE.md`.
 **The GitHub Project is not yet created** — see Open Questions 7.
 
 ### Build and deploy freshness
-The deployed commit is stamped into `buildInfo.js` by the Pages build itself
-(Money Padel's mechanism — see `CLAUDE.md` → Deploys and the build stamp).
-Freshness compares three SHAs: **loaded** (the stamp this page was loaded with),
-**served** (`buildInfo.js` fetched again with `no-store` — what Pages hands out
-now) and **latest** (HEAD of `main` from GitHub's public, unauthenticated API).
-served ≠ latest → `Pages: Update pending`; loaded ≠ served → `App: Refresh
-available` and a quiet "New Ledger build available · Refresh" offer. Checked on
+The deployed commit is stamped into `buildInfo.js` at build time. On Vercel
+(production), `vercel.json` runs `scripts/vercel-build-info.js`, which writes it
+from Vercel's build metadata (`VERCEL_GIT_COMMIT_SHA`; no token). On the legacy
+Pages copy, Jekyll still renders `buildInfo.pages.js`. See `CLAUDE.md` → Deploys
+and the build stamp. Freshness compares three SHAs: **loaded** (the stamp this
+page was loaded with), **served** (`buildInfo.js` fetched again with `no-store`:
+what this host serves now) and **latest** (HEAD of `main` from GitHub's public,
+unauthenticated API). served ≠ latest → `Live: Deploying newer build`; loaded ≠
+served → `App: Refresh available` and a quiet "New Ledger build available ·
+Refresh" offer. The build sheet names the host it is served from. Until
+2026-10-07 the wording said "Pages", which became misleading on Vercel. Checked on
 Focus and on returning to the app, at most every 10 minutes (GitHub allows 60
 anonymous reads an hour). The service worker is a pure pass-through and cannot
-pin an old build; staleness comes from Pages' 10-minute HTTP cache or an
-installed app left open, both of which the check reports.
+pin an old build; staleness comes from an HTTP cache (GitHub Pages: 10 minutes)
+or an installed app left open, both of which the check reports.
 
 ### Persistence
 Firebase Firestore (project `ledger-6aec3`) with a **full localStorage
@@ -286,13 +303,32 @@ fallback** — the app works entirely offline/unconfigured. Collections:
 `ledger_conversations`, `ledger_challenges`, `ledger_users` (roles), and the
 shared namespace `ledger_share_members`, `ledger_shared_snapshots`,
 `ledger_shared_requests` (Partner Sharing). Live
-`onSnapshot` listeners drive re-renders. **Production is now
-`https://ledger.sgj.luxe`, served by Vercel** (deployments by `vercel[bot]` from
-`main`). GitHub Pages (`https://sgj-92.github.io/Ledger/`) still builds too.
-*Mismatch to resolve in the hosting audit (not started):* the deploy and build-stamp
-notes in `CLAUDE.md` describe Pages only. Vercel doesn't render
-`buildInfo.pages.js`, so production shows "local build". `functions/index.js`
-still defaults `APP_URL` to the Pages address.
+`onSnapshot` listeners drive re-renders.
+
+### Hosting (since 2026-10-07)
+- **Canonical production origin: `https://ledger.sgj.luxe`, hosted on Vercel**,
+  deployed from `main` on every push. One URL strategy: browser code works from
+  its own origin and names production once (`LEDGER_HOME`); Cloud Functions use
+  the `APP_URL` param (default `https://ledger.sgj.luxe/`). Ledger lives at the
+  root; every asset, the manifest (`start_url`/`scope` "."), and the service
+  worker are relative, so nothing assumes `/Ledger/`.
+- **Deep links** are query strings on the root (`?openAction=`, `?request=`,
+  `?view=today|week`), so a direct link or a refresh is always the same static
+  page. There are no routes and no rewrites; `vercel.json` only sets the build
+  command for the build stamp.
+- **GitHub Pages is legacy/transitional.** It still builds and works, shows a
+  "Ledger has moved to ledger.sgj.luxe" link (carrying any deep link), and never
+  redirects. Production depends on nothing there. Emailed links requested there
+  return to production.
+- **Firebase is unchanged** (`ledger-6aec3`, now on Blaze). Users, UIDs, roles,
+  memberships and data are untouched. Sign-in is email + password, with the email
+  link as a backup.
+- **Origin-local state does not migrate:** the Firebase session, localStorage
+  preferences, service worker, installed app and notification permission belong
+  to the old address. On `ledger.sgj.luxe`, sign in, re-pick device preferences,
+  and install the app from there. Future push subscriptions will be created
+  against it. Firestore data appears as normal. See `docs/SECURITY.md` →
+  Hosting and origins.
 
 ### Identity and security
 **Firebase Authentication is the identity boundary** — email + password first,
@@ -316,8 +352,8 @@ refusing the send with `QUOTA_EXCEEDED`, the Spark plan's small daily email-link
 quota. The new address signs every device out, so every device needs a new link.
 The domain was fine: a send from `ledger.sgj.luxe` with that return address was
 accepted. The sign-in screen now names the reason and shows the Firebase code. The
-emailed link returns to the page's own address only on known hosts
-(`ledger.sgj.luxe`, the Pages address, localhost), otherwise to production.
+emailed link returns to the page's own address only on production and localhost,
+otherwise to production (since the migration audit, the legacy Pages copy too).
 
 ### Partner Sharing (Phase 2 — built 2026-10-07; live once the rules are republished)
 A projection, not access. The owner publishes a day or a week to the partner from
@@ -484,6 +520,22 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-07 — ledger.sgj.luxe is the one production origin
+**Decision (Shaun's handoff):** production is `https://ledger.sgj.luxe` on Vercel.
+GitHub Pages is legacy/transitional: it still builds, links to the new address,
+never redirects, and nothing in production depends on it. One URL strategy:
+browsers work from their own origin; production is named once (`LEDGER_HOME`) for
+emailed links (which return to production from any unknown host, the legacy copy
+included) and the legacy note. Cloud Functions use the `APP_URL` param, default
+`https://ledger.sgj.luxe/`. Deep links are query strings on the root, so no routes
+or rewrites exist. The build stamp is written by a Vercel build step from Vercel's
+own metadata, and the freshness UI no longer says "Pages". Origin-local state
+(session, preferences, installed app, push permission) is re-established on the
+new origin, never copied. Firebase, users, UIDs, roles and data are unchanged.
+Blaze is enabled. Push comes next, per authenticated user, only on Shaun's say.
+**Supersedes:** GitHub Pages as the deploy target in the 2026-09-29 build-stamp
+decision. That stamp mechanism lives on for the legacy copy.
 
 ### 2026-10-07 — A challenge can carry weekly targets
 **Decision (Shaun's request, Belly Must Go):** beside its daily tasks, a challenge can
@@ -1369,10 +1421,12 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: None
-Status: Ready
-Objective: No active implementation task. Await next handoff.
-Acceptance criteria: N/A
+Owner: Shaun
+Status: Verification
+Objective: verify Owner and Abi on `https://ledger.sgj.luxe` (the migration audit is
+done; see Recently Completed). Then await explicit authorisation for the **Push
+Notifications Foundation**. Nothing is being built meanwhile.
+Acceptance criteria: Shaun confirms the checklist in Next 1.
 
 The backlog exists as GitHub Issues (#5–#19). None of it is authorised for
 implementation — see the workflow rules in `CLAUDE.md`. The Today density pass
@@ -1451,14 +1505,22 @@ No active handoff.
 
 ### Claude Code
 
-No active handoff. Partner Sharing Phase 2.5 (request Updates) is built and tested
-on the emulators (2026-10-07). Next is Shaun's manual rollout (Next 1); Phase 3 (notifications and
+No active handoff. The Vercel + custom domain migration audit (2026-10-07) is
+complete. **Push Notifications Foundation is not authorised yet**: wait for Shaun's
+explicit instruction after he has verified the domain. Next is Shaun's manual rollout (Next 1); Phase 3 (notifications and
 beyond) starts only on his explicit brief.
 
 ---
 
 ## Recently Completed
 
+- (2026-10-07) — Vercel + custom domain migration audit: `ledger.sgj.luxe`
+  canonical (`LEDGER_HOME`; emailed links return to production from unknown
+  hosts); deep links `?openAction=`/`?request=`/`?view=` on the root; Vercel build
+  stamp (`vercel.json` + `scripts/vercel-build-info.js`); host-neutral freshness UI;
+  legacy Pages "moved" link with no redirect; `APP_URL` default →
+  ledger.sgj.luxe; origin-local state and Blaze documented. End to end 132 checks
+  (emulators); live-domain checks pending Shaun (not reachable from Claude Code).
 - (2026-10-07) — Challenge weekly targets (counts and steps, optional daily goal,
   per-week scope), on the challenge sheet, Today and the share snapshot.
 - (2026-10-07) — Password sign-in as the main way in (email link as backup):
@@ -1594,13 +1656,20 @@ beyond) starts only on his explicit brief.
 
 ## Next
 
-1. **Shaun:** on ledger.sgj.luxe, enter your email → "Set or reset your
-   password" → choose one from the email → sign in (once per device; let the phone
-   save it). Abi the same. Then republish
-   `firestore.rules` from the Console (Phase 2.5 changed it again), then add Abi
-   (`docs/SECURITY.md` → Partner Sharing → Adding Abi) and publish a day to her.
-2. **Shaun:** create the GitHub Project (Open Q7). Configuration is recorded in
-   `docs/ROAD_TO_SHIPPABLE.md` → Appendix.
-3. Triage #6–#19 into the board, then decide what, if anything, to build.
+1. **Shaun verifies Owner + Abi on `https://ledger.sgj.luxe`** (Claude Code cannot
+   reach the domain):
+   - it loads over HTTPS; Focus footer reads "Build xxxxxxx · Live: Up to date" (a
+     stamp, not "local build"; this proves the Vercel build step ran);
+   - password sign-in; "Set or reset your password" email returns to
+     ledger.sgj.luxe; the email-link backup does too;
+   - Owner: data loads, create/edit an Action, reload stays signed in;
+   - Abi: signs in, sees her shared view only; a request and an Update reach you;
+     your Update reaches her;
+   - install from ledger.sgj.luxe (Share → Add to Home Screen), open it, reload;
+   - optional: open `https://ledger.sgj.luxe/?view=week` as Abi and refresh it
+     (no 404);
+   - republish `firestore.rules` from the Console if not done since Phase 2.5.
+2. **Then await explicit authorisation for the Push Notifications Foundation.**
+3. Shaun: create the GitHub Project (Open Q7); triage #6–#19.
 
 Everything else is on the board. Do not duplicate it here.
