@@ -1362,6 +1362,18 @@
   .cz-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 var(--sp-5); }
   #czTargetRow[hidden], #czUnitField[hidden] { display: none; }
   .cz-task.off .cz-task-title, .cz-task.off .cz-task-meta { color: var(--text-3); }
+  .cz-wbar { display: block; height: 3px; margin-top: 6px; border-radius: 2px; background: var(--line-2); overflow: hidden; }
+  .cz-wbar i { display: block; height: 100%; background: var(--gold); border-radius: 2px; }
+  .cz-wpills { align-items: center; }
+  .cz-wpills-k { font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); margin-right: 2px; }
+  .czw-week { margin: 0 0 var(--sp-4); padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--line); }
+  .czw-week-head { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--text-2); }
+  .czw-week-total { color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .czw-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: 10px; }
+  .czw-day { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0; border-radius: 8px; }
+  .czw-day.cur { background: rgba(var(--gold-rgb),0.1); }
+  .czw-day-l { font-size: 10.5px; color: var(--text-3); }
+  .czw-day-v { font-size: 12.5px; color: var(--text); font-variant-numeric: tabular-nums; }
   .cz-task.off .cz-task-mark { border-style: dashed; }
   .cz-task.off .cz-task-hit { cursor: default; }
   /* "also an Action": a quiet switch row */
@@ -5151,12 +5163,110 @@
     log[c.id] = mine;
     savePlanForDate(dateStr, Object.assign({}, plan, { challengeLog: log }));
   }
-  // the daily target steps carry while a challenge with a steps task is running that day
+  // the daily target steps carry while a challenge with a steps task is running that day —
+  // a daily task's target, else the daily goal of a weekly steps target
   function challengeStepsTarget(dateStr){
     var c = activeChallenge();
     if (!c || dateStr < c.startDate || dateStr > c.endDate) return null;
     var t = challengeTasksOn(c, dateStr).find(function(x){ return x.kind === 'steps' && Number(x.target) > 0; });
-    return t ? Number(t.target) : null;
+    if (t) return Number(t.target);
+    var w = czWeeklyOnDate(c, dateStr).find(function(x){ return x.kind === 'steps' && Number(x.dailyGoal) > 0; });
+    return w ? Number(w.dailyGoal) : null;
+  }
+
+  // WEEKLY TARGETS — what the challenge asks of a whole week ("350 press ups a week",
+  // "70,000 steps a week, aiming for 10,000 a day"), on the challenge record:
+  //   weeklyTargets: [{ id, title, kind: 'count' | 'steps', target, unit, dailyGoal,
+  //                     fromWeek?, untilWeek?, versions?: [{ fromWeek, patch }],
+  //                     weekEdits?: { <week>: patch } }]
+  // Weeks are the challenge's own: Week 1 is its first seven days, counted from the start
+  // date (a group's "week one"), whatever day the calendar week starts on — and always
+  // shown with their dates. A week's total is the sum of its days: a count is logged per
+  // day on that day's plan (plan.challengeLog, beside the daily tasks); steps read the
+  // day's Steps record, so there is still one steps number wherever it is logged.
+  var CZW_FIELDS = ['title', 'target', 'unit', 'dailyGoal'];
+  function czWeekOf(c, dateStr){ return Math.floor(daysBetween(c.startDate, dateStr) / 7) + 1; }
+  function czWeekCount(c){ return Math.ceil(challengeTotalDays(c) / 7); }
+  function czWeekRange(c, w){
+    var start = fmtDate(addDays(c.startDate, (w - 1) * 7)), end = fmtDate(addDays(start, 6));
+    return { start: start, end: end > c.endDate ? c.endDate : end };
+  }
+  function czWeekDays(c, w){
+    var r = czWeekRange(c, w), out = [], d = r.start;
+    while (d <= r.end){ out.push(d); d = fmtDate(addDays(d, 1)); }
+    return out;
+  }
+  function czWeeklyTargets(c){
+    return (c && Array.isArray(c.weeklyTargets)) ? c.weeklyTargets.filter(function(t){ return t && t.id && t.title; }) : [];
+  }
+  // the target as it stands in week w, or null when it does not apply that week
+  function czWeeklyOn(c, t, w, withRemoved){
+    if (t.fromWeek && w < t.fromWeek) return null;
+    if (t.untilWeek && w > t.untilWeek) return null;
+    var e = {};
+    Object.keys(t).forEach(function(k){ if (k !== 'versions' && k !== 'weekEdits') e[k] = t[k]; });
+    (t.versions || []).slice().sort(function(a, b){ return a.fromWeek - b.fromWeek; }).forEach(function(v){
+      if (v.fromWeek <= w) Object.assign(e, v.patch || {});
+    });
+    Object.assign(e, (t.weekEdits || {})[w] || {});
+    return e.removed && !withRemoved ? null : e;
+  }
+  function czWeeklyListOn(c, w){
+    return czWeeklyTargets(c).map(function(t){ return czWeeklyOn(c, t, w); }).filter(function(t){ return !!t; });
+  }
+  function czWeeklyOnDate(c, dateStr){
+    if (!c || dateStr < c.startDate || dateStr > c.endDate) return [];
+    return czWeeklyListOn(c, czWeekOf(c, dateStr));
+  }
+  function czWeeklyDayValue(c, t, dateStr){
+    if (t.kind === 'steps'){ var r = stepsRecordFor(dateStr); return r ? parseInt(r.steps, 10) : null; }
+    var p = getPlanForDate(dateStr);
+    var e = p && p.challengeLog && p.challengeLog[c.id] && p.challengeLog[c.id][t.id];
+    return e ? Number(e.value) || 0 : null;
+  }
+  // where a week stands: its total, what is left, and — for what remains of the week —
+  // how much a day would finish it; steps also count the days that reached the daily goal
+  function czWeeklyStatus(c, t, w){
+    var days = czWeekDays(c, w), today = todayStr();
+    var total = 0, atGoal = 0, logged = 0;
+    var goal = Number(t.dailyGoal) > 0 ? Number(t.dailyGoal) : null;
+    days.forEach(function(d){
+      var v = czWeeklyDayValue(c, t, d);
+      if (v == null) return;
+      logged++; total += v;
+      if (goal && v >= goal) atGoal++;
+    });
+    var target = Number(t.target) > 0 ? Number(t.target) : null;
+    var left = days.filter(function(d){ return d >= today; }).length;   // today and the days after it
+    var remaining = target ? Math.max(0, target - total) : null;
+    return { total: total, target: target, met: !!(target && total >= target), remaining: remaining,
+      daysLeft: left, perDay: remaining && left ? Math.ceil(remaining / left) : null,
+      goal: goal, atGoal: atGoal, days: days.length, logged: logged };
+  }
+  function czWeeklyFmt(t, n){ return t.kind === 'steps' ? fmtSteps(n) : String(n); }
+  function czWeeklyUnit(t){ return t.kind === 'steps' ? 'steps' : (t.unit || 'reps'); }
+  // "120 / 350", short for a pill; the long form adds what is left and the daily goal
+  function czWeeklyProgress(c, t, w, short){
+    var st = czWeeklyStatus(c, t, w);
+    var k = function(n){ return t.kind === 'steps' && short && n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : czWeeklyFmt(t, n); };
+    var head = st.target ? k(st.total) + ' / ' + k(st.target) : k(st.total);
+    if (short) return head;
+    var bits = [head + ' ' + czWeeklyUnit(t)];
+    if (st.met) bits.push('done for the week');
+    else if (st.remaining != null && st.perDay && st.daysLeft > 1) bits.push(czWeeklyFmt(t, st.remaining) + ' to go · about ' + czWeeklyFmt(t, st.perDay) + ' a day');
+    else if (st.remaining != null && st.daysLeft === 1) bits.push(czWeeklyFmt(t, st.remaining) + ' to go today');
+    else if (st.remaining) bits.push(czWeeklyFmt(t, st.remaining) + ' short');
+    if (st.goal) bits.push(st.atGoal + (st.atGoal === 1 ? ' day' : ' days') + ' at ' + (t.kind === 'steps' && st.goal >= 1000 ? (st.goal / 1000) + 'k' : czWeeklyFmt(t, st.goal)));
+    return bits.join(' · ');
+  }
+  function czWeeklyTargetLabel(t){
+    var s = Number(t.target) > 0 ? czWeeklyFmt(t, Number(t.target)) + ' ' + czWeeklyUnit(t) + ' a week' : 'Totalled weekly';
+    if (Number(t.dailyGoal) > 0) s += ' · aim for ' + czWeeklyFmt(t, Number(t.dailyGoal)) + ' a day';
+    return s;
+  }
+  function czWeekLabel(c, w){
+    var r = czWeekRange(c, w);
+    return 'Week ' + w + ' of ' + czWeekCount(c) + ' · ' + dateRangeLabel(r.start, r.end);
   }
 
   // ---- challenge tasks as Actions ----
@@ -9999,7 +10109,12 @@
         summary: tasks.length ? met + ' of ' + tasks.length + ' done' : st.label,
         items: tasks.map(function(t){
           return { id: 'ct:' + t.id, taskId: t.id, text: t.title, value: challengeTaskProgress(c, t, dateStr), state: challengeTaskMet(c, t, dateStr) ? 'done' : 'open' };
-        }) };
+        }).concat((dateStr <= todayStr() ? czWeeklyOnDate(c, dateStr) : []).map(function(t){
+          // a weekly target, as the week stands on this day
+          var w = czWeekOf(c, dateStr);
+          return { id: 'cw:' + t.id, taskId: t.id, text: t.title + ' · week ' + w, value: czWeeklyProgress(c, t, w, true) + ' ' + czWeeklyUnit(t),
+            state: czWeeklyStatus(c, t, w).met ? 'done' : 'open' };
+        })) };
     }
     var mps = mpState(dateStr), wds = windDownState(dateStr), r = [];
     if (mps.total) r.push({ id: 'rt:mp', text: 'Morning Prime', state: mps.completedAt ? 'done' : 'open',
@@ -15260,6 +15375,8 @@
     if (ds >= todayStr()) ensureChallengeActions(ds);
     var st = challengeState(c, ds);
     var tasks = st.phase === 'during' && ds <= todayStr() ? challengeTasksOn(c, ds) : [];
+    var weekly = st.phase === 'during' && ds <= todayStr() ? czWeeklyOnDate(c, ds) : [];
+    var wk = weekly.length ? czWeekOf(c, ds) : 0;
     var res = challengeDayResult(c, ds);
     el.innerHTML = '<div class="cz-strip-wrap">' +
       '<button type="button" class="cz-strip" id="czStripBtn">' +
@@ -15275,8 +15392,21 @@
           '<span class="cz-pill-title"></span>' +
           '<span class="cz-pill-val">' + challengeTaskProgress(c, t, ds, true) + '</span></button>';
       }).join('') + '</div>' : '') +
+      (weekly.length ? '<div class="cz-pills cz-wpills"><span class="cz-wpills-k">Week ' + wk + '</span>' + weekly.map(function(t){
+        var met = czWeeklyStatus(c, t, wk).met;
+        return '<button type="button" class="cz-pill' + (met ? ' met' : '') + '" data-czw-task="' + t.id + '">' +
+          '<span class="cz-pill-mark" aria-hidden="true">' + CHECK_SVG + '</span>' +
+          '<span class="cz-pill-title"></span>' +
+          '<span class="cz-pill-val">' + czWeeklyProgress(c, t, wk, true) + '</span></button>';
+      }).join('') + '</div>' : '') +
     '</div>';
     el.querySelector('[data-role="cz-title"]').textContent = c.title;
+    weekly.forEach(function(t){
+      var b = el.querySelector('[data-czw-task="' + t.id + '"]');
+      b.querySelector('.cz-pill-title').textContent = t.title;     // user text
+      b.setAttribute('aria-label', t.title + ', this week ' + czWeeklyProgress(c, t, wk) + ' — log');
+      b.addEventListener('click', function(){ logWeeklyTarget(c, t, ds); });
+    });
     tasks.forEach(function(t){
       var b = el.querySelector('[data-cz-task="' + t.id + '"]');
       b.querySelector('.cz-pill-title').textContent = t.title;     // user text
@@ -15322,7 +15452,7 @@
 
       html += '<section class="cz-sec">' +
         '<div class="cz-sec-head"><h3 class="cz-sec-title">Daily tasks</h3>' +
-        (started && challengeTasks(c).length
+        (started && (challengeTasks(c).length || czWeeklyTargets(c).length)
           ? '<div class="cz-daynav">' +
               '<button type="button" class="cz-daynav-btn" id="czPrevDay" aria-label="Previous day"' + (day <= c.startDate ? ' disabled' : '') + '>' + UI_ICON.chevronRight + '</button>' +
               '<span class="cz-daynav-lbl">' + (day === today ? 'Today' : shortDayLabel(day)) + '</span>' +
@@ -15360,6 +15490,7 @@
       }
       html += '<button type="button" class="kt-new-btn" id="czAddTask">+ Add daily task</button></section>';
 
+
       // how the days have gone: the last seven challenge days, and the running count
       if (challengeTasks(c).length && started){
         var last = c.endDate < today ? c.endDate : today;
@@ -15384,6 +15515,40 @@
               '<span class="cz-dayc-dot">' + (cls === 'all' ? CHECK_SVG : '') + '</span><span class="cz-dayc-lbl">' + lbl + '</span></button>';
           }).join('') + '</div></section>';
       }
+      // the week the shown day falls in: weekly targets, totalled across its days
+      var wk = czWeekOf(c, day < c.startDate ? c.startDate : day);
+      var wTargets = czWeeklyListOn(c, wk);
+      var wOff = czWeeklyTargets(c).filter(function(t){
+        var e = (t.weekEdits || {})[wk];
+        return e && e.removed && (!t.fromWeek || wk >= t.fromWeek) && (!t.untilWeek || wk <= t.untilWeek);
+      });
+      html += '<section class="cz-sec">' +
+        '<div class="cz-sec-head"><h3 class="cz-sec-title">Weekly targets</h3><span class="cz-sec-count">' + czWeekLabel(c, wk).replace(/ of \d+/, '') + '</span></div>';
+      if (wTargets.length || wOff.length){
+        html += '<div class="cz-tasks">' + wTargets.map(function(t){
+          var met = started && czWeeklyStatus(c, t, wk).met;
+          return '<div class="cz-task' + (met ? ' met' : '') + '" data-czw-row="' + t.id + '">' +
+            '<button type="button" class="cz-task-hit" data-czw-log="' + t.id + '"' + (started ? '' : ' disabled') + '>' +
+              '<span class="cz-task-mark" aria-hidden="true">' + CHECK_SVG + '</span>' +
+              '<span class="cz-task-text"><span class="cz-task-title"></span>' +
+                '<span class="cz-task-meta">' + (started ? czWeeklyProgress(c, t, wk) : czWeeklyTargetLabel(t)) +
+                  (t.kind === 'steps' ? ' \u00b7 from Steps' : '') + '</span>' +
+                (started && Number(t.target) > 0 ? '<span class="cz-wbar"><i style="width:' + Math.min(100, Math.round(czWeeklyStatus(c, t, wk).total / Number(t.target) * 100)) + '%"></i></span>' : '') +
+              '</span>' +
+            '</button>' +
+            '<button type="button" class="kt-more" data-czw-edit="' + t.id + '" aria-label="Edit weekly target">' + KT_MORE_SVG + '</button>' +
+          '</div>';
+        }).join('') + wOff.map(function(t){
+          return '<div class="cz-task off" data-czw-row="' + t.id + '">' +
+            '<div class="cz-task-hit" aria-disabled="true"><span class="cz-task-mark" aria-hidden="true"></span>' +
+              '<span class="cz-task-text"><span class="cz-task-title"></span><span class="cz-task-meta">Off in week ' + wk + '</span></span></div>' +
+            '<button type="button" class="kt-more" data-czw-edit="' + t.id + '" aria-label="Edit weekly target">' + KT_MORE_SVG + '</button>' +
+          '</div>';
+        }).join('') + '</div>';
+      } else if (!czWeeklyTargets(c).length){
+        html += '<p class="cz-empty">Totals for the week — 350 press ups, 70,000 steps — built up across its days.</p>';
+      }
+      html += '<button type="button" class="kt-new-btn" id="czAddWeekly">+ Add weekly target</button></section>';
       if (c.notes) html += '<p class="cz-notes" data-role="cz-notes"></p>';
       html += '<div class="cz-foot"><button type="button" class="btn-link" id="czEditBtn">Edit challenge</button></div>';
       return html;
@@ -15415,6 +15580,25 @@
           if (t) openChallengeTaskSheet(getC(), t, day, reopen);
         });
       });
+      sheetEl.querySelectorAll('[data-czw-row]').forEach(function(row){
+        var def = czWeeklyTargets(c).find(function(t){ return t.id === row.dataset.czwRow; });
+        var wk = czWeekOf(c, day < c.startDate ? c.startDate : day);
+        var t = def && (czWeeklyOn(c, def, wk, true) || def);
+        if (t) row.querySelector('.cz-task-title').textContent = t.title;     // user text
+      });
+      sheetEl.querySelectorAll('[data-czw-log]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var cc = getC(), t = czWeeklyListOn(cc, czWeekOf(cc, day)).find(function(x){ return x.id === b.dataset.czwLog; });
+          if (t) logWeeklyTarget(cc, t, day, reopen);
+        });
+      });
+      sheetEl.querySelectorAll('[data-czw-edit]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var t = czWeeklyTargets(getC()).find(function(x){ return x.id === b.dataset.czwEdit; });
+          if (t) openWeeklyTargetSheet(getC(), t, day, reopen);
+        });
+      });
+      document.getElementById('czAddWeekly').addEventListener('click', function(){ openWeeklyTargetSheet(getC(), null, day, reopen); });
       sheetEl.querySelectorAll('[data-cz-day]').forEach(function(b){
         b.addEventListener('click', function(){ day = b.dataset.czDay; render(); });
       });
@@ -15673,6 +15857,258 @@
       reconcileChallengeActions(challenges.find(function(x){ return x.id === c.id; }) || saved, task.id);
       back();
     });
+  }
+
+  // ---- weekly targets: one week, this week on, or every week ----
+  // week: an exception kept on the target for that week. forward: a version from that
+  // week (later versions take the same values). all: the base. As with daily tasks, a
+  // wider change clears the same fields from the narrower ones it covers.
+  function czwSave(c, t){
+    var list = czWeeklyTargets(c).slice();
+    var i = list.findIndex(function(x){ return x.id === t.id; });
+    if (i > -1) list[i] = t; else list.push(t);
+    var saved = Object.assign({}, c, { weeklyTargets: list, updatedAt: new Date().toISOString() });
+    saveChallenge(saved);
+    return saved;
+  }
+  function czwApplyEdit(c, t, w, scope, patch){
+    var first = t.fromWeek && t.fromWeek > 1 ? t.fromWeek : 1;
+    if (scope === 'forward' && w <= first && !t.fromWeek) scope = 'all';
+    var next = Object.assign({}, t);
+    var edits = {};
+    Object.keys(t.weekEdits || {}).forEach(function(k){ edits[k] = Object.assign({}, t.weekEdits[k]); });
+    var versions = (t.versions || []).map(function(v){ return { fromWeek: v.fromWeek, patch: Object.assign({}, v.patch) }; });
+    if (scope === 'week'){
+      edits[w] = Object.assign({}, edits[w] || {}, patch);
+    } else {
+      delete next.untilWeek;               // carried on past an end it had
+      if (scope === 'all') delete next.fromWeek;
+      if (scope === 'forward'){
+        versions.forEach(function(v){ if (v.fromWeek > w) Object.assign(v.patch, patch); });
+        var own = versions.find(function(v){ return v.fromWeek === w; });
+        if (own) Object.assign(own.patch, patch); else versions.push({ fromWeek: w, patch: Object.assign({}, patch) });
+      } else {
+        Object.assign(next, patch);
+        versions.forEach(function(v){ Object.keys(patch).forEach(function(k){ delete v.patch[k]; }); });
+        versions = versions.filter(function(v){ return Object.keys(v.patch).length; });
+      }
+      Object.keys(edits).forEach(function(k){
+        if (scope === 'forward' && Number(k) < w) return;
+        Object.keys(patch).forEach(function(f){ delete edits[k][f]; });
+        if (!Object.keys(edits[k]).length) delete edits[k];
+      });
+    }
+    next.versions = versions;
+    next.weekEdits = edits;
+    return czwSave(c, next);
+  }
+  function czwRemove(c, t, w, scope){
+    var first = t.fromWeek && t.fromWeek > 1 ? t.fromWeek : 1;
+    if (scope === 'forward' && w <= first) scope = 'all';
+    if (scope === 'week') return czwApplyEdit(c, t, w, 'week', { removed: true });
+    if (scope === 'forward'){
+      var edits = {};
+      Object.keys(t.weekEdits || {}).forEach(function(k){ if (Number(k) < w) edits[k] = t.weekEdits[k]; });
+      return czwSave(c, Object.assign({}, t, { untilWeek: w - 1, weekEdits: edits,
+        versions: (t.versions || []).filter(function(v){ return v.fromWeek < w; }) }));
+    }
+    var saved = Object.assign({}, c, { weeklyTargets: czWeeklyTargets(c).filter(function(x){ return x.id !== t.id; }), updatedAt: new Date().toISOString() });
+    saveChallenge(saved);
+    return saved;
+  }
+
+  // Add or edit one weekly target. dateStr: the day the challenge sheet was showing — its
+  // week is the "just this week" and "from this week" of the choice.
+  function openWeeklyTargetSheet(c, target, dateStr, onDone){
+    editingId = null;
+    activeSheetRefresh = null;
+    var day = dateStr || todayStr();
+    if (day < c.startDate) day = c.startDate;
+    var w = czWeekOf(c, day), total = czWeekCount(c);
+    var editing = !!target;
+    var cur = target ? (czWeeklyOn(c, target, w) || null) : null;
+    var offWeek = editing && !cur;
+    var shown = cur || (target && czWeeklyOn(c, target, w, true)) || target;
+    var kind = target ? (target.kind || 'count') : 'count';
+    var startsHere = w <= 1;
+    var thisWeek = 'week ' + w, range = dateRangeLabel(czWeekRange(c, w).start, czWeekRange(c, w).end);
+    var scopes = editing
+      ? [{ k: 'week', label: 'Just ' + thisWeek, sub: 'Only ' + range + ' changes.' },
+         { k: 'forward', label: startsHere ? 'Every week' : 'From ' + thisWeek + ' on', sub: startsHere ? 'The whole challenge.' : 'Week ' + w + ' and every later week. Earlier weeks keep what they had.' },
+         { k: 'all', label: 'Every week of the challenge', sub: 'All ' + total + ' weeks, earlier ones included.' }]
+      : [{ k: 'week', label: 'Just ' + thisWeek, sub: 'A one-off for ' + range + '.' },
+         { k: 'forward', label: startsHere ? 'Every week' : 'Every week from ' + thisWeek, sub: 'Until the challenge ends. Change or stop it any week.' }];
+    if (startsHere && editing) scopes = scopes.filter(function(s){ return s.k !== 'all'; });
+    var scope = editing ? 'forward' : 'week';
+    function back(){ closeSheet(); if (onDone) onDone(); }
+
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.mountain, editing ? 'Edit weekly target' : 'Add weekly target', 'A total for the week, built up across its days.', '') +
+      (offWeek ? '<div class="cz-offday"><span>Off in ' + thisWeek + '.</span><button type="button" class="btn-link" id="czwRestore">Bring it back for ' + thisWeek + '</button></div>' : '') +
+      '<div class="field"><label>Type</label><div class="freq-period detail-period" role="radiogroup" aria-label="Target type">' +
+        ['count', 'steps'].map(function(k){
+          return '<button type="button" role="radio" data-czw-kind="' + k + '"' + (editing && k !== kind ? ' disabled' : '') + '>' + CZ_KIND_LABEL[k] + '</button>';
+        }).join('') +
+      '</div></div>' +
+      '<div class="field"><label for="f_czwTitle">Target</label><input type="text" id="f_czwTitle" maxlength="40" placeholder="e.g. Press ups" autocomplete="off"></div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label for="f_czwTarget">Each week</label><input type="number" id="f_czwTarget" inputmode="numeric" min="1" step="1" placeholder="e.g. 350"></div>' +
+        '<div class="field" id="czwUnitField"><label for="f_czwUnit">Unit</label><input type="text" id="f_czwUnit" maxlength="16" placeholder="reps" autocomplete="off"></div>' +
+      '</div>' +
+      '<div class="field"><label for="f_czwGoal">Daily goal <span class="pp-opt">optional</span></label><input type="number" id="f_czwGoal" inputmode="numeric" min="1" step="1"></div>' +
+      '<p class="cz-kind-note" id="czwNote"></p>' +
+      '<div class="field"><label>' + (editing ? 'Apply to' : 'Add for') + '</label><div class="cz-scopes" role="radiogroup">' +
+        scopes.map(function(s){
+          return '<button type="button" class="cz-scope" role="radio" data-czw-scope="' + s.k + '">' +
+            '<span class="cz-scope-dot" aria-hidden="true"></span>' +
+            '<span class="cz-scope-text"><span class="cz-scope-label">' + s.label + '</span><span class="cz-scope-sub">' + s.sub + '</span></span></button>';
+        }).join('') +
+      '</div></div>' +
+      '<button type="button" class="save-btn" id="czwSave">' + (editing ? 'Save target' : 'Add target') + '</button>' +
+      (editing ? '<button type="button" class="delete-btn" id="czwDelete"></button>' : '');
+    backdrop.classList.add('open');
+    var nameEl = document.getElementById('f_czwTitle'), targetEl = document.getElementById('f_czwTarget'),
+        unitEl = document.getElementById('f_czwUnit'), goalEl = document.getElementById('f_czwGoal');
+    nameEl.value = shown ? shown.title : '';
+    targetEl.value = shown && Number(shown.target) > 0 ? shown.target : '';
+    unitEl.value = shown && kind === 'count' ? (shown.unit || '') : '';
+    goalEl.value = shown && Number(shown.dailyGoal) > 0 ? shown.dailyGoal : '';
+    function syncKind(){
+      sheetEl.querySelectorAll('[data-czw-kind]').forEach(function(b){
+        var on = b.dataset.czwKind === kind;
+        b.classList.toggle('sel', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+      document.getElementById('czwUnitField').hidden = kind !== 'count';
+      targetEl.placeholder = kind === 'steps' ? 'e.g. 70000' : 'e.g. 350';
+      goalEl.placeholder = kind === 'steps' ? 'e.g. 10000' : 'e.g. 50';
+      if (kind === 'steps' && !nameEl.value.trim()) nameEl.value = 'Steps';
+      document.getElementById('czwNote').textContent = kind === 'steps'
+        ? 'Adds up the steps logged each day in Health & fitness. A daily goal also sets the day’s steps target there.'
+        : 'Log some each day, in one go or as you go; the week adds them up.';
+    }
+    sheetEl.querySelectorAll('[data-czw-kind]').forEach(function(b){
+      b.addEventListener('click', function(){ if (!b.disabled){ kind = b.dataset.czwKind; syncKind(); } });
+    });
+    syncKind();
+    var delBtn = document.getElementById('czwDelete');
+    function syncScope(){
+      sheetEl.querySelectorAll('[data-czw-scope]').forEach(function(b){
+        var on = b.dataset.czwScope === scope;
+        b.classList.toggle('sel', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+      if (delBtn) delBtn.textContent = scope === 'week' ? 'Remove for just ' + thisWeek
+        : (scope === 'forward' && !startsHere ? 'Remove from ' + thisWeek + ' on' : 'Remove from the challenge');
+    }
+    sheetEl.querySelectorAll('[data-czw-scope]').forEach(function(b){
+      b.addEventListener('click', function(){ scope = b.dataset.czwScope; syncScope(); });
+    });
+    syncScope();
+    if (!editing) setTimeout(function(){ nameEl.focus(); }, 60);
+    document.getElementById('sheetCloseBtn').addEventListener('click', back);
+
+    function save(){
+      var title = nameEl.value.trim();
+      if (!title){ nameEl.focus(); return; }
+      var amount = parseInt(targetEl.value, 10), goal = parseInt(goalEl.value, 10);
+      if (!(amount > 0)){ targetEl.focus(); return; }
+      if (goalEl.value && !(goal > 0)){ goalEl.focus(); return; }
+      var vals = { title: title, target: amount, unit: kind === 'count' ? (unitEl.value.trim() || 'reps') : null, dailyGoal: goal > 0 ? goal : null };
+      if (!editing){
+        var t = Object.assign({ id: uid(), createdAt: new Date().toISOString(), kind: kind, versions: [], weekEdits: {} }, vals);
+        if (scope === 'week'){ t.fromWeek = w; t.untilWeek = w; }
+        else if (w > 1) t.fromWeek = w;
+        czwSave(c, t);
+      } else {
+        var patch = {};
+        function norm(v){ return v == null ? null : v; }
+        CZW_FIELDS.forEach(function(k){ if (norm(shown[k]) !== norm(vals[k])) patch[k] = vals[k]; });
+        if (scope !== 'week') CZW_FIELDS.forEach(function(k){
+          if (k in patch) return;
+          var differs = norm(target[k]) !== norm(vals[k]) ||
+            (target.versions || []).some(function(v){ return (k in v.patch) && norm(v.patch[k]) !== norm(vals[k]); }) ||
+            Object.keys(target.weekEdits || {}).some(function(wk){ var e = target.weekEdits[wk]; return (k in e) && (scope === 'all' || Number(wk) >= w) && norm(e[k]) !== norm(vals[k]); });
+          if (differs) patch[k] = vals[k];
+        });
+        if (offWeek && scope === 'week') patch.removed = false;
+        if (Object.keys(patch).length || (scope !== 'week' && (target.untilWeek || (scope === 'all' && target.fromWeek))))
+          czwApplyEdit(c, target, w, scope, patch);
+      }
+      back();
+    }
+    document.getElementById('czwSave').addEventListener('click', save);
+    [nameEl, targetEl, unitEl, goalEl].forEach(function(el){
+      el.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); save(); } });
+    });
+    var restore = document.getElementById('czwRestore');
+    if (restore) restore.addEventListener('click', function(){ czwApplyEdit(c, target, w, 'week', { removed: false }); back(); });
+    if (delBtn) delBtn.addEventListener('click', function(){
+      var whole = !(scope === 'week' || (scope === 'forward' && !startsHere));
+      if (whole && !confirm('Remove "' + target.title + '" from this challenge?\n\nNumbers already logged stay on their days; they just stop counting.')) return;
+      czwRemove(c, target, w, scope);
+      back();
+    });
+  }
+
+  // A weekly target, logged for a date: steps open the Steps log itself; a count opens the
+  // day's share of the week.
+  function logWeeklyTarget(c, t, dateStr, onDone){
+    if (t.kind === 'steps') openStepsSheet(dateStr, null, { onDone: onDone });
+    else openWeeklyCountSheet(c, t, dateStr, onDone);
+  }
+  // The day's number towards the week, with the week's days beneath so the total is never
+  // a mystery. The day's figure is its total (typed, or built up a set at a time).
+  function openWeeklyCountSheet(c, t, dateStr, onDone){
+    editingId = null;
+    activeSheetRefresh = null;
+    var w = czWeekOf(c, dateStr);
+    var cur = czWeeklyDayValue(c, t, dateStr);
+    var unit = czWeeklyUnit(t);
+    function back(){ closeSheet(); if (onDone) onDone(); }
+    function weekHtml(){
+      var st = czWeeklyStatus(c, t, w);
+      return '<div class="czw-week">' +
+        '<div class="czw-week-head"><span>' + czWeekLabel(c, w) + '</span><span class="czw-week-total">' + czWeeklyProgress(c, t, w, true) + '</span></div>' +
+        (st.target ? '<span class="cz-wbar"><i style="width:' + Math.min(100, Math.round(st.total / st.target * 100)) + '%"></i></span>' : '') +
+        '<div class="czw-days">' + czWeekDays(c, w).map(function(d){
+          var v = czWeeklyDayValue(c, t, d);
+          return '<div class="czw-day' + (d === dateStr ? ' cur' : '') + '"><span class="czw-day-l">' + toLocalDate(d).toLocaleDateString(undefined, { weekday: 'short' }) + '</span>' +
+            '<span class="czw-day-v">' + (v == null ? '\u2013' : czWeeklyFmt(t, v)) + '</span></div>';
+        }).join('') + '</div></div>';
+    }
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.mountain, '<span data-role="czw-title"></span>',
+        czWeeklyTargetLabel(t), '') +
+      weekHtml() +
+      '<div class="field"><label for="f_czwCount">' + (dateStr === todayStr() ? 'Today' : shortDayLabel(dateStr)) + ' \u2014 total for the day</label>' +
+        '<input type="number" id="f_czwCount" inputmode="numeric" min="0" step="1" placeholder="0" enterkeyhint="done"></div>' +
+      '<div class="cz-chips">' + [10, 25, 50].map(function(n){ return '<button type="button" class="bk-filter-chip" data-czw-add="' + n + '">+' + n + '</button>'; }).join('') +
+        (Number(t.dailyGoal) > 0 ? '<button type="button" class="bk-filter-chip" data-czw-set="' + t.dailyGoal + '">' + t.dailyGoal + ' (daily goal)</button>' : '') +
+      '</div>' +
+      '<button type="button" class="save-btn" id="czwCountSave">Save</button>' +
+      (cur != null ? '<button type="button" class="delete-btn" id="czwCountClear">Clear the day</button>' : '');
+    backdrop.classList.add('open');
+    sheetEl.querySelector('[data-role="czw-title"]').textContent = t.title;     // user text
+    var num = document.getElementById('f_czwCount');
+    num.value = cur != null ? cur : '';
+    num.setAttribute('aria-label', 'Total ' + unit + ' for the day');
+    setTimeout(function(){ num.focus(); }, 60);
+    sheetEl.querySelectorAll('[data-czw-add]').forEach(function(b){
+      b.addEventListener('click', function(){ num.value = (parseInt(num.value, 10) || 0) + Number(b.dataset.czwAdd); });
+    });
+    sheetEl.querySelectorAll('[data-czw-set]').forEach(function(b){
+      b.addEventListener('click', function(){ num.value = b.dataset.czwSet; });
+    });
+    document.getElementById('sheetCloseBtn').addEventListener('click', back);
+    function save(){
+      var v = parseInt(num.value, 10);
+      if (num.value !== '' && !(v >= 0)){ num.focus(); return; }
+      setChallengeTaskValue(c, t, dateStr, num.value === '' ? null : v);
+      back();
+    }
+    document.getElementById('czwCountSave').addEventListener('click', save);
+    num.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); save(); } });
+    var clr = document.getElementById('czwCountClear');
+    if (clr) clr.addEventListener('click', function(){ setChallengeTaskValue(c, t, dateStr, null); back(); });
   }
 
   // A count for one day: the day's total, typed or built up a set at a time.

@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-07 (sign-in: email + password is the main way in; email link kept as backup)
+Last updated: 2026-10-07 (challenges gain weekly targets)
 
 ---
 
@@ -484,6 +484,22 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-07 — A challenge can carry weekly targets
+**Decision (Shaun's request, Belly Must Go):** beside its daily tasks, a challenge can
+have **weekly targets** (`weeklyTargets` on the challenge record). Each is a weekly
+total built up across the week's days: a count (e.g. 350 press ups) logged per day on
+that day's plan (`plan.challengeLog`, beside the daily tasks), or steps (e.g. 70,000)
+summed from the daily Steps records. Either can have an optional daily goal. A steps
+daily goal (10,000) also becomes the day's steps target in Health & fitness when no
+daily steps task exists. **Weeks are the challenge's own:** Week 1 is its first seven
+days from the start date (a group's "week one"), not the calendar week, and is always
+shown with its dates. Targets are scoped like daily tasks: just this week or every
+week from this week, edited or stopped per week (`fromWeek`/`untilWeek`, `versions`,
+`weekEdits`). The challenge sheet shows them under Days complete with what is left
+and roughly what a day needs. Today shows them as "Week N" pills. The share snapshot
+lists them.
+**Why:** the challenge group set weekly totals for week one, possibly continuing.
 
 ### 2026-10-07 — Password first; the email link becomes the backup
 **Decision (Shaun: the link is "too cumbersome" as the main way in):** the sign-in
@@ -1439,6 +1455,8 @@ beyond) starts only on his explicit brief.
 
 ## Recently Completed
 
+- (2026-10-07) — Challenge weekly targets (counts and steps, optional daily goal,
+  per-week scope), on the challenge sheet, Today and the share snapshot.
 - (2026-10-07) — Password sign-in as the main way in (email link as backup):
   sign-in screen, password email, Settings and partner password sheet; e2e 121
   checks, including a link-only account gaining a password with the same UID.
