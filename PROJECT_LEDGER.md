@@ -282,10 +282,10 @@ devices). Device subscriptions belong to the signed-in user
 their own). Settings → Notifications (partner: footer → Notifications) shows this
 device's state, Enable / Disable, and two choices (`ledger_notification_prefs`).
 The VAPID public key is read from `ledger_config/push`; the private key is in
-Secret Manager. **Not deployed yet:** needs Shaun's one-time setup (VAPID keys,
-`functions/.env.ledger-6aec3`, `ledger_config/push`, deploy) in
-`docs/SECURITY.md` → Push notifications. Until then Settings says "Not set up
-yet". Firebase is on Blaze (2026-10-07). The old owner-only Pin now function was
+Secret Manager. **Live since 2026-10-08:** Shaun did the one-time setup in
+`docs/SECURITY.md` → Push notifications (Firestore `nam5` → functions in
+`us-central1`; rules and the three functions deployed) and confirmed a Current
+Focus set on the Mac arriving on the Samsung. Firebase is on Blaze (2026-10-07). The old owner-only Pin now function was
 never deployed (#20) and is replaced, not kept.
 
 ### Theming
@@ -1503,10 +1503,9 @@ wider exposure — see Open Questions.
 
 Owner: Shaun
 Status: Verification (2026-10-08)
-Objective: switch on the Push Foundation and check Reset Sprint, Current Focus and
-notifications on real devices. Claude Code built and tested it on the emulators;
-the setup and the four-device checklist are in Next.
-Acceptance criteria: Next 1–3 confirmed.
+Objective: finish checking Reset Sprint, Current Focus and notifications on the
+remaining devices. Push is deployed and works Mac → Samsung.
+Acceptance criteria: Next 1–2 confirmed.
 
 The backlog exists as GitHub Issues (#5–#19). None of it is authorised for
 implementation — see the workflow rules in `CLAUDE.md`.
@@ -1753,31 +1752,23 @@ it: a scheduled function would create an event and call `sendPushToUser`.
 
 ## Next
 
-1. **Shaun: switch push on** — `docs/SECURITY.md` → Push notifications → "Setting
-   it up" (Firestore location → region; `npx web-push generate-vapid-keys`; the
-   private key into Secret Manager; `functions/.env.ledger-6aec3`;
-   `ledger_config/push.vapidPublicKey`; deploy rules + functions).
-2. **Shaun: the four devices** (on `https://ledger.sgj.luxe`):
-   - **MacBook** (Chrome, or Safari 16+): sign in → Focus → Settings →
-     Notifications → Enable → allow → "Enabled".
+1. **Shaun: the remaining devices** (on `https://ledger.sgj.luxe`). Done: rules
+   and functions deployed; the Samsung enabled; Mac → Samsung focus push works.
    - **iPhone and iPad**: Safari → Share → Add to Home Screen → open Ledger *from
      the icon* → sign in (the installed app has its own sign-in) → Settings →
      Notifications → Enable → allow. In Safari itself it says "Install Ledger to
      your Home Screen…" — expected.
-   - **Samsung**: Chrome → sign in → ⋮ → Add to Home screen / Install → open it →
-     Settings → Notifications → Enable → allow.
-   - Registered: each shows "Enabled"; Firestore → `ledger_push_subscriptions`
-     has a `<uid>_…` record per device ("Shaun · iPhone" etc.).
-   - Set an Action as current focus on the Mac → the iPhone, iPad and Samsung show
-     NOW at once and get "Ledger · Current focus" (the Mac does not) → tap → that
-     Action opens. Change focus on the iPhone → the Mac gets it. Start a Reset
-     Sprint, tick the first item on another device → the focus moves on everywhere.
-3. **Abi**: installs and signs in → footer → Notifications → Enable. She sends a
+   - **MacBook** (optional, to receive as well as send): Settings →
+     Notifications → Enable.
+   - Change focus on the iPhone → the Mac and Samsung follow; tap the
+     notification → that Action opens. Start a Reset Sprint, tick the first item on
+     another device → the focus moves on everywhere.
+2. **Abi**: installs and signs in → footer → Notifications → Enable. She sends a
    request → Shaun's devices: "Abi sent a request"; she adds an update → Shaun;
    Shaun adds one → Abi. Tapping opens the request. Nothing private shows.
-4. If not done yet: the domain checks from 2026-10-07 (build stamp "Up to date",
+3. If not done yet: the domain checks from 2026-10-07 (build stamp "Up to date",
    password + email-link sign-in return to ledger.sgj.luxe, `?view=week` refresh)
    and the challenge line / Morning Prime check on the phone.
-5. Shaun: create the GitHub Project (Open Q7); triage #6–#19.
+4. Shaun: create the GitHub Project (Open Q7); triage #6–#19.
 
 Everything else is on the board. Do not duplicate it here.
