@@ -45,11 +45,16 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | `ledger_day_status` | day close / review | owner |
 | `ledger_priorities`, `ledger_focus` | direction | owner |
 | `ledger_meals` | meal ideas | owner |
-| `ledger_meta` | preferences (`presets`) | owner |
+| `ledger_meta` | preferences (`presets`), kept sprint items (`sprintKept`) | owner |
+| `ledger_meta/currentFocus` | the Current Focus | owner; must name the owner who writes it |
+| `ledger_sprints` | Reset Sprints | owner |
 | `ledger_matters`, `ledger_conversations` | Communications | owner |
 | `ledger_challenges` | challenges | owner |
-| `ledger_push_subscriptions` | devices for Pin now | owner |
-| `ledger_pins` | Pin now requests | owner |
+| `ledger_push_subscriptions` | each user's devices for Web Push | the user's own only (owner and partner alike) |
+| `ledger_notification_prefs` | each user's notification choices | the user's own only |
+| `ledger_config/push` | the VAPID *public* key | read by owner and partner; no client writes |
+| `ledger_pins` | Pin now requests | owner; a pin names its owner; only the sender updates it |
+| `ledger_push_events` | the sender's log and de-duplication marks | no client access |
 | `ledger_meta/sharing` | what each publication was chosen to include | owner |
 | `ledger_share_members` | the owner–partner relationship | owner manages own; partner reads own |
 | `ledger_shared_snapshots` | published day and week projections | owner writes own; partner reads own, while active |
@@ -139,14 +144,10 @@ access to its own data.
    `npx -y firebase-tools@latest deploy --only firestore:rules`. The project is
    already set in `.firebaserc`. Then reload Ledger on each device and check it
    still opens with everything there.
-7. **Deploying the function** needs the Blaze plan. The project moved to Blaze
-   on 2026-10-07, so this is no longer blocked. No function has been deployed
-   yet (#20), and the next push phase redesigns it, so don't deploy the old one
-   now. When it is time: run `npm install` in `functions/`, then
-   `npx -y firebase-tools@latest deploy --only functions` from the repo root. Its
-   `APP_URL` param defaults to `https://ledger.sgj.luxe/`. Don't use `npm install -g`: on a Mac it fails with
-   EACCES. The function sends each Pin now only to the devices of the account
-   that created it.
+7. **Deploying the functions** needs the Blaze plan (on since 2026-10-07). The
+   old owner-only Pin now function was never deployed (#20) and has been
+   replaced by the push sender below; follow "Push notifications → Setting it
+   up". Don't use `npm install -g`: on a Mac it fails with EACCES.
 
 **Status:** rolled out 2026-10-07 (steps 1–6) and verified on the owner's
 devices.
@@ -275,17 +276,92 @@ Both carry real data risk for no gain while there is one owner. If Ledger ever
 needs several owners, that migration can be done then, deliberately. Because
 nothing is migrated, record counts are unchanged by this phase.
 
-## Push notifications (Pin now)
+## Push notifications
 
-- Devices and pins are owner-only under the rules. No one else can read
-  devices, register a device or create a pin that triggers a push.
-- New devices and pins carry `ownerUid`. A device's subscription is re-saved
-  with its `ownerUid` every time it pins.
-- The Cloud Function uses the Admin SDK, which is **not subject to Firestore
-  rules**. It enforces ownership itself: a pin goes only to devices with the
-  same `ownerUid`. A legacy record without one still matches, because every
-  legacy record was made by the owner. No secret is in the client. The VAPID
-  private key stays in Secret Manager.
+One engine, in `functions/` (`push.js`, wired up in `index.js`). Firestore is the
+truth; a push is best-effort delivery on top. If it fails, nothing in Ledger is
+undone.
+
+- **Devices belong to users.** `ledger_push_subscriptions/{uid}_{hash}` holds one
+  browser's subscription for the signed-in user who turned notifications on
+  there: `userUid, endpoint, keys, deviceId, deviceLabel, platform,
+  vapidPublicKey, createdAt, updatedAt, lastSeenAt` (the sender adds
+  `lastSentAt` / `lastError`). Owner and partner each create, read, update and
+  delete only their own. Nobody can read anyone else's, register one for
+  another uid, or move one to another uid. The owner gets no blanket access.
+  Signing out removes that device's record.
+- **The sender finds the recipient from trusted records.** It never takes a
+  recipient from the browser.
+  - **Current Focus.** The recipient is `ledger_meta/currentFocus.ownerUid`. The
+    rules make that the owner who wrote it, and the sender checks the role
+    again.
+  - **Partner requests.** A new entry in `ledger_shared_request_updates` names its
+    request. The sender reads the request and the active membership, and checks
+    that the entry's actor really is that side.
+  - **Pin now.** The pin's `ownerUid` must be its creator (rules), and the sender
+    checks that this user is an owner.
+- **No loops, no duplicates.** The triggers are a write to the focus document
+  and the creation of an update or a pin. No handler writes to what triggered
+  it. Each event is claimed once in `ledger_push_events/{eventId}`, created
+  before sending, so a retried trigger sends nothing.
+- **Dead devices are cleaned up.** A 404/410 from a push service deletes the
+  record. So does a record made with a different VAPID key. Other failures
+  are written onto the device (`lastError`) and into the event log.
+- **Preferences.** `ledger_notification_prefs/{uid}` holds `currentFocus` and
+  `partner`, both on unless turned off. Each user sets and reads only their
+  own.
+- **What a notification says.** It shows on a lock screen. Current Focus shows
+  the title Shaun chose. Partner notifications show the request's title and a
+  short preview of an update (140 characters). Nothing else is sent: no Day
+  Notes, no Action notes, no private Ledger data.
+- **No secret is in the client.** The browser reads only the VAPID *public* key,
+  from `ledger_config/push`. The private key is in Secret Manager.
+
+### Setting it up (once, from Shaun's Mac)
+
+0. Find the Firestore location: Console → Firestore Database (it is shown on
+   the database page). A Firestore trigger must run there. `nam5` →
+   `us-central1`; `eur3` → `europe-west1`; a single region such as
+   `europe-west2` → that region.
+1. Get the code and dependencies:
+   `git pull` then `cd functions && npm install && cd ..`
+2. Make a VAPID key pair: `npx web-push generate-vapid-keys`. It prints a
+   Public Key and a Private Key. Keep the private key out of chat, notes and
+   the repo.
+3. Store the private key in Secret Manager, pasting it when asked:
+   `npx -y firebase-tools@latest functions:secrets:set VAPID_PRIVATE_KEY --project ledger-6aec3`
+4. Create `functions/.env.ledger-6aec3` (git-ignored; it stays on the Mac):
+   ```
+   VAPID_PUBLIC_KEY=<the Public Key>
+   VAPID_SUBJECT=mailto:<an address you choose for push services>
+   APP_URL=https://ledger.sgj.luxe/
+   FUNCTIONS_REGION=<the region from step 0>
+   ```
+   VAPID_SUBJECT has no default; it is yours to choose. An `https:` URL is
+   allowed too.
+5. Publish the public key to the app: Console → Firestore → Start collection
+   `ledger_config` → document ID `push` → field `vapidPublicKey` (string) = the
+   Public Key. A new key pair later needs only steps 2–5. Each device then
+   re-enables in Settings → Notifications.
+6. Deploy the rules and the functions:
+   `npx -y firebase-tools@latest deploy --only firestore:rules,functions --project ledger-6aec3`
+7. On each device: Settings → Notifications → Enable notifications. On an
+   iPhone or iPad this works only in Ledger installed to the Home Screen.
+
+### What the operating system decides
+
+A Web Push notification is an ordinary, high-priority notification. The OS and
+browser decide where it shows, how long it stays, how it groups and when it is
+dismissed. It is not an iOS Live Activity and cannot be pinned on any
+platform.
+
+- **Replacing.** Current Focus uses one tag (`ledger-current-focus`) and a
+  Topic header, so a new focus replaces the last one where the platform allows.
+- **The in-app record.** The focus that always persists is the one in Ledger
+  (Today's NOW line), synced through Firestore.
+- **iPhone and iPad.** Web Push needs Ledger installed to the Home Screen (iOS
+  and iPadOS 16.4+). In Safari, Settings → Notifications says so instead of
+  offering the button.
 
 ## Testing the rules
 
@@ -312,6 +388,19 @@ npx firebase emulators:exec --only firestore,auth --project ledger-6aec3 --confi
 ```
 
 It uses the app's own project id so the page and the emulators agree; nothing
-touches the real project. `index.html` switches to the emulators only when it
+touches the real project.
+
+`tests/functions/push.test.js` runs the push engine against the Firestore
+emulator, with a fake sender. It covers targeting, source-device exclusion,
+de-duplication, dead and stale devices, preferences, and the trust checks on
+partner entries. `tests/e2e/execution.run.js` runs Reset Sprint, Current
+Focus across three Owner devices, and the push sender end to end: the Auth,
+Firestore *and Functions* emulators, a throwaway VAPID pair, and a local HTTPS
+push endpoint that decrypts what web-push sends with each device's key:
+
+```
+(cd functions && npm install) && (cd tests/e2e && npm install)
+node tests/e2e/execution.run.js
+``` `index.html` switches to the emulators only when it
 is served from localhost and the page has set `localStorage.ledger_emulator`.
 A deployed Ledger never can.

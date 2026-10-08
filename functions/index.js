@@ -1,110 +1,94 @@
-// Ledger — "Pin now" push sender.
+// Ledger — Cloud Functions: the push sender.
 //
-// The client never sends a push directly (that would require the VAPID *private* key to be
-// present in browser code). Instead it writes a small document to ledger_pins; this function
-// fires on creation, sends a Web Push notification to every registered device, and records the
-// outcome back onto the pin document. Nothing here is queued or scheduled — it runs immediately
-// when the document is created.
+// The browser never sends a push (that needs the VAPID *private* key). Records in
+// Firestore are the events; these functions turn them into Web Push notifications through
+// the one engine in push.js:
 //
-// Security: this function runs with the Admin SDK, so Firestore security rules do NOT apply to
-// it — it can read every subscription. It therefore enforces ownership itself: a pin is sent only
-// to devices registered by the same account (ownerUid). Clients can create pins and register
-// devices only as the owner (firestore.rules), so nobody else can trigger a push or add a device.
-// Records written before ownership existed carry no ownerUid; they were all created by the
-// owner's devices, so a legacy pin or device still matches until it is re-registered (the app
-// re-saves a device's subscription, with its ownerUid, every time it pins).
+//   ledger_meta/currentFocus (written)            → the owner's other devices
+//   ledger_shared_request_updates/{id} (created)  → the other side of the request
+//   ledger_pins/{id} (created)                    → the owner's devices (Pin now)
+//
+// Recipients come from those trusted records, checked again here (the Admin SDK is not
+// subject to the security rules). Push is best effort: Firestore is already the truth.
+//
+// Configuration (no secret is in this repository):
+//   VAPID_PRIVATE_KEY  Secret Manager:   firebase functions:secrets:set VAPID_PRIVATE_KEY
+//   VAPID_PUBLIC_KEY   functions/.env:   the matching public key (also in ledger_config/push)
+//   VAPID_SUBJECT      functions/.env:   mailto:you@example.com (or an https: URL) — yours
+//   APP_URL            functions/.env:   https://ledger.sgj.luxe/ (the default)
+//   FUNCTIONS_REGION   functions/.env:   the region of the Firestore database
+// See docs/SECURITY.md, "Push notifications", for the exact steps.
 //
 // Deploy with: firebase deploy --only functions
-// Required one-time setup — see the "Required configuration" section in the delivery report /
-// README for exact commands (VAPID keys, APP_URL, etc). Nothing here reads those values except
-// through Secret Manager / Firebase params, so no secret ever lives in this repository.
 
-const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+const { onDocumentCreated, onDocumentWritten } = require('firebase-functions/v2/firestore');
+const { setGlobalOptions } = require('firebase-functions/v2');
 const { defineSecret, defineString } = require('firebase-functions/params');
+const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
 const webpush = require('web-push');
+const { createEngine } = require('./push');
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// VAPID_PRIVATE_KEY is a real secret — stored in Secret Manager, injected only into this
-// function's runtime, never checked into source control and never sent to the client.
 const VAPID_PRIVATE_KEY = defineSecret('VAPID_PRIVATE_KEY');
-// The public key and subject/URL are not sensitive (the public key is also embedded in
-// index.html by design), but keeping them as params avoids hardcoding here too.
 const VAPID_PUBLIC_KEY = defineString('VAPID_PUBLIC_KEY');
-const VAPID_SUBJECT = defineString('VAPID_SUBJECT', { default: 'mailto:example@example.com' });
-// Where a notification opens Ledger: the canonical production origin. A deploy-time param
-// (functions/.env or the deploy prompt), so a different host never needs a code change.
-// Deep links are query strings on this root (?openAction=, ?request=, ?view=) — no routes.
+// No default: whoever runs Ledger chooses the contact push services may use.
+const VAPID_SUBJECT = defineString('VAPID_SUBJECT');
+// Where a notification opens Ledger: the canonical production origin. Deep links are
+// query strings on this root (?openAction=, ?request=, ?sprint=), so there is no route.
 const APP_URL = defineString('APP_URL', { default: 'https://ledger.sgj.luxe/' });
+// Firestore triggers must run where the database is (Console → Firestore → location).
+const FUNCTIONS_REGION = defineString('FUNCTIONS_REGION', { default: 'us-central1' });
 
-exports.sendPinNotification = onDocumentCreated(
+setGlobalOptions({ region: FUNCTIONS_REGION, maxInstances: 5 });
+
+function engine() {
+  webpush.setVapidDetails(VAPID_SUBJECT.value(), VAPID_PUBLIC_KEY.value(), VAPID_PRIVATE_KEY.value());
+  return createEngine({
+    db,
+    send: (sub, body, opts) => webpush.sendNotification(sub, body, opts),
+    deleteField: () => admin.firestore.FieldValue.delete(),
+    log: (...a) => logger.warn(...a)
+  });
+}
+function common() {
+  return { appUrl: APP_URL.value(), vapidPublicKey: VAPID_PUBLIC_KEY.value() };
+}
+function report(name, result) {
+  if (result && result.errors && result.errors.length) logger.warn(name, result);
+  else logger.info(name, result);
+}
+
+exports.onCurrentFocusWritten = onDocumentWritten(
+  { document: 'ledger_meta/currentFocus', secrets: [VAPID_PRIVATE_KEY] },
+  async (event) => {
+    const before = event.data && event.data.before && event.data.before.exists ? event.data.before.data() : null;
+    const after = event.data && event.data.after && event.data.after.exists ? event.data.after.data() : null;
+    const result = await engine().handleFocusWrite(Object.assign({ before, after, eventId: event.id }, common()));
+    report('current focus push', result);
+  }
+);
+
+exports.onRequestUpdateCreated = onDocumentCreated(
+  { document: 'ledger_shared_request_updates/{updateId}', secrets: [VAPID_PRIVATE_KEY] },
+  async (event) => {
+    if (!event.data) return;
+    const result = await engine().handleRequestUpdate(Object.assign({
+      update: event.data.data() || {}, updateId: event.params.updateId
+    }, common()));
+    report('partner request push', result);
+  }
+);
+
+exports.onPinCreated = onDocumentCreated(
   { document: 'ledger_pins/{pinId}', secrets: [VAPID_PRIVATE_KEY] },
   async (event) => {
-    const snap = event.data;
-    if (!snap) return;
-    const pin = snap.data() || {};
-    const pinId = event.params.pinId;
-
-    if (!pin.text) {
-      await snap.ref.update({ status: 'failed', error: 'Empty reminder text', sentAt: new Date().toISOString() });
-      return;
-    }
-
-    webpush.setVapidDetails(VAPID_SUBJECT.value(), VAPID_PUBLIC_KEY.value(), VAPID_PRIVATE_KEY.value());
-
-    const allSubs = await db.collection('ledger_push_subscriptions').get();
-    // only the pin owner's devices — a legacy record (no ownerUid) on either side predates accounts
-    const subsDocs = allSubs.docs.filter((doc) => {
-      const owner = (doc.data() || {}).ownerUid;
-      return !pin.ownerUid || !owner || owner === pin.ownerUid;
-    });
-    const subsSnap = { empty: subsDocs.length === 0, docs: subsDocs };
-    if (subsSnap.empty) {
-      await snap.ref.update({ status: 'failed', error: 'No registered device', sentAt: new Date().toISOString() });
-      return;
-    }
-
-    var appUrl = APP_URL.value();
-    var url = pin.linkedActionId
-      ? appUrl + (appUrl.indexOf('?') === -1 ? '?' : '&') + 'openAction=' + encodeURIComponent(pin.linkedActionId)
-      : appUrl;
-
-    const payload = JSON.stringify({
-      title: 'Ledger',
-      body: pin.text,
-      url: url,
-      tag: 'pin-' + pinId
-    });
-
-    let sentCount = 0;
-    const errors = [];
-
-    await Promise.all(subsSnap.docs.map(async (doc) => {
-      const sub = doc.data();
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: sub.keys },
-          payload,
-          { urgency: 'high' }
-        );
-        sentCount++;
-      } catch (err) {
-        // 404/410 means the browser dropped the subscription (uninstalled, permission revoked,
-        // etc) — clean it up so future pins don't keep failing against a dead endpoint.
-        if (err && (err.statusCode === 404 || err.statusCode === 410)) {
-          await doc.ref.delete().catch(() => {});
-        } else {
-          errors.push(err && err.message ? err.message : String(err));
-        }
-      }
-    }));
-
-    await snap.ref.update({
-      status: sentCount > 0 ? 'sent' : 'failed',
-      sentAt: new Date().toISOString(),
-      error: sentCount > 0 ? null : (errors[0] || 'No reachable devices')
-    });
+    if (!event.data) return;
+    const result = await engine().handlePinCreated(Object.assign({
+      pin: event.data.data() || {}, pinId: event.params.pinId, ref: event.data.ref
+    }, common()));
+    report('pin push', result);
   }
 );

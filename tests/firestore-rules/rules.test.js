@@ -18,9 +18,16 @@ const NOW = () => firebase.firestore.FieldValue.serverTimestamp();
 const PRIVATE = [
   'ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_day_status',
   'ledger_priorities', 'ledger_focus', 'ledger_meals', 'ledger_meta',
-  'ledger_matters', 'ledger_conversations', 'ledger_challenges',
-  'ledger_push_subscriptions', 'ledger_pins'
+  'ledger_matters', 'ledger_conversations', 'ledger_challenges', 'ledger_sprints'
 ];
+
+// a device subscription as the client writes it
+const sub = (uid, o) => Object.assign({ userUid: uid, endpoint: 'https://push.example/' + uid, keys: { p256dh: 'BKey', auth: 'auth' },
+  deviceId: 'dev-' + uid, deviceLabel: 'Shaun · iPhone', platform: 'ios', vapidPublicKey: 'BPublicKey',
+  createdAt: '2026-10-08T09:00:00Z', updatedAt: '2026-10-08T09:00:00Z', lastSeenAt: '2026-10-08T09:00:00Z' }, o || {});
+// the current focus as the client writes it
+const focus = (o) => Object.assign({ ownerUid: 'owner1', type: 'action', sourceId: 'act1', childId: null, title: 'Tidy desk',
+  date: '2026-10-08', setAt: '2026-10-08T09:00:00Z', updatedAt: '2026-10-08T09:00:00Z', sourceDeviceId: 'dev-mac', status: 'active' }, o || {});
 
 let passed = 0, failed = 0;
 async function check(name, fn){
@@ -42,6 +49,16 @@ async function check(name, fn){
     await db.doc('ledger_users/partner2').set({ role: 'partner', displayName: 'Partner B', email: 'b@example.com', createdAt: '2026-10-07' });
     await db.doc('ledger_users/owner2').set({ role: 'owner', displayName: 'Other owner', email: 'o2@example.com', createdAt: '2026-10-07' });
     for (const c of PRIVATE) await db.doc(c + '/seed').set({ seeded: true });
+    // push: each user's own devices, and one from before devices had a user
+    await db.doc('ledger_push_subscriptions/owner1_dev1').set(sub('owner1'));
+    await db.doc('ledger_push_subscriptions/partner1_dev1').set(sub('partner1'));
+    await db.doc('ledger_push_subscriptions/sub_legacy').set({ ownerUid: 'owner1', endpoint: 'https://push.example/legacy', keys: { p256dh: 'p', auth: 'a' } });
+    await db.doc('ledger_notification_prefs/owner1').set({ currentFocus: true, partner: true });
+    await db.doc('ledger_notification_prefs/partner1').set({ currentFocus: true, partner: true });
+    await db.doc('ledger_config/push').set({ vapidPublicKey: 'BPublicKey' });
+    await db.doc('ledger_push_events/e1').set({ kind: 'focus' });
+    await db.doc('ledger_pins/pin1').set({ ownerUid: 'owner1', text: 'x', status: 'sent' });
+    await db.doc('ledger_meta/currentFocus').set(focus());
     // sharing: owner1 shares with partner1 (active) and partner2 (paused)
     await db.doc('ledger_share_members/owner1_partner1').set({ ownerUid: 'owner1', partnerUid: 'partner1', role: 'partner', active: true, displayName: 'A' });
     await db.doc('ledger_share_members/owner1_partner2').set({ ownerUid: 'owner1', partnerUid: 'partner2', role: 'partner', active: false, displayName: 'B' });
@@ -100,7 +117,7 @@ async function check(name, fn){
   await check('partner: cannot write owner actions', () => assertFails(partner.doc('ledger_commitments/seed').set({ title: 'changed' })));
   await check('partner: cannot create owner actions', () => assertFails(partner.collection('ledger_commitments').add({ title: 'x' })));
   await check('partner: cannot read push subscriptions', () => assertFails(partner.collection('ledger_push_subscriptions').get()));
-  await check('partner: cannot register a push subscription', () => assertFails(partner.doc('ledger_push_subscriptions/sub_x').set({ endpoint: 'x' })));
+  await check('partner: cannot register a malformed subscription', () => assertFails(partner.doc('ledger_push_subscriptions/sub_x').set({ endpoint: 'x' })));
   await check('partner: cannot create pins', () => assertFails(partner.collection('ledger_pins').add({ text: 'x' })));
   for (const c of PRIVATE){
     await check('partner: denied ' + c, () => assertFails(partner.collection(c).get()));
@@ -278,6 +295,89 @@ async function check(name, fn){
   // ---- no role: nothing shared ----
   await check('no profile: cannot read projections', () => assertFails(stranger.doc('ledger_shared_snapshots/owner1_partner1_day_2026-10-07').get()));
   await check('no profile: cannot create a request', () => assertFails(stranger.collection('ledger_shared_requests').add(newRequest({ partnerUid: 'stranger1' }))));
+
+  // ---- Push subscriptions: each user's own devices ----
+  const SUBS = 'ledger_push_subscriptions';
+  await check('owner: can register own device', () => assertSucceeds(owner.doc(SUBS + '/owner1_mac').set(sub('owner1', { deviceId: 'dev-mac', deviceLabel: 'Shaun · MacBook' }))));
+  await check('owner: can read own device', () => assertSucceeds(owner.doc(SUBS + '/owner1_dev1').get()));
+  await check('owner: can list own devices (query)', () => assertSucceeds(owner.collection(SUBS).where('userUid', '==', 'owner1').get()));
+  await check('owner: can refresh own device', () => assertSucceeds(owner.doc(SUBS + '/owner1_dev1').set(sub('owner1', { lastSeenAt: '2026-10-09T09:00:00Z' }))));
+  await check('owner: cannot list every device', () => assertFails(owner.collection(SUBS).get()));
+  await check('owner: cannot read a partner device', () => assertFails(owner.doc(SUBS + '/partner1_dev1').get()));
+  await check('owner: cannot query a partner\'s devices', () => assertFails(owner.collection(SUBS).where('userUid', '==', 'partner1').get()));
+  await check('owner: cannot register a device for the partner (their id)', () => assertFails(owner.doc(SUBS + '/partner1_spoof').set(sub('partner1'))));
+  await check('owner: cannot register a device for the partner (own id)', () => assertFails(owner.doc(SUBS + '/owner1_spoof').set(sub('partner1'))));
+  await check('owner: cannot hand own device to another uid', () => assertFails(owner.doc(SUBS + '/owner1_dev1').set(sub('partner1'))));
+  await check('owner: cannot change a partner device', () => assertFails(owner.doc(SUBS + '/partner1_dev1').set(sub('owner1'))));
+  await check('owner: cannot delete a partner device', () => assertFails(owner.doc(SUBS + '/partner1_dev1').delete()));
+  await check('owner: an http endpoint is refused', () => assertFails(owner.doc(SUBS + '/owner1_http').set(sub('owner1', { endpoint: 'http://push.example/x' }))));
+  await check('owner: unknown fields are refused', () => assertFails(owner.doc(SUBS + '/owner1_extra').set(sub('owner1', { recipientUid: 'partner1' }))));
+  await check('owner: can remove the legacy record of this device', () => assertSucceeds(owner.doc(SUBS + '/sub_legacy').delete()));
+  await check('owner: can remove own device', () => assertSucceeds(owner.doc(SUBS + '/owner1_mac').delete()));
+  await check('partner: can register own device', () => assertSucceeds(partner.doc(SUBS + '/partner1_phone').set(sub('partner1', { deviceLabel: 'Abi · iPhone' }))));
+  await check('partner: can read own device', () => assertSucceeds(partner.doc(SUBS + '/partner1_dev1').get()));
+  await check('partner: can list own devices (query)', () => assertSucceeds(partner.collection(SUBS).where('userUid', '==', 'partner1').get()));
+  await check('partner: cannot read owner device', () => assertFails(partner.doc(SUBS + '/owner1_dev1').get()));
+  await check('partner: cannot query owner devices', () => assertFails(partner.collection(SUBS).where('userUid', '==', 'owner1').get()));
+  await check('partner: cannot modify owner device', () => assertFails(partner.doc(SUBS + '/owner1_dev1').set(sub('owner1', { endpoint: 'https://evil.example/x' }))));
+  await check('partner: cannot take over owner device', () => assertFails(partner.doc(SUBS + '/owner1_dev1').set(sub('partner1'))));
+  await check('partner: cannot delete owner device', () => assertFails(partner.doc(SUBS + '/owner1_dev1').delete()));
+  await check('partner: cannot register a device as the owner', () => assertFails(partner.doc(SUBS + '/owner1_fake').set(sub('owner1'))));
+  await check('partner: can remove own device', () => assertSucceeds(partner.doc(SUBS + '/partner1_phone').delete()));
+  await check('no profile: cannot register a device', () => assertFails(stranger.doc(SUBS + '/stranger1_x').set(sub('stranger1'))));
+  await check('signed out: cannot read a device', () => assertFails(anon.doc(SUBS + '/owner1_dev1').get()));
+  await check('signed out: cannot register a device', () => assertFails(anon.doc(SUBS + '/x_y').set(sub('x'))));
+
+  // ---- Notification preferences: each user's own ----
+  const PREFS = 'ledger_notification_prefs';
+  await check('owner: can save own notification prefs', () => assertSucceeds(owner.doc(PREFS + '/owner1').set({ currentFocus: false, partner: true, updatedAt: 'now' })));
+  await check('owner: can read own prefs', () => assertSucceeds(owner.doc(PREFS + '/owner1').get()));
+  await check('owner: cannot read partner prefs', () => assertFails(owner.doc(PREFS + '/partner1').get()));
+  await check('owner: cannot change partner prefs', () => assertFails(owner.doc(PREFS + '/partner1').set({ partner: false })));
+  await check('owner: prefs must be on/off', () => assertFails(owner.doc(PREFS + '/owner1').set({ currentFocus: 'loud' })));
+  await check('owner: prefs take no other fields', () => assertFails(owner.doc(PREFS + '/owner1').set({ partner: true, recipients: ['x'] })));
+  await check('partner: can save own prefs', () => assertSucceeds(partner.doc(PREFS + '/partner1').set({ partner: false, updatedAt: 'now' })));
+  await check('partner: cannot read owner prefs', () => assertFails(partner.doc(PREFS + '/owner1').get()));
+  await check('no profile: cannot save prefs', () => assertFails(stranger.doc(PREFS + '/stranger1').set({ partner: true })));
+
+  // ---- Config, Pin now, the sender's log ----
+  await check('owner: can read the push config', () => assertSucceeds(owner.doc('ledger_config/push').get()));
+  await check('partner: can read the push config', () => assertSucceeds(partner.doc('ledger_config/push').get()));
+  await check('owner: cannot write the push config', () => assertFails(owner.doc('ledger_config/push').set({ vapidPublicKey: 'other' })));
+  await check('no profile: cannot read the push config', () => assertFails(stranger.doc('ledger_config/push').get()));
+  await check('signed out: cannot read the push config', () => assertFails(anon.doc('ledger_config/push').get()));
+  await check('owner: can pin to own devices', () => assertSucceeds(owner.collection('ledger_pins').add({ ownerUid: 'owner1', text: 'Bring charger', status: 'pending' })));
+  await check('owner: cannot pin for someone else', () => assertFails(owner.collection('ledger_pins').add({ ownerUid: 'partner1', text: 'x' })));
+  await check('owner: cannot rewrite a pin\'s outcome', () => assertFails(owner.doc('ledger_pins/pin1').update({ status: 'pending' })));
+  await check('owner: can clear own pins', () => assertSucceeds(owner.doc('ledger_pins/pin1').delete()));
+  await check('owner: cannot read the sender\'s log', () => assertFails(owner.doc('ledger_push_events/e1').get()));
+  await check('owner: cannot write the sender\'s log', () => assertFails(owner.doc('ledger_push_events/e2').set({ x: 1 })));
+  await check('partner: cannot read the sender\'s log', () => assertFails(partner.doc('ledger_push_events/e1').get()));
+
+  // ---- Reset Sprints: owner only ----
+  await check('owner: can create a sprint', () => assertSucceeds(owner.doc('ledger_sprints/s1').set({ ownerUid: 'owner1', state: 'active', items: [{ id: 'i1', text: 'Shower', completed: false }] })));
+  await check('owner: can update a sprint', () => assertSucceeds(owner.doc('ledger_sprints/s1').update({ state: 'finished' })));
+  await check('owner: can read sprints', () => assertSucceeds(owner.collection('ledger_sprints').get()));
+  await check('owner: can delete a sprint', () => assertSucceeds(owner.doc('ledger_sprints/s1').delete()));
+  await check('partner: cannot read a sprint', () => assertFails(partner.doc('ledger_sprints/seed').get()));
+  await check('partner: cannot create a sprint', () => assertFails(partner.doc('ledger_sprints/p1').set({ state: 'active' })));
+  await check('no profile: cannot read sprints', () => assertFails(stranger.collection('ledger_sprints').get()));
+
+  // ---- Current Focus: the owner's, naming the owner who set it ----
+  const FOCUS = 'ledger_meta/currentFocus';
+  await check('owner: can read current focus', () => assertSucceeds(owner.doc(FOCUS).get()));
+  await check('owner: can set current focus', () => assertSucceeds(owner.doc(FOCUS).set(focus({ sourceId: 'act2', title: 'Finish proposal' }))));
+  await check('owner: can focus on a sprint item', () => assertSucceeds(owner.doc(FOCUS).set(focus({ type: 'sprint_item', sourceId: 's1', childId: 'i1' }))));
+  await check('owner: can clear current focus', () => assertSucceeds(owner.doc(FOCUS).set({ ownerUid: 'owner1', status: 'cleared', clearedAt: 'now', updatedAt: 'now', sourceDeviceId: 'dev-mac' })));
+  await check('owner: focus cannot name another user', () => assertFails(owner.doc(FOCUS).set(focus({ ownerUid: 'partner1' }))));
+  await check('owner: focus type is action or sprint item', () => assertFails(owner.doc(FOCUS).set(focus({ type: 'note' }))));
+  await check('owner: focus takes no other fields', () => assertFails(owner.doc(FOCUS).set(focus({ recipientUid: 'partner1' }))));
+  await check('owner: active focus needs what it points at', () => assertFails(owner.doc(FOCUS).set(focus({ sourceId: '' }))));
+  await check('owner: other meta documents are unaffected', () => assertSucceeds(owner.doc('ledger_meta/presets').set({ anything: true })));
+  await check('partner: cannot read current focus', () => assertFails(partner.doc(FOCUS).get()));
+  await check('partner: cannot set current focus', () => assertFails(partner.doc(FOCUS).set(focus({ ownerUid: 'partner1' }))));
+  await check('no profile: cannot read current focus', () => assertFails(stranger.doc(FOCUS).get()));
+  await check('signed out: cannot read current focus', () => assertFails(anon.doc(FOCUS).get()));
 
   // ---- anything unlisted ----
   await check('unlisted collection: owner denied', () => assertFails(owner.collection('something_else').get()));

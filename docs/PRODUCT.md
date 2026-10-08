@@ -152,6 +152,39 @@ Today is the centre of the product. Everything else supports it.
   Communications are whole-life — family and friends as much as clients.
 - **One closure.** A day is closed once. Wind-down closes it in the evening,
   Catch-up closes it the next morning; both write the same `closedAt`.
+- **Reset Sprint.** A short session for clearing the small things taking up
+  attention (put washing on, shower, tidy desk) before focusing properly.
+  - **Not commitments.** Its items are temporary execution aids, never Actions,
+    Key Tasks, Backlog, priorities or Progress.
+  - **How it runs.** One line per thing, an optional 10/20/30-minute timer, the
+    next item named, a tap to clear each. When time is up, it is "20 minutes
+    done · 2 things left", never a failure.
+  - **Ending it.** Each thing left is kept for another sprint, made an Action
+    (one ordinary Action, only on Shaun's say), or dropped. Nothing goes to the
+    Backlog.
+  - **On Today and in Flow.** In Flow a sprint is one block at the time it
+    ran; afterwards, one quiet line on Today.
+- **Current Focus.** "The one thing I am doing now". It is different from a Key
+  Task (important today), an Action (committed), Flow (the day's sequence) and
+  a sprint (a clearing session).
+  - **One pointer.** There is at most one. It points at an Action or a sprint
+    item and is never a task of its own. The Action or sprint stays the truth.
+  - **Every device.** It is synced, so every Owner device shows the same focus
+    live, and a push tells the others.
+  - **Done.** Done on an Action is the Action's own completion. On a sprint
+    item it ticks the item and moves the focus to the next one.
+  - **Never stale.** A focus whose Action is completed, deleted or moved is
+    cleared.
+- **Notifications.** Delivery only: Ledger's records are the truth, and a
+  notification is a best-effort nudge with a link back in. Each person turns
+  them on per device. Shaun's go to Shaun's devices; Abi's to hers.
+  - **What sends one.** A new Current Focus (to his other devices), Partner
+  requests and their updates (to the other side), and Pin now.
+  - **Choices.** Two only: Current Focus, and Partner requests & updates.
+  - **iPhone and iPad.** Notifications need Ledger installed to the Home
+    Screen.
+  - **What it can't do.** A notification is not pinned and not a Live Activity:
+    the device decides how long it stays.
 
 ## What Ledger deliberately is not
 
@@ -224,7 +257,12 @@ Ledger.
 - Image sharing is separate and unchanged. Share image is a one-off picture for
   anyone. Publish to Abi is the live view.
 
-Not yet: notifications of any kind, more than one partner, general chat or
+Abi is notified (on devices where she turned notifications on) when Shaun
+adds an update, plans her request or completes it. Shaun is notified when she
+sends a request or adds an update. Only the request's title and a short
+preview are shown.
+
+Not yet: more than one partner, general chat or
 comments outside requests, attachments, reactions, mentions, the partner editing
 Actions, calendar sharing.
 

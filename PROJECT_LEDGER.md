@@ -37,7 +37,8 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   keeps the phone layout.
 
 ### Today (the main surface)
-- **Overview / Flow** — a two-way switch under Morning Prime and Catch-up (which
+- **Overview / Flow** — a two-way switch (with the quiet "Reset sprint" entry on
+  the same row) under Morning Prime and Catch-up (which
   stay visible in both). **Overview** is the editable whole day described below.
   **Flow** is the day's timeline (inspired by Structured): actions and planned
   training on a hairline rail, each as a coloured icon capsule, a tick on the right.
@@ -102,6 +103,33 @@ The same page adapts by viewport width; there is no desktop build, route or flag
 - **Quick Log** — collapsible grid: Nutrition, Weight, Daily photo, Padel,
   Cardio, HIIT, Strength, Mobility, Symptoms.
 - **Recorded Activity** — collapsible, with a summary in its header.
+- **Reset Sprint** (since 2026-10-08) — a short clearing session for small
+  things ("put washing on", "shower"). Started from a quiet "Reset sprint" beside
+  the Overview / Flow switch (hidden while one runs): one line per thing, 10/20/30
+  min or no timer (default 20), optionally making the first item the Current Focus.
+  While it runs it leads Overview (`#sprintSection`, top of the working column):
+  time left, **Next**, the list (tap to clear or unclear), + Add, Wrap up. Time up
+  reads "20 minutes done · 2 things left" with Keep going / Wrap up. Wrapping up
+  with things left: each is **Keep** (back in the next sprint's field, via
+  `ledger_meta/sprintKept`), **Make Action** (one ordinary Action today) or
+  **Drop**. Never Backlog. Afterwards one quiet line under the Actions:
+  "✓ Reset sprint · 5 cleared · 23 min" (opens read-only). In Flow a sprint is
+  **one block** at the time it ran ("12:20–12:40 · Reset sprint · 3 of 5
+  cleared"), never its items. Stored in `ledger_sprints` (owner-only), local
+  fallback `ledger_sprints_fallback`.
+- **Current Focus** (since 2026-10-08) — "the one thing I am doing now":
+  `ledger_meta/currentFocus` (`ownerUid, type: action | sprint_item, sourceId,
+  childId, title, date, setAt, updatedAt, sourceDeviceId, status: active |
+  cleared`). One pointer, never a task; every Owner device listens to it. Shown as
+  a **NOW** line at the end of the top block (title, "Work · Key task" or "Reset
+  sprint · 12 min left", Change, a Done circle); in Overview a sprint item shows
+  as the sprint's own "Now" instead. Flow marks its row ("Now", a gold ring).
+  Set from an Action's detail ("Set as current focus"), the sprint ("Make it my
+  focus"), or Change (the sprint's open items, then today's open Actions, key
+  tasks first; Clear focus). Done on an Action = the normal completion; on a
+  sprint item = tick it, and focus moves to the next item in the same write. A
+  focus whose Action is completed, deleted or moved (or whose item is done) is
+  moved on or cleared, in a transaction so only one device does it.
 - **Challenge strip** — when a Challenge is running, one quiet line above Morning
   Prime, **collapsed by default**: icon, "Belly Must Go. · Day 3 of 92 · 3 of 4 done"
   (name strongest, the rest muted; the name truncates before the numbers), chevron.
@@ -243,28 +271,22 @@ Focus tab shows a player card: XP → level → tier (Rookie, Grinder, Contender
 Competitor, Veteran, Elite) with per-tier avatar art and a day streak.
 `computeXP()` is currently `sessions.length × 10 + completed focus items × 25`.
 
-### Notifications / Pin Now
-Web Push. Client writes to `ledger_pins`; `functions/index.js` (Firebase Cloud
-Function, `onDocumentCreated`) sends the push via `web-push`. VAPID private key
-lives in Secret Manager, never in the repo. Device subscriptions in
-`ledger_push_subscriptions`. **Mismatch found 2026-10-07: the function has never
-been deployed**, so Pin now has never delivered a notification (Shaun confirms).
-Possibly no VAPID private key exists either. Tracked in **#20**. The Spark-plan
-blocker is gone: **Shaun upgraded `ledger-6aec3` to Blaze on 2026-10-07**, so
-Cloud Functions can be deployed. The old function is not to be deployed as-is;
-the next push phase redesigns delivery (below). `APP_URL` now defaults to
-`https://ledger.sgj.luxe/`.
-
-**Future push architecture (agreed direction, not built).** Device subscriptions
-belong to the **authenticated user** (Shaun's devices to Shaun's UID, Abi's to
-Abi's), not to "the owner". Server-side events decide the recipient. Triggers will
-include: new Partner Request; Partner Request Update; Shaun's update to Abi; request
-planned/completed; Pin now; timed Action reminders; relative reminders; later the
-weekly accountability/checkpoint notifications. The notification is only delivery:
-Firestore stays the source of truth, and a tap opens a deep link (`?openAction=`,
-`?request=`, `?view=`) on `ledger.sgj.luxe`. The current owner-only Pin now is not
-to be extended ad hoc. Push starts only after the domain is verified and Shaun
-authorises the Push Notifications Foundation.
+### Notifications (Push Foundation, built 2026-10-08)
+One engine: `functions/push.js` (`sendPushToUser`), triggered by Firestore records
+(`functions/index.js`): **Current Focus** (a write to `ledger_meta/currentFocus` →
+the owner's other devices, tag `ledger-current-focus`, opens `?openAction=` or
+`?sprint=`), **Partner request Updates** (a new entry → the other side: request
+sent, update added, planned, completed), and **Pin now** (a pin → all the owner's
+devices). Device subscriptions belong to the signed-in user
+(`ledger_push_subscriptions/{uid}_{hash}`, owner and partner alike, each only
+their own). Settings → Notifications (partner: footer → Notifications) shows this
+device's state, Enable / Disable, and two choices (`ledger_notification_prefs`).
+The VAPID public key is read from `ledger_config/push`; the private key is in
+Secret Manager. **Not deployed yet:** needs Shaun's one-time setup (VAPID keys,
+`functions/.env.ledger-6aec3`, `ledger_config/push`, deploy) in
+`docs/SECURITY.md` → Push notifications. Until then Settings says "Not set up
+yet". Firebase is on Blaze (2026-10-07). The old owner-only Pin now function was
+never deployed (#20) and is replaced, not kept.
 
 ### Theming
 Three modes — **Dark** (default and primary identity), **Light** (warm parchment
@@ -527,6 +549,40 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-08 — Reset Sprint: clearing clutter is not committing
+**Decision (Shaun's brief):** a Reset Sprint is a temporary list of small things to
+clear before focusing. Its items are execution aids, never Actions, Key Tasks,
+Backlog, priorities or Progress. Unfinished items are kept for another sprint,
+made an Action (only by Shaun's choice, one ordinary Action) or dropped — never
+put in the Backlog, which means committed work. A sprint is one Flow block, a
+prominent panel only while it runs, and one quiet line after. Timer ends are
+never failures. Stored owner-only in `ledger_sprints`; never in a Partner
+projection.
+
+### 2026-10-08 — Current Focus: one synced "doing now"
+**Decision (Shaun's brief):** at most one Current Focus, in Firestore
+(`ledger_meta/currentFocus`), pointing at an Action or a sprint item, never a
+task of its own. Every Owner device follows it live; a push is a best-effort
+extra. Done uses the Action's own completion (a sprint item: tick it and move
+the focus to the next item, in one write). A dead reference is never left:
+completed, deleted or moved targets are reconciled in a transaction. Starting a
+sprint makes its first item the focus only if nothing else is in focus, or if
+Shaun leaves the option on knowing it replaces the current one.
+
+### 2026-10-08 — Push belongs to people and their devices; one engine
+**Decision (Shaun's brief):** a device subscription belongs to the Firebase user
+who enabled it (`ledger_push_subscriptions/{uid}_…`), owner or partner, readable
+and changeable only by them. One server engine (`sendPushToUser`) sends every
+push; recipients come from trusted records (the focus's owner; the request's
+two sides checked against the active membership; the pin's owner), never from
+the browser. Each event is sent once (`ledger_push_events`), no handler writes to
+its trigger, dead devices are removed. Current Focus skips the device that set
+it. Firestore stays the truth; a failed push changes nothing. The VAPID public
+key is published in `ledger_config/push`; the private key lives in Secret
+Manager. Lock-screen placement and persistence are the OS's; this is not a Live
+Activity. **Supersedes:** the owner-only Pin now function and its owner-wide
+device list (never deployed, #20).
 
 ### 2026-10-07 — Today: the challenge is collapsed by default; status recedes, work rises
 **Decision (Shaun's brief):** the Challenge strip on Today is one collapsed status line
@@ -1446,15 +1502,14 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Shaun
-Status: Verification
-Objective: verify Owner and Abi on `https://ledger.sgj.luxe` (the migration audit is
-done; see Recently Completed). Then await explicit authorisation for the **Push
-Notifications Foundation**. Nothing is being built meanwhile.
-Acceptance criteria: Shaun confirms the checklist in Next 1.
+Status: Verification (2026-10-08)
+Objective: switch on the Push Foundation and check Reset Sprint, Current Focus and
+notifications on real devices. Claude Code built and tested it on the emulators;
+the setup and the four-device checklist are in Next.
+Acceptance criteria: Next 1–3 confirmed.
 
 The backlog exists as GitHub Issues (#5–#19). None of it is authorised for
-implementation — see the workflow rules in `CLAUDE.md`. The Today density pass
-was a direct instruction from Shaun, not a backlog item.
+implementation — see the workflow rules in `CLAUDE.md`.
 
 ---
 
@@ -1529,14 +1584,22 @@ No active handoff.
 
 ### Claude Code
 
-No active handoff. The Vercel + custom domain migration audit (2026-10-07) is
-complete. **Push Notifications Foundation is not authorised yet**: wait for Shaun's
-explicit instruction after he has verified the domain. Next is Shaun's manual rollout (Next 1); Phase 3 (notifications and
-beyond) starts only on his explicit brief.
+No active handoff. Reset Sprint, Current Focus and the Push Foundation
+(2026-10-08) are complete. **Not authorised:** a scheduled-reminder engine (timed
+reminders, "X minutes before", recurring/accountability). The engine is ready for
+it: a scheduled function would create an event and call `sendPushToUser`.
 
 ---
 
 ## Recently Completed
+
+- (2026-10-08) — Reset Sprint, Current Focus and the cross-device Push Foundation
+  (rules, the one push engine in `functions/`, Settings → Notifications for owner
+  and partner, service worker tags and in-app deep links, `?sprint=`). Rules 271,
+  engine 41, end to end 63 (three Owner devices and Abi, on the Auth, Firestore and
+  Functions emulators, with real Web Push encryption to a local endpoint), Partner
+  Sharing e2e 132, and the browser suites. Not deployed: Shaun's setup is in
+  `docs/SECURITY.md`.
 
 - (2026-10-07) — Today polish pass: Challenge collapsed by default (per-day memory,
   quieter weekly list), Morning Prime "Completed HH:MM", Flow suggested by the switch,
@@ -1690,22 +1753,31 @@ beyond) starts only on his explicit brief.
 
 ## Next
 
-1. **Shaun verifies Owner + Abi on `https://ledger.sgj.luxe`** (Claude Code cannot
-   reach the domain):
-   - it loads over HTTPS; Focus footer reads "Build xxxxxxx · Live: Up to date" (a
-     stamp, not "local build"; this proves the Vercel build step ran);
-   - password sign-in; "Set or reset your password" email returns to
-     ledger.sgj.luxe; the email-link backup does too;
-   - Owner: data loads, create/edit an Action, reload stays signed in;
-   - Abi: signs in, sees her shared view only; a request and an Update reach you;
-     your Update reaches her;
-   - install from ledger.sgj.luxe (Share → Add to Home Screen), open it, reload;
-   - optional: open `https://ledger.sgj.luxe/?view=week` as Abi and refresh it
-     (no 404);
-   - republish `firestore.rules` from the Console if not done since Phase 2.5;
-   - Today on the phone: the challenge line is collapsed and fits one line; tapping it
-     opens and closes it; Morning Prime's time isn't cut off.
-2. **Then await explicit authorisation for the Push Notifications Foundation.**
-3. Shaun: create the GitHub Project (Open Q7); triage #6–#19.
+1. **Shaun: switch push on** — `docs/SECURITY.md` → Push notifications → "Setting
+   it up" (Firestore location → region; `npx web-push generate-vapid-keys`; the
+   private key into Secret Manager; `functions/.env.ledger-6aec3`;
+   `ledger_config/push.vapidPublicKey`; deploy rules + functions).
+2. **Shaun: the four devices** (on `https://ledger.sgj.luxe`):
+   - **MacBook** (Chrome, or Safari 16+): sign in → Focus → Settings →
+     Notifications → Enable → allow → "Enabled".
+   - **iPhone and iPad**: Safari → Share → Add to Home Screen → open Ledger *from
+     the icon* → sign in (the installed app has its own sign-in) → Settings →
+     Notifications → Enable → allow. In Safari itself it says "Install Ledger to
+     your Home Screen…" — expected.
+   - **Samsung**: Chrome → sign in → ⋮ → Add to Home screen / Install → open it →
+     Settings → Notifications → Enable → allow.
+   - Registered: each shows "Enabled"; Firestore → `ledger_push_subscriptions`
+     has a `<uid>_…` record per device ("Shaun · iPhone" etc.).
+   - Set an Action as current focus on the Mac → the iPhone, iPad and Samsung show
+     NOW at once and get "Ledger · Current focus" (the Mac does not) → tap → that
+     Action opens. Change focus on the iPhone → the Mac gets it. Start a Reset
+     Sprint, tick the first item on another device → the focus moves on everywhere.
+3. **Abi**: installs and signs in → footer → Notifications → Enable. She sends a
+   request → Shaun's devices: "Abi sent a request"; she adds an update → Shaun;
+   Shaun adds one → Abi. Tapping opens the request. Nothing private shows.
+4. If not done yet: the domain checks from 2026-10-07 (build stamp "Up to date",
+   password + email-link sign-in return to ledger.sgj.luxe, `?view=week` refresh)
+   and the challenge line / Morning Prime check on the phone.
+5. Shaun: create the GitHub Project (Open Q7); triage #6–#19.
 
 Everything else is on the board. Do not duplicate it here.

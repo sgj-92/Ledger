@@ -99,8 +99,10 @@ These stop a release.
 ## Notifications
 
 - [ ] **Push notification behaviour** checked where the release touches it —
-      "Pin now" delivers, the notification opens the right view, and the
-      Cloud Function logs cleanly.
+      Current Focus, Partner requests/updates and Pin now deliver to the right
+      person's devices (not the device that caused it, for focus), the tap
+      opens the right Action, sprint or request, and the functions log
+      cleanly (`ledger_push_events` shows each event once).
 
 ---
 

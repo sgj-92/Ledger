@@ -11,8 +11,11 @@ self.addEventListener('fetch', function(event){
   event.respondWith(fetch(event.request));
 });
 
-// ---------- Pin now (instant push reminders) ----------
-// Payload shape sent by the Cloud Function: { title, body, url, tag }
+// ---------- Web Push ----------
+// Payload from the Cloud Function (functions/push.js): { title, body, url, tag, renotify, kind }.
+// Every push shows a notification (iOS requires it). A tag replaces the previous
+// notification with the same tag where the platform allows — so a new Current Focus
+// replaces the last one instead of stacking.
 self.addEventListener('push', function(event){
   var data = {};
   try { data = event.data ? event.data.json() : {}; }
@@ -25,20 +28,32 @@ self.addEventListener('push', function(event){
     badge: 'icon-192.png',
     data: { url: data.url || './' }
   };
-  if (data.tag) options.tag = data.tag;
-
+  if (data.tag){
+    options.tag = data.tag;
+    if (data.renotify) options.renotify = true;   // only meaningful with a tag
+  }
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+// A link always opens on this installation's own origin: the payload's query string on
+// the service worker's scope (an installed iPhone app can only open its own origin).
+function ownUrl(url){
+  try {
+    var u = new URL(url, self.registration.scope);
+    return new URL(u.search, self.registration.scope).href;
+  } catch(e){ return self.registration.scope; }
+}
+
 self.addEventListener('notificationclick', function(event){
   event.notification.close();
-  var url = (event.notification.data && event.notification.data.url) || './';
+  var url = ownUrl((event.notification.data && event.notification.data.url) || './');
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList){
       for (var i = 0; i < clientList.length; i++){
         var client = clientList[i];
-        if ('focus' in client){
-          if ('navigate' in client) client.navigate(url);
+        if (client.url.indexOf(self.registration.scope) === 0 && 'focus' in client){
+          // Ledger is already open: it opens the link itself, with no reload
+          client.postMessage({ type: 'ledger-open', url: url });
           return client.focus();
         }
       }

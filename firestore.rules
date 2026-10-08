@@ -50,16 +50,98 @@ service cloud.firestore {
     match /ledger_priorities/{docId=**}         { allow read, write: if isOwner(); }
     match /ledger_focus/{docId=**}              { allow read, write: if isOwner(); }
     match /ledger_meals/{docId=**}              { allow read, write: if isOwner(); }
-    match /ledger_meta/{docId=**}               { allow read, write: if isOwner(); }
     match /ledger_matters/{docId=**}            { allow read, write: if isOwner(); }
     match /ledger_conversations/{docId=**}      { allow read, write: if isOwner(); }
     match /ledger_challenges/{docId=**}         { allow read, write: if isOwner(); }
+    // Reset Sprints: temporary clearing sessions. Never shared, never projected.
+    match /ledger_sprints/{docId=**}            { allow read, write: if isOwner(); }
 
-    // ---- Web Push (Pin now): owner only ----
-    // Device subscriptions and the pins that trigger a push. The sending Cloud Function
-    // uses the Admin SDK, which is not subject to these rules.
-    match /ledger_push_subscriptions/{docId=**} { allow read, write: if isOwner(); }
-    match /ledger_pins/{docId=**}               { allow read, write: if isOwner(); }
+    // ledger_meta holds the owner's preferences and small state documents. One of them,
+    // currentFocus, is also an event source: the push sender reads its ownerUid as the
+    // recipient, so it must name the owner who wrote it — never anyone else.
+    function focusShape(d) {
+      return d.keys().hasOnly(['ownerUid', 'type', 'sourceId', 'childId', 'title', 'date', 'setAt',
+                               'updatedAt', 'clearedAt', 'sourceDeviceId', 'status'])
+          && d.ownerUid == request.auth.uid
+          && d.status in ['active', 'cleared']
+          && (d.status == 'cleared'
+              || (d.type in ['action', 'sprint_item']
+                  && d.sourceId is string && d.sourceId.size() > 0 && d.sourceId.size() <= 100
+                  && d.title is string && d.title.size() <= 300
+                  && d.setAt is string));
+    }
+    // (no subcollections; a {docId=**} wildcard here would let currentFocus skip its shape)
+    match /ledger_meta/{docId} {
+      allow read: if isOwner();
+      allow create, update: if isOwner() && (docId != 'currentFocus' || focusShape(request.resource.data));
+      allow delete: if isOwner();
+    }
+
+    // ---- Web Push ----
+    // A device subscription belongs to the signed-in user who registered it — owner or
+    // partner alike — never to "the owner". Each user sees, changes and removes only their
+    // own devices; nobody, the owner included, can read another user's. The id starts with
+    // the user's uid, so two people on one browser never share a record. Delivery is the
+    // Cloud Function's (Admin SDK, not subject to these rules), which finds a user's
+    // devices server-side.
+    function hasLedgerRole() {
+      return isOwner() || hasRole('partner');
+    }
+    function ownId(id) {
+      return id.size() > request.auth.uid.size() + 1
+          && id[0:request.auth.uid.size() + 1] == request.auth.uid + '_';
+    }
+    function subShape(d) {
+      return d.keys().hasOnly(['userUid', 'endpoint', 'keys', 'deviceId', 'deviceLabel', 'platform',
+                               'vapidPublicKey', 'createdAt', 'updatedAt', 'lastSeenAt',
+                               'lastSentAt', 'lastError', 'lastErrorAt'])
+          && d.userUid == request.auth.uid
+          && d.endpoint is string && d.endpoint.size() <= 2048 && d.endpoint.matches('https://.+')
+          && d['keys'] is map && d['keys'].p256dh is string && d['keys'].auth is string
+          && d.deviceId is string && d.deviceId.size() <= 64
+          && (!('deviceLabel' in d) || (d.deviceLabel is string && d.deviceLabel.size() <= 80));
+    }
+    match /ledger_push_subscriptions/{subId} {
+      allow read: if signedIn() && resource.data.userUid == request.auth.uid;
+      allow create: if hasLedgerRole() && ownId(subId) && subShape(request.resource.data);
+      allow update: if hasLedgerRole() && ownId(subId)
+                    && resource.data.userUid == request.auth.uid
+                    && subShape(request.resource.data);
+      // a device's own record; or, for the owner, the device's record from before
+      // subscriptions had a user (found by the id this device's endpoint gave it)
+      allow delete: if signedIn()
+                    && (resource.data.get('userUid', null) == request.auth.uid
+                        || (isOwner() && resource.data.get('userUid', null) == null));
+    }
+    // Each user's notification choices: theirs alone. The sender reads them server-side.
+    match /ledger_notification_prefs/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if hasLedgerRole() && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['currentFocus', 'partner', 'updatedAt'])
+                    && request.resource.data.get('currentFocus', true) is bool
+                    && request.resource.data.get('partner', true) is bool;
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+    // Public configuration for the app: the VAPID *public* key. Set in the Console or by
+    // the Admin SDK; no client writes it.
+    match /ledger_config/{docId} {
+      allow read: if hasLedgerRole();
+      allow write: if false;
+    }
+    // Pin now: the owner asks for a push to their own devices. The pin names its owner;
+    // only the sender updates it.
+    match /ledger_pins/{pinId} {
+      allow read, delete: if isOwner();
+      allow create: if isOwner()
+                    && request.resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500;
+      allow update: if false;
+    }
+    // The sender's own log and de-duplication marks. Server only.
+    match /ledger_push_events/{eventId} {
+      allow read, write: if false;
+    }
 
     // ---- Shared namespace: Partner Sharing ----
     // A partner never reads a private collection. What crosses the boundary is only

@@ -1,9 +1,9 @@
 {
   "name": "ledger-functions",
   "private": true,
-  "description": "Server-side piece of Ledger's Pin now feature: sends a Web Push notification the instant a ledger_pins document is created. Deployed separately from the static site (firebase deploy --only functions).",
+  "description": "Ledger's push sender: one Web Push engine (push.js) for Current Focus, Partner Request updates and Pin now, triggered by Firestore records. Deployed separately from the static site (firebase deploy --only functions).",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "index.js",
   "dependencies": {

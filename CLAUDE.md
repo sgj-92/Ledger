@@ -201,8 +201,12 @@ These are observed facts about this repo, useful before making changes.
 - **Single-file app.** All product code — HTML, CSS and JavaScript — lives in
   `index.html` (~10,500 lines). There is no build step, no bundler, no framework
   and no package manager for the app itself.
-- `functions/` is the only separate codebase: one Firebase Cloud Function that
-  sends Web Push for "Pin now". It has its own `package.json`.
+- `functions/` is the only separate codebase: the push sender. `push.js` is
+  the one notification engine (`sendPushToUser`); `index.js` wires the
+  Firestore triggers for Current Focus, Partner request Updates and Pin now.
+  It has its own `package.json`. Tests are in `tests/functions/` (the engine,
+  on the Firestore emulator) and `tests/e2e/execution.run.js`, which starts
+  the Auth, Firestore and Functions emulators.
 - Other root files: `sw.js` (service worker), `manifest.json`, `fonts/`
   (self-hosted woff2 subsets), `hero-mountain.webp`, app icons, `avatars/`.
 - `docs/` holds product documentation, not code: `PRODUCT.md`,

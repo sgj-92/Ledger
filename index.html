@@ -3696,6 +3696,126 @@
   .today-mode button.suggest:not(.sel) { color: var(--gold); }
   html[data-theme="light"] .today-mode button.suggest:not(.sel) { color: var(--gold-2); }
 
+
+  /* ---------- the execution layer: Reset Sprint, Current Focus ---------- */
+  /* the switch row: Overview / Flow, and the quiet way into a Reset Sprint */
+  .today-mode-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: var(--sp-3) 0 var(--sp-1); }
+  .today-mode-row .today-mode { margin: 0; }
+  .sprint-entry {
+    flex-shrink: 0; padding: 9px 2px; border: none; background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--text-3); letter-spacing: 0.01em;
+  }
+  .sprint-entry:active { color: var(--text-2); }
+  .sprint-entry[hidden] { display: none; }
+  /* NOW: the one thing being done, close to the day's controls — noticed, never a dashboard */
+  .now-cue {
+    display: flex; align-items: center; gap: 8px; margin: 0 0 var(--sp-1); padding: 9px 10px 9px 14px;
+    border: 1px solid rgba(var(--gold-rgb),0.32); border-radius: var(--r-md); background: rgba(var(--gold-rgb),0.045);
+  }
+  .now-main {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 0; border: none; background: none;
+    text-align: left; font-family: var(--sans); color: var(--text); cursor: pointer;
+  }
+  .now-k { font-size: 9.5px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+  .now-title {
+    font-size: 15px; font-weight: 600; line-height: 1.3; letter-spacing: -0.005em; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  }
+  .now-meta { font-size: 12px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .now-change {
+    flex-shrink: 0; min-height: 40px; padding: 0 6px; border: none; background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--text-2);
+  }
+  .now-change:active { opacity: 0.6; }
+  .now-done { width: 26px; height: 26px; margin-right: 2px; }
+  html[data-theme="light"] .now-k, html[data-theme="light"] .sp-k, html[data-theme="light"] .tl-focus { color: var(--gold-2); }
+  /* the running sprint: one surface, a line per thing, nothing nested */
+  .sp-panel {
+    margin: var(--sp-2) 0 var(--sp-1); padding: 12px 16px 6px; border-radius: var(--r-lg);
+    background: var(--surface); border: 1px solid rgba(var(--gold-rgb),0.26);
+  }
+  html[data-theme="light"] .sp-panel { box-shadow: var(--shadow-card); }
+  .sp-panel.in-sheet { margin: 0; padding: 0; border: none; background: none; box-shadow: none; }
+  .sp-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 30px; }
+  .sp-k { font-size: 10px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .sp-wrap { padding: 8px 0 8px 8px; border: none; background: none; cursor: pointer; font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+  .sp-timeup { margin: 4px 0 8px; }
+  .sp-timeup-text { margin: 0 0 8px; font-size: 13.5px; color: var(--text); }
+  .sp-timeup-btns { display: flex; gap: 8px; }
+  .sp-next { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin: 4px 0 10px; }
+  .sp-next-k { width: 100%; font-size: 11.5px; color: var(--text-3); }
+  .sp-next-title { flex: 1; min-width: 0; font-family: var(--serif); font-size: 22px; line-height: 1.25; color: var(--text); overflow-wrap: anywhere; }
+  .sp-now { font-size: 9.5px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+  .sp-focus { padding: 6px 0; border: none; background: none; cursor: pointer; font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--gold); }
+  .sp-next.all { align-items: center; margin-bottom: 12px; }
+  .sp-next.all .sp-finish { width: auto; padding: 10px 18px; font-size: 13.5px; }
+  .sp-list { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+  .sp-item {
+    display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 8px 0;
+    border: none; border-bottom: 1px solid var(--line); background: none; cursor: pointer; text-align: left;
+    font-family: var(--sans); font-size: 14.5px; color: var(--text); -webkit-tap-highlight-color: transparent;
+  }
+  .sp-item:last-child { border-bottom: none; }
+  .sp-list.readonly .sp-item { cursor: default; }
+  .sp-tick {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line-2); box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center; color: transparent; transition: background 0.14s ease, border-color 0.14s ease;
+  }
+  .sp-tick svg { width: 11px; height: 11px; display: block; }
+  .sp-item.next .sp-tick { border-color: rgba(var(--gold-rgb),0.65); }
+  .sp-item.done .sp-tick { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .sp-item.done .sp-text { color: var(--text-3); }
+  .sp-text { min-width: 0; overflow-wrap: anywhere; }
+  .sp-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .sp-add {
+    display: inline-flex; align-items: center; gap: 6px; padding: 10px 0; border: none; background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--text-3);
+  }
+  .sp-add svg { width: 12px; height: 12px; display: block; }
+  .sp-left { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .sp-addrow { padding: 0 0 10px; }
+  .sp-addrow[hidden] { display: none; }
+  .sp-addinput {
+    width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2);
+    font-family: var(--sans); font-size: 15px; color: var(--text);
+  }
+  .sp-addinput:focus { outline: none; border-color: rgba(var(--gold-rgb),0.5); }
+  .sp-start-note { margin: -8px 0 var(--sp-4); min-height: 1em; font-size: 12px; color: var(--text-3); }
+  .sp-durs { margin: 0; }
+  .sp-ro-note { margin: var(--sp-3) 0 0; font-size: 12.5px; color: var(--text-3); }
+  /* a finished sprint: one quiet line */
+  .sp-hist {
+    display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 2px; border: none; background: none; cursor: pointer;
+    text-align: left; font-family: var(--sans); font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums;
+  }
+  .sp-hist-tick { flex-shrink: 0; width: 13px; height: 13px; color: var(--gold); display: flex; }
+  .sp-hist-tick svg { width: 100%; height: 100%; }
+  /* wrapping up: each thing left, kept / an Action / dropped */
+  .sp-wu { margin-bottom: var(--sp-4); }
+  .sp-wu-row { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .sp-wu-text { margin: 0 0 9px; font-size: 14.5px; color: var(--text); overflow-wrap: anywhere; }
+  .sp-wu-switch { width: 100%; }
+  .sp-wu-switch button { flex: 1; padding: 8px 6px; }
+  /* choosing the focus */
+  .fp-list { display: flex; flex-direction: column; margin: 0 0 var(--sp-2); }
+  .fp-row {
+    display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 12px; width: 100%; padding: 12px 2px;
+    border: none; border-bottom: 1px solid var(--line); background: none; cursor: pointer; text-align: left; font-family: var(--sans);
+  }
+  .fp-title { grid-column: 1; font-size: 15px; color: var(--text); overflow-wrap: anywhere; }
+  .fp-sub { grid-column: 1; font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .fp-now { grid-column: 2; grid-row: 1 / span 2; font-size: 9.5px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+  .fp-empty { font-size: 13px; color: var(--text-3); margin: 0 0 var(--sp-3); }
+  .focus-set-btn { margin-top: var(--sp-2); }
+  /* Settings → Notifications: this device's line, and the one button its state needs */
+  .set-row.static.nt-device { display: flex; }
+  .nt-btn { margin-top: var(--sp-3); }
+  .nt-btn[hidden], .set-note[hidden] { display: none; }
+  .focus-set-btn.on { color: var(--gold); border-color: rgba(var(--gold-rgb),0.45); }
+  /* Flow: the focus is marked where it sits; a sprint is one block */
+  .tl-focus { display: block; font-size: 9.5px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 1px; }
+  .tl-row.is-focus .cap { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px rgba(var(--gold-rgb),0.7); }
+
   /* Today's first viewport: the status area above the switch is context, so the
      day's work starts soon after it (relationships only — the tokens are untouched) */
   #view-log .catchup-banner { margin-bottom: var(--sp-3); }
@@ -3931,13 +4051,13 @@
       grid-template-areas: "top top" "mode mode" "main side" "main extra";
       grid-template-rows: auto auto auto 1fr;
     }
-    .today-mode { grid-area: mode; justify-self: start; margin: 0 0 var(--sp-4); }
+    .today-mode-row { grid-area: mode; margin: 0 0 var(--sp-4); justify-content: flex-start; gap: 22px; }
     #view-log.active.flow-mode { grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "mode" "flow"; grid-template-rows: auto auto 1fr; }
     .today-flow { grid-area: flow; display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 340px); column-gap: 48px; align-items: start; }
     .flow-context { display: block; position: sticky; top: 18px; border-left: 1px solid var(--line); padding-left: 28px; }
     .flow-head { margin-top: var(--sp-2); }
     .today-top { display: block; grid-area: top; margin-bottom: var(--sp-5); }
-    .today-top:has(> #catchUpBanner:empty):has(> #morningPrime:empty):has(> #challengeStrip:empty) { display: none; }
+    .today-top:has(> #catchUpBanner:empty):has(> #morningPrime:empty):has(> #challengeStrip:empty):has(> #nowCue:empty) { display: none; }
     .today-main { display: block; grid-area: main; min-width: 0; }
     .today-side { display: block; grid-area: side; min-width: 0; }
     .today-extra { display: block; grid-area: extra; min-width: 0; }
@@ -4495,17 +4615,25 @@
     <div id="catchUpBanner"></div>
 
     <div id="morningPrime"></div>
+    <!-- Current Focus: the one thing being done now, on every device -->
+    <div id="nowCue"></div>
     </div>
 
     <!-- Overview is the editable day; Flow is the order it is being worked in. Morning
-         Prime and Catch-up sit above both, so lifecycle prompts show in either mode. -->
+         Prime and Catch-up sit above both, so lifecycle prompts show in either mode.
+         A Reset Sprint starts from the same row, quietly. -->
+    <div class="today-mode-row">
     <div class="today-mode" id="todayModeSwitch" role="tablist" aria-label="Today view">
       <button type="button" role="tab" data-today-mode="overview">Overview</button>
       <button type="button" role="tab" data-today-mode="flow">Flow</button>
     </div>
+    <button type="button" class="sprint-entry" id="sprintEntry">Reset sprint</button>
+    </div>
     <div class="today-flow" id="todayFlow" hidden></div>
 
     <div class="today-main">
+    <!-- a Reset Sprint while it runs: it leads the working day -->
+    <div id="sprintSection"></div>
     <!-- Inbox: requests from a partner, captured but not yet decided -->
     <div id="inboxSection"></div>
     <!-- Backlog first: a quick look at unfinished earlier work before the day itself -->
@@ -4535,6 +4663,9 @@
         <input type="text" id="aaInput" class="aa-input" placeholder="What needs doing?" enterkeyhint="enter" autocomplete="off" aria-label="New action" maxlength="200">
       </div>
     </div>
+
+    <!-- finished sprints: one quiet line each -->
+    <div id="sprintHistory"></div>
 
     <div id="accountabilityMsg"></div>
 
@@ -5670,7 +5801,10 @@
 
   function signOutLedger(){
     forgetRole();
-    firebase.auth().signOut().catch(function(){ location.reload(); });
+    // this device stops receiving this user's notifications first
+    forgetThisDevice().then(function(){
+      firebase.auth().signOut().catch(function(){ location.reload(); });
+    });
   }
   // Ledger's one canonical production address (Vercel). The browser otherwise works from
   // the page's own origin; this is named once, for the two places that must point at
@@ -6037,9 +6171,12 @@
           dayStatuses = snap.docs.map(function(d){ var data = d.data() || {}; data.date = d.id; return data; });
           renderLogView();
         }, function(err){ console.error('day status snapshot error', err); });
+      // Reset Sprints and the Current Focus, live on every device
+      startExecListeners();
       // Partner Sharing: the owner's side of the shared namespace (see firestore.rules)
       startSharingListeners();
       startDeepLinkClock();
+      touchThisDevice();
     } catch(e){
       console.error(e);
       fallbackMode();
@@ -6061,6 +6198,7 @@
     localLoadDayStatuses();
     localLoadComms();
     localLoadChallenges();
+    localLoadExec();
     czLoaded = { commitments: true, plans: true, challenges: true };
     presetsLoaded = true;
     prioritiesLoaded = true;
@@ -6520,10 +6658,10 @@
   }
 
   // ---------- Pin now (instant push reminder) ----------
-  // Architecture: the client never talks to a push service directly with secrets. It writes a
-  // small "send this" doc to ledger_pins; a Firestore-triggered Cloud Function (see functions/)
-  // does the actual delivery via the Web Push protocol using a VAPID private key that only it
-  // holds. This keeps the feature push-immediate without exposing any server secret here.
+  // The client never sends a push itself (that needs the VAPID private key, which only the
+  // Cloud Function holds). It writes a small pin to ledger_pins naming its owner; the
+  // sender in functions/ delivers it through the one notification engine to every device
+  // the owner has turned notifications on for (Settings → Notifications).
   var PIN_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12.5a7 7 0 1 0-14 0C5 13.5 12 21 12 21z"/><circle cx="12" cy="8.5" r="2.3"/></svg>';
 
   function isStandalonePwa(){
@@ -6535,13 +6673,6 @@
   }
   function pushSupported(){
     return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-  }
-  // iOS only allows Web Push once the app is installed to the Home Screen — everything else
-  // (desktop browsers, Android Chrome) works from a normal tab.
-  function pushBlockedReason(){
-    if (!pushSupported()) return 'Notifications aren’t supported in this browser.';
-    if (isIOSDevice() && !isStandalonePwa()) return 'Install Ledger to your Home Screen to use phone notifications.';
-    return null;
   }
 
   function urlBase64ToUint8Array(base64String){
@@ -6556,31 +6687,6 @@
     var hash = 0;
     for (var i = 0; i < str.length; i++){ hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
     return Math.abs(hash).toString(36);
-  }
-
-  async function ensurePushSubscription(){
-    var reg = await navigator.serviceWorker.ready;
-    var existing = await reg.pushManager.getSubscription();
-    if (existing) return existing;
-    return reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-    });
-  }
-
-  async function savePushSubscription(sub){
-    if (!dbReady || !dbRef) return false;
-    var json = sub.toJSON();
-    var subId = 'sub_' + hashCode(json.endpoint);
-    try {
-      await dbRef.collection('ledger_push_subscriptions').doc(subId).set({
-        endpoint: json.endpoint,
-        keys: json.keys,
-        ownerUid: authUser ? authUser.uid : null,   // a device belongs to the account that registered it
-        createdAt: new Date().toISOString()
-      });
-      return true;
-    } catch(e){ console.error('save push subscription failed', e); return false; }
   }
 
   function showPinToast(text, isError, iconSvg){
@@ -6599,56 +6705,18 @@
     }, 2600);
   }
 
-  function openEnableNotificationsSheet(onGranted){
-    sheetEl.innerHTML =
-      '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">Enable notifications</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
-      '<p class="pin-explainer">Ledger needs permission to send reminders to your phone.</p>' +
-      '<button class="save-btn" id="enableNotifBtn">Enable notifications</button>';
-    backdrop.classList.add('open');
-    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
-    document.getElementById('enableNotifBtn').addEventListener('click', async function(){
-      try {
-        var perm = await Notification.requestPermission();
-        closeSheet();
-        if (perm === 'granted' && onGranted) onGranted();
-        else if (perm !== 'granted') showPinToast('Notifications need to be enabled in your device or browser settings.', true);
-      } catch(e){
-        closeSheet();
-        showPinToast('Couldn’t enable notifications on this device.', true);
-      }
-    });
-  }
-
-  // Central entry point for every "Pin now" action in the app. Handles permission state,
-  // installed-PWA limitations, and the actual Firestore write that triggers delivery.
+  // Central entry point for every "Pin now" in the app: write the pin, then say how it went.
   async function pinNow(text, note, linkedActionId, linkedDate){
     text = (text || '').trim();
     if (!text) return;
-    var blocked = pushBlockedReason();
-    if (blocked){ showPinToast(blocked, true); return; }
-    if (Notification.permission === 'denied'){
-      showPinToast('Notifications are off for Ledger — enable them in Settings to use Pin now.', true);
+    if (!dbReady || !dbRef || !authUser){
+      showPinToast('Pin now needs Ledger\u2019s cloud sync connected on this device.', true);
       return;
     }
-    if (Notification.permission !== 'granted'){
-      openEnableNotificationsSheet(function(){ doPinNow(text, note, linkedActionId, linkedDate); });
-      return;
-    }
-    await doPinNow(text, note, linkedActionId, linkedDate);
-  }
-
-  async function doPinNow(text, note, linkedActionId, linkedDate){
     try {
-      var sub = await ensurePushSubscription();
-      var subSaved = await savePushSubscription(sub);
-      if (!subSaved){
-        showPinToast('Pin now needs Ledger’s cloud sync connected on this device.', true);
-        return;
-      }
-      await dbRef.collection('ledger_pins').add({
-        ownerUid: authUser ? authUser.uid : null,     // the push goes only to this account's devices
-        text: text,
+      var ref = await dbRef.collection('ledger_pins').add({
+        ownerUid: authUser.uid,                       // the push goes only to this account's devices
+        text: text.slice(0, 500),
         note: note || '',
         linkedActionId: linkedActionId || null,
         linkedDate: linkedDate || null,
@@ -6656,19 +6724,27 @@
         status: 'pending',
         sentAt: null
       });
-      showPinToast('Pinned to your phone', false);
+      showPinToast('Sent to your devices', false);
+      // the sender marks the pin; if no device could take it, say where to fix that
+      var stop = ref.onSnapshot(function(doc){
+        var d = doc.data() || {};
+        if (d.status === 'pending') return;
+        stop();
+        if (d.status === 'failed' && /No registered device/.test(d.error || ''))
+          showPinToast('No device has notifications on yet \u2014 Settings \u2192 Notifications.', true);
+      }, function(){});
+      setTimeout(function(){ try { stop(); } catch(e){} }, 20000);
     } catch(e){
       console.error('pin now failed', e);
-      showPinToast('Couldn’t send that reminder — please try again.', true);
+      showPinToast('Couldn\u2019t send that reminder \u2014 please try again.', true);
     }
   }
 
   function openFreeformPinSheet(){
-    var blocked = pushBlockedReason();
     sheetEl.innerHTML =
       '<div class="sheet-handle"></div>' +
       '<div class="sheet-head"><div class="sheet-title">Pin reminder</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
-      (blocked ? '<p class="pin-explainer">' + blocked + '</p>' : '') +
+      '<p class="pin-explainer">Sent now to every device you\u2019ve turned notifications on for.</p>' +
       '<div class="field"><label>Reminder</label><input type="text" id="f_pinText" placeholder="e.g. Bring charger downstairs" autocomplete="off"></div>' +
       '<div class="field"><label>Note (optional)</label><input type="text" id="f_pinNote" placeholder="Anything extra" autocomplete="off"></div>' +
       '<button class="save-btn" id="pinNowFreeformBtn"><span class="pin-btn-icon">' + PIN_ICON_SVG + '</span>Pin now</button>';
@@ -7082,6 +7158,8 @@
   function toggleCommitmentQuickStatus(c){
     var next = c.status === 'completed' ? 'planned' : 'completed';
     if (next === 'completed') cleanupPinsForCompletedAction(c.id);
+    // done is no longer what is being done now
+    if (next === 'completed' && focusIsAction(c.id)) clearCurrentFocus();
     saveCommitment(Object.assign({}, c, { status: next }));
     if (next === 'completed') afterLinkedCompletion(c);
   }
@@ -7545,6 +7623,7 @@
     lsSet(TODAY_MODE_KEY, todayMode);
     renderTodayMode();
     renderMorningPrime();
+    renderNowCue();
   }
   function renderTodayMode(){
     var view = document.getElementById('view-log');
@@ -7570,7 +7649,23 @@
   // planned training. Actions keep one relative order across Ledger — the flow's action
   // slots are filled in actionOrder, so dragging in Overview's Order view and in Flow
   // agree, while training keeps the place it was given.
-  function flowKey(item){ return item.kind === 'action' ? 'a:' + item.c.id : 't:' + item.type; }
+  function flowKey(item){ return item.kind === 'action' ? 'a:' + item.c.id : item.kind === 'sprint' ? 's:' + item.s.id : 't:' + item.type; }
+  // Flow on screen: the day's flow, plus each Reset Sprint as one block at the time it ran —
+  // never its items. Sprints are not stored in the flow; they sit at their own time.
+  function sprintClock(s){ var d = new Date(s.startedAt); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function sprintFlowMin(s){ return s.state === 'active' ? (s.durationMinutes || Math.max(5, sprintElapsedMin(s))) : Math.max(1, sprintElapsedMin(s)); }
+  function flowItemsWithSprints(dateStr){
+    var items = dayFlowItems(dateStr);
+    var act = activeSprint();
+    var own = sprints.filter(function(s){ return s.date === dateStr || (s === act && dateStr === todayStr()); });
+    if (!own.length) return items;
+    return applyTimeOrder(items.concat(own.map(function(s){ return { kind: 'sprint', s: s }; })), function(it){
+      if (it.kind === 'sprint') return sprintClock(it.s);
+      if (it.kind === 'action') return actionTime(it.c);
+      var plan = getPlanForDate(dateStr);
+      return hhmm(((plan && plan.trainingDetails && plan.trainingDetails[it.type]) || {}).activityTime);
+    });
+  }
   function dayFlowItems(dateStr){
     var plan = getPlanForDate(dateStr);
     var acts = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
@@ -7602,6 +7697,7 @@
   }
   function flowItemDone(item, plan){
     if (item.kind === 'action') return item.c.status === 'completed';
+    if (item.kind === 'sprint') return item.s.state !== 'active';
     var det = plan && plan.trainingDetails && plan.trainingDetails[item.type];
     return !!(det && det.completed);
   }
@@ -7609,6 +7705,7 @@
   // so the day has one relative order of actions; moving training changes only the flow.
   function saveDayFlow(dateStr, keys){
     var plan = planBase(dateStr);
+    keys = keys.filter(function(k){ return k.charAt(0) !== 's'; });     // sprints sit at their own time
     var refs = keys.map(function(k){
       return k.charAt(0) === 'a' ? { kind: 'action', id: k.slice(2) } : { kind: 'training', type: k.slice(2) };
     });
@@ -7638,12 +7735,26 @@
     var dateStr = viewedDate;
     var isToday = dateStr === todayStr();
     var plan = getPlanForDate(dateStr);
-    var items = dayFlowItems(dateStr);
+    var items = flowItemsWithSprints(dateStr);
     var done = items.filter(function(it){ return flowItemDone(it, plan); }).length;
 
     function trainDet(type){ return (plan && plan.trainingDetails && plan.trainingDetails[type]) || {}; }
-    function itemTime(it){ return it.kind === 'action' ? actionTime(it.c) : hhmm(trainDet(it.type).activityTime); }
-    function itemDur(it){ return Number(it.kind === 'action' ? it.c.durationMin : trainDet(it.type).durationMin) || 0; }
+    function itemTime(it){
+      if (it.kind === 'sprint') return sprintClock(it.s);
+      return it.kind === 'action' ? actionTime(it.c) : hhmm(trainDet(it.type).activityTime);
+    }
+    function itemDur(it){
+      if (it.kind === 'sprint') return sprintFlowMin(it.s);
+      return Number(it.kind === 'action' ? it.c.durationMin : trainDet(it.type).durationMin) || 0;
+    }
+    // the Current Focus, marked where it sits in the day
+    function isFocus(it){
+      var f = focusActive();
+      if (!f || !focusTarget()) return false;
+      if (it.kind === 'action') return f.type === 'action' && f.sourceId === it.c.id;
+      if (it.kind === 'sprint') return f.type === 'sprint_item' && f.sourceId === it.s.id;
+      return false;
+    }
 
     // a row on the timeline: its time, its capsule on the line, what it is, and a tick.
     // A timed capsule grows with its duration; an untimed one is held and dragged.
@@ -7651,12 +7762,14 @@
       var key = flowKey(it);
       var isDone = flowItemDone(it, plan);
       var t = itemTime(it), dur = itemDur(it);
-      var color = it.kind === 'action' ? actionCapColor(it.c) : (TRAINING_COLOR[it.type] || 'var(--gold)');
-      var icon = it.kind === 'action' ? actionCapIcon(it.c) : TRAINING_ICON_SVG[it.type];
+      var color = it.kind === 'action' ? actionCapColor(it.c) : it.kind === 'sprint' ? 'var(--gold)' : (TRAINING_COLOR[it.type] || 'var(--gold)');
+      var icon = it.kind === 'action' ? actionCapIcon(it.c) : it.kind === 'sprint' ? UI_ICON.list : TRAINING_ICON_SVG[it.type];
       var h = t && dur ? Math.round(Math.min(112, Math.max(40, 40 + (dur - 15) * 0.8))) : 0;
       var cls = 'tl-row' + (isDone ? ' done' : '') + (t ? ' timed' : '') + (it.kind === 'training' ? ' training' : '') +
-        (it.kind === 'action' && it.c.isKeyTask ? ' key' : '');
-      var check = it.kind === 'action'
+        (it.kind === 'sprint' ? ' sprint' : '') + (it.kind === 'action' && it.c.isKeyTask ? ' key' : '') + (isFocus(it) ? ' is-focus' : '');
+      var check = it.kind === 'sprint'
+        ? '<button type="button" class="commitment-status-dot' + (isDone ? ' completed' : '') + '" data-flow-open="' + key + '" aria-label="Open the sprint"></button>'
+        : it.kind === 'action'
         ? '<button type="button" class="commitment-status-dot ' + it.c.status + '" data-flow-done="' + it.c.id + '"' +
             ' aria-label="' + (isDone ? 'Reopen' : 'Complete') + '"></button>'
         : '<button type="button" class="commitment-status-dot' + (isDone ? ' completed' : '') + '" data-flow-open="' + key + '"' +
@@ -7667,13 +7780,14 @@
         '<span class="tl-rail">' + capsuleHtml(color, icon, { done: isDone, h: h,
           attrs: ' data-flow-open="' + key + '" aria-hidden="true"' + (t ? '' : ' data-drag-handle data-drag-hold') }) + '</span>' +
         '<button type="button" class="tl-body" data-flow-open="' + key + '">' +
+          (isFocus(it) ? '<span class="tl-focus">Now</span>' : '') +
           '<span class="tl-when" data-flow-when="' + key + '"></span>' +
           '<span class="tl-title">' + (it.kind === 'action' && it.c.isKeyTask ? '<span class="flow-key" aria-label="Key task">' + STAR_SVG + '</span>' : '') +
             '<span data-flow-title="' + key + '"></span></span>' +
           '<span class="tl-meta" data-flow-meta="' + key + '"></span>' +
         '</button>' +
-        '<button type="button" class="tl-more" data-flow-more="' + key + '" aria-label="Move or open">' +
-          '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></button>' +
+        (it.kind === 'sprint' ? '' : '<button type="button" class="tl-more" data-flow-more="' + key + '" aria-label="Move or open">' +
+          '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></button>') +
         check +
       '</div>';
     }
@@ -7742,7 +7856,12 @@
       var w = wrap.querySelector('[data-flow-when="' + key + '"]');
       var tm = itemTime(it), dur = itemDur(it);
       w.textContent = tm ? timeRangeLabel(tm, dur) + (dur ? ' · ' + fmtDuration(dur) : '') : (dur ? fmtDuration(dur) : '');
-      if (it.kind === 'action'){
+      if (it.kind === 'sprint'){
+        var left = it.s.state === 'active' ? sprintLeftMin(it.s) : null;
+        t.textContent = 'Reset sprint';
+        m.textContent = sprintCleared(it.s) + ' of ' + sprintItems(it.s).length + ' cleared' + (left ? ' \u00b7 ' + left + ' min left' : '');
+        w.textContent = timeRangeLabel(tm, dur);
+      } else if (it.kind === 'action'){
         t.textContent = it.c.title;
         var bits = [categoryLabel(it.c.category)];
         if (it.c.status !== 'planned' && it.c.status !== 'completed') bits.push(COMMITMENT_STATUS_LABEL[it.c.status]);
@@ -7772,7 +7891,7 @@
     });
     var next = items.find(function(it){ return !flowItemDone(it, plan); });
     document.getElementById('flowCtxNext').textContent = next
-      ? (next.kind === 'action' ? next.c.title : (TYPE_LABEL[next.type] + ' · ' + flowTrainingMeta(next.type, plan)))
+      ? (next.kind === 'action' ? next.c.title : next.kind === 'sprint' ? 'Reset sprint' : (TYPE_LABEL[next.type] + ' · ' + flowTrainingMeta(next.type, plan)))
       : (items.length ? 'Everything in the flow is done.' : 'Nothing in the day yet.');
     var rbLines = ((plan && plan.roadblocks) || '').split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return !!l; })
       .concat(dayRoadblockActions(dateStr).map(function(c){ return c.title; }));
@@ -7795,6 +7914,8 @@
       if (key.charAt(0) === 'a'){
         var c = commitments.find(function(x){ return x.id === key.slice(2); });
         if (c) openCommitmentSheet(c);
+      } else if (key.charAt(0) === 's'){
+        openSprintSheet(key.slice(2));
       } else {
         openPlanTrainingLogSheet(key.slice(2), dateStr);   // logs against the plan, pre-filled
       }
@@ -7978,8 +8099,12 @@
       }
 
       if (isEditing){
+        // the one thing being done now: today's open Actions only
+        var canFocus = existing.status !== 'completed' && existing.category !== 'roadblock' && existing.date === todayStr();
         html += '<button class="save-btn" id="saveCommitBtn">Save</button>' +
-          '<button type="button" class="btn-secondary pin-action-btn" id="pinExistingBtn"><span class="pin-btn-icon">' + PIN_ICON_SVG + '</span>Pin to Lock Screen</button>' +
+          (canFocus ? '<button type="button" class="btn-secondary focus-set-btn' + (focusIsAction(existing.id) ? ' on' : '') + '" id="focusSetBtn">' +
+            (focusIsAction(existing.id) ? 'Current focus \u00b7 Clear' : 'Set as current focus') + '</button>' : '') +
+          '<button type="button" class="btn-secondary pin-action-btn" id="pinExistingBtn"><span class="pin-btn-icon">' + PIN_ICON_SVG + '</span>Pin now</button>' +
           '<button class="delete-btn" id="deleteCommitBtn">Delete</button>';
       } else {
         // Three lightweight outcomes for a freshly typed action, per the "Call dentist" example:
@@ -8092,6 +8217,12 @@
         });
         document.getElementById('pinExistingBtn').addEventListener('click', function(){
           pinNow(existing.title, '', existing.id, existing.date);
+        });
+        var focusBtn = document.getElementById('focusSetBtn');
+        if (focusBtn) focusBtn.addEventListener('click', function(){
+          var cur = commitments.find(function(x){ return x.id === existing.id; }) || existing;
+          closeSheet();
+          if (focusIsAction(cur.id)) clearCurrentFocus(); else setCurrentFocus(focusForAction(cur));
         });
       }
       document.getElementById('saveCommitBtn').addEventListener('click', function(){
@@ -11810,6 +11941,7 @@
     lockApp(); renderGate('splash');
     var me = authUser.uid;
     var timer = setTimeout(function(){ if (!pp.seen) renderGate('offline'); }, 10000);
+    touchThisDevice();
     dbRef.collection('ledger_share_members').where('partnerUid', '==', me).onSnapshot(function(snap){
       if (snap.metadata && snap.metadata.fromCache && snap.empty) return;   // not an answer yet
       pp.seen = true; clearTimeout(timer);
@@ -11944,7 +12076,7 @@
         '<div class="theme-switch" id="themeSwitch" aria-label="Theme">' +
           '<button type="button" data-theme-set="dark">Dark</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="system">System</button>' +
         '</div>' +
-        '<p class="pp-who"><span id="ppWho"></span> · <button type="button" class="btn-link" id="ppPassword">Password</button> · <button type="button" class="btn-link" id="ppSignOut">Sign out</button></p>' +
+        '<p class="pp-who"><span id="ppWho"></span> · <button type="button" class="btn-link" id="ppNotify">Notifications</button> · <button type="button" class="btn-link" id="ppPassword">Password</button> · <button type="button" class="btn-link" id="ppSignOut">Sign out</button></p>' +
       '</footer>' +
     '</div>' +
     '<div class="sheet-backdrop pp-backdrop" id="ppBackdrop"><div class="sheet" id="ppSheet" role="dialog" aria-modal="true"></div></div>';
@@ -11983,6 +12115,9 @@
     var add = document.getElementById('ppAddReq'); if (add) add.addEventListener('click', function(){ ppOpenRequest(null); });
     var all = document.getElementById('ppAllReq'); if (all) all.addEventListener('click', ppOpenAllRequests);
     document.getElementById('ppSignOut').addEventListener('click', function(){ if (confirm('Sign out of Ledger on this device?')) signOutLedger(); });
+    document.getElementById('ppNotify').addEventListener('click', function(){
+      wireNotificationsSheet(ppSheetOpen(notificationsSheetHtml()));
+    });
     document.getElementById('ppPassword').addEventListener('click', function(){
       var sh = ppSheetOpen('<div class="sheet-handle"></div>' + sheetHead('', 'Password', 'Sign in with your email and this password.', '') + passwordFormHtml());
       wirePasswordForm(sh, ppSheetClose);
@@ -14072,6 +14207,838 @@
     if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) hideUpdateBar();
   });
 
+  // ============ The execution layer: Reset Sprint and Current Focus ============
+  // A Reset Sprint clears cognitive clutter: a handful of small things ("put washing on",
+  // "shower") worked through in one short session. Its items are temporary execution aids,
+  // not commitments — they are never Actions, Key Tasks or Backlog unless Shaun turns one
+  // into an Action himself. Stored in ledger_sprints (owner-only):
+  //   { id, ownerUid, date, title, state: active | finished | stopped, startedAt, endedAt,
+  //     durationMinutes (null = no timer), timerDoneAt, items: [{ id, text, completed,
+  //     completedAt, outcome?: kept | action, actionId? }], currentItemId, createdAt, updatedAt }
+  // Items kept for another sprint wait in ledger_meta/sprintKept ({ items: [{ id, text, keptAt }] }).
+  //
+  // Current Focus is "the one thing I am doing now": one synced pointer, never another
+  // task record. ledger_meta/currentFocus = { ownerUid, type: action | sprint_item,
+  // sourceId, childId, title, date, setAt, updatedAt, sourceDeviceId, status: active |
+  // cleared }. The Action or the sprint stays the source of truth; every Owner device
+  // listens to the one document, and the push sender tells the other devices.
+  var sprints = [], sprintKept = [], currentFocus = null;
+  var execLoaded = { sprints: false, focus: false };
+  var SPRINT_DURATIONS = [10, 20, 30, null];
+  var DEVICE_ID_KEY = 'ledger_device_id';     // this installation of Ledger — a per-device id
+  var deviceIdCache = null;
+  function thisDeviceId(){
+    if (deviceIdCache) return deviceIdCache;
+    var v = lsGet(DEVICE_ID_KEY, '');
+    if (!/^[A-Za-z0-9]{8,40}$/.test(v)){
+      v = 'd' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+      lsSet(DEVICE_ID_KEY, v);
+    }
+    deviceIdCache = v;
+    return v;
+  }
+  function execNow(){ return new Date().toISOString(); }
+  function clipText(t, n){ t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; }
+
+  // ---- storage: Firestore when connected, this device's copy always (and only, locally) ----
+  function localSaveExec(){
+    try {
+      localStorage.setItem('ledger_sprints_fallback', JSON.stringify(sprints));
+      localStorage.setItem('ledger_sprint_kept_fallback', JSON.stringify(sprintKept));
+      localStorage.setItem('ledger_current_focus_fallback', JSON.stringify(currentFocus));
+    } catch(e){}
+  }
+  function localLoadExec(){
+    try {
+      sprints = JSON.parse(localStorage.getItem('ledger_sprints_fallback') || '[]') || [];
+      sprintKept = JSON.parse(localStorage.getItem('ledger_sprint_kept_fallback') || '[]') || [];
+      currentFocus = JSON.parse(localStorage.getItem('ledger_current_focus_fallback') || 'null');
+    } catch(e){}
+    execLoaded = { sprints: true, focus: true };
+  }
+  function startExecListeners(){
+    // recent sprints only: a sprint is a day's thing, and Today shows the last few
+    var since = fmtDate(new Date(Date.now() - 14 * 86400000));
+    dbRef.collection('ledger_sprints').where('date', '>=', since).onSnapshot(function(snap){
+      sprints = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
+      if (!snap.metadata || !snap.metadata.fromCache) execLoaded.sprints = true;
+      execChanged();
+      tryHandleDeepLink();
+    }, function(err){ console.error('sprints snapshot error', err); });
+    dbRef.collection('ledger_meta').doc('currentFocus').onSnapshot(function(doc){
+      currentFocus = doc.exists ? (doc.data() || null) : null;
+      if (!doc.metadata || !doc.metadata.fromCache) execLoaded.focus = true;
+      execChanged();
+    }, function(err){ console.error('current focus snapshot error', err); });
+    dbRef.collection('ledger_meta').doc('sprintKept').onSnapshot(function(doc){
+      sprintKept = (doc.exists && Array.isArray((doc.data() || {}).items)) ? doc.data().items : [];
+      localSaveExec();
+    }, function(err){ console.error('kept sprint items snapshot error', err); });
+  }
+  function execChanged(){
+    localSaveExec();
+    renderLogView();
+    if (todayMode === 'flow') renderFlow();
+    scheduleFocusReconcile();
+  }
+  function saveSprint(s){
+    s.updatedAt = execNow();
+    var i = sprints.findIndex(function(x){ return x.id === s.id; });
+    if (i > -1) sprints[i] = s; else sprints.push(s);
+    localSaveExec();
+    if (dbReady && dbRef){
+      var copy = Object.assign({}, s); delete copy.id;
+      return dbRef.collection('ledger_sprints').doc(s.id).set(copy).catch(function(e){ console.error('sprint save failed', e); });
+    }
+    return Promise.resolve();
+  }
+  function saveKept(items){
+    sprintKept = items;
+    localSaveExec();
+    if (dbReady && dbRef) dbRef.collection('ledger_meta').doc('sprintKept').set({ items: items, updatedAt: execNow() })
+      .catch(function(e){ console.error('kept items save failed', e); });
+  }
+
+  // ---- the sprint model ----
+  function activeSprint(){
+    var act = sprints.filter(function(s){ return s.state === 'active'; });
+    act.sort(function(a, b){ return (a.startedAt || '') < (b.startedAt || '') ? 1 : -1; });
+    return act[0] || null;
+  }
+  function sprintById(id){ return sprints.find(function(s){ return s.id === id; }) || null; }
+  function sprintItems(s){ return (s && Array.isArray(s.items)) ? s.items : []; }
+  function sprintOpenItems(s){ return sprintItems(s).filter(function(it){ return !it.completed && !it.outcome; }); }
+  function sprintNext(s){ return sprintOpenItems(s)[0] || null; }
+  function sprintCleared(s){ return sprintItems(s).filter(function(it){ return it.completed; }).length; }
+  function sprintElapsedMin(s){
+    var end = s.endedAt ? new Date(s.endedAt) : new Date();
+    return Math.max(0, Math.round((end - new Date(s.startedAt)) / 60000));
+  }
+  function sprintLeftMin(s){
+    if (!s.durationMinutes) return null;
+    return Math.max(0, Math.ceil((new Date(s.startedAt).getTime() + s.durationMinutes * 60000 - Date.now()) / 60000));
+  }
+  function sprintTimeUp(s){ return !!s.durationMinutes && s.state === 'active' && sprintLeftMin(s) === 0; }
+  function sprintsDoneOn(dateStr){
+    return sprints.filter(function(s){ return s.date === dateStr && s.state !== 'active'; })
+      .sort(function(a, b){ return (a.startedAt || '') < (b.startedAt || '') ? -1 : 1; });
+  }
+  function sprintLines(text){
+    return String(text || '').split('\n').map(function(l){ return l.replace(/^\s*(?:[-*•○✓]|\d+[.)])\s*/, '').trim(); })
+      .filter(function(l){ return !!l; }).map(function(l){ return l.slice(0, 200); }).slice(0, 30);
+  }
+  function startSprint(lines, duration, focusFirst){
+    var now = execNow();
+    var s = {
+      id: uid(), ownerUid: authUser ? authUser.uid : null, date: todayStr(), title: 'Reset sprint',
+      state: 'active', startedAt: now, endedAt: null, durationMinutes: duration || null, timerDoneAt: null,
+      items: lines.map(function(t){ return { id: uid(), text: t, completed: false, completedAt: null }; }),
+      currentItemId: null, createdAt: now, updatedAt: now
+    };
+    s.currentItemId = s.items.length ? s.items[0].id : null;
+    sprints.push(s);
+    saveSprint(s);
+    if (sprintKept.length) saveKept([]);      // whatever was kept came back in through the text
+    if (focusFirst && s.items.length) setCurrentFocus(focusForSprintItem(s, s.items[0]));
+    else execChanged();
+    return s;
+  }
+  // Tapping an item: done, or undone. If the item was the current focus, focus moves on to
+  // the next item in the same write, so no device ever sees a focus pointing at done work.
+  function toggleSprintItem(s, itemId){
+    var it = sprintItems(s).find(function(x){ return x.id === itemId; });
+    if (!it || s.state !== 'active') return;
+    var items = sprintItems(s).map(function(x){
+      return x.id === itemId ? Object.assign({}, x, { completed: !x.completed, completedAt: x.completed ? null : execNow() }) : x;
+    });
+    var next = Object.assign({}, s, { items: items });
+    var nx = sprintNext(next);
+    next.currentItemId = nx ? nx.id : null;
+    var focusWas = focusIsSprintItem(s.id, itemId) && !it.completed;
+    var newFocus = focusWas ? (nx ? focusDoc(focusForSprintItem(next, nx)) : clearedFocusDoc()) : null;
+    commitExec(next, newFocus);
+  }
+  // one write for the sprint and, when it moves, the focus with it
+  function commitExec(sprint, focusDocOrNull){
+    sprint.updatedAt = execNow();
+    var i = sprints.findIndex(function(x){ return x.id === sprint.id; });
+    if (i > -1) sprints[i] = sprint; else sprints.push(sprint);
+    if (focusDocOrNull) currentFocus = focusDocOrNull;
+    localSaveExec();
+    execChanged();
+    if (dbReady && dbRef){
+      var b = dbRef.batch(), copy = Object.assign({}, sprint); delete copy.id;
+      b.set(dbRef.collection('ledger_sprints').doc(sprint.id), copy);
+      if (focusDocOrNull) b.set(dbRef.collection('ledger_meta').doc('currentFocus'), focusDocOrNull);
+      b.commit().catch(function(e){ console.error('sprint save failed', e); });
+    }
+  }
+  function addSprintItems(s, lines){
+    if (!lines.length) return;
+    var next = Object.assign({}, s, { items: sprintItems(s).concat(lines.map(function(t){ return { id: uid(), text: t, completed: false, completedAt: null }; })) });
+    if (!next.currentItemId){ var nx = sprintNext(next); next.currentItemId = nx ? nx.id : null; }
+    commitExec(next, null);
+  }
+  // outcomes: { itemId: 'keep' | 'action' | 'drop' } for each item still open
+  function endSprint(s, outcomes){
+    var kept = sprintKept.slice(), now = execNow(), made = 0;
+    var items = [];
+    sprintItems(s).forEach(function(it){
+      if (it.completed || it.outcome){ items.push(it); return; }
+      var o = (outcomes && outcomes[it.id]) || 'keep';
+      if (o === 'drop') return;                                  // discarded: it goes nowhere
+      if (o === 'action'){
+        var a = createQuickAction(todayStr(), it.text, { sourceType: 'reset_sprint', sourceSprintId: s.id });
+        made++;
+        items.push(Object.assign({}, it, { outcome: 'action', actionId: a.id }));
+        return;
+      }
+      kept.push({ id: it.id, text: it.text, keptAt: now });
+      items.push(Object.assign({}, it, { outcome: 'kept' }));
+    });
+    var allDone = sprintItems(s).every(function(it){ return it.completed; });
+    var next = Object.assign({}, s, { items: items, state: allDone ? 'finished' : 'stopped', endedAt: now, currentItemId: null });
+    var focusHere = currentFocus && currentFocus.status === 'active' && currentFocus.type === 'sprint_item' && currentFocus.sourceId === s.id;
+    var c = sprintCleared(next), keptN = kept.length - sprintKept.length;
+    commitExec(next, focusHere ? clearedFocusDoc() : null);
+    if (keptN) saveKept(kept);
+    var bits = [c ? c + ' cleared' : '', made ? made + ' made an Action' : '', keptN > 0 ? keptN + ' kept for later' : ''].filter(Boolean);
+    showPinToast(bits.length ? 'Reset sprint · ' + bits.join(' · ') : 'Reset sprint ended', false, CHECK_SVG);
+  }
+  function ackSprintTimer(s){ commitExec(Object.assign({}, s, { timerDoneAt: execNow() }), null); }
+
+  // ---- Current Focus ----
+  function focusForSprintItem(s, it){ return { type: 'sprint_item', sourceId: s.id, childId: it.id, title: it.text }; }
+  function focusForAction(c){ return { type: 'action', sourceId: c.id, childId: null, title: c.title }; }
+  function focusDoc(t){
+    var now = execNow();
+    return { ownerUid: authUser ? authUser.uid : 'local', type: t.type, sourceId: t.sourceId, childId: t.childId || null,
+      title: clipText(t.title, 300), date: todayStr(), setAt: now, updatedAt: now, sourceDeviceId: thisDeviceId(), status: 'active' };
+  }
+  function clearedFocusDoc(){
+    var now = execNow();
+    return { ownerUid: authUser ? authUser.uid : 'local', status: 'cleared', clearedAt: now, updatedAt: now, sourceDeviceId: thisDeviceId() };
+  }
+  function writeFocus(doc){
+    currentFocus = doc;
+    localSaveExec();
+    execChanged();
+    if (dbReady && dbRef){
+      // Firestore holds the truth; the other devices follow it live, and the push is only
+      // the sender's best effort on top — a failed push never undoes a focus
+      dbRef.collection('ledger_meta').doc('currentFocus').set(doc).catch(function(e){ console.error('current focus save failed', e); });
+    }
+  }
+  function setCurrentFocus(t){ writeFocus(focusDoc(t)); }
+  function clearCurrentFocus(){ if (currentFocus && currentFocus.status === 'active') writeFocus(clearedFocusDoc()); }
+  function focusActive(){ return currentFocus && currentFocus.status === 'active' ? currentFocus : null; }
+  function focusIsAction(id){ var f = focusActive(); return !!(f && f.type === 'action' && f.sourceId === id); }
+  function focusIsSprintItem(sid, itemId){ var f = focusActive(); return !!(f && f.type === 'sprint_item' && f.sourceId === sid && f.childId === itemId); }
+  // What the focus points at, if it still can be the thing being done now
+  function focusTarget(f){
+    f = f || focusActive();
+    if (!f) return null;
+    if (f.type === 'action'){
+      var c = commitments.find(function(x){ return x.id === f.sourceId; });
+      if (!c || c.status === 'completed' || c.category === 'roadblock') return null;
+      if (c.date !== todayStr() && c.date !== f.date) return null;      // moved to another day
+      return { kind: 'action', c: c };
+    }
+    if (f.type === 'sprint_item'){
+      var s = sprintById(f.sourceId);
+      var it = s && sprintItems(s).find(function(x){ return x.id === f.childId; });
+      if (!s || s.state !== 'active' || !it || it.completed) return null;
+      return { kind: 'sprint_item', s: s, it: it };
+    }
+    return null;
+  }
+  // Never leave a dead reference: once everything has loaded, a focus whose Action was
+  // completed, deleted or moved — or whose sprint item is done — is moved on (the same
+  // sprint's next item) or cleared. A transaction re-checks the stored focus, so when
+  // several devices notice at once only one of them changes it.
+  var focusReconcileTimer = null;
+  function scheduleFocusReconcile(){
+    if (focusReconcileTimer) clearTimeout(focusReconcileTimer);
+    focusReconcileTimer = setTimeout(reconcileFocus, 1200);
+  }
+  function reconcileFocus(){
+    focusReconcileTimer = null;
+    var f = focusActive();
+    if (!f || focusTarget(f)) return;
+    if (!execLoaded.focus || !execLoaded.sprints || !czLoaded.commitments) return;
+    var s = f.type === 'sprint_item' ? sprintById(f.sourceId) : null;
+    var nx = s && s.state === 'active' ? sprintNext(s) : null;
+    var replacement = nx ? focusDoc(focusForSprintItem(s, nx)) : clearedFocusDoc();
+    if (!dbReady || !dbRef){ writeFocus(replacement); return; }
+    var ref = dbRef.collection('ledger_meta').doc('currentFocus');
+    dbRef.runTransaction(function(tx){
+      return tx.get(ref).then(function(doc){
+        var cur = doc.exists ? doc.data() : null;
+        if (!cur || cur.status !== 'active' || cur.setAt !== f.setAt) return;   // someone already moved it
+        if (focusTarget(cur)) return;
+        tx.set(ref, replacement);
+      });
+    }).catch(function(e){ console.warn('focus reconcile skipped', e && e.code); });
+  }
+  // "Done" on the focus: an Action goes through the one completion path every Action uses;
+  // a sprint item is ticked in its sprint, which moves the focus on.
+  function completeFocus(){
+    var t = focusTarget();
+    if (!t){ clearCurrentFocus(); return; }
+    if (t.kind === 'action') toggleCommitmentQuickStatus(t.c);   // clears the focus with it
+    else toggleSprintItem(t.s, t.it.id);
+  }
+  function openFocusTarget(){
+    var t = focusTarget();
+    if (!t) return;
+    if (t.kind === 'action') openCommitmentSheet(t.c);
+    else openSprintSheet(t.s.id);
+  }
+  function focusMeta(t){
+    if (t.kind === 'sprint_item'){
+      var left = sprintLeftMin(t.s), open = sprintOpenItems(t.s).length;
+      return 'Reset sprint · ' + (left != null && left > 0 ? left + ' min left' : open + ' remaining');
+    }
+    var bits = [categoryLabel(t.c.category)];
+    if (t.c.isKeyTask) bits.push('Key task');
+    var tm = actionTime(t.c);
+    if (tm) bits.push(timeRangeLabel(tm, t.c.durationMin));
+    return bits.filter(Boolean).join(' · ');
+  }
+
+  // ---- Today: the NOW cue — one restrained line close to the day's controls ----
+  function renderNowCue(){
+    var el = document.getElementById('nowCue');
+    if (!el) return;
+    var t = viewedDate === todayStr() ? focusTarget() : null;
+    // in Overview a sprint item already shows as the running sprint's "Now", just below
+    if (t && t.kind === 'sprint_item' && todayMode === 'overview') t = null;
+    if (!t){ el.innerHTML = ''; return; }
+    el.innerHTML = '<div class="now-cue">' +
+      '<button type="button" class="now-main" id="nowOpen">' +
+        '<span class="now-k">Now</span>' +
+        '<span class="now-title" id="nowTitle"></span>' +
+        '<span class="now-meta" id="nowMeta"></span>' +
+      '</button>' +
+      '<button type="button" class="now-change" id="nowChange">Change</button>' +
+      '<button type="button" class="commitment-status-dot now-done" id="nowDone" aria-label="Done"></button>' +
+    '</div>';
+    document.getElementById('nowTitle').textContent = t.kind === 'action' ? t.c.title : t.it.text;   // user text
+    document.getElementById('nowMeta').textContent = focusMeta(t);
+    document.getElementById('nowOpen').addEventListener('click', openFocusTarget);
+    document.getElementById('nowChange').addEventListener('click', openFocusPicker);
+    document.getElementById('nowDone').addEventListener('click', function(){
+      this.classList.add('completed');                 // immediate, before the record confirms
+      completeFocus();
+    });
+  }
+  // Change: one list of what could be the focus now — the sprint's open items, then the
+  // day's open Actions (key tasks first). Choosing one replaces the focus; there is no queue.
+  function openFocusPicker(){
+    editingId = null;
+    activeSheetRefresh = null;
+    var s = activeSprint();
+    var sItems = s ? sprintOpenItems(s) : [];
+    var today = todayStr();
+    var acts = sortByOrderHint(commitments.filter(function(c){
+      return c.date === today && c.status !== 'completed' && c.category !== 'roadblock';
+    }), dayActionOrder(today));
+    acts.sort(function(a, b){ return (b.isKeyTask ? 1 : 0) - (a.isKeyTask ? 1 : 0); });
+    var rows = [];
+    sItems.forEach(function(it){ rows.push({ t: focusForSprintItem(s, it), sub: 'Reset sprint', on: focusIsSprintItem(s.id, it.id) }); });
+    acts.forEach(function(c){ rows.push({ t: focusForAction(c), sub: [categoryLabel(c.category), c.isKeyTask ? 'Key task' : ''].filter(Boolean).join(' · '), on: focusIsAction(c.id) }); });
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead('', 'Current focus', 'The one thing you are doing now.', '') +
+      (rows.length
+        ? '<div class="fp-list">' + rows.map(function(r, i){
+            return '<button type="button" class="fp-row' + (r.on ? ' on' : '') + '" data-fp="' + i + '"><span class="fp-title"></span><span class="fp-sub"></span>' +
+              (r.on ? '<span class="fp-now">Now</span>' : '') + '</button>';
+          }).join('') + '</div>'
+        : '<p class="fp-empty">Nothing open today.</p>') +
+      (focusActive() ? '<button type="button" class="btn-quiet" id="fpClear">Clear focus</button>' : '');
+    rows.forEach(function(r, i){
+      var b = sheetEl.querySelector('[data-fp="' + i + '"]');
+      b.querySelector('.fp-title').textContent = r.t.title;    // user text
+      b.querySelector('.fp-sub').textContent = r.sub;
+      b.addEventListener('click', function(){ closeSheet(); if (!r.on) setCurrentFocus(r.t); });
+    });
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    var clr = document.getElementById('fpClear');
+    if (clr) clr.addEventListener('click', function(){ closeSheet(); clearCurrentFocus(); });
+  }
+
+  // ---- Today: the sprint ----
+  // No sprint running: one quiet entry beside the Overview / Flow switch. Running: the
+  // sprint leads the working day — next item, the list, time left — and nothing else.
+  // Finished: one quiet history line under the Actions.
+  function renderSprintEntry(){
+    var b = document.getElementById('sprintEntry');
+    if (!b) return;
+    b.hidden = viewedDate !== todayStr() || !!activeSprint();
+  }
+  function sprintPanelHtml(s, inSheet){
+    var nx = sprintNext(s), open = sprintOpenItems(s).length, left = sprintLeftMin(s), timeUp = sprintTimeUp(s);
+    var kicker = 'Reset sprint' + (left != null && left > 0 ? ' · ' + left + ' min left' : '');
+    var nxFocus = nx && focusIsSprintItem(s.id, nx.id);
+    return '<div class="sp-panel' + (inSheet ? ' in-sheet' : '') + '" data-sprint="1">' +
+      '<div class="sp-head"><span class="sp-k">' + kicker + '</span>' +
+        (open ? '<button type="button" class="sp-wrap" data-sp-wrap>Wrap up</button>' : '') + '</div>' +
+      (timeUp && !s.timerDoneAt && open
+        ? '<div class="sp-timeup"><p class="sp-timeup-text">' + s.durationMinutes + ' minutes done · ' + open + ' thing' + (open === 1 ? '' : 's') + ' left</p>' +
+            '<div class="sp-timeup-btns"><button type="button" class="bk-btn" data-sp-keep>Keep going</button>' +
+            '<button type="button" class="bk-btn gold" data-sp-wrap>Wrap up</button></div></div>'
+        : '') +
+      (nx
+        ? '<div class="sp-next"><span class="sp-next-k">Next</span><span class="sp-next-title" data-sp-next></span>' +
+            (nxFocus ? '<span class="sp-now">Now</span>'
+                     : (s.state === 'active' ? '<button type="button" class="sp-focus" data-sp-focus>Make it my focus</button>' : '')) + '</div>'
+        : '<div class="sp-next all"><span class="sp-next-title">All clear</span>' +
+            '<button type="button" class="btn-primary sp-finish" data-sp-finish>Finish sprint</button></div>') +
+      '<div class="sp-list">' + sprintItems(s).map(function(it, i){
+        return '<button type="button" class="sp-item' + (it.completed ? ' done' : '') + (nx && it.id === nx.id ? ' next' : '') + '" data-sp-item="' + i + '" aria-pressed="' + (it.completed ? 'true' : 'false') + '">' +
+          '<span class="sp-tick" aria-hidden="true">' + CHECK_SVG + '</span><span class="sp-text"></span></button>';
+      }).join('') + '</div>' +
+      '<div class="sp-foot">' +
+        '<button type="button" class="sp-add" data-sp-add>' + BK_PLUS_SVG + 'Add</button>' +
+        '<span class="sp-left">' + (open ? open + ' remaining' : sprintCleared(s) + ' cleared') + '</span>' +
+      '</div>' +
+      '<div class="sp-addrow" hidden><input type="text" class="sp-addinput" placeholder="Another thing…" enterkeyhint="enter" maxlength="200" aria-label="Add to the sprint"></div>' +
+    '</div>';
+  }
+  function wireSprintPanel(root, s){
+    var items = sprintItems(s), nx = sprintNext(s);
+    root.querySelectorAll('[data-sp-item]').forEach(function(b){
+      var it = items[Number(b.dataset.spItem)];
+      b.querySelector('.sp-text').textContent = it.text;            // user text
+      b.addEventListener('click', function(){
+        b.classList.toggle('done');                                   // at once; the record follows
+        toggleSprintItem(sprintById(s.id) || s, it.id);
+      });
+    });
+    var nt = root.querySelector('[data-sp-next]');
+    if (nt && nx) nt.textContent = nx.text;
+    root.querySelectorAll('[data-sp-wrap]').forEach(function(b){ b.addEventListener('click', function(){ openSprintWrapUp(sprintById(s.id) || s); }); });
+    var keep = root.querySelector('[data-sp-keep]');
+    if (keep) keep.addEventListener('click', function(){ ackSprintTimer(sprintById(s.id) || s); });
+    var fin = root.querySelector('[data-sp-finish]');
+    if (fin) fin.addEventListener('click', function(){ closeSheet(); endSprint(sprintById(s.id) || s, {}); });
+    var fb = root.querySelector('[data-sp-focus]');
+    if (fb && nx) fb.addEventListener('click', function(){ setCurrentFocus(focusForSprintItem(s, nx)); });
+    var addBtn = root.querySelector('[data-sp-add]'), addRow = root.querySelector('.sp-addrow'), addIn = root.querySelector('.sp-addinput');
+    addBtn.addEventListener('click', function(){ addRow.hidden = false; addIn.focus(); });
+    addIn.addEventListener('keydown', function(e){
+      if (e.key === 'Enter'){ e.preventDefault(); var l = sprintLines(addIn.value); addIn.value = ''; addSprintItems(sprintById(s.id) || s, l); }
+      else if (e.key === 'Escape'){ addRow.hidden = true; }
+    });
+    addIn.addEventListener('paste', function(e){
+      var text = (e.clipboardData && e.clipboardData.getData('text')) || '';
+      if (text.indexOf('\n') === -1) return;
+      e.preventDefault();
+      addSprintItems(sprintById(s.id) || s, sprintLines(text));
+    });
+  }
+  function renderSprintSection(){
+    var el = document.getElementById('sprintSection');
+    if (!el) return;
+    var s = viewedDate === todayStr() ? activeSprint() : null;
+    // never rebuild under someone typing an extra item
+    if (s && el.contains(document.activeElement) && document.activeElement.classList.contains('sp-addinput')) return;
+    if (!s){ el.innerHTML = ''; return; }
+    el.innerHTML = sprintPanelHtml(s, false);
+    wireSprintPanel(el, s);
+  }
+  function renderSprintHistory(){
+    var el = document.getElementById('sprintHistory');
+    if (!el) return;
+    var done = sprintsDoneOn(viewedDate);
+    el.innerHTML = done.map(function(s, i){
+      return '<button type="button" class="sp-hist" data-sp-hist="' + i + '">' +
+        '<span class="sp-hist-tick" aria-hidden="true">' + CHECK_SVG + '</span>' +
+        '<span>Reset sprint · ' + sprintCleared(s) + ' cleared · ' + fmtDuration(Math.max(1, sprintElapsedMin(s))) + '</span></button>';
+    }).join('');
+    el.querySelectorAll('[data-sp-hist]').forEach(function(b){
+      b.addEventListener('click', function(){ openSprintSheet(done[Number(b.dataset.spHist)].id); });
+    });
+  }
+  // The sprint on its own: live while running (from Flow, a notification, the focus), and a
+  // read-only record once it is over.
+  function openSprintSheet(id){
+    editingId = null;
+    function render(){
+      var s = sprintById(id);
+      if (!s){ closeSheet(); return; }
+      if (s.state === 'active'){
+        if (sheetEl.contains(document.activeElement) && document.activeElement.classList.contains('sp-addinput')) return;
+        sheetEl.innerHTML = '<div class="sheet-handle"></div>' + sheetHead('', 'Reset sprint', 'Clear your head.', '') + sprintPanelHtml(s, true);
+        wireSprintPanel(sheetEl, s);
+      } else {
+        var cleared = sprintItems(s).filter(function(it){ return it.completed; });
+        var kept = sprintItems(s).filter(function(it){ return it.outcome === 'kept'; }).length;
+        var made = sprintItems(s).filter(function(it){ return it.outcome === 'action'; }).length;
+        sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+          sheetHead('', 'Reset sprint', cleared.length + ' cleared · ' + fmtDuration(Math.max(1, sprintElapsedMin(s))), '') +
+          '<div class="sp-list readonly">' + cleared.map(function(it, i){
+            return '<div class="sp-item done" data-sp-ro="' + i + '"><span class="sp-tick" aria-hidden="true">' + CHECK_SVG + '</span><span class="sp-text"></span></div>';
+          }).join('') + '</div>' +
+          (kept || made ? '<p class="sp-ro-note">' + [kept ? kept + ' kept for another sprint' : '', made ? made + ' made an Action' : ''].filter(Boolean).join(' · ') + '</p>' : '');
+        cleared.forEach(function(it, i){ sheetEl.querySelector('[data-sp-ro="' + i + '"] .sp-text').textContent = it.text; });
+      }
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    }
+    render();
+    backdrop.classList.add('open');
+    activeSheetRefresh = render;
+  }
+  // Start: one field, a line per thing, a duration. Nothing else is asked.
+  function openSprintStartSheet(){
+    var running = activeSprint();
+    if (running){ openSprintSheet(running.id); return; }
+    editingId = null;
+    activeSheetRefresh = null;
+    var duration = 20;
+    var other = focusTarget();                 // an unrelated focus is only replaced on purpose
+    var focusFirst = !other;
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead('', 'Reset sprint', 'Clear your head.', '') +
+      '<div class="field"><label for="spLines">One thing per line</label>' +
+        '<textarea id="spLines" rows="6" placeholder="Put washing on&#10;Shower&#10;Tidy desk&#10;Eat lunch&#10;Season chicken"></textarea></div>' +
+      '<p class="sp-start-note" id="spCount"></p>' +
+      '<div class="field"><label>Time</label><div class="bk-filter-pop sp-durs" role="radiogroup">' +
+        SPRINT_DURATIONS.map(function(d){
+          return '<button type="button" class="bk-filter-chip' + (d === duration ? ' sel' : '') + '" role="radio" aria-checked="' + (d === duration) + '" data-sp-dur="' + (d || 0) + '">' + (d ? d + ' min' : 'No timer') + '</button>';
+        }).join('') + '</div></div>' +
+      '<button type="button" class="cz-opt' + (focusFirst ? ' on' : '') + '" id="spFocusOpt" role="switch" aria-checked="' + focusFirst + '">' +
+        '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+        '<span class="cz-opt-text"><span class="cz-opt-title">Make the first one my current focus</span>' +
+        '<span class="cz-opt-sub" id="spFocusSub"></span></span></button>' +
+      '<button type="button" class="btn-primary" id="spStart" disabled>Start sprint</button>';
+    var ta = document.getElementById('spLines'), count = document.getElementById('spCount'), start = document.getElementById('spStart');
+    if (sprintKept.length) ta.value = sprintKept.map(function(k){ return k.text; }).join('\n');     // as text, never markup
+    document.getElementById('spFocusSub').textContent = other
+      ? 'Replaces “' + clipText(other.kind === 'action' ? other.c.title : other.it.text, 50) + '”.'
+      : 'It moves on to the next one as you clear them.';
+    function refresh(){
+      var n = sprintLines(ta.value).length;
+      count.textContent = n ? n + ' thing' + (n === 1 ? '' : 's') + (sprintKept.length ? ' · including what you kept last time' : '') : '';
+      start.disabled = !n;
+    }
+    ta.addEventListener('input', refresh);
+    refresh();
+    sheetEl.querySelectorAll('[data-sp-dur]').forEach(function(b){
+      b.addEventListener('click', function(){
+        duration = Number(b.dataset.spDur) || null;
+        sheetEl.querySelectorAll('[data-sp-dur]').forEach(function(x){ x.classList.toggle('sel', x === b); x.setAttribute('aria-checked', x === b ? 'true' : 'false'); });
+      });
+    });
+    var opt = document.getElementById('spFocusOpt');
+    opt.addEventListener('click', function(){
+      focusFirst = !focusFirst;
+      opt.classList.toggle('on', focusFirst); opt.setAttribute('aria-checked', focusFirst ? 'true' : 'false');
+    });
+    start.addEventListener('click', function(){
+      var lines = sprintLines(ta.value);
+      if (!lines.length) return;
+      closeSheet();
+      startSprint(lines, duration, focusFirst);
+      if (todayMode === 'overview'){
+        var sec = document.getElementById('sprintSection');
+        if (sec && sec.scrollIntoView) sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    setTimeout(function(){ try { ta.focus(); } catch(e){} }, 60);
+  }
+  // Wrapping up with things left: each one is kept for another sprint, made an Action, or
+  // dropped. Nothing goes to the Backlog — sprint items were never commitments.
+  function openSprintWrapUp(s){
+    var open = sprintOpenItems(s);
+    if (!open.length){ closeSheet(); endSprint(s, {}); return; }
+    editingId = null;
+    activeSheetRefresh = null;
+    var choice = {};
+    open.forEach(function(it){ choice[it.id] = 'keep'; });
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead('', 'Wrap up', sprintCleared(s) + ' cleared · ' + open.length + ' left', '') +
+      '<div class="sp-wu">' + open.map(function(it, i){
+        return '<div class="sp-wu-row" data-wu="' + i + '"><p class="sp-wu-text"></p>' +
+          '<div class="theme-switch sp-wu-switch" role="radiogroup">' +
+            [['keep', 'Keep'], ['action', 'Make Action'], ['drop', 'Drop']].map(function(o){
+              return '<button type="button" role="radio" data-wu-o="' + o[0] + '">' + o[1] + '</button>';
+            }).join('') + '</div></div>';
+      }).join('') + '</div>' +
+      '<p class="sp-start-note">Keep holds it for another sprint — it comes back the next time you start one. Nothing goes to the Backlog.</p>' +
+      '<button type="button" class="btn-primary" id="spWuDone">Finish sprint</button>';
+    open.forEach(function(it, i){
+      var row = sheetEl.querySelector('[data-wu="' + i + '"]');
+      row.querySelector('.sp-wu-text').textContent = it.text;       // user text
+      function paint(){
+        row.querySelectorAll('[data-wu-o]').forEach(function(b){
+          var on = b.dataset.wuO === choice[it.id];
+          b.classList.toggle('sel', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+        });
+      }
+      row.querySelectorAll('[data-wu-o]').forEach(function(b){ b.addEventListener('click', function(){ choice[it.id] = b.dataset.wuO; paint(); }); });
+      paint();
+    });
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('spWuDone').addEventListener('click', function(){
+      closeSheet();
+      endSprint(sprintById(s.id) || s, choice);
+    });
+  }
+  document.getElementById('sprintEntry').addEventListener('click', openSprintStartSheet);
+  // a quiet clock: time left on the sprint and the focus line, once a minute or so
+  setInterval(function(){
+    var s = activeSprint();
+    if (s && s.durationMinutes && currentView === 'log' && viewedDate === todayStr()){
+      renderSprintSection();
+      renderNowCue();
+      if (todayMode === 'flow') renderFlow();
+    }
+  }, 30000);
+
+  // ============ Notifications: this device, for the signed-in user ============
+  // A device subscription belongs to the Firebase user who turned notifications on, on
+  // that device: ledger_push_subscriptions/{uid}_{hash of the endpoint} = { userUid,
+  // endpoint, keys, deviceId, deviceLabel, platform, vapidPublicKey, createdAt,
+  // updatedAt, lastSeenAt }. Shaun's devices are Shaun's, Abi's are Abi's; each sees only
+  // their own. The Cloud Function finds a user's devices server-side and decides who hears
+  // what from trusted records. Permission is only ever asked for after a tap.
+  // The VAPID *public* key comes from ledger_config/push (set in the Console with the
+  // deployment), so a new key pair never needs a new build. The private key is never here.
+  var pushConfigCache = null;
+  function pushPublicKey(){
+    if (pushConfigCache) return Promise.resolve(pushConfigCache);
+    if (!dbRef) return Promise.resolve(null);
+    return dbRef.collection('ledger_config').doc('push').get().then(function(doc){
+      var k = doc.exists ? (doc.data() || {}).vapidPublicKey : null;
+      pushConfigCache = typeof k === 'string' && /^[A-Za-z0-9_-]{40,200}$/.test(k) ? k : null;
+      return pushConfigCache;
+    }).catch(function(){ return null; });
+  }
+  function pushSubId(endpoint){ return authUser.uid + '_' + hashCode(endpoint); }
+  function deviceKind(){
+    var ua = navigator.userAgent || '';
+    if (/iPad/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return { label: 'iPad', platform: 'ipados' };
+    if (/iPhone|iPod/.test(ua)) return { label: 'iPhone', platform: 'ios' };
+    if (/SamsungBrowser|SM-[A-Z0-9]+/.test(ua)) return { label: 'Samsung', platform: 'android' };
+    if (/Android/.test(ua)) return { label: 'Android', platform: 'android' };
+    if (/Macintosh|Mac OS X/.test(ua)) return { label: 'Mac', platform: 'macos' };
+    if (/Windows/.test(ua)) return { label: 'Windows', platform: 'windows' };
+    return { label: 'This device', platform: 'other' };
+  }
+  function deviceLabel(){
+    var name = (authProfile && authProfile.displayName) || (authUser && authUser.email ? authUser.email.split('@')[0] : '');
+    name = String(name || '').split(' ')[0].slice(0, 30);
+    return (name ? name + ' · ' : '') + deviceKind().label;
+  }
+  function pushKeyOf(sub){
+    try {
+      var k = sub && sub.options && sub.options.applicationServerKey;
+      if (!k) return null;
+      var b = new Uint8Array(k), s = '';
+      for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+      return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    } catch(e){ return null; }
+  }
+  function swReady(){
+    return Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('service worker not ready')); }, 8000); })
+    ]);
+  }
+  function subscriptionRecord(sub, key, prev){
+    var json = sub.toJSON(), now = new Date().toISOString(), kind = deviceKind();
+    return {
+      userUid: authUser.uid, endpoint: json.endpoint, keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
+      deviceId: thisDeviceId(), deviceLabel: deviceLabel(), platform: kind.platform, vapidPublicKey: key,
+      createdAt: (prev && prev.createdAt) || now, updatedAt: now, lastSeenAt: now
+    };
+  }
+  // The device's state for this user: 'unsupported' | 'install' (iPhone/iPad in Safari) |
+  // 'unconfigured' (no key published yet) | 'denied' | 'off' | 'on'
+  async function thisDeviceState(){
+    if (!pushSupported()) return 'unsupported';
+    if (isIOSDevice() && !isStandalonePwa()) return 'install';
+    if (!(await pushPublicKey())) return 'unconfigured';
+    if (Notification.permission === 'denied') return 'denied';
+    if (Notification.permission !== 'granted') return 'off';
+    try {
+      var reg = await swReady();
+      var sub = await reg.pushManager.getSubscription();
+      if (!sub || pushKeyOf(sub) && pushKeyOf(sub) !== pushConfigCache) return 'off';
+      var doc = await dbRef.collection('ledger_push_subscriptions').doc(pushSubId(sub.endpoint)).get();
+      return doc.exists ? 'on' : 'off';
+    } catch(e){ return 'off'; }
+  }
+  // Only ever from a tap: ask, subscribe with the published key, save this device.
+  async function enableThisDevice(){
+    if (!pushSupported()) throw new Error('unsupported');
+    if (isIOSDevice() && !isStandalonePwa()) throw new Error('install');
+    // asked first, while the tap still counts (Safari allows the prompt only then); the key
+    // was fetched when the sheet opened
+    var perm = await Notification.requestPermission();
+    if (perm !== 'granted') throw new Error('denied');
+    var key = await pushPublicKey();
+    if (!key) throw new Error('unconfigured');
+    var reg = await swReady();
+    var sub = await reg.pushManager.getSubscription();
+    if (sub && pushKeyOf(sub) && pushKeyOf(sub) !== key){ await sub.unsubscribe().catch(function(){}); sub = null; }
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key) });
+    var ref = dbRef.collection('ledger_push_subscriptions').doc(pushSubId(sub.endpoint));
+    var prev = await ref.get().then(function(d){ return d.exists ? d.data() : null; }).catch(function(){ return null; });
+    await ref.set(subscriptionRecord(sub, key, prev));
+    // this device's record from before devices had a user, if the owner made one
+    if (authRole === 'owner') dbRef.collection('ledger_push_subscriptions').doc('sub_' + hashCode(sub.endpoint)).delete().catch(function(){});
+    return sub;
+  }
+  async function disableThisDevice(){
+    var reg = await swReady();
+    var sub = await reg.pushManager.getSubscription();
+    if (!sub) return;
+    await dbRef.collection('ledger_push_subscriptions').doc(pushSubId(sub.endpoint)).delete().catch(function(){});
+    await sub.unsubscribe().catch(function(){});
+  }
+  // On sign-out the device stops being this user's: its record goes, so a phone handed to
+  // someone else never shows the last person's notifications.
+  function forgetThisDevice(){
+    if (!pushSupported() || !dbRef || !authUser) return Promise.resolve();
+    return Promise.race([
+      disableThisDevice().catch(function(){}),
+      new Promise(function(r){ setTimeout(r, 2500); })
+    ]);
+  }
+  // Once a day, an enabled device says it is still here (and refreshes its label).
+  function touchThisDevice(){
+    if (!pushSupported() || !dbRef || !authUser || Notification.permission !== 'granted') return;
+    if (lsGet('ledger_push_seen', '') === todayStr() + authUser.uid) return;
+    pushPublicKey().then(function(key){
+      if (!key) return;
+      return swReady().then(function(reg){ return reg.pushManager.getSubscription(); }).then(function(sub){
+        if (!sub || (pushKeyOf(sub) && pushKeyOf(sub) !== key)) return;
+        var ref = dbRef.collection('ledger_push_subscriptions').doc(pushSubId(sub.endpoint));
+        return ref.get().then(function(doc){
+          if (!doc.exists) return;          // turned off here, or never on: only a tap turns it on
+          return ref.set(subscriptionRecord(sub, key, doc.data())).then(function(){ lsSet('ledger_push_seen', todayStr() + authUser.uid); });
+        });
+      });
+    }).catch(function(){});
+  }
+  // a user's own choices (ledger_notification_prefs/{uid}); on unless turned off
+  function loadNotifPrefs(){
+    return dbRef.collection('ledger_notification_prefs').doc(authUser.uid).get()
+      .then(function(d){ return d.exists ? (d.data() || {}) : {}; }).catch(function(){ return {}; });
+  }
+  function saveNotifPref(key, on){
+    var patch = { updatedAt: new Date().toISOString() }; patch[key] = !!on;
+    return dbRef.collection('ledger_notification_prefs').doc(authUser.uid).set(patch, { merge: true });
+  }
+  var DEVICE_STATE_TEXT = {
+    on: 'Enabled', off: 'Not enabled', denied: 'Blocked in settings', unsupported: 'Not supported here',
+    install: 'Needs Home Screen', unconfigured: 'Not set up yet'
+  };
+  var DEVICE_STATE_NOTE = {
+    install: 'Install Ledger to your Home Screen to enable notifications: in Safari, Share → Add to Home Screen, then open Ledger from there.',
+    denied: 'Notifications for Ledger are blocked on this device. Allow them in the browser or system settings, then come back here.',
+    unsupported: 'This browser can’t receive web notifications.',
+    unconfigured: 'Notifications aren’t set up on the server yet.'
+  };
+  // Settings → Notifications (and the partner's footer): this device, and the two choices.
+  // `open` is the sheet opener for the context (the owner's sheet or the partner's).
+  function notificationsSheetHtml(){
+    var owner = authRole === 'owner';
+    return '<div class="sheet-handle"></div>' +
+      sheetHead('', 'Notifications', 'Each device is set up on that device.', '') +
+      '<div class="set-group"><span class="set-group-label">This device</span>' +
+        '<div class="set-card"><div class="set-row static nt-device">' +
+          '<span class="set-row-label" id="ntDeviceName"></span><span class="set-row-val" id="ntDeviceState">…</span>' +
+        '</div></div>' +
+        '<p class="set-note" id="ntNote" hidden></p>' +
+        '<button type="button" class="btn-primary nt-btn" id="ntEnable" hidden>Enable notifications</button>' +
+        '<button type="button" class="btn-quiet nt-btn" id="ntDisable" hidden>Disable on this device</button>' +
+      '</div>' +
+      '<div class="set-group"><span class="set-group-label">Notify me about</span>' +
+        (owner ? '<button type="button" class="cz-opt" id="ntFocus" role="switch" aria-checked="true">' +
+          '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+          '<span class="cz-opt-text"><span class="cz-opt-title">Current focus</span>' +
+          '<span class="cz-opt-sub">When you set it on one device, your others show it.</span></span></button>' : '') +
+        '<button type="button" class="cz-opt" id="ntPartner" role="switch" aria-checked="true">' +
+          '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+          '<span class="cz-opt-text"><span class="cz-opt-title">Partner requests &amp; updates</span>' +
+          '<span class="cz-opt-sub">' + (owner ? 'A new request, or something added to one.' : 'Something added to your requests, or one planned or done.') + '</span></span></button>' +
+        '<p class="set-note">On a lock screen a notification shows its first line. How long it stays is up to the device.</p>' +
+      '</div>';
+  }
+  function wireNotificationsSheet(root){
+    root.querySelector('#ntDeviceName').textContent = deviceLabel();
+    function paintState(st){
+      root.querySelector('#ntDeviceState').textContent = DEVICE_STATE_TEXT[st] || '';
+      var note = root.querySelector('#ntNote');
+      note.hidden = !DEVICE_STATE_NOTE[st];
+      note.textContent = DEVICE_STATE_NOTE[st] || '';
+      root.querySelector('#ntEnable').hidden = st !== 'off';
+      root.querySelector('#ntDisable').hidden = st !== 'on';
+    }
+    thisDeviceState().then(paintState);
+    var en = root.querySelector('#ntEnable');
+    en.addEventListener('click', function(){
+      en.disabled = true; en.textContent = 'Enabling…';
+      enableThisDevice().then(function(){
+        showPinToast('Notifications on for this device', false, CHECK_SVG);
+        paintState('on');
+      }).catch(function(e){
+        var code = e && e.message;
+        paintState(DEVICE_STATE_TEXT[code] ? code : 'off');
+        if (!DEVICE_STATE_TEXT[code]) showPinToast('Couldn’t enable notifications here — try again.', true);
+      }).then(function(){ en.disabled = false; en.textContent = 'Enable notifications'; });
+    });
+    root.querySelector('#ntDisable').addEventListener('click', function(){
+      disableThisDevice().then(function(){ paintState('off'); showPinToast('Notifications off for this device', false, CHECK_SVG); });
+    });
+    loadNotifPrefs().then(function(p){
+      [['ntFocus', 'currentFocus'], ['ntPartner', 'partner']].forEach(function(x){
+        var b = root.querySelector('#' + x[0]);
+        if (!b) return;
+        function paint(on){ b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
+        var on = p[x[1]] !== false;
+        paint(on);
+        b.addEventListener('click', function(){
+          on = !on; paint(on);
+          saveNotifPref(x[1], on).catch(function(){ on = !on; paint(on); showPinToast('Couldn’t save that — check your connection.', true); });
+        });
+      });
+    });
+  }
+  function openNotificationsSheet(){
+    activeSheetRefresh = null;
+    editingId = null;
+    sheetEl.innerHTML = notificationsSheetHtml();
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    wireNotificationsSheet(sheetEl);
+  }
+
+  // A notification tapped while Ledger is already open: the service worker hands over the
+  // link, and it opens here like any other deep link — no reload.
+  function openLedgerLink(url){
+    var p;
+    try { p = new URL(url, location.href).searchParams; } catch(e){ return; }
+    DEEP = { action: p.get('openAction'), request: p.get('request'), view: p.get('view'), sprint: p.get('sprint') };
+    deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view || DEEP.sprint);
+    if (deepLinkHandled) return;
+    if (ownerDataStarted || LOCAL_ONLY) tryHandleDeepLink();
+    else if (pp.started) ppHandleDeepLink();
+  }
+  if ('serviceWorker' in navigator){
+    navigator.serviceWorker.addEventListener('message', function(e){
+      var d = e.data || {};
+      if (d.type === 'ledger-open' && typeof d.url === 'string') openLedgerLink(d.url);
+    });
+  }
+
   // ============ Settings ============
   // A sheet, not a sixth tab — reached from Focus. Holds the things that shape
   // the day rather than the things that happen in it.
@@ -14103,6 +15070,7 @@
           (LOCAL_ONLY ? '' : '<button type="button" class="btn-link" id="setSignOut">Sign out</button>') +
         '</div>' +
         (LOCAL_ONLY ? '' : settingsRow('setPassword', 'Password', 'Set or change')) +
+        (LOCAL_ONLY ? '' : settingsRow('setNotifications', 'Notifications', '')) +
         '</div>' +
         (LOCAL_ONLY ? '<p class="set-note">This copy of Ledger has no account and keeps everything on this device.</p>' : '') +
       '</div>' +
@@ -14185,6 +15153,8 @@
         (authProfile && authProfile.displayName && authUser && authUser.email ? ' \u00b7 ' + authUser.email : '');
     var pwBtn = document.getElementById('setPassword');
     if (pwBtn) pwBtn.addEventListener('click', openPasswordSheet);
+    var ntBtn = document.getElementById('setNotifications');
+    if (ntBtn) ntBtn.addEventListener('click', openNotificationsSheet);
     var signOutBtn = document.getElementById('setSignOut');
     if (signOutBtn) signOutBtn.addEventListener('click', function(){
       if (confirm('Sign out of Ledger on this device?')) signOutLedger();
@@ -14749,6 +15719,10 @@
   function renderLogView(){
     renderChallengeStrip();
     renderTodayMode();
+    renderNowCue();
+    renderSprintEntry();
+    renderSprintSection();
+    renderSprintHistory();
     renderCommsSummary();
     renderMorningPrime();
     renderDayNotes();
@@ -20052,7 +21026,8 @@
   }
 
   // ---------- deep links ----------
-  //   ?openAction=<id>   an Action (owner)               — Pin now, later reminders
+  //   ?openAction=<id>   an Action (owner)               — Pin now, Current Focus, later reminders
+  //   ?sprint=<id>       a Reset Sprint (owner)          — Current Focus on a sprint item
   //   ?request=<id>      a Partner Request and its Updates (owner or partner)
   //   ?view=today|week   the partner's shared view
   // Query strings on the root page, so a link opened cold, refreshed, or followed from a
@@ -20060,10 +21035,10 @@
   // 404. Each waits for sign-in and its data, then opens once and leaves the address bar
   // clean. Ids are only ever compared, never written into the page.
   var deepLinkParams = new URLSearchParams(window.location.search);
-  var DEEP = { action: deepLinkParams.get('openAction'), request: deepLinkParams.get('request'), view: deepLinkParams.get('view') };
-  var deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view);
+  var DEEP = { action: deepLinkParams.get('openAction'), request: deepLinkParams.get('request'), view: deepLinkParams.get('view'), sprint: deepLinkParams.get('sprint') };
+  var deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view || DEEP.sprint);
   function deepLinkDone(){
-    if (DEEP.action || DEEP.request || DEEP.view) return;
+    if (DEEP.action || DEEP.request || DEEP.view || DEEP.sprint) return;
     if (!deepLinkHandled){ deepLinkHandled = true; try { history.replaceState(null, '', window.location.pathname); } catch(e){} }
   }
   // once the data has started, a link that never finds its record is dropped quietly
@@ -20084,6 +21059,18 @@
       document.querySelectorAll('.view').forEach(function(v){ v.classList.toggle('active', v.id === 'view-log'); });
       renderAll();
       openCommitmentSheet(commitment);
+    } else if (DEEP.sprint){
+      if (!sprintById(DEEP.sprint) && !execLoaded.sprints) return;   // retried from the sprints snapshot
+      var sid = DEEP.sprint;
+      DEEP.sprint = null;
+      if (sprintById(sid)){
+        viewedDate = todayStr();
+        currentView = 'log';
+        document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.view === 'log'); });
+        document.querySelectorAll('.view').forEach(function(v){ v.classList.toggle('active', v.id === 'view-log'); });
+        renderAll();
+        openSprintSheet(sid);
+      }
     } else if (DEEP.request && ownerDataStarted){
       if (!shareLoaded.requests) return;  // retried from the requests snapshot
       var reqId = DEEP.request;
@@ -20096,6 +21083,7 @@
   function ppHandleDeepLink(){
     if (deepLinkHandled) return;
     DEEP.action = null;                                 // an Action is never the partner's
+    DEEP.sprint = null;                                 // nor a sprint
     if (DEEP.view === 'week' || DEEP.view === 'today'){ pp.tab = DEEP.view; DEEP.view = null; renderPortal(); }
     else DEEP.view = null;
     if (DEEP.request){
