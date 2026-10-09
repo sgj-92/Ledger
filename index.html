@@ -3710,6 +3710,36 @@
   #view-log .dn-value, #view-log .dn-count { font-size: 12px; color: var(--text-3); }
   #view-log .dn-row.empty .dn-value { font-style: normal; }
   #view-log #dayNotesSection .dn-row { margin-top: var(--sp-3); }
+  /* Two tiers on Today (2026-10-09). Primary — Actions, Communications, Health &
+     fitness — are the anchors: the larger title, a readable summary, room above.
+     Secondary — Backlog, Day notes, Quick log, Recorded activity — are utilities:
+     a smaller muted title, a shorter row, a lighter chevron in the same right-hand
+     column. Same shape and chevron family; only the weight changes. */
+  #view-log #commsSummary .tsec-title, #view-log #todayPlanWidget .tsec-title { font-size: 17px; }
+  #view-log .actions-head .tsec-status, #view-log #commsSummary .tsec-status,
+  #view-log #todayPlanWidget .tsec-status { font-size: 12.5px; color: var(--text-2); }
+  #view-log .actions-head .tsec-chev, #view-log #commsSummary .tsec-chev,
+  #view-log #todayPlanWidget .tsec-chev { color: var(--text-2); }
+  #view-log #commsSummary .tsec, #view-log #todayPlanWidget .tsec { margin-top: var(--sp-5); }
+
+  #view-log #backlogSection .tsec, #view-log #backlogSection .tsec-main, #view-log #backlogSection .tsec-title,
+  #view-log #quickLogToggle, #view-log #recordedToggle, #view-log .dn-row { min-height: 40px; }
+  #view-log #backlogSection .tsec { margin-top: var(--sp-1); }
+  #view-log #backlogSection .tsec-title, #view-log .section-toggle-label, #view-log .dn-label {
+    font-size: 14px; font-weight: 500; color: var(--text-2); letter-spacing: 0;
+  }
+  #view-log #backlogSection .tsec-status, #view-log .section-toggle-value,
+  #view-log .dn-value, #view-log .dn-count { font-size: 12px; color: var(--text-3); }
+  #view-log #backlogSection .tsec-chev, #view-log .section-toggle-chevron { width: 13px; height: 13px; color: var(--text-3); }
+  #view-log .dn-row .chev svg { width: 13px; height: 13px; }
+  /* the utility shelf: set apart from the primary sections once, then close together */
+  #view-log #dayNotesSection .dn-row { margin-top: var(--sp-5); }
+  #view-log #dayNotesSection:empty + #quickLogToggle { margin-top: var(--sp-5); }
+  #view-log #quickLogToggle, #view-log #recordedToggle { margin-top: 0; }
+  #view-log .quicklog-grid.collapsed + #recordedToggle { margin-top: 0; }
+  /* wider screens: Day notes is an open notebook, but its heading is still secondary */
+  #view-log .dn-panel-head .sec-label { font-size: 14px; font-weight: 500; color: var(--text-2); letter-spacing: 0; }
+  #view-log .today-extra .dn-panel-head { margin-top: var(--sp-5); }
   /* Health & fitness, opened: its lines, then the plan behind them */
   .hf-body[hidden] { display: none; }
   .hf-line.hf-plan { display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; font-size: 12.5px; color: var(--text-3); }

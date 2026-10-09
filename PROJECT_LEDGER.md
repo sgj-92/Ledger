@@ -102,12 +102,16 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   day), chevron, and the share icon still reachable. The whole header row toggles;
   open/closed is remembered per day on the device (`ledger_hf_open`, like
   `ledger_cz_open`).
-- **Collapsed headers** (since 2026-10-09) — Backlog, Actions, Communications,
-  Health & fitness, Day notes, Quick log and Recorded activity share one header
-  geometry: title left (15px, 600), quiet summary, chevron in one right-hand
-  column. Actions summarise only Actions ("2 outstanding", "All done"); the old
-  "0 of 1 complete… HIIT not yet logged" line under Actions is gone — training
-  state belongs to Health & fitness.
+- **Two tiers of section header** (since 2026-10-09) — one header shape (title
+  left, quiet summary, chevron in one right-hand column, same chevron family), in
+  two weights. **Primary** — Actions, Communications, Health & fitness: 17px 600
+  `--text` titles, summaries in `--text-2`, room above. **Secondary / utility** —
+  Backlog, Day notes, Quick log, Recorded activity: 14px 500 `--text-2` titles,
+  `--text-3` values, a smaller chevron, 40px rows set close together (Day notes
+  starts the utility shelf). Wind-down stays its own card below. Actions summarise
+  only Actions ("2 outstanding", "All done"); the old "0 of 1 complete… HIIT not
+  yet logged" line under Actions is gone — training state belongs to Health &
+  fitness.
 - **Day Notes** — freeform text for one date, one compact row on Today between
   Health & fitness and Quick Log; opens a sheet with autosave. Context and
   thinking, never parsed into Actions. Stored as `plan.dayNotes`.
@@ -570,6 +574,16 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-09 — Today has two tiers: primary sections and utilities
+**Decision (Shaun's brief):** Primary — Actions, Communications, Health & fitness —
+are what Shaun is actively managing today and stay the strong anchors (larger,
+brighter titles, stronger summaries, more room). Secondary / utility — Backlog,
+Day notes, Quick log, Recorded activity — recede (smaller, muted titles, tighter
+rows, lighter chevrons) while keeping the same header shape, chevron family and
+right-edge column, and staying obviously tappable. Visual only: no behaviour or
+data changes; existing tokens only, tuned locally on Today. **Refines** the
+same-day header pass below, which had made every section equally loud.
 
 ### 2026-10-09 — One header language on Today; Catch-up is a review you can leave and resume
 **Decision (Shaun's brief):** Health & fitness is collapsible on Today, collapsed
@@ -1537,7 +1551,7 @@ wider exposure — see Open Questions.
 
 Owner: Shaun
 Status: Verification (2026-10-09)
-Objective: check the Today header polish and the Catch-up review on the phone
+Objective: check the Today hierarchy, header polish and the Catch-up review on the phone
 (Next 1), and finish the remaining push device checks (Next 2–3).
 Acceptance criteria: Next 1–3 confirmed.
 
@@ -1624,6 +1638,11 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-09) — Today two-tier hierarchy: primary (Actions, Communications,
+  Health & fitness) vs secondary (Backlog, Day notes, Quick log, Recorded
+  activity), phone and desktop. Tier QA 14/14 in dark and light (contrast,
+  chevron column, tap heights, behaviour unchanged); browser suites green.
 
 - (2026-10-09) — Today header polish + Catch-up as a resumable review: Health &
   fitness collapse with a records-based summary, one header geometry across seven
@@ -1792,7 +1811,9 @@ minutes before", recurring/accountability).
 
 ## Next
 
-1. **Shaun: Today on the phone** — Health & fitness starts collapsed with a
+1. **Shaun: Today on the phone** — Actions, Communications and Health & fitness
+   read as the main sections; Backlog, Day notes, Quick log and Recorded activity
+   read as quieter utilities but still look tappable. Health & fitness starts collapsed with a
    summary that matches the day; its chevron and the share icon both work and the
    open state sticks for the day. Actions says "N outstanding" and nothing about
    training. With yesterday unclosed: the row says "Yesterday needs finishing" →
