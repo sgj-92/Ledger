@@ -1564,25 +1564,30 @@
   .target-weight-row .stat-num .lbl { font-size: 11.5px; color: var(--text-2); margin-top: 8px; }
 
   /* ---------- misc blocks ---------- */
-  .accountability-box {
-    font-size: 12px; color: var(--text-3); margin: var(--sp-4) 0 0;
-    padding: var(--sp-3) 2px 0; border-top: 1px solid var(--line); line-height: 1.5;
-  }
-  .accountability-box:empty { display: none; }
-  .accountability-box > div + div { margin-top: 4px; }
   .cu-resolved {
     display: flex; align-items: flex-start; gap: 9px;
     font-size: 12.5px; color: var(--text-2); line-height: 1.45; margin: 2px 0 0;
   }
   .cu-resolved .cu-ev-tick { flex-shrink: 0; }
-  .catchup-banner.cu-banner-done { display: flex; align-items: center; gap: 9px; color: var(--text-3); }
-  .cu-banner-tick { flex-shrink: 0; width: 15px; height: 15px; color: var(--gold); display: flex; }
-  .cu-banner-tick svg { width: 100%; height: 100%; display: block; }
-
-  .catchup-banner {
-    padding: 2px 0; margin-bottom: var(--sp-4);
-    font-size: 13px; color: var(--text-2); cursor: pointer;
+  /* Today · the way into Catch-up: an unfinished review, in the challenge strip's shape
+     (its icon and chevron sit in Morning Prime's columns), lighter than Morning Prime */
+  .cu-entry {
+    display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 6px 14px 6px 0; margin: 0 0 var(--sp-1);
+    border: none; background: none; cursor: pointer; text-align: left; font-family: var(--sans); color: var(--text);
+    -webkit-tap-highlight-color: transparent;
   }
+  .cu-entry:active { opacity: 0.7; }
+  .cu-entry-ic {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-2);
+    display: flex; align-items: center; justify-content: center; color: var(--text-2);
+  }
+  .cu-entry-ic svg { width: 14px; height: 14px; display: block; }
+  .cu-entry-title { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cu-entry-chev { flex-shrink: 0; width: 15px; height: 15px; color: var(--text-3); display: flex; }
+  .cu-entry-chev svg { width: 100%; height: 100%; }
+  .cu-entry.quiet .cu-entry-title { font-weight: 400; color: var(--text-3); }
+  .cu-entry.quiet .cu-entry-ic { color: var(--gold); border-color: rgba(var(--gold-rgb),0.35); }
+  .cu-entry.quiet .cu-entry-ic svg { width: 12px; height: 12px; }
   .catchup-day-row {
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 0; border-bottom: 1px solid var(--line); gap: 10px;
@@ -1922,6 +1927,10 @@
     font-family: var(--sans); text-align: left; color: var(--text); cursor: pointer;
   }
   .cu-evidence-row:active { background: rgba(var(--gold-rgb),0.1); }
+  /* an Action still open: neutral, not evidence — tapping opens it and comes back here */
+  .cu-open-acts .cu-evidence-row { border-color: var(--line-2); background: none; }
+  .cu-open-acts .cu-evidence-row:active { background: var(--surface-2); }
+  .cu-open-ring { flex-shrink: 0; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--line-2); box-sizing: border-box; }
   .cu-ev-tick { flex-shrink: 0; width: 15px; height: 15px; color: var(--gold); display: flex; }
   .cu-ev-tick svg { width: 100%; height: 100%; display: block; }
   .cu-ev-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -3687,6 +3696,24 @@
   .commitment-item.done .cap.done, .dpa-row.done .cap.done { opacity: 0.55; }
   /* the utility rows are one list — no gaps between them */
   #view-log .wd-wrap { margin-top: 0; }
+  /* One section header shape down Today: the title, a quiet status, the chevron in the
+     same column as Backlog's, Actions' and Health & fitness's (the extra slot is kept
+     clear), the same row height. Text-first; no cards. */
+  #view-log #quickLogToggle, #view-log #recordedToggle, #view-log .dn-row {
+    min-height: 46px; margin-top: var(--sp-1); border-top: none; padding-right: 38px;
+  }
+  #view-log #quickLogToggle { margin-top: var(--sp-3); }
+  #view-log .section-toggle-label, #view-log .dn-label {
+    font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.005em;
+  }
+  #view-log .section-toggle-chevron { width: 15px; height: 15px; }
+  #view-log .dn-value, #view-log .dn-count { font-size: 12px; color: var(--text-3); }
+  #view-log .dn-row.empty .dn-value { font-style: normal; }
+  #view-log #dayNotesSection .dn-row { margin-top: var(--sp-3); }
+  /* Health & fitness, opened: its lines, then the plan behind them */
+  .hf-body[hidden] { display: none; }
+  .hf-line.hf-plan { display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; font-size: 12.5px; color: var(--text-3); }
+  .hf-line.hf-plan svg { width: 12px; height: 12px; display: block; }
 
   /* the mode switch: two words in a slim track, the chosen one raised */
   .today-mode { padding: 2px; background: none; border-color: var(--line); margin-top: var(--sp-3); }
@@ -3818,7 +3845,7 @@
 
   /* Today's first viewport: the status area above the switch is context, so the
      day's work starts soon after it (relationships only — the tokens are untouched) */
-  #view-log .catchup-banner { margin-bottom: var(--sp-3); }
+
   #view-log #inboxSection:empty + #backlogSection:empty + .actions-head { margin-top: var(--sp-2); }
   /* the Actions header: the title leads; Order/Groups are a quieter view control; the
      count is a muted figure that does not compete with + */
@@ -4667,7 +4694,6 @@
     <!-- finished sprints: one quiet line each -->
     <div id="sprintHistory"></div>
 
-    <div id="accountabilityMsg"></div>
 
     <div id="commsSummary"></div>
     </div>
@@ -7543,8 +7569,10 @@
     var doneCount = actionable.filter(function(c){ return c.status === 'completed'; }).length;
     list.innerHTML = '';
 
+    // the header's quiet summary: Actions only — what is still open, or that all are done
     var countEl = document.getElementById('actionsCount');
-    if (countEl) countEl.textContent = String(actionable.length);
+    var outstanding = actionable.length - doneCount;
+    if (countEl) countEl.textContent = !actionable.length ? '' : outstanding ? outstanding + ' outstanding' : 'All done';
 
     // header collapse + the one-line read you get while it's shut
     var toggle = document.getElementById('actionsToggle');
@@ -13426,40 +13454,6 @@
     });
   }
 
-  // ---------- accountability message (deterministic, no AI) ----------
-  function renderAccountabilityMessage(){
-    var wrap = document.getElementById('accountabilityMsg');
-    if (!wrap) return;
-    var dateStr = viewedDate;
-    var isToday = dateStr === todayStr();
-    var when = isToday ? 'today' : 'that day';
-    // Roadblocks are risks, not tasks — leave them out of the completion count
-    // (they already have their own group above).
-    var dayCommitments = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
-    var msgs = [];
-
-    // One quiet line, not a paragraph — the detail is already visible above.
-    if (dayCommitments.length){
-      var completedCount = dayCommitments.filter(function(c){ return c.status === 'completed'; }).length;
-      var outstanding = dayCommitments.length - completedCount;
-      msgs.push(completedCount + ' of ' + dayCommitments.length + ' complete' +
-        (outstanding ? ' · ' + outstanding + ' outstanding' : ''));
-    }
-
-    var plan = getPlanForDate(dateStr);
-    if (plan && !plan.restDay && plan.trainingTypes && plan.trainingTypes.length){
-      var loggedTypesThatDay = sessions.filter(function(s){ return s.date === dateStr; }).map(function(s){ return s.type; });
-      var unlogged = plan.trainingTypes.filter(function(t){ return loggedTypesThatDay.indexOf(t) === -1; });
-      if (unlogged.length){
-        msgs.push(unlogged.map(function(t){ return SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]; }).join(' and ') +
-          ' not yet logged' + (isToday ? '' : ' for ' + when));
-      }
-    }
-
-    if (!msgs.length){ wrap.innerHTML = ''; return; }
-    wrap.innerHTML = '<div class="accountability-box">' + msgs.join(' · ') + '</div>';
-  }
-
   // ---------- symptom episode ----------
   // Dated by when symptoms were NOTICED, never by when the food was eaten. The optional
   // link to an exposure is stored as "possible" and phrased that way everywhere.
@@ -13648,31 +13642,66 @@
     return results.sort();
   }
 
+  // The way into Catch-up: an unfinished review, said plainly — one quiet row in the
+  // challenge strip's shape, lighter than Morning Prime. The oldest day opens first.
   function renderCatchUpBanner(){
     var wrap = document.getElementById('catchUpBanner');
     if (!wrap) return;
     var pending = computeCatchUpDates();
+    function row(icon, title, quiet){
+      return '<button type="button" class="cu-entry' + (quiet ? ' quiet' : '') + '" id="catchUpBannerBtn">' +
+        '<span class="cu-entry-ic" aria-hidden="true">' + icon + '</span>' +
+        '<span class="cu-entry-title">' + title + '</span>' +
+        '<span class="cu-entry-chev" aria-hidden="true">' + UI_ICON.chevronRight + '</span></button>';
+    }
     if (!pending.length){
       // nothing to recover — but if last night closed itself, say so once and move on
       var y = yesterdayStr();
       var yRec = getDayRecord(y);
       var closedAt = yRec && yRec.windDown && yRec.windDown.completedAt;
       if (viewedDate === todayStr() && closedAt){
-        wrap.innerHTML = '<div class="catchup-banner cu-banner-done" id="catchUpBannerBtn">' +
-          '<span class="cu-banner-tick">' + CHECK_SVG + '</span>' +
-          'Yesterday closed at ' + mpTimeLabel(closedAt) + ' · Review \u2192</div>';
+        wrap.innerHTML = row(CHECK_SVG, 'Yesterday closed at ' + mpTimeLabel(closedAt), true);
         document.getElementById('catchUpBannerBtn').addEventListener('click', function(){ openCatchUpSheet(y); });
         return;
       }
       wrap.innerHTML = ''; return;
     }
-    wrap.innerHTML = '<div class="catchup-banner" id="catchUpBannerBtn">' +
-      pending.length + ' day' + (pending.length===1?'':'s') + ' need' + (pending.length===1?'s':'') + ' a quick catch-up →</div>';
+    var title = pending.length > 1 ? pending.length + ' days need reviewing'
+      : (pending[0] === yesterdayStr() ? 'Yesterday' : shortDayLabel(pending[0])) + ' needs finishing';
+    wrap.innerHTML = row(UI_ICON.calendar, title, false);
     document.getElementById('catchUpBannerBtn').addEventListener('click', function(){ openCatchUpSheet(); });
   }
 
-  function cuBlock(icon, title, bodyHtml, headExtraHtml){
-    return '<div class="cu-block">' +
+  // ---- Catch-up is a review you work through, not a link you leave by ----
+  // reviewReturnContext = { date, step, origin, away }. When the review sends Shaun to fix
+  // something — an Action, the nutrition record, a training log, symptoms — it records
+  // where he was and that he is away. Whatever he does there, the next time the sheet
+  // closes with nothing else opened (saved, cancelled, or a follow-up sheet finished),
+  // Catch-up reopens on the same day at the same step and re-reads the real records:
+  // visiting an editor resolves nothing by itself. Only an errand that started in Catch-up
+  // comes back; every other editor behaves as it always has. In memory only — a reload
+  // ends the errand, and the review itself is saved as a draft on the day's record.
+  var reviewReturnContext = null;
+  var reviewReturnTimer = null;
+  function cuLeaveFor(dateStr, step, open){
+    reviewReturnContext = { date: dateStr, step: step, origin: (reviewReturnContext && reviewReturnContext.origin) || currentView, away: true };
+    closeSheet();
+    open();
+  }
+  function reviewSheetClosed(){
+    var ctx = reviewReturnContext;
+    if (!ctx || !ctx.away) return;
+    if (reviewReturnTimer) clearTimeout(reviewReturnTimer);
+    reviewReturnTimer = setTimeout(function(){
+      reviewReturnTimer = null;
+      if (reviewReturnContext !== ctx || !ctx.away) return;
+      if (backdrop.classList.contains('open')) return;   // the errand opened another sheet; its close brings us back
+      openCatchUpSheet(ctx.date, { resume: ctx.step });
+    }, 250);
+  }
+
+  function cuBlock(icon, title, bodyHtml, headExtraHtml, step){
+    return '<div class="cu-block"' + (step ? ' data-cu-step="' + step + '"' : '') + '>' +
       '<span class="iring sz-40 cu-ic">' + icon + '</span>' +
       '<div class="cu-body">' +
         '<div class="cu-head"><span class="cu-title">' + title + '</span>' + (headExtraHtml || '') + '</div>' +
@@ -13692,10 +13721,14 @@
     }).join('') + '</div>';
   }
 
-  function openCatchUpSheet(forcedDate){
+  function openCatchUpSheet(forcedDate, opts){
+    opts = opts || {};
     editingId = null;
     var pending = computeCatchUpDates();
     var dateStr = forcedDate || pending[0];
+    if (reviewReturnTimer){ clearTimeout(reviewReturnTimer); reviewReturnTimer = null; }
+    reviewReturnContext = dateStr ? { date: dateStr, step: opts.resume || null,
+      origin: (reviewReturnContext && reviewReturnContext.origin) || currentView, away: false } : null;
     if (!dateStr){
       sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
         sheetHead(UI_ICON.calendar, 'Catch-up', 'Nothing left to close.', '') +
@@ -13735,15 +13768,23 @@
         html += cuResolved('Closed in the evening at ' + mpTimeLabel(snap.windDownAt) + '.');
       }
 
-      // --- actions: read straight from that day's commitments ---
+      // --- actions: read straight from that day's commitments; the open ones are listed
+      // here, each opening its own editor and coming back ---
+      var openActs = snap.actions.filter(function(c){ return c.status === 'planned'; });
       html += cuBlock(UI_ICON.list, 'Actions',
         (snap.actionsTotal && !snap.actionsOpen
           ? cuResolved('All ' + snap.actionsTotal + ' reviewed · ' + snap.actionsCompleted + ' completed')
           : '<div class="cu-sub">' + (snap.actionsTotal
               ? snap.actionsCompleted + ' of ' + snap.actionsTotal + ' completed' +
                 (snap.actionsOpen ? ' · ' + snap.actionsOpen + ' still open' : '')
-              : 'No actions recorded for this day') + '</div>'),
-        '<button type="button" class="cu-link" id="cuReviewActions">Review actions' + UI_ICON.chevronRight + '</button>');
+              : 'No actions recorded for this day') + '</div>' +
+            (openActs.length ? '<div class="cu-evidence cu-open-acts">' + openActs.map(function(c, i){
+              return '<button type="button" class="cu-evidence-row" data-cu-act="' + i + '">' +
+                '<span class="cu-open-ring" aria-hidden="true"></span>' +
+                '<span class="cu-ev-text"><strong></strong><span></span></span>' +
+                '<span class="chev">' + UI_ICON.chevronRight + '</span></button>';
+            }).join('') + '</div>' : '')),
+        '', 'actions');
 
       // --- training: an existing log is the answer, not a question ---
       var trainingBody;
@@ -13770,7 +13811,7 @@
               ? '<div class="cu-sub cu-sub-quiet">Planned: ' + snap.plannedTypes.map(function(t){ return SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]; }).join(', ') + '</div>'
               : ''));
       }
-      html += cuBlock(TRAINING_ICON_SVG.resistance, 'Training', trainingBody);
+      html += cuBlock(TRAINING_ICON_SVG.resistance, 'Training', trainingBody, '', 'training');
 
       // --- nutrition: real lifecycle state, and a way straight into that day's record ---
       var nutritionClosed = !!(snap.nutrition && snap.nutrition.closed);
@@ -13785,7 +13826,7 @@
             ], nutritionVal)) +
         '<button type="button" class="cu-link cu-link-block" id="cuOpenNutrition">' +
           (snap.nutrition ? 'Open nutrition' : 'Start nutrition') + UI_ICON.chevronRight +
-        '</button>');
+        '</button>', '', 'nutrition');
 
       // --- possible exposure: ask, never assume, and date the answer to the next day ---
       if (snap.exposure){
@@ -13809,7 +13850,7 @@
                     '<button type="button" class="cu-seg-btn" id="cuNoSymptoms">No symptoms</button>' +
                     '<button type="button" class="cu-seg-btn" id="cuLogSymptoms">Log symptoms</button>' +
                     '<button type="button" class="cu-seg-btn" id="cuUnsureSymptoms">Not sure</button>' +
-                  '</div>')));
+                  '</div>')), '', 'symptoms');
       }
 
       // --- the one judgement no record can make for you ---
@@ -13872,42 +13913,43 @@
         });
       });
 
-      document.getElementById('cuReviewActions').addEventListener('click', function(){
+      // every errand keeps the review's answers as a draft, then comes back here
+      function leave(step, open){
         readNotes(); saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
-        closeSheet();
-        jumpToToday(dateStr);
+        cuLeaveFor(dateStr, step, open);
+      }
+      var openActs = snap.actions.filter(function(c){ return c.status === 'planned'; });
+      sheetEl.querySelectorAll('[data-cu-act]').forEach(function(el){
+        var c = openActs[Number(el.dataset.cuAct)];
+        el.querySelector('strong').textContent = c.title;                   // user text
+        el.querySelector('.cu-ev-text span').textContent = categoryLabel(c.category) || '';
+        el.addEventListener('click', function(){
+          leave('actions', function(){ openCommitmentSheet(commitments.find(function(x){ return x.id === c.id; }) || c); });
+        });
       });
 
       var addTraining = document.getElementById('cuAddTraining');
       if (addTraining) addTraining.addEventListener('click', function(){
-        readNotes(); saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
-        closeSheet();
-        openCatchUpTrainingPicker(dateStr);
+        leave('training', function(){ openCatchUpTrainingPicker(dateStr); });
       });
 
       document.getElementById('cuOpenNutrition').addEventListener('click', function(){
-        readNotes(); saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
-        closeSheet();
         // that date's real record, with everything already saved preloaded
-        openSheet('nutrition', getNutritionForDate(dateStr), dateStr);
+        leave('nutrition', function(){ openSheet('nutrition', getNutritionForDate(dateStr), dateStr); });
       });
 
       sheetEl.querySelectorAll('[data-cu-session]').forEach(function(el){
         el.addEventListener('click', function(){
           var t = sessions.find(function(x){ return x.id === el.dataset.cuSession; });
           if (!t) return;
-          readNotes(); saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
-          closeSheet();
-          openSheet(t.type, t);
+          leave('training', function(){ openSheet(t.type, t); });
         });
       });
       sheetEl.querySelectorAll('[data-cu-symptom]').forEach(function(el){
         el.addEventListener('click', function(){
           var ep = sessions.find(function(x){ return x.id === el.dataset.cuSymptom; });
           if (!ep) return;
-          readNotes(); saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
-          closeSheet();
-          openSymptomSheet(ep);
+          leave('symptoms', function(){ openSymptomSheet(ep); });
         });
       });
 
@@ -13928,14 +13970,14 @@
       if (logSym) logSym.addEventListener('click', function(){
         readNotes();
         saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true, symptomsChecked: true }));
-        closeSheet();
         // symptoms after an exposure are usually noticed the following morning
-        openSymptomSheet(null, { date: nextDateStr(dateStr), exposureId: snap.exposure.id });
+        cuLeaveFor(dateStr, 'symptoms', function(){ openSymptomSheet(null, { date: nextDateStr(dateStr), exposureId: snap.exposure.id }); });
       });
 
       document.getElementById('cuLaterBtn').addEventListener('click', function(){
         readNotes();
         saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
+        reviewReturnContext = null;
         closeSheet();
       });
       document.getElementById('cuCloseDayBtn').addEventListener('click', function(){
@@ -13947,9 +13989,20 @@
           caughtUpAt: nowIso,
           closedAt: (getDayRecord(dateStr) || {}).closedAt || nowIso
         }));
+        // closed, said once; then the next day still open, oldest first, or back to Today
+        var closedLabel = dateStr === yesterdayStr() ? 'Yesterday' : shortDayLabel(dateStr);
         var remaining = computeCatchUpDates().filter(function(x){ return x !== dateStr; });
-        if (remaining.length){ dateStr = remaining[0]; resetForDate(); render(); }
-        else closeSheet();
+        if (remaining.length){
+          showPinToast(closedLabel + ' is closed \u00b7 next, ' + shortDayLabel(remaining[0]), false, CHECK_SVG);
+          dateStr = remaining[0]; resetForDate();
+          reviewReturnContext = { date: dateStr, step: null, origin: reviewReturnContext ? reviewReturnContext.origin : currentView, away: false };
+          render();
+          sheetEl.scrollTop = 0;
+        } else {
+          reviewReturnContext = null;
+          closeSheet();
+          showPinToast(closedLabel + ' is closed', false, CHECK_SVG);
+        }
       });
     }
 
@@ -13964,6 +14017,11 @@
     render();
     backdrop.classList.add('open');
     activeSheetRefresh = render;
+    // back from an errand: the same day, at the step it left from
+    if (opts.resume){
+      var blk = sheetEl.querySelector('[data-cu-step="' + opts.resume + '"]');
+      if (blk) requestAnimationFrame(function(){ blk.scrollIntoView({ block: 'center' }); });
+    }
   }
 
   // Catch-up never logs training itself — it hands over to the real activity form for that date.
@@ -13982,7 +14040,7 @@
       '<button type="button" class="btn-quiet" id="cuBackBtn">Back to catch-up</button>';
     backdrop.classList.add('open');
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
-    document.getElementById('cuBackBtn').addEventListener('click', function(){ openCatchUpSheet(dateStr); });
+    document.getElementById('cuBackBtn').addEventListener('click', function(){ openCatchUpSheet(dateStr, { resume: 'training' }); });
     sheetEl.querySelectorAll('[data-cu-type]').forEach(function(btn){
       btn.addEventListener('click', function(){
         openSheet(btn.dataset.cuType, null, dateStr);
@@ -15728,7 +15786,6 @@
     renderDayNotes();
     renderWindDown();
     renderCommitments();
-    renderAccountabilityMessage();
     renderInboxSection();
     renderBacklogSection();
     renderCatchUpBanner();
@@ -16429,16 +16486,8 @@
   // on this device. With nothing to open (a future day, before the start) the line opens
   // the challenge, as before.
   var CZ_OPEN_KEY = 'ledger_cz_open';           // { 'YYYY-MM-DD': 1 } — a per-device preference
-  function czOpenDays(){
-    try { var m = JSON.parse(lsGet(CZ_OPEN_KEY, '{}')); return m && typeof m === 'object' ? m : {}; } catch(e){ return {}; }
-  }
-  function czSetOpen(ds, on){
-    var m = czOpenDays();
-    if (on) m[ds] = 1; else delete m[ds];
-    var days = Object.keys(m).sort();
-    while (days.length > 14) delete m[days.shift()];   // only recent days matter
-    lsSet(CZ_OPEN_KEY, JSON.stringify(m));
-  }
+  function czOpenDays(){ return dayOpenMap(CZ_OPEN_KEY); }
+  function czSetOpen(ds, on){ setDayOpen(CZ_OPEN_KEY, ds, on); }
   function renderChallengeStrip(){
     var el = document.getElementById('challengeStrip');
     if (!el) return;
@@ -18168,6 +18217,43 @@
     '</' + (opts.tag || 'button') + '>';
   }
 
+  // Sections that open in place remember it per day, on this device: { 'YYYY-MM-DD': 1 }
+  var TSEC_CHEV_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+  var HF_OPEN_KEY = 'ledger_hf_open';
+  function dayOpenMap(key){
+    try { var m = JSON.parse(lsGet(key, '{}')); return m && typeof m === 'object' ? m : {}; } catch(e){ return {}; }
+  }
+  function setDayOpen(key, ds, on){
+    var m = dayOpenMap(key);
+    if (on) m[ds] = 1; else delete m[ds];
+    var days = Object.keys(m).sort();
+    while (days.length > 14) delete m[days.shift()];   // only recent days matter
+    lsSet(key, JSON.stringify(m));
+  }
+  // Health & fitness, shut: what is still to log, or — once nothing is — what was done.
+  // Health & fitness state only; Actions report themselves.
+  function hfSummary(dateStr, plan){
+    var isPastOrToday = dateStr <= todayStr();
+    var types = (plan && !plan.restDay && plan.trainingTypes) || [];
+    var det = function(t){ return (plan.trainingDetails && plan.trainingDetails[t]) || {}; };
+    var short = function(t){ return SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]; };
+    var toLog = [], done = [];
+    types.forEach(function(t){ if (det(t).completed) done.push(short(t) + ' \u2713'); else toLog.push(short(t)); });
+    var stepRec = isPastOrToday ? stepsRecordFor(dateStr) : null;
+    if (isPastOrToday){
+      if (!diaryLinesOf(getNutritionForDate(dateStr)).length) toLog.push('food');
+      if (!stepRec) toLog.push('steps');
+    }
+    var lead = plan && plan.restDay ? ['Rest day'] : [];
+    var text;
+    if (!isPastOrToday) text = lead.concat(types.map(function(t){ return short(t) + ' planned'; })).join(' \u00b7 ');
+    else if (toLog.length){
+      var list = toLog.join(', ');
+      text = lead.concat([list.charAt(0).toUpperCase() + list.slice(1) + ' to log']).join(' \u00b7 ');
+    } else text = lead.concat(done).concat(stepRec ? [fmtSteps(stepRec.steps) + ' steps'] : []).join(' \u00b7 ') || 'All logged';
+    return { text: text, spoken: text.replace(/\u2713/g, 'done') };
+  }
+
   function renderTodayPlanWidget(){
     var wrap = document.getElementById('todayPlanWidget');
     if (!wrap) return;
@@ -18242,12 +18328,16 @@
     var label = 'Health & fitness';
     var planActionLabel = hasAnyContent ? 'Edit plan' : (isToday ? 'Plan today' : 'Plan this day');
 
+    // Today: a section like the others — the header opens it in place, and while it is
+    // shut the summary answers "is there anything here to deal with?"
+    var hfOpen = opts.primary && !!dayOpenMap(HF_OPEN_KEY)[dateStr];
+    var hfSum = opts.primary ? hfSummary(dateStr, plan) : null;
     var html = opts.primary
       ? '<div class="tsec">' +
-          '<button type="button" class="tsec-main" data-role="plan-edit" id="planTodayBtn" aria-label="Health & fitness: ' + (hasAnyContent ? 'edit the plan' : 'plan the day') + '">' +
+          '<button type="button" class="tsec-main" id="hfToggle" aria-expanded="' + hfOpen + '" aria-controls="hfBody" aria-label="Health & fitness' + (hfSum.spoken ? ': ' + hfSum.spoken : '') + '">' +
             '<span class="tsec-title">' + label + '</span>' +
-            '<span class="tsec-status"></span>' +
-            '<span class="tsec-chev">' + UI_ICON.chevronRight + '</span>' +
+            '<span class="tsec-status">' + hfSum.text + '</span>' +
+            '<span class="tsec-chev tsec-expand">' + TSEC_CHEV_DOWN + '</span>' +
           '</button>' +
           '<span class="tsec-extra"><button type="button" class="icon-btn" data-role="share" id="shareDayBtn" aria-label="Share a snapshot of Health & fitness">' + UI_ICON.share + '</button></span>' +
         '</div>'
@@ -18318,7 +18408,10 @@
         lines.push('<button type="button" class="hf-line rb" data-role="rb-card" id="planRoadblockCard">' + UI_ICON.mountain +
           '<span class="hf-rb-text clamped" data-role="rb-text" id="planRoadblockText"></span></button>');
       }
-      if (lines.length) html += '<div class="hf-lines">' + lines.join('') + '</div>';   // empty: the header alone
+      // the plan behind it all, one quiet line at the end
+      lines.push('<button type="button" class="hf-line hf-plan" data-role="plan-edit" id="planTodayBtn">' +
+        (hasAnyContent ? 'Edit the day\u2019s plan' : (isToday ? 'Plan today' : 'Plan this day')) + UI_ICON.chevronRight + '</button>');
+      html += '<div class="hf-body" id="hfBody"' + (hfOpen ? '' : ' hidden') + '><div class="hf-lines">' + lines.join('') + '</div></div>';
     } else if (cards.length){
       html += '<div class="plan-cards">' + cards.join('') + '</div>';
     } else {
@@ -18364,6 +18457,13 @@
 
     wrap.querySelector('[data-role="plan-edit"]').addEventListener('click', function(){
       openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'] });
+    });
+    var hfToggle = wrap.querySelector('#hfToggle');
+    if (hfToggle) hfToggle.addEventListener('click', function(){
+      var on = hfToggle.getAttribute('aria-expanded') !== 'true';
+      setDayOpen(HF_OPEN_KEY, dateStr, on);
+      hfToggle.setAttribute('aria-expanded', on ? 'true' : 'false');
+      wrap.querySelector('#hfBody').hidden = !on;
     });
     // the section's share icon shares a picture of it; the Claude hand-off stays at the foot of Today
     wrap.querySelector('[data-role="share"]').addEventListener('click', function(){ openSnapshotSheet(dateStr, 'hf'); });
@@ -20227,6 +20327,7 @@
     editingId = null;
     activeSheetRefresh = null;
     rqStopDetail();
+    reviewSheetClosed();      // an errand from Catch-up returns to it
   }
   backdrop.addEventListener('click', function(e){ if (e.target === backdrop) closeSheet(); });
 

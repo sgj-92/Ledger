@@ -94,9 +94,20 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   on 2026-10-02; restored on 2026-10-03. **Inbox** is reserved for a future
   unprocessed-capture concept and is not built.
 - **Health & fitness** — on Today a short summary (one line per planned session,
-  one for the Nutrition Plan, one for meals, a quiet roadblock line) with Edit/Plan and a share
-  control for Daily Handoff; the Plan pane keeps the fuller list. Called **Today's Plan** until
-  2026-09-22.
+  one for the Nutrition Plan, one for meals, a quiet roadblock line) with "Edit the
+  day's plan ›" and a share control for Daily Handoff; the Plan pane keeps the
+  fuller list. Called **Today's Plan** until 2026-09-22. **Collapsed by default**
+  (since 2026-10-09): title, a quiet summary from the day's records ("HIIT, food,
+  steps to log"; "HIIT ✓ · 8,240 steps"; "All logged"; "HIIT planned" for a later
+  day), chevron, and the share icon still reachable. The whole header row toggles;
+  open/closed is remembered per day on the device (`ledger_hf_open`, like
+  `ledger_cz_open`).
+- **Collapsed headers** (since 2026-10-09) — Backlog, Actions, Communications,
+  Health & fitness, Day notes, Quick log and Recorded activity share one header
+  geometry: title left (15px, 600), quiet summary, chevron in one right-hand
+  column. Actions summarise only Actions ("2 outstanding", "All done"); the old
+  "0 of 1 complete… HIIT not yet logged" line under Actions is gone — training
+  state belongs to Health & fitness.
 - **Day Notes** — freeform text for one date, one compact row on Today between
   Health & fitness and Quick Log; opens a sheet with autosave. Context and
   thinking, never parsed into Actions. Stored as `plan.dayNotes`.
@@ -154,7 +165,17 @@ The same page adapts by viewport width; there is no desktop build, route or flag
 - **Catch-up** — the recovery layer for whatever the evening did not close.
   Reads the day's real records *and* its Wind-down state: anything already
   resolved is reported as a ✓ line instead of asked again, and a day closed in
-  the evening is not listed as pending at all.
+  the evening is not listed as pending at all. On Today it is one quiet row above
+  Morning Prime, worded as unfinished work: "Yesterday needs finishing", "Tue 6 Oct
+  needs finishing" or "2 days need reviewing" (afterwards "Yesterday closed at
+  HH:MM"). Since 2026-10-09 it is a **resumable review**: the day's open Actions
+  are listed in it, and an editor opened from it (Action, training, nutrition,
+  symptoms) returns to the same day and step on save *or* cancel, re-read from
+  the records — visiting is not resolving. The review's answers are kept as a
+  draft meanwhile. The return context lives only in memory for the session (no
+  routing). Days go oldest first; closing one says "Wed 7 Oct is closed · next,
+  Thu 8 Oct" and opens the next; closing the last says "Yesterday is closed" and
+  goes back to Today. Editors opened from Today behave as before.
 - **Daily Handoff** — "Share day" → structured text export for Claude, with an
   optional instruction footer; clipboard + Web Share API. Carries Day Notes when
   non-empty, headed `DAY NOTES UPDATED` when they have changed since the last
@@ -549,6 +570,19 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-09 — One header language on Today; Catch-up is a review you can leave and resume
+**Decision (Shaun's brief):** Health & fitness is collapsible on Today, collapsed
+by default, remembered per day on the device. Today's major collapsed sections
+share one header/summary hierarchy (title, quiet summary, chevron). Actions
+summaries contain only Action state; Health & fitness summaries contain Health &
+fitness state, built from the records. Catch-up is a resumable review workflow:
+editors opened from it return to the same review context after save or cancel;
+on return it re-evaluates the actual records rather than assuming completion;
+several days are reviewed oldest first, one after another. Normal editor
+navigation outside Catch-up is unchanged. The context is session memory only —
+no routes, no new records (closing still writes the one `ledger_day_status`
+record).
 
 ### 2026-10-08 — Reset Sprint: clearing clutter is not committing
 **Decision (Shaun's brief):** a Reset Sprint is a temporary list of small things to
@@ -1502,10 +1536,10 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Shaun
-Status: Verification (2026-10-08)
-Objective: finish checking Reset Sprint, Current Focus and notifications on the
-remaining devices. Push is deployed and works Mac → Samsung.
-Acceptance criteria: Next 1–2 confirmed.
+Status: Verification (2026-10-09)
+Objective: check the Today header polish and the Catch-up review on the phone
+(Next 1), and finish the remaining push device checks (Next 2–3).
+Acceptance criteria: Next 1–3 confirmed.
 
 The backlog exists as GitHub Issues (#5–#19). None of it is authorised for
 implementation — see the workflow rules in `CLAUDE.md`.
@@ -1583,14 +1617,20 @@ No active handoff.
 
 ### Claude Code
 
-No active handoff. Reset Sprint, Current Focus and the Push Foundation
-(2026-10-08) are complete. **Not authorised:** a scheduled-reminder engine (timed
-reminders, "X minutes before", recurring/accountability). The engine is ready for
-it: a scheduled function would create an event and call `sendPushToUser`.
+No active handoff. Today header polish + resumable Catch-up (2026-10-09) is
+complete. **Not authorised:** a scheduled-reminder engine (timed reminders, "X
+minutes before", recurring/accountability).
 
 ---
 
 ## Recently Completed
+
+- (2026-10-09) — Today header polish + Catch-up as a resumable review: Health &
+  fitness collapse with a records-based summary, one header geometry across seven
+  sections, Actions summary only Actions, a quiet Catch-up entry, return-to-review
+  from Action, training, nutrition and symptom editors, oldest-day-first chaining
+  and a restrained close. New QA 30/30 (dark and light, Scenarios A–F); browser
+  suites, Partner Sharing e2e 132 and execution e2e 63 green.
 
 - (2026-10-08) — Reset Sprint, Current Focus and the cross-device Push Foundation
   (rules, the one push engine in `functions/`, Settings → Notifications for owner
@@ -1752,7 +1792,13 @@ it: a scheduled function would create an event and call `sendPushToUser`.
 
 ## Next
 
-1. **Shaun: the remaining devices** (on `https://ledger.sgj.luxe`). Done: rules
+1. **Shaun: Today on the phone** — Health & fitness starts collapsed with a
+   summary that matches the day; its chevron and the share icon both work and the
+   open state sticks for the day. Actions says "N outstanding" and nothing about
+   training. With yesterday unclosed: the row says "Yesterday needs finishing" →
+   open an Action from it → cancel → back in the review, still open → complete it →
+   back, resolved → Close this day → "Yesterday is closed", back on Today.
+2. **Shaun: the remaining devices** (on `https://ledger.sgj.luxe`). Done: rules
    and functions deployed; the Samsung enabled; Mac → Samsung focus push works.
    - **iPhone and iPad**: Safari → Share → Add to Home Screen → open Ledger *from
      the icon* → sign in (the installed app has its own sign-in) → Settings →
@@ -1763,12 +1809,12 @@ it: a scheduled function would create an event and call `sendPushToUser`.
    - Change focus on the iPhone → the Mac and Samsung follow; tap the
      notification → that Action opens. Start a Reset Sprint, tick the first item on
      another device → the focus moves on everywhere.
-2. **Abi**: installs and signs in → footer → Notifications → Enable. She sends a
+3. **Abi**: installs and signs in → footer → Notifications → Enable. She sends a
    request → Shaun's devices: "Abi sent a request"; she adds an update → Shaun;
    Shaun adds one → Abi. Tapping opens the request. Nothing private shows.
-3. If not done yet: the domain checks from 2026-10-07 (build stamp "Up to date",
+4. If not done yet: the domain checks from 2026-10-07 (build stamp "Up to date",
    password + email-link sign-in return to ledger.sgj.luxe, `?view=week` refresh)
    and the challenge line / Morning Prime check on the phone.
-4. Shaun: create the GitHub Project (Open Q7); triage #6–#19.
+5. Shaun: create the GitHub Project (Open Q7); triage #6–#19.
 
 Everything else is on the board. Do not duplicate it here.
