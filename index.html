@@ -3028,6 +3028,8 @@
   .wd-card.wd-due { border-color: rgba(var(--gold-rgb),0.3); }
   .wd-card.wd-due .mp-mark { border-color: rgba(var(--gold-rgb),0.4); color: var(--gold); }
   .wd-card .wd-body { margin: 0 13px 13px; }
+  /* Wind-down closes the list of Today's sections, so its chevron sits in their column */
+  .wd-card .mp-head { padding-right: 37px; }
   .wd-card .wd-body.collapsed { margin-bottom: 0; }
   .wd-card .wd-panel { background: none; border: none; border-radius: 0; padding: 0 2px; }
   .wd-closed-val { color: rgba(var(--gold-rgb),0.85); }
@@ -3740,6 +3742,23 @@
   /* wider screens: Day notes is an open notebook, but its heading is still secondary */
   #view-log .dn-panel-head .sec-label { font-size: 14px; font-weight: 500; color: var(--text-2); letter-spacing: 0; }
   #view-log .today-extra .dn-panel-head { margin-top: var(--sp-5); }
+  /* Communications, opened: a short tally, then the way into the Centre. The figures
+     end on the chevron's edge; the arrow sits in the utility slot, where Actions has + */
+  .cs-body[hidden] { display: none; }
+  .cs-body { margin-top: -6px; padding-bottom: var(--sp-1); }
+  .cs-tally { padding-right: 38px; }
+  .cs-tally-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 4px 0; font-size: 13px; }
+  .cs-tally-k { color: var(--text-2); }
+  .cs-tally-v { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .cs-tally-row.needs .cs-tally-v { color: var(--gold); }
+  .cs-tally-none { margin: 2px 0 4px; font-size: 13px; color: var(--text-3); }
+  .cs-open {
+    display: flex; align-items: center; justify-content: flex-end; width: 100%; min-height: 40px; padding: 0;
+    background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--text-2);
+  }
+  .cs-open:active { opacity: 0.6; }
+  .cs-open-ic { flex: 0 0 32px; display: flex; justify-content: center; color: var(--text-2); }
+  .cs-open-ic svg { width: 15px; height: 15px; display: block; }
   /* Health & fitness, opened: its lines, then the plan behind them */
   .hf-body[hidden] { display: none; }
   .hf-line.hf-plan { display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; font-size: 12.5px; color: var(--text-3); }
@@ -4122,6 +4141,9 @@
     .today-main > #backlogSection:empty + .actions-head { margin-top: var(--sp-2); }
     .today-main > #backlogSection .tsec { margin-top: 0; }
     #view-log .today-side .today-plan-widget-head { margin-top: var(--sp-2); }
+    /* the active-context column starts level with Backlog and Actions */
+    #view-log .today-side > #commsSummary .tsec { margin-top: 0; }
+    #view-log .today-side > #commsSummary:empty + #todayPlanWidget .tsec { margin-top: 0; }
     .today-side > .today-plan-widget { margin: 0 0 var(--sp-6); }
     .today-side .today-plan-widget-head { margin: var(--sp-2) 0 var(--sp-3); min-height: 32px; }
 
@@ -4310,12 +4332,15 @@
     :root { --side-w: 224px; --gutter: 40px; }
     /* Today gets a third column rather than longer lines */
     #view-log.active {
-      grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr) minmax(290px, 0.9fr);
+      /* primary execution · active context · utility and closure (about 40 / 32 / 28) */
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1.15fr) minmax(280px, 1fr);
       grid-template-areas: "top top top" "mode mode mode" "main side extra";
       grid-template-rows: auto auto 1fr;
       column-gap: 36px;
     }
     .today-extra .dn-panel-head { margin-top: var(--sp-2); min-height: 32px; }
+    /* three columns: Day notes heads its column, level with Backlog and Communications */
+    #view-log .today-extra .dn-panel-head { margin-top: 0; min-height: 46px; margin-bottom: var(--sp-2); }
   }
 
   @keyframes inspector-in { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -4743,10 +4768,12 @@
     <div id="sprintHistory"></div>
 
 
-    <div id="commsSummary"></div>
     </div>
 
+    <!-- active context: Communications, then Health & fitness. On a phone the wrappers
+         are transparent, so this follows the Actions exactly as before. -->
     <div class="today-side">
+    <div id="commsSummary"></div>
     <div id="todayPlanWidget" class="today-plan-widget"></div>
     </div>
 
@@ -8868,8 +8895,9 @@
     if (!wrap) return;
     if (viewedDate !== todayStr()){ wrap.innerHTML = ''; return; }
     var n = commsCounts();
-    // Today carries attention only, in the header itself; with nothing to attend to, the
-    // header stands alone. The row opens the Centre where the attention is.
+    // Today carries attention only: the header says whether anything here needs caring
+    // about (counts, never names); opened, a short tally and the way into the Centre.
+    // The header expands in place; only "Open Communications" navigates.
     function stat(cls, num, one, many){
       return '<span class="' + cls + '">' + num + ' ' + (num === 1 ? one : many) + '</span>';
     }
@@ -8881,14 +8909,34 @@
     var target = n.needs ? 'needs' : n.due ? 'follow' : n.waiting ? 'waiting' : '';
     var spoken = parts.join(', ').replace(/<[^>]+>/g, '').replace(/(\d+) due/, '$1 follow-up due');
     if (parts.length > 2) parts = parts.slice(0, 2);
+    var dateStr = viewedDate, open = !!dayOpenMap(COMMS_OPEN_KEY)[dateStr];
+    function tally(label, num, cls){
+      return '<div class="cs-tally-row' + (num && cls ? ' ' + cls : '') + '"><span class="cs-tally-k">' + label + '</span><span class="cs-tally-v">' + num + '</span></div>';
+    }
+    var rows = (n.needs || n.waiting || n.due)
+      ? tally('Needs you', n.needs, 'needs') + tally('Waiting', n.waiting) + (n.due ? tally('Follow-up due', n.due) : '')
+      : '<p class="cs-tally-none">Nothing needs you</p>';
     wrap.innerHTML = '<div class="tsec">' +
-      '<button type="button" class="tsec-main" data-comms-open="' + target + '" aria-label="Communications' + (spoken ? ': ' + spoken : '') + '">' +
+      '<button type="button" class="tsec-main" id="commsToggle" aria-expanded="' + open + '" aria-controls="commsBody" aria-label="Communications' + (spoken ? ': ' + spoken : '') + '">' +
         '<span class="tsec-title">Communications</span>' +
         '<span class="tsec-status">' + parts.join('<span class="cs-sep" aria-hidden="true"> · </span>') + '</span>' +
-        '<span class="tsec-chev">' + UI_ICON.chevronRight + '</span>' +
+        '<span class="tsec-chev tsec-expand">' + TSEC_CHEV_DOWN + '</span>' +
       '</button>' +
       '<span class="tsec-extra"></span>' +
+    '</div>' +
+    '<div class="cs-body" id="commsBody"' + (open ? '' : ' hidden') + '>' +
+      '<div class="cs-tally">' + rows + '</div>' +
+      '<button type="button" class="cs-open" data-comms-open="' + target + '">' +
+        '<span class="cs-open-t">Open Communications</span><span class="cs-open-ic" aria-hidden="true">' + UI_ICON.chevronRight + '</span>' +
+      '</button>' +
     '</div>';
+    var tg = document.getElementById('commsToggle');
+    tg.addEventListener('click', function(){
+      var on = tg.getAttribute('aria-expanded') !== 'true';
+      tg.setAttribute('aria-expanded', on ? 'true' : 'false');
+      document.getElementById('commsBody').hidden = !on;
+      setDayOpen(COMMS_OPEN_KEY, dateStr, on);
+    });
     wrap.querySelectorAll('[data-comms-open]').forEach(function(el){
       el.addEventListener('click', function(){ openComms(el.dataset.commsOpen || null); });
     });
@@ -18376,6 +18424,7 @@
   // Sections that open in place remember it per day, on this device: { 'YYYY-MM-DD': 1 }
   var TSEC_CHEV_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
   var HF_OPEN_KEY = 'ledger_hf_open';
+  var COMMS_OPEN_KEY = 'ledger_comms_open';
   function dayOpenMap(key){
     try { var m = JSON.parse(lsGet(key, '{}')); return m && typeof m === 'object' ? m : {}; } catch(e){ return {}; }
   }

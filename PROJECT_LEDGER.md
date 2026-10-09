@@ -24,14 +24,20 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   its foot); a shallow horizontal header replaces the phone hero. Content is one
   column; sheets stay bottom sheets below 1024px.
 - **≥ 1024px:** Today becomes a workspace — Morning Prime / Catch-up across the
-  top, Actions + Backlog in the main column, Health & fitness beside it, then Day
-  Notes (an inline, autosaved notebook) with Quick log, Wind-down and Recorded.
+  top, Backlog + Actions in the main (primary) column; beside it, the active
+  context (Communications, then Health & fitness) and under that the utilities
+  (Day Notes — an inline, autosaved notebook — Quick log, Recorded, Wind-down,
+  share links).
   Sheets open as a right-hand **inspector**. Plan is week list + selected-day pane;
   Calendar is month + a fixed-width day pane (selected-day content never moves
   the month); Progress puts Towards your focus beside the week
   chart with the stat cards in a grid; Focus is two columns.
 - **≥ 1200px:** full labelled sidebar (Ledger mark, five views, Quick add, Settings).
-- **≥ 1600px:** Today gains a third column (Day Notes and the evening sections).
+- **≥ 1600px:** Today has three columns, about 40 / 32 / 28: **primary execution**
+  (Backlog, Actions) · **active context** (Communications, Health & fitness) ·
+  **utility and closure** (Day Notes, Quick log, Recorded activity, Wind-down,
+  share links). The three column heads sit level. (Since 2026-10-09; the phone
+  order is unchanged — the wrappers are transparent there.)
 - The workspace is capped at 1680px and centred; the inspector aligns to it.
 - Every wide breakpoint also needs 520px of height, so a phone turned sideways
   keeps the phone layout.
@@ -213,8 +219,12 @@ two Morning Prime routines, the Wind-down routine and its prominence hour.
 - **Completing a conversation-linked action** asks "What happens next?" — Waiting
   on them / Waiting on third party (who?) / No action / Matter complete / Leave as
   it is, with an optional follow-up date. Nothing closes a matter on its own.
-- **Today** shows a Communications summary (need you · waiting · follow-ups due),
-  each number opening the Centre on that filter.
+- **Today** shows Communications as a collapsible section (since 2026-10-09;
+  collapsed by default, open state per day per device, `ledger_comms_open`). The
+  header is counts only ("1 needs you · 1 due" — never names or notes) and
+  expands in place; opened, a short tally (Needs you · Waiting · Follow-up due)
+  and **Open Communications ›**, the one way into the Centre (on its most urgent
+  filter), its arrow in the utility slot where Actions has +.
 - **The Centre:** search, Needs me / Waiting / Follow-up / All filters (All is
   grouped by matter, with Closed folded away), compact rows. Phone: tap → detail
   sheet. Desktop (≥1024): list left, record right, edited in place.
@@ -588,6 +598,20 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-09 — Desktop Today reads: do the work → handle the context → capture and close
+**Decision (Shaun's brief):** desktop Today has a primary execution column
+(Backlog + Actions), an active-context column (Communications + Health & fitness)
+and a quieter utility/closure column (Day Notes, Quick log, Recorded activity,
+Wind-down, share links), weighted about 40 / 32 / 28 at ≥1600px. Between 1024 and
+1599px the existing two columns stay: the context sits at the top of the right
+column with the utilities under it. Communications is collapsible on Today like
+the other sections: the header expands in place and only "Open Communications"
+navigates; expanded, it gives a compact attention tally, never the Centre itself.
+Chevrons share one alignment language across Today's sections — the same
+right-hand column (the extra slot reserved), Evening Wind-down's included. Phone
+order and feature set are unchanged; only Communications' header now expands
+rather than navigates. **Refines** "the row opens the Centre" (2026-09-30).
 
 ### 2026-10-09 — Withdrawn requests: hide, or move to upcoming as a new request
 **Decision (Shaun's brief):** withdrawn stays a historical state, but never a dead
@@ -1668,6 +1692,12 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-09) — Desktop Today hierarchy: Communications moved beside Health &
+  fitness (active context), 40 / 32 / 28 columns at ≥1600, level column heads,
+  collapsible Communications with a tally and Open Communications, Wind-down's
+  chevron in the shared column. Layout QA 88/88 at 390–1728; browser suites,
+  Partner Sharing e2e (1440) 154 and push e2e 66 green.
+
 - (2026-10-09) — Withdrawn Partner Requests: Past grouping, ⋯ with Move to upcoming /
   Hide from my list, the Upcoming state, provenance links both ways, the push
   wording. Rules 299 (28 new), engine 43, Partner Sharing e2e 154 (22 new), push
@@ -1850,7 +1880,10 @@ minutes before", recurring/accountability).
    Move to upcoming and Hide are refused by the live rules. Then Abi: withdraw a
    test request → ⋯ → Move to upcoming (Shaun's phone: "Abi moved a request to
    upcoming") → withdraw it again → ⋯ → Hide from my list.
-2. **Shaun: Today on the phone** — Actions, Communications and Health & fitness
+2. **Shaun: Today on the phone and the MacBook** — on the Mac: Backlog + Actions,
+   then Communications + Health & fitness, then the quieter utilities;
+   Communications opens in place, "Open Communications" goes to the Centre. On
+   the phone: Actions, Communications and Health & fitness
    read as the main sections; Backlog, Day notes, Quick log and Recorded activity
    read as quieter utilities but still look tappable. Health & fitness starts collapsed with a
    summary that matches the day; its chevron and the share icon both work and the
