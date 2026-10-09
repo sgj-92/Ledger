@@ -2254,6 +2254,8 @@
   /* its Updates: the request timeline's quiet rail, one author */
   .au-sec { margin: var(--sp-5) 0 var(--sp-5); }
   .au-private { margin: -2px 0 8px; font-size: 12px; line-height: 1.45; color: var(--text-3); }
+  .au-share { display: inline-flex; align-items: center; gap: 6px; margin-top: var(--sp-3); padding: 6px 0; font-size: 13px; color: var(--text-2); }
+  .au-share svg { width: 13px; height: 13px; display: block; }
   /* inside the editor the field sits in the form, not pinned over Save */
   .rq-compose.au-compose { position: static; margin: var(--sp-3) 0 0; padding: 0; background: none; border-top: none; }
   .as-field .as-chip { padding: 7px 6px; white-space: nowrap; }
@@ -8388,12 +8390,18 @@
         html += '<div id="disruptionReasonField" style="' + (stateVal==='disrupted' ? '' : 'display:none') + '">' +
           fieldSelect('f_disruptionReason', 'Disruption reason', [{value:'',label:'Not specified'}].concat(DISRUPTION_REASONS.map(function(r){ return {value:r,label:r}; })), disruptionVal || '') +
         '</div>';
-        // Updates: what happened with it, in Shaun's words, and the quiet facts. Private.
-        html += '<div class="au-sec"><h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
-          (existing.sourceType === 'partner_request' ? '<p class="au-private">Only you see these. To tell ' + escOpt(existing.sourceLabel ? existing.sourceLabel.replace(/^From\s+/i, '') : 'your partner') + ', add an update on the request.</p>' : '') +
+        // Private updates: what happened with it, in Shaun's words, and the quiet facts.
+        // When it came from a partner, the one way to tell them is the request's own
+        // Updates — a link there, never a second shared form here.
+        var shareReq = existing.sourceType === 'partner_request' && shareOn() &&
+          sharedRequests.some(function(x){ return x.id === existing.sourceRequestId; });
+        html += '<div class="au-sec"><h3 class="cz-sec-title rq-upd-title">Private updates</h3>' +
+          '<p class="au-private">Only you can see these.</p>' +
           '<div class="rq-tl au-tl" id="auTimeline"><p class="rq-empty">Loading…</p></div>' +
-          '<div class="rq-compose au-compose"><textarea id="auText" rows="1" maxlength="500" placeholder="Add an update…" aria-label="Add an update"></textarea>' +
+          '<div class="rq-compose au-compose"><textarea id="auText" rows="1" maxlength="500" placeholder="Add an update…" aria-label="Add a private update"></textarea>' +
           '<button type="button" class="rq-send" id="auSend" disabled>Add</button></div>' +
+          (shareReq ? '<button type="button" class="btn-link au-share" id="auShare">Share an update with ' +
+            escOpt(existing.sourceLabel || 'your partner') + UI_ICON.arrowRight + '</button>' : '') +
         '</div>';
       }
 
@@ -8541,6 +8549,11 @@
           });
         });
         wireActionUpdates(existing);
+        var shareBtn = document.getElementById('auShare');
+        if (shareBtn) shareBtn.addEventListener('click', function(){
+          openRequestDetailSheet(existing.sourceRequestId);
+          setTimeout(function(){ var t = document.getElementById('rqText'); if (t) try { t.focus(); } catch(e){} }, 80);
+        });
         document.getElementById('deleteCommitBtn').addEventListener('click', function(){
           deleteCommitment(existing.id);
           done();

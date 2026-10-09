@@ -90,7 +90,9 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   partial` + `execState: in_progress`; Waiting/Blocked = `execState` plus optional
   `statusContext` ("payroll" → "Waiting on payroll"); older records read from
   `status`. Rows, Flow and the Backlog lead their quiet meta line with it
-  ("Waiting on payroll · Work"). The editor has a private **Updates** timeline
+  ("Waiting on payroll · Work"). The editor has **Private updates** ("Only you can
+  see these."; on an Abi-linked Action also "Share an update with Abi →", which
+  opens that request's own Updates — never a second shared form)
   (`ledger_action_updates`, owner-only): Shaun's own notes plus quiet facts written
   by the saving device from the before/after diff — state changed, moved, done,
   reopened (never category, key task, order or cosmetic edits). Tick/untick still

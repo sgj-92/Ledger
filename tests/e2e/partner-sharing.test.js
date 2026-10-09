@@ -502,7 +502,7 @@ async function oobLink(email){
   check(await until(S, () => /Moved to tomorrow/.test(document.getElementById('rqTimeline').innerText)), 'U15 the timeline shows a quiet "Moved to tomorrow"');
   // H — the linked Action gets a private state and a private Update: none of it reaches Abi
   await S.click('#rqAction'); await S.waitForSelector('#commitStatusGrid');
-  check(/Only you see these/.test(await txt(S, '.au-sec')), 'H the Action\'s Updates say they are private');
+  check(/Private updates/i.test(await txt(S, '.au-sec')) && /Only you can see these\./.test(await txt(S, '.au-sec')) && /Share an update with Abi/.test(await txt(S, '#auShare')), 'H "Private updates · Only you can see these." with "Share an update with Abi"');
   await S.click('#commitStatusGrid [data-as="waiting"]'); await S.fill('#f_statusContext', 'pharmacy stock');
   await S.fill('#auText', 'PRIVATE: pharmacy has none in, due Thursday.'); await S.click('#auSend');
   check(await until(S, () => /pharmacy has none in/.test(document.getElementById('auTimeline').innerText)), 'H the private update is in the Action\'s timeline');
@@ -530,6 +530,15 @@ async function oobLink(email){
   await openSettings(S); await S.waitForSelector('#setShareReq');
   await S.click('#setShareReq'); await S.waitForSelector('.rq-li');
   await S.click('.rq-li:has-text("Pick up prescription")'); await S.waitForSelector('#rqTimeline');
+  // the share link opens this Action's own request, ready to write to Abi
+  await S.click('#rqAction'); await S.waitForSelector('#auShare');
+  await S.click('#auShare'); await S.waitForSelector('#rqText');
+  check(/Pick up prescription/.test(await txt(S, '#rqTitle')) && /From Abi/i.test(await txt(S, '#rqKicker')), 'H "Share an update with Abi" opens the linked request');
+  await S.fill('#rqText', 'Collecting it Thursday.'); await S.click('#rqSend');
+  check(await until(S, () => /Collecting it Thursday\./.test(document.getElementById('rqTimeline').innerText)), 'H the shared update goes to the request timeline');
+  await sleep(1200);
+  check((await evOf('comment')).filter(u => /Collecting it Thursday/.test(u.text)).length === 1 && !(await all('ledger_action_updates')).some(u => /Collecting it Thursday/.test(u.text || '')), 'H once, in the shared Updates only — not in the private ones');
+  check(!(await evOf()).some(u => /pharmacy|PRIVATE/i.test(JSON.stringify(u))), 'H the private update still has not crossed');
   await S.click('#rqAction'); await S.waitForSelector('#commitStatusGrid');
   await S.click('#commitStatusGrid [data-as="done"]'); await S.click('#saveCommitBtn');
   await sleep(2500);
@@ -544,7 +553,7 @@ async function oobLink(email){
   // re-renders and a reload of the second device do not repeat anything
   await S2.reload(); await sleep(4000);
   const kinds = (await evOf()).map(u => u.type + ((u.metadata || {}).status ? ':' + u.metadata.status : '')).sort().join(',');
-  check(kinds === 'comment,comment,moved,planned,request_created,status:done', 'U21 history is exactly asked, planned, 2 updates, moved, done — idempotent (' + kinds + ')');
+  check(kinds === 'comment,comment,comment,moved,planned,request_created,status:done', 'U21 history is exactly asked, planned, 3 updates, moved, done — idempotent (' + kinds + ')');
   // U18 — Abi sees Done and the whole story
   await A.click('.pp-req:has-text("Pick up prescription")'); await A.waitForSelector('#rqTimeline');
   check(await until(A, () => {
