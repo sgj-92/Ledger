@@ -616,6 +616,18 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-09 — One primary button; everything else is a quiet action row
+**Decision (Shaun's brief):** Ledger avoids stacked full-width secondary buttons.
+Secondary actions use compact, text-led **action rows** (`.act-rows` / `.act-row`:
+hairline dividers, a small icon where it means something, 46px tall for touch, no
+fill or box; a chevron only when the row opens another surface). Only a genuine
+primary action gets the strong gold button (`.btn-primary` / `.save-btn`, now
+slightly shorter, 12px radius). Destructive actions stay clear but restrained: a
+danger-coloured row after a hairline, never a bordered card. Paired choices in a
+sheet's footer bar (e.g. Close day / Save and finish later, Copy / Share) stay
+side-by-side buttons — they are alternatives, not a stack. Hierarchy: content →
+current state → primary action → secondary utilities → destructive action.
+
 ### 2026-10-09 — Actions say what is actually happening; their Updates are private
 **Decision (Shaun's brief):** Actions have a small execution state — not started,
 in progress, waiting, blocked, done — and Waiting/Blocked may carry a few words of
@@ -1725,6 +1737,12 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-09) — Action rows: the Action editor's Set as current focus / Pin now /
+  Delete, the new-Action Pin now / Add and pin now, the activity sheet's alternate
+  (Log activity / Save to plan), Log symptoms now and Reopen Nutrition became quiet
+  rows; every Delete across Ledger is a restrained danger row; primary buttons a
+  touch smaller. Row QA 20/20 (390, 1440), all suites and both e2e green.
 
 - (2026-10-09) — Action status + private Updates: five states with waiting/blocked
   context, editor Status chips and Updates timeline, row/Flow/Backlog meta,
