@@ -55,6 +55,29 @@ service cloud.firestore {
     match /ledger_challenges/{docId=**}         { allow read, write: if isOwner(); }
     // Reset Sprints: temporary clearing sessions. Never shared, never projected.
     match /ledger_sprints/{docId=**}            { allow read, write: if isOwner(); }
+    // An Action's Updates: what happened with it, in the owner's words, and quiet facts
+    // (state changed, moved, done, reopened). Owner-private like the Action itself — never
+    // projected, never a partner request's Updates. Each entry names its owner and author
+    // (the signed-in owner), an Action that exists, a known type, and the server's time.
+    // Entries are not edited; the owner may remove them.
+    match /ledger_action_updates/{updateId} {
+      allow read, delete: if isOwner() && resource.data.ownerUid == request.auth.uid;
+      allow create: if isOwner()
+                    && request.resource.data.keys().hasOnly(['actionId', 'ownerUid', 'type', 'actorUid', 'actorRole', 'text', 'createdAt', 'metadata'])
+                    && request.resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.actorUid == request.auth.uid
+                    && request.resource.data.actionId is string
+                    && exists(/databases/$(database)/documents/ledger_commitments/$(request.resource.data.actionId))
+                    && request.resource.data.type in ['comment', 'status', 'moved', 'completed']
+                    && request.resource.data.actorRole in ['owner', 'system']
+                    && (request.resource.data.type != 'comment'
+                        || (request.resource.data.actorRole == 'owner' && request.resource.data.text is string && request.resource.data.text.size() > 0))
+                    && (request.resource.data.get('text', null) == null
+                        || (request.resource.data.text is string && request.resource.data.text.size() <= 500))
+                    && request.resource.data.createdAt == request.time
+                    && (!('metadata' in request.resource.data) || request.resource.data.metadata is map);
+      allow update: if false;
+    }
 
     // ledger_meta holds the owner's preferences and small state documents. One of them,
     // currentFocus, is also an event source: the push sender reads its ownerUid as the

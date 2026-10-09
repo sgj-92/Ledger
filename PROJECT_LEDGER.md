@@ -83,6 +83,21 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   - **Groups view**: collapsible category sections, each with its own internal order.
   - Orders stored separately as `plan.actionOrder` and `plan.groupOrder[category]`.
   - Reordering is pointer-event based (HTML5 drag-and-drop does not work on touch).
+- **Action status + Updates** (since 2026-10-09) — what is actually happening with
+  an Action: **Not started · In progress · Waiting · Blocked · Done** (editor
+  Status, chips; past days also offer "For the record: Disrupted · Not done").
+  Stored on the Action: Done = `status: completed`; In progress = `status:
+  partial` + `execState: in_progress`; Waiting/Blocked = `execState` plus optional
+  `statusContext` ("payroll" → "Waiting on payroll"); older records read from
+  `status`. Rows, Flow and the Backlog lead their quiet meta line with it
+  ("Waiting on payroll · Work"). The editor has a private **Updates** timeline
+  (`ledger_action_updates`, owner-only): Shaun's own notes plus quiet facts written
+  by the saving device from the before/after diff — state changed, moved, done,
+  reopened (never category, key task, order or cosmetic edits). Tick/untick still
+  completes/reopens; reopening returns to Not started. Waiting survives moves and
+  the Backlog. Catch-up shows waiting/blocked Actions with their reason, counts
+  them as waiting (not "still open") and offers Keep waiting · today / Another day /
+  open to resolve. No Communications sync; nothing reaches a partner.
 - **Key tasks** — up to three, chosen in Morning Prime; normal actions flagged `isKeyTask`,
   marked in both views with a gold star, gold left edge and a `Key` pill.
 - **Add action** — a `+` in the Actions section header opens one inline field
@@ -598,6 +613,23 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-09 — Actions say what is actually happening; their Updates are private
+**Decision (Shaun's brief):** Actions have a small execution state — not started,
+in progress, waiting, blocked, done — and Waiting/Blocked may carry a few words of
+context. Done stays the one completion (`status: completed`; ticks unchanged); in
+progress is the existing `partial`; the evaluative review outcomes (partially
+completed, disrupted, not done) are kept. Ordinary Action Updates are
+Owner-private (`ledger_action_updates`, owner-only rules) and are a separate privacy
+surface from Partner Request Updates: nothing — comments, waiting context, blocked
+reasons — is copied to a partner request or projection; Shaun tells Abi explicitly.
+The state survives date moves and the Backlog. Catch-up reflects execution state
+rather than flattening everything to unfinished. Communications keeps its own
+richer attention model; no silent sync either way. **Boundary:** Ledger Actions are
+not becoming a task manager — no workflows, assignees, subtasks, dependencies,
+status filters, Waiting tab or dashboard. The feature answers only "what is
+actually happening with this Action?". Wind-down has no per-Action step today, so
+the end-of-day handling lives in Catch-up.
 
 ### 2026-10-09 — Desktop Today reads: do the work → handle the context → capture and close
 **Decision (Shaun's brief):** desktop Today has a primary execution column
@@ -1692,6 +1724,14 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-09) — Action status + private Updates: five states with waiting/blocked
+  context, editor Status chips and Updates timeline, row/Flow/Backlog meta,
+  Catch-up waiting handling, `ledger_action_updates` with owner-only rules. Rules
+  318 (19 new), scenarios A–G 26/26 (dark, light, 1440), Partner Sharing e2e 162
+  (private update never reaches Abi; she is denied the collection), push e2e 66,
+  browser suites green. **Needs the rules redeployed** (until then the Updates
+  timeline is unavailable; states work).
+
 - (2026-10-09) — Desktop Today hierarchy: Communications moved beside Health &
   fitness (active context), 40 / 32 / 28 columns at ≥1600, level column heads,
   collapsible Communications with a tally and Open Communications, Wind-down's
@@ -1875,9 +1915,11 @@ minutes before", recurring/accountability).
 
 ## Next
 
-1. **Shaun: redeploy rules and functions** (withdrawn requests): `firebase deploy
-   --only firestore:rules,functions` from `~/Ledger` after `git pull`. Until then,
-   Move to upcoming and Hide are refused by the live rules. Then Abi: withdraw a
+1. **Shaun: redeploy rules and functions** (withdrawn requests, Action Updates):
+   `firebase deploy --only firestore:rules,functions` from `~/Ledger` after `git
+   pull`. Until then, Move to upcoming and Hide are refused by the live rules, and
+   an Action's Updates say "Updates aren't available right now" (its status still
+   works). Then try "Pay staff" → Waiting → "payroll" → add an update. Then Abi: withdraw a
    test request → ⋯ → Move to upcoming (Shaun's phone: "Abi moved a request to
    upcoming") → withdraw it again → ⋯ → Hide from my list.
 2. **Shaun: Today on the phone and the MacBook** — on the Mac: Backlog + Actions,

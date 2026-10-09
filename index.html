@@ -1930,6 +1930,9 @@
   /* an Action still open: neutral, not evidence — tapping opens it and comes back here */
   .cu-open-acts .cu-evidence-row { border-color: var(--line-2); background: none; }
   .cu-open-acts .cu-evidence-row:active { background: var(--surface-2); }
+  .cu-open-ring.waiting { border-style: dashed; }
+  .cu-wait-acts { display: flex; gap: 16px; margin: -2px 0 6px 38px; }
+  .cu-wait-acts .btn-link { padding: 4px 0; font-size: 12.5px; color: var(--text-2); }
   .cu-open-ring { flex-shrink: 0; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--line-2); box-sizing: border-box; }
   .cu-ev-tick { flex-shrink: 0; width: 15px; height: 15px; color: var(--gold); display: flex; }
   .cu-ev-tick svg { width: 100%; height: 100%; display: block; }
@@ -2240,6 +2243,20 @@
   .status-btn.sel.completed { border-color: rgba(var(--day-good-rgb),0.55); color: var(--day-good); background: rgba(var(--day-good-rgb),0.12); }
   .status-btn.sel.partial { border-color: rgba(var(--day-neutral-rgb),0.55); color: var(--day-neutral); background: rgba(var(--day-neutral-rgb),0.12); }
   .status-btn.sel.disrupted, .status-btn.sel.not_done { border-color: var(--line-2); color: var(--text); background: var(--surface-3); }
+  /* an Action's Status: five plain states, a few words for waiting or blocked */
+  .as-field .as-states { margin: 0; display: flex; flex-wrap: wrap; gap: 6px 4px; }
+  .as-field .as-chip { margin: 0; }
+  .as-ctx { margin-top: var(--sp-3); }
+  .as-ctx[hidden] { display: none; }
+  .as-record { margin: 10px 0 0; font-size: 12px; color: var(--text-3); }
+  .as-outcome { padding: 0; font-size: 12px; color: var(--text-2); }
+  .as-outcome.sel { color: var(--text); font-weight: 600; }
+  /* its Updates: the request timeline's quiet rail, one author */
+  .au-sec { margin: var(--sp-5) 0 var(--sp-5); }
+  .au-private { margin: -2px 0 8px; font-size: 12px; line-height: 1.45; color: var(--text-3); }
+  /* inside the editor the field sits in the form, not pinned over Save */
+  .rq-compose.au-compose { position: static; margin: var(--sp-3) 0 0; padding: 0; background: none; border-top: none; }
+  .as-field .as-chip { padding: 7px 6px; white-space: nowrap; }
 
   .checkbox-field { display: flex; align-items: center; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
   .checkbox-label { display: flex; align-items: center; gap: 11px; font-size: 14.5px; color: var(--text); cursor: pointer; margin-bottom: 0 !important; text-transform: none !important; letter-spacing: 0 !important; }
@@ -5034,6 +5051,152 @@
   var dayStatuses = [];
   var COMMITMENT_STATUS_LABEL = { planned: 'Planned', completed: 'Completed', partial: 'Partially completed', disrupted: 'Disrupted', not_done: 'Not done' };
   var DISRUPTION_REASONS = ['Family', 'Work', 'Health', 'Travel', 'Unexpected event', 'Other'];
+
+  // ---- What is actually happening with an Action ----
+  // A small execution state for an open Action: not started, in progress, waiting,
+  // blocked — or done. Done is still the record's own completion (status: completed),
+  // and in progress is the record's partial status, so everything that already reads
+  // status (Progress, Catch-up, partner requests) keeps working. Waiting and blocked
+  // add only execState and a few words of context (statusContext: "payroll"). The
+  // review outcomes — disrupted, not done — stay what they were. Records written before
+  // this have no execState and read from their status. Not a task system: no
+  // workflows, assignees, subtasks or dashboards.
+  var EXEC_STATES = ['not_started', 'in_progress', 'waiting', 'blocked', 'done'];
+  var EXEC_LABEL = { not_started: 'Not started', in_progress: 'In progress', waiting: 'Waiting', blocked: 'Blocked', done: 'Done',
+    disrupted: 'Disrupted', not_done: 'Not done' };
+  function actionExecState(c){
+    if (!c) return 'not_started';
+    if (c.status === 'completed') return 'done';
+    if (c.status === 'disrupted' || c.status === 'not_done') return c.status;
+    if (c.execState === 'waiting' || c.execState === 'blocked') return c.execState;
+    if (c.status === 'partial') return 'in_progress';
+    return 'not_started';
+  }
+  function capFirst(t){ return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; }
+  // "Waiting on payroll", "Blocked by missing documents" — the context as Shaun wrote
+  // it, given its verb only when he did not write one
+  function actionStateLabel(c, state, ctx){
+    var st = state || actionExecState(c), x = String(ctx != null ? ctx : (c && c.statusContext) || '').trim();
+    if (st === 'waiting') return x ? (/^waiting\b/i.test(x) ? capFirst(x) : 'Waiting on ' + x) : 'Waiting';
+    if (st === 'blocked') return x ? (/^blocked\b/i.test(x) ? capFirst(x) : 'Blocked by ' + x) : 'Blocked';
+    // a partial written by a review is how far it got; one set while working is "in progress"
+    if (st === 'in_progress') return c && c.execState === 'in_progress' ? 'In progress' : 'Partially completed';
+    if (st === 'disrupted') return 'Disrupted' + (c && c.disruptionReason ? ' · ' + c.disruptionReason : '');
+    if (st === 'not_done') return 'Not done';
+    return '';
+  }
+  function actionIsWaiting(c){ var st = actionExecState(c); return st === 'waiting' || st === 'blocked'; }
+  // Done and reopened keep the state honest whichever way the record changed: a done
+  // Action is done; one reopened from done starts again (its waiting context is history)
+  function normaliseExecState(item, prev){
+    if (item.status === 'completed'){
+      if (item.execState !== 'done' && (item.execState || prev)) { item.execState = 'done'; item.statusContext = null; }
+    } else if (item.execState === 'done'){
+      item.execState = 'not_started'; item.statusContext = null;
+    } else if (item.status === 'disrupted' || item.status === 'not_done'){
+      if (item.execState) { item.execState = null; item.statusContext = null; }
+    }
+  }
+
+  // ---- Action Updates: a private history per Action (ledger_action_updates) ----
+  // What Shaun wrote about it, and the quiet facts — state changed, moved, done,
+  // reopened. Owner-only: never in a projection, never in a partner request's Updates.
+  // Facts are written by the device that makes the change, from the difference between
+  // the Action as it was and as it is saved, under an id made from that save — so a
+  // listener, a re-render or a second device never writes them again.
+  var AU_COLL = 'ledger_action_updates', AU_LOCAL = 'ledger_action_updates_fallback';
+  var actionPrev = {};        // each Action as this device last saw or wrote it
+  var auLocalListeners = [];
+  function actionsSeen(list){ actionPrev = {}; list.forEach(function(c){ if (c.id) actionPrev[c.id] = Object.assign({}, c); }); }
+  function actionTimelineEvents(prev, next){
+    var evs = [], from = actionExecState(prev), to = actionExecState(next);
+    if (prev.status !== 'completed' && next.status === 'completed') evs.push({ type: 'completed', metadata: { fromStatus: from } });
+    else if (prev.status === 'completed' && next.status !== 'completed') evs.push({ type: 'status', metadata: { fromStatus: 'done', toStatus: to, reopened: true } });
+    else if (from !== to || ((to === 'waiting' || to === 'blocked') && (prev.statusContext || '') !== (next.statusContext || '')))
+      evs.push({ type: 'status', metadata: { fromStatus: from, toStatus: to, context: (to === 'waiting' || to === 'blocked') ? (next.statusContext || null) : null } });
+    if ((prev.date || null) !== (next.date || null) && next.date) evs.push({ type: 'moved', metadata: { fromDate: prev.date || null, toDate: next.date } });
+    return evs;
+  }
+  function auLocalAll(){ try { return JSON.parse(localStorage.getItem(AU_LOCAL) || '[]') || []; } catch(e){ return []; } }
+  function auLocalNotify(){ var all = auLocalAll(); auLocalListeners.slice().forEach(function(l){ l(all); }); }
+  function writeActionUpdate(id, actionId, type, role, text, meta){
+    var rec = { actionId: actionId, ownerUid: (authUser && authUser.uid) || null, type: type, actorUid: (authUser && authUser.uid) || null,
+      actorRole: role, text: text || null, metadata: meta || {} };
+    if (dbReady && dbRef && authUser){
+      rec.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      return dbRef.collection(AU_COLL).doc(id).set(rec).catch(function(e){ console.warn('action update not saved', e && e.code); });
+    }
+    var all = auLocalAll();
+    if (all.some(function(x){ return x.id === id; })) return Promise.resolve();
+    rec.id = id; rec.createdAt = new Date().toISOString();
+    all.push(rec);
+    try { localStorage.setItem(AU_LOCAL, JSON.stringify(all)); } catch(e){}
+    auLocalNotify();
+    return Promise.resolve();
+  }
+  function logActionEvents(actionId, evs){
+    var stamp = Date.now().toString(36);
+    evs.forEach(function(e, i){
+      writeActionUpdate(actionId + '_' + stamp + '_' + e.type, actionId, e.type, 'system', null, Object.assign({ order: i }, e.metadata));
+    });
+  }
+  // an Action's history, live while it is open; returns a stop function
+  function watchActionUpdates(actionId, onEvents){
+    function shape(list){
+      return list.filter(function(x){ return x.actionId === actionId; }).map(function(x){
+        var at = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : (x.createdAt ? new Date(x.createdAt) : new Date());
+        return Object.assign({}, x, { at: at, actorRole: x.actorRole === 'system' ? 'system' : 'owner' });
+      }).sort(function(a, b){ return (a.at - b.at) || (((a.metadata || {}).order || 0) - ((b.metadata || {}).order || 0)); });
+    }
+    if (dbReady && dbRef && authUser){
+      return dbRef.collection(AU_COLL).where('ownerUid', '==', authUser.uid).where('actionId', '==', actionId).onSnapshot(function(snap){
+        onEvents(shape(snap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data({ serverTimestamps: 'estimate' }) || {}); })));
+      }, function(err){ console.warn('action updates unavailable', err && err.code); onEvents(null); });
+    }
+    var l = function(all){ onEvents(shape(all)); };
+    auLocalListeners.push(l); l(auLocalAll());
+    return function(){ auLocalListeners = auLocalListeners.filter(function(x){ return x !== l; }); };
+  }
+  // the open editor's Updates: the history (live) and one field to add to it. An update
+  // is never a state change — the Status above is chosen on purpose.
+  var auStop = null;
+  function wireActionUpdates(a){
+    if (auStop){ auStop(); auStop = null; }
+    var el = document.getElementById('auTimeline');
+    if (!el) return;
+    var stop = null, stopped = false;
+    stop = watchActionUpdates(a.id, function(evs){
+      if (stopped) return;
+      if (!document.body.contains(el) || !el.closest('.sheet-backdrop.open')){ stopped = true; if (stop) stop(); if (auStop === stop) auStop = null; return; }
+      if (evs === null){ el.innerHTML = ''; var p = document.createElement('p'); p.className = 'rq-empty'; p.textContent = 'Updates aren’t available right now.'; el.appendChild(p); return; }
+      rqRenderTimeline(el, evs, { owner: 'You', partner: '' }, 'owner', { solo: true, text: actionEventText });
+    });
+    if (stopped && stop){ stop(); stop = null; }
+    auStop = stop;
+    var ta = document.getElementById('auText'), send = document.getElementById('auSend');
+    ta.addEventListener('input', function(){
+      send.disabled = !ta.value.trim();
+      ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
+    });
+    send.addEventListener('click', function(){
+      var t = ta.value.trim().slice(0, 500);
+      if (!t) return;
+      send.disabled = true;
+      var id = (dbReady && dbRef && authUser) ? dbRef.collection(AU_COLL).doc().id : uid();
+      writeActionUpdate(id, a.id, 'comment', 'owner', t, {}).then(function(){ ta.value = ''; ta.style.height = ''; });
+    });
+  }
+  function actionEventText(e){
+    var m = e.metadata || {};
+    if (e.type === 'completed') return 'Done ✓';
+    if (e.type === 'moved') return 'Moved to ' + rqDayWord(m.toDate);
+    if (e.type === 'status'){
+      if (m.reopened) return 'Reopened';
+      if (m.toStatus === 'not_started') return 'Not started';
+      return actionStateLabel({ execState: m.toStatus === 'in_progress' ? 'in_progress' : null }, m.toStatus, m.context || '') || EXEC_LABEL[m.toStatus] || 'Updated';
+    }
+    return 'Updated';
+  }
   var DAY_STATUS_LABEL = { completed: 'Completed', partial: 'Partially completed', disrupted: 'Disrupted', unknown: 'Unknown' };
   var presetsLoaded = false;
   var prioritiesLoaded = false;
@@ -6247,6 +6410,7 @@
       dbRef.collection('ledger_commitments')
         .onSnapshot(function(snap){
           commitments = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
+          actionsSeen(commitments);
           if (!snap.metadata || !snap.metadata.fromCache) czLoaded.commitments = true;
           renderLogView();
           // Plan reads the same actions: its week rows and day pane follow them
@@ -6707,15 +6871,22 @@
     try {
       var raw = localStorage.getItem('ledger_commitments_fallback');
       if (raw) commitments = JSON.parse(raw);
+      actionsSeen(commitments);
     } catch(e){}
   }
 
   async function saveCommitment(item){
+    // what changed, from the Action as this device last knew it — the private timeline's facts
+    var prev = item.id ? actionPrev[item.id] : null;
+    normaliseExecState(item, prev);
+    var evs = prev ? actionTimelineEvents(prev, item) : [];
+    if (item.id) actionPrev[item.id] = Object.assign({}, item);
     if (dbReady && dbRef){
       try {
         if (item.id){
           var id = item.id; var copy = Object.assign({}, item); delete copy.id;
           await dbRef.collection('ledger_commitments').doc(id).set(copy);
+          if (evs.length) logActionEvents(id, evs);
         } else {
           await dbRef.collection('ledger_commitments').add(item);
         }
@@ -6729,7 +6900,9 @@
       item.id = uid();
       commitments.push(item);
     }
+    actionPrev[item.id] = Object.assign({}, item);
     localSaveCommitments();
+    if (evs.length) logActionEvents(item.id, evs);
     renderLogView();
     if (currentView === 'plan') renderPlan();
   }
@@ -7578,8 +7751,9 @@
     var bits = [];
     if (t) bits.push(timeRangeLabel(t, c.durationMin));
     else if (c.durationMin) bits.push(fmtDuration(c.durationMin));
-    if (c.status !== 'planned' && c.status !== 'completed') bits.push(COMMITMENT_STATUS_LABEL[c.status]);
-    if (c.status === 'disrupted' && c.disruptionReason) bits.push(c.disruptionReason);
+    // what is actually happening with it leads the line: "Waiting on payroll · Work"
+    var stateLabel = done ? '' : actionStateLabel(c);
+    if (stateLabel) bits.unshift(stateLabel);
     if (opts.showCategory) bits.push(actionCategoryLabel(actionCategoryKey(c)));
     if (c.minVersion && !done) bits.push('Min: ' + c.minVersion);
     if (c.sourceType === 'partner_request') bits.push('From ' + (c.sourceLabel || 'your partner'));
@@ -7967,7 +8141,8 @@
       } else if (it.kind === 'action'){
         t.textContent = it.c.title;
         var bits = [categoryLabel(it.c.category)];
-        if (it.c.status !== 'planned' && it.c.status !== 'completed') bits.push(COMMITMENT_STATUS_LABEL[it.c.status]);
+        var fsl = it.c.status === 'completed' ? '' : actionStateLabel(it.c);
+        if (fsl) bits.unshift(fsl);
         if (matterTitle(it.c.matterId)) bits.push(matterTitle(it.c.matterId));
         if (it.c.minVersion && it.c.status !== 'completed') bits.push('Min: ' + it.c.minVersion);
         m.textContent = bits.join(' · ');
@@ -8160,6 +8335,10 @@
     function done(){ closeSheet(); if (opts.onDone) opts.onDone(); }
     var statusVal = existing ? existing.status : 'planned';
     var disruptionVal = existing ? (existing.disruptionReason || null) : null;
+    // what is happening with it: chosen here, written only if Shaun changes it
+    var stateVal = existing ? actionExecState(existing) : 'not_started';
+    var stateTouched = false;
+    var showOutcomes = !!existing && (existing.date < todayStr() || existing.status === 'disrupted' || existing.status === 'not_done');
 
     function buildHtml(){
       var priorityOptions = [{value:'', label:'No linked priority'}].concat(
@@ -8191,13 +8370,30 @@
         if (existing.sourceType === 'partner_request') html += (shareOn() && sharedRequests.some(function(x){ return x.id === existing.sourceRequestId; })
           ? '<button type="button" class="commit-origin-note rq-origin" id="commitSourceNote"><span></span>' + UI_ICON.chevronRight + '</button>'
           : '<p class="commit-origin-note" id="commitSourceNote"></p>');
-        html += '<div class="field"><label>Status</label><div class="status-btn-grid" id="commitStatusGrid">' +
-          ['completed','partial','disrupted','not_done'].map(function(s){
-            return '<button type="button" class="status-btn' + (statusVal===s?' sel '+s:'') + '" data-s="' + s + '">' + COMMITMENT_STATUS_LABEL[s] + '</button>';
-          }).join('') +
-        '</div></div>';
-        html += '<div id="disruptionReasonField" style="' + (statusVal==='disrupted' ? '' : 'display:none') + '">' +
+        // Status: five plain states; a few words for waiting or blocked. How a past day
+        // ended (disrupted, not done) stays available for the record.
+        html += '<div class="field as-field"><label>Status</label>' +
+          '<div class="bk-filter-pop as-states" id="commitStatusGrid" role="radiogroup" aria-label="Status">' +
+          EXEC_STATES.map(function(st){
+            return '<button type="button" class="bk-filter-chip as-chip' + (stateVal === st ? ' sel' : '') + '" role="radio" aria-checked="' + (stateVal === st) + '" data-as="' + st + '">' + EXEC_LABEL[st] + '</button>';
+          }).join('') + '</div>' +
+          '<div class="as-ctx" id="asCtxField"' + (stateVal === 'waiting' || stateVal === 'blocked' ? '' : ' hidden') + '>' +
+            '<label for="f_statusContext" id="asCtxLabel">' + (stateVal === 'blocked' ? 'What’s blocking this?' : 'Waiting on') + '</label>' +
+            '<input type="text" id="f_statusContext" maxlength="80" autocomplete="off" placeholder="' + (stateVal === 'blocked' ? 'e.g. missing documents' : 'e.g. payroll') + '">' +
+          '</div>' +
+          (showOutcomes ? '<p class="as-record">For the record: ' +
+            '<button type="button" class="btn-link as-outcome' + (stateVal === 'disrupted' ? ' sel' : '') + '" data-as="disrupted">Disrupted</button> · ' +
+            '<button type="button" class="btn-link as-outcome' + (stateVal === 'not_done' ? ' sel' : '') + '" data-as="not_done">Not done</button></p>' : '') +
+        '</div>';
+        html += '<div id="disruptionReasonField" style="' + (stateVal==='disrupted' ? '' : 'display:none') + '">' +
           fieldSelect('f_disruptionReason', 'Disruption reason', [{value:'',label:'Not specified'}].concat(DISRUPTION_REASONS.map(function(r){ return {value:r,label:r}; })), disruptionVal || '') +
+        '</div>';
+        // Updates: what happened with it, in Shaun's words, and the quiet facts. Private.
+        html += '<div class="au-sec"><h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
+          (existing.sourceType === 'partner_request' ? '<p class="au-private">Only you see these. To tell ' + escOpt(existing.sourceLabel ? existing.sourceLabel.replace(/^From\s+/i, '') : 'your partner') + ', add an update on the request.</p>' : '') +
+          '<div class="rq-tl au-tl" id="auTimeline"><p class="rq-empty">Loading…</p></div>' +
+          '<div class="rq-compose au-compose"><textarea id="auText" rows="1" maxlength="500" placeholder="Add an update…" aria-label="Add an update"></textarea>' +
+          '<button type="button" class="rq-send" id="auSend" disabled>Add</button></div>' +
         '</div>';
       }
 
@@ -8220,6 +8416,21 @@
           '</div>';
       }
       return html;
+    }
+
+    // the chosen state, as the record holds it: done is completion, in progress is
+    // partial, waiting/blocked keep how far it got and add their context
+    function stateCtx(){ var el = document.getElementById('f_statusContext'); return el ? el.value.trim().slice(0, 80) : ''; }
+    function stateCtxChanged(){ return (stateVal === 'waiting' || stateVal === 'blocked') && stateCtx() !== ((existing && existing.statusContext) || ''); }
+    function stateOut(){
+      var reasonEl = document.getElementById('f_disruptionReason');
+      if (stateVal === 'done') return { status: 'completed', execState: 'done', statusContext: null, disruptionReason: null };
+      if (stateVal === 'disrupted') return { status: 'disrupted', execState: null, statusContext: null, disruptionReason: (reasonEl && reasonEl.value) || null };
+      if (stateVal === 'not_done') return { status: 'not_done', execState: null, statusContext: null, disruptionReason: null };
+      if (stateVal === 'in_progress') return { status: 'partial', execState: 'in_progress', statusContext: null, disruptionReason: null };
+      if (stateVal === 'waiting' || stateVal === 'blocked') return { status: existing.status === 'partial' ? 'partial' : 'planned',
+        execState: stateVal, statusContext: stateCtx() || null, disruptionReason: null };
+      return { status: 'planned', execState: 'not_started', statusContext: null, disruptionReason: null };
     }
 
     function moreHasValue(){
@@ -8286,6 +8497,8 @@
         durationMin: Number(document.getElementById('f_commitDuration').value) || null,
         createdAt: existing ? existing.createdAt : new Date().toISOString()
       });
+      if (isEditing && (stateTouched || stateCtxChanged())) Object.assign(out, stateOut());
+      else if (isEditing && stateVal === 'disrupted') out.disruptionReason = document.getElementById('f_disruptionReason').value || null;
       // links: from the form when it shows them, otherwise whatever the record already had
       var mSel = document.getElementById('f_commitMatter'), cSel = document.getElementById('f_commitConv');
       if (mSel) out.matterId = mSel.value || null;
@@ -8307,13 +8520,27 @@
         if (v && v.matterId && !mSelEl.value) mSelEl.value = v.matterId;
       });
       if (isEditing){
-        document.querySelectorAll('#commitStatusGrid .status-btn').forEach(function(btn){
+        var ctxIn = document.getElementById('f_statusContext');
+        if (ctxIn) ctxIn.value = existing.statusContext || '';     // user text, as a value
+        // choosing a state changes the form in place, so nothing typed is lost
+        sheetEl.querySelectorAll('[data-as]').forEach(function(btn){
           btn.addEventListener('click', function(){
-            statusVal = btn.dataset.s;
-            sheetEl.innerHTML = buildHtml();
-            wireSheet();
+            stateVal = btn.dataset.as; stateTouched = true;
+            statusVal = stateOut().status;
+            sheetEl.querySelectorAll('[data-as]').forEach(function(x){
+              var on = x.dataset.as === stateVal;
+              x.classList.toggle('sel', on);
+              if (x.getAttribute('role') === 'radio') x.setAttribute('aria-checked', on ? 'true' : 'false');
+            });
+            var wait = stateVal === 'waiting' || stateVal === 'blocked';
+            document.getElementById('asCtxField').hidden = !wait;
+            document.getElementById('asCtxLabel').textContent = stateVal === 'blocked' ? 'What’s blocking this?' : 'Waiting on';
+            ctxIn.placeholder = stateVal === 'blocked' ? 'e.g. missing documents' : 'e.g. payroll';
+            document.getElementById('disruptionReasonField').style.display = stateVal === 'disrupted' ? '' : 'none';
+            if (wait && !ctxIn.value) setTimeout(function(){ try { ctxIn.focus(); } catch(e){} }, 30);
           });
         });
+        wireActionUpdates(existing);
         document.getElementById('deleteCommitBtn').addEventListener('click', function(){
           deleteCommitment(existing.id);
           done();
@@ -9618,11 +9845,9 @@
     });
   }
   // A subtle state line — the data already knows more than "not started"
+  // a waiting Action in the Backlog is still waiting — its state travels with it
   function backlogStateLabel(c){
-    if (c.status === 'partial') return 'Partially completed';
-    if (c.status === 'disrupted') return 'Disrupted' + (c.disruptionReason ? ' · ' + c.disruptionReason : '');
-    if (c.status === 'not_done') return 'Not done';
-    return '';
+    return actionStateLabel(c);
   }
 
   // Moving an item forward mutates the one record: no duplicate, and the history
@@ -11483,7 +11708,8 @@
     return 'Updated';
   }
   // one timeline renderer for both sides: a quiet rail, people above facts
-  function rqRenderTimeline(el, evs, names, selfRole){
+  function rqRenderTimeline(el, evs, names, selfRole, opts){
+    opts = opts || {};
     el.innerHTML = '';
     if (!evs.length){
       var empty = document.createElement('p'); empty.className = 'rq-empty'; empty.textContent = 'No updates yet';
@@ -11495,14 +11721,18 @@
       if (e.type === 'comment'){
         item.className = 'rq-ev human' + (e.actorRole === selfRole ? ' self' : '');
         var head = document.createElement('div'); head.className = 'rq-ev-head';
-        var who = document.createElement('span'); who.className = 'rq-who';
-        who.textContent = e.actorRole === selfRole ? 'You' : (e.actorRole === 'owner' ? names.owner : names.partner);
-        head.appendChild(who); head.appendChild(when);
+        // a private history has one author: just the time
+        if (!opts.solo){
+          var who = document.createElement('span'); who.className = 'rq-who';
+          who.textContent = e.actorRole === selfRole ? 'You' : (e.actorRole === 'owner' ? names.owner : names.partner);
+          head.appendChild(who);
+        }
+        head.appendChild(when);
         var p = document.createElement('p'); p.className = 'rq-text'; p.textContent = e.text || '';
         item.appendChild(head); item.appendChild(p);
       } else {
-        item.className = 'rq-ev sys' + (e.type === 'status' && (e.metadata || {}).status === 'done' ? ' done' : '');
-        var s = document.createElement('span'); s.className = 'rq-sys'; s.textContent = rqEventText(e, names, selfRole);
+        item.className = 'rq-ev sys' + ((e.type === 'status' && (e.metadata || {}).status === 'done') || e.type === 'completed' ? ' done' : '');
+        var s = document.createElement('span'); s.className = 'rq-sys'; s.textContent = opts.text ? opts.text(e) : rqEventText(e, names, selfRole);
         item.appendChild(s); item.appendChild(when);
       }
       el.appendChild(item);
@@ -13766,6 +13996,7 @@
   // below is derived from what Ledger already holds for that date; the sheet only adds
   // the judgements no record can infer (overall status, notes) and links into the real
   // records for anything it can't answer itself.
+  function cuActionOpen(c){ return c.status === 'planned' || (c.status !== 'completed' && actionIsWaiting(c)); }
   function catchUpSnapshot(dateStr){
     var rec = getDayRecord(dateStr) || {};
     var dayActions = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
@@ -13802,7 +14033,9 @@
       // what the evening already closed, so the morning only asks for the rest
       windDownAt: (rec.windDown && rec.windDown.completedAt) || null,
       windDown: windDownState(dateStr),
-      actionsOpen: dayActions.filter(function(c){ return c.status === 'planned'; }).length
+      // waiting and blocked are open, but not unexplained: they carry their reason
+      actionsOpen: dayActions.filter(cuActionOpen).length,
+      actionsWaiting: dayActions.filter(function(c){ return cuActionOpen(c) && actionIsWaiting(c); }).length
     };
   }
   // day-first, as everywhere else in Ledger
@@ -13974,19 +14207,24 @@
 
       // --- actions: read straight from that day's commitments; the open ones are listed
       // here, each opening its own editor and coming back ---
-      var openActs = snap.actions.filter(function(c){ return c.status === 'planned'; });
+      var openActs = snap.actions.filter(cuActionOpen);
       html += cuBlock(UI_ICON.list, 'Actions',
         (snap.actionsTotal && !snap.actionsOpen
           ? cuResolved('All ' + snap.actionsTotal + ' reviewed · ' + snap.actionsCompleted + ' completed')
           : '<div class="cu-sub">' + (snap.actionsTotal
               ? snap.actionsCompleted + ' of ' + snap.actionsTotal + ' completed' +
-                (snap.actionsOpen ? ' · ' + snap.actionsOpen + ' still open' : '')
+                (snap.actionsWaiting ? ' · ' + snap.actionsWaiting + ' waiting' : '') +
+                (snap.actionsOpen - snap.actionsWaiting ? ' · ' + (snap.actionsOpen - snap.actionsWaiting) + ' still open' : '')
               : 'No actions recorded for this day') + '</div>' +
             (openActs.length ? '<div class="cu-evidence cu-open-acts">' + openActs.map(function(c, i){
+              var w = actionIsWaiting(c);
+              // a waiting Action says why, and offers where it goes next — never "not done"
               return '<button type="button" class="cu-evidence-row" data-cu-act="' + i + '">' +
-                '<span class="cu-open-ring" aria-hidden="true"></span>' +
+                '<span class="cu-open-ring' + (w ? ' waiting' : '') + '" aria-hidden="true"></span>' +
                 '<span class="cu-ev-text"><strong></strong><span></span></span>' +
-                '<span class="chev">' + UI_ICON.chevronRight + '</span></button>';
+                '<span class="chev">' + UI_ICON.chevronRight + '</span></button>' +
+                (w ? '<div class="cu-wait-acts"><button type="button" class="btn-link" data-cu-keep="' + i + '">Keep waiting · today</button>' +
+                  '<button type="button" class="btn-link" data-cu-day="' + i + '">Another day</button></div>' : '');
             }).join('') + '</div>' : '')),
         '', 'actions');
 
@@ -14122,11 +14360,23 @@
         readNotes(); saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
         cuLeaveFor(dateStr, step, open);
       }
-      var openActs = snap.actions.filter(function(c){ return c.status === 'planned'; });
+      var openActs = snap.actions.filter(cuActionOpen);
+      function freshAct(c){ return commitments.find(function(x){ return x.id === c.id; }) || c; }
+      sheetEl.querySelectorAll('[data-cu-keep]').forEach(function(el){
+        var c = openActs[Number(el.dataset.cuKeep)];
+        el.addEventListener('click', function(){
+          // still waiting, just today now: the state and its reason go with it
+          leave('actions', function(){ moveActionToDate(freshAct(c), todayStr()); showPinToast('Moved to today · ' + actionStateLabel(freshAct(c)).toLowerCase(), false, CHECK_SVG); });
+        });
+      });
+      sheetEl.querySelectorAll('[data-cu-day]').forEach(function(el){
+        var c = openActs[Number(el.dataset.cuDay)];
+        el.addEventListener('click', function(){ leave('actions', function(){ openPickDaySheet(freshAct(c)); }); });
+      });
       sheetEl.querySelectorAll('[data-cu-act]').forEach(function(el){
         var c = openActs[Number(el.dataset.cuAct)];
         el.querySelector('strong').textContent = c.title;                   // user text
-        el.querySelector('.cu-ev-text span').textContent = categoryLabel(c.category) || '';
+        el.querySelector('.cu-ev-text span').textContent = actionIsWaiting(c) ? actionStateLabel(c) : (categoryLabel(c.category) || '');
         el.addEventListener('click', function(){
           leave('actions', function(){ openCommitmentSheet(commitments.find(function(x){ return x.id === c.id; }) || c); });
         });

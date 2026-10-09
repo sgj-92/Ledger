@@ -500,8 +500,38 @@ async function oobLink(email){
   await S.click('#setShareReq'); await S.waitForSelector('.rq-li');
   await S.click('.rq-li:has-text("Pick up prescription")'); await S.waitForSelector('#rqTimeline');
   check(await until(S, () => /Moved to tomorrow/.test(document.getElementById('rqTimeline').innerText)), 'U15 the timeline shows a quiet "Moved to tomorrow"');
+  // H — the linked Action gets a private state and a private Update: none of it reaches Abi
   await S.click('#rqAction'); await S.waitForSelector('#commitStatusGrid');
-  await S.click('#commitStatusGrid [data-s="completed"]'); await S.click('#saveCommitBtn');
+  check(/Only you see these/.test(await txt(S, '.au-sec')), 'H the Action\'s Updates say they are private');
+  await S.click('#commitStatusGrid [data-as="waiting"]'); await S.fill('#f_statusContext', 'pharmacy stock');
+  await S.fill('#auText', 'PRIVATE: pharmacy has none in, due Thursday.'); await S.click('#auSend');
+  check(await until(S, () => /pharmacy has none in/.test(document.getElementById('auTimeline').innerText)), 'H the private update is in the Action\'s timeline');
+  await S.click('#saveCommitBtn'); await sleep(2000);
+  const actRow = (await all('ledger_commitments')).find(c => c.sourceRequestId === rx.id);
+  check(actRow.execState === 'waiting' && actRow.statusContext === 'pharmacy stock' && actRow.status === 'planned', 'H the Action is Waiting on pharmacy stock (status stays planned)');
+  const aus = (await all('ledger_action_updates')).filter(u => u.actionId === actRow.id);
+  check(aus.some(u => u.type === 'comment' && /pharmacy has none in/.test(u.text)) && aus.some(u => u.type === 'status' && (u.metadata || {}).toStatus === 'waiting') && aus.every(u => u.ownerUid === owner),
+    'H it is stored as the owner\'s private Action Updates (comment + one status fact)');
+  check(!(await evOf()).some(u => /pharmacy|PRIVATE/i.test(JSON.stringify(u))), 'H nothing of it is in the request\'s shared Updates');
+  check(!(await all('ledger_shared_snapshots')).some(x => /pharmacy|PRIVATE/i.test(JSON.stringify(x))) && !(await all('ledger_shared_requests')).some(x => /pharmacy|PRIVATE/i.test(JSON.stringify(x))), 'H …nor in any projection or request');
+  await A.click('.pp-req:has-text("Pick up prescription")'); await A.waitForSelector('#rqTimeline'); await sleep(1200);
+  check(!/pharmacy|PRIVATE/i.test(await txt(A, '#ppSheet')) && /Planned|On the list|tomorrow/i.test(await txt(A, '#rqState')), 'H Abi\'s request shows its own state and history, nothing private');
+  await A.click('#ppSheet .sheet-close');
+  const auDenied = await A.evaluate(async (ids) => {
+    const db = firebase.firestore(), out = {};
+    const tryIt = async (k, f) => { try { await f(); out[k] = 'ALLOWED'; } catch (e){ out[k] = e.code; } };
+    await tryIt('read', () => db.collection('ledger_action_updates').doc(ids.au).get());
+    await tryIt('query', () => db.collection('ledger_action_updates').where('ownerUid', '==', ids.owner).get());
+    await tryIt('write', () => db.collection('ledger_action_updates').add({ actionId: ids.act, ownerUid: ids.abi, type: 'comment', actorUid: ids.abi, actorRole: 'owner', text: 'x', createdAt: firebase.firestore.FieldValue.serverTimestamp(), metadata: {} }));
+    return out;
+  }, { au: aus[0].id, owner, abi, act: actRow.id });
+  check(Object.values(auDenied).every(v => v === 'permission-denied'), 'J Abi cannot read, query or write Action Updates: ' + JSON.stringify(auDenied));
+  // I — the request's own Updates still work as before (the done below is logged once)
+  await openSettings(S); await S.waitForSelector('#setShareReq');
+  await S.click('#setShareReq'); await S.waitForSelector('.rq-li');
+  await S.click('.rq-li:has-text("Pick up prescription")'); await S.waitForSelector('#rqTimeline');
+  await S.click('#rqAction'); await S.waitForSelector('#commitStatusGrid');
+  await S.click('#commitStatusGrid [data-as="done"]'); await S.click('#saveCommitBtn');
   await sleep(2500);
   check((await evOf('status')).filter(u => (u.metadata || {}).status === 'done').length === 1, 'U17 one "done" entry');
   await backToToday(S);

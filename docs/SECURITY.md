@@ -40,6 +40,7 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | --- | --- | --- |
 | `ledger_users` | roles | read own (owner reads all); no client writes |
 | `ledger_commitments` | actions | owner |
+| `ledger_action_updates` | an Action's private Updates (what happened, and its state/move/done facts) | owner, own entries only (`ownerUid`); create validated, never edited; partner none |
 | `ledger_plans` | day plans, Morning Prime, challenge logs | owner |
 | `ledger_sessions` | training, weight, steps, nutrition, photos, symptoms | owner |
 | `ledger_day_status` | day close / review | owner |

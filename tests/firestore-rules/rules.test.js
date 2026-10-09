@@ -197,6 +197,31 @@ async function check(name, fn){
   await check('partner A: cannot delete a request (withdrawing is a state)', () => assertFails(partner.doc('ledger_shared_requests/reqA').delete()));
   await check('partner A: cannot withdraw once planned', () => assertFails(partner.doc('ledger_shared_requests/reqPlanned').update({ status: 'withdrawn', updatedAt: 'now' })));
 
+  // ---- Action Updates: owner-private ----
+  const AU = 'ledger_action_updates';
+  const au = (o) => Object.assign({ actionId: 'seed', ownerUid: 'owner1', type: 'comment', actorUid: 'owner1', actorRole: 'owner',
+    text: 'Payroll file sent at 10:20.', createdAt: NOW(), metadata: {} }, o || {});
+  await env.withSecurityRulesDisabled(async (ctx) => { await ctx.firestore().doc(AU + '/seedAU').set(au({ createdAt: 'x' })); });
+  await check('action updates: owner can add an update to own Action', () => assertSucceeds(owner.doc(AU + '/au1').set(au())));
+  await check('action updates: owner can log a status fact', () => assertSucceeds(owner.doc(AU + '/au2').set(au({ type: 'status', actorRole: 'system', text: null, metadata: { fromStatus: 'not_started', toStatus: 'waiting', context: 'payroll' } }))));
+  await check('action updates: owner can read own (query)', () => assertSucceeds(owner.collection(AU).where('ownerUid', '==', 'owner1').where('actionId', '==', 'seed').get()));
+  await check('action updates: owner cannot write as another owner', () => assertFails(owner.doc(AU + '/au3').set(au({ ownerUid: 'owner2' }))));
+  await check('action updates: owner cannot claim another author', () => assertFails(owner.doc(AU + '/au4').set(au({ actorUid: 'partner1' }))));
+  await check('action updates: only for an Action that exists', () => assertFails(owner.doc(AU + '/au5').set(au({ actionId: 'nope' }))));
+  await check('action updates: unknown types are refused', () => assertFails(owner.doc(AU + '/au6').set(au({ type: 'assigned' }))));
+  await check('action updates: an empty update is refused', () => assertFails(owner.doc(AU + '/au7').set(au({ text: '' }))));
+  await check('action updates: cannot backdate', () => assertFails(owner.doc(AU + '/au8').set(au({ createdAt: '2020-01-01T00:00:00Z' }))));
+  await check('action updates: no extra fields', () => assertFails(owner.doc(AU + '/au9').set(au({ shared: true }))));
+  await check('action updates: entries are not edited', () => assertFails(owner.doc(AU + '/au1').update({ text: 'changed' })));
+  await check('action updates: owner may remove them', () => assertSucceeds(owner.doc(AU + '/au2').delete()));
+  await check("action updates: another owner cannot read owner1's", () => assertFails(owner2.doc(AU + '/seedAU').get()));
+  await check('action updates: partner cannot read one', () => assertFails(partner.doc(AU + '/seedAU').get()));
+  await check('action updates: partner cannot query them', () => assertFails(partner.collection(AU).where('ownerUid', '==', 'owner1').get()));
+  await check('action updates: partner cannot write one', () => assertFails(partner.doc(AU + '/p1').set(au({ ownerUid: 'partner1', actorUid: 'partner1' }))));
+  await check('action updates: partner cannot delete one', () => assertFails(partner.doc(AU + '/seedAU').delete()));
+  await check('action updates: signed out cannot read', () => assertFails(anon.doc(AU + '/seedAU').get()));
+  await check('action updates: no role cannot read', () => assertFails(stranger.collection(AU).where('ownerUid', '==', 'owner1').get()));
+
   // ---- Partner Request Updates ----
   // signed out / no role
   await check('updates: signed out cannot read', () => assertFails(forReq(anon, 'reqPlanned').get()));
