@@ -209,7 +209,7 @@ service cloud.firestore {
     function requestText(d) {
       return d.text is string && d.text.size() > 0 && d.text.size() <= 280
           && (!('note' in d) || d.note == null || (d.note is string && d.note.size() <= 500))
-          && d.requestedTiming in ['today', 'week', 'date', 'none']
+          && d.requestedTiming in ['today', 'week', 'date', 'none', 'later']
           && (!('requestedDate' in d) || d.requestedDate == null || d.requestedDate is string);
     }
     // the summary of the latest update may only name the side writing it
@@ -228,6 +228,18 @@ service cloud.firestore {
           && data.partnerUid == request.auth.uid
           && activeMember(data.ownerUid, request.auth.uid);
     }
+    // "Move to upcoming": a withdrawn request is never revived. A new request is made
+    // from it, and the two point at each other — the new one's renewedFrom, the old
+    // one's renewedAs — so each withdrawn request is renewed once, by its own partner.
+    function renewsWithdrawn(newId, oldId) {
+      return oldId is string && oldId.matches('^[A-Za-z0-9]{1,40}$')
+          && exists(requestPath(oldId))
+          && get(requestPath(oldId)).data.status == 'withdrawn'
+          && get(requestPath(oldId)).data.partnerUid == request.auth.uid
+          && get(requestPath(oldId)).data.ownerUid == request.resource.data.ownerUid
+          && get(requestPath(oldId)).data.get('renewedAs', null) == null
+          && getAfter(requestPath(oldId)).data.get('renewedAs', null) == newId;
+    }
     match /ledger_shared_requests/{requestId} {
       allow read: if (isOwner() && resource.data.ownerUid == request.auth.uid)
                   || partnerCanReach(resource.data);
@@ -239,8 +251,10 @@ service cloud.firestore {
                     && activeMember(request.resource.data.ownerUid, request.auth.uid)
                     && request.resource.data.keys().hasOnly(['ownerUid', 'partnerUid', 'text', 'note', 'requestedTiming',
                          'requestedDate', 'createdAt', 'updatedAt', 'status', 'plannedDate', 'linkedActionId',
-                         'latestUpdateAt', 'latestUpdateBy', 'latestUpdateType', 'partnerLastReadAt'])
+                         'latestUpdateAt', 'latestUpdateBy', 'latestUpdateType', 'partnerLastReadAt', 'renewedFrom'])
                     && request.resource.data.status == 'requested'
+                    && (request.resource.data.get('renewedFrom', null) == null
+                        || renewsWithdrawn(requestId, request.resource.data.renewedFrom))
                     && (!('plannedDate' in request.resource.data) || request.resource.data.plannedDate == null)
                     && (!('linkedActionId' in request.resource.data) || request.resource.data.linkedActionId == null)
                     && request.resource.data.get('latestUpdateBy', 'partner') == 'partner'
@@ -258,6 +272,22 @@ service cloud.firestore {
                               && request.resource.data.diff(resource.data).affectedKeys()
                                    .hasOnly(['status', 'updatedAt', 'latestUpdateAt', 'latestUpdateBy', 'latestUpdateType'])
                               && summaryBy('partner'))
+                          // a withdrawn request, once: renewed as a new request (the new one
+                          // must name this one in the same write)
+                          || (resource.data.status == 'withdrawn'
+                              && request.resource.data.status == 'withdrawn'
+                              && resource.data.get('renewedAs', null) == null
+                              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['renewedAs', 'updatedAt'])
+                              && request.resource.data.renewedAs is string
+                              && existsAfter(requestPath(request.resource.data.renewedAs))
+                              && getAfter(requestPath(request.resource.data.renewedAs)).data.get('renewedFrom', null) == requestId
+                              && getAfter(requestPath(request.resource.data.renewedAs)).data.partnerUid == request.auth.uid)
+                          // a withdrawn request, hidden from (or back in) their own list. It is
+                          // never deleted: the owner's copy and its history are untouched.
+                          || (resource.data.status == 'withdrawn'
+                              && request.resource.data.status == 'withdrawn'
+                              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['partnerHiddenAt', 'updatedAt'])
+                              && (request.resource.data.partnerHiddenAt == null || request.resource.data.partnerHiddenAt is string))
                           // their update's summary, and their own read mark, at any time
                           || (request.resource.data.diff(resource.data).affectedKeys()
                                 .hasOnly(['latestUpdateAt', 'latestUpdateBy', 'latestUpdateType', 'latestCommentAt',
@@ -272,7 +302,8 @@ service cloud.firestore {
                         && request.resource.data.status in ['requested', 'planned', 'in_progress', 'done', 'dismissed']
                         && (resource.data.status != 'withdrawn' || request.resource.data.status == 'withdrawn')
                         && summaryBy('owner'));
-      // a request is never deleted: withdrawn and dismissed are states, so its history stays
+      // a request is never deleted: withdrawn and dismissed are states, so its history
+      // stays. A partner hides a withdrawn one from their own list (partnerHiddenAt).
       allow delete: if false;
     }
 
@@ -314,7 +345,9 @@ service cloud.firestore {
           && activeMember(d.ownerUid, request.auth.uid)
           && (isComment(d)
               || (d.type == 'request_created' && updateId == d.requestId + '_created' && p.status == 'requested')
-              || (d.type == 'withdrawn' && updateId == d.requestId + '_withdrawn' && p.status == 'withdrawn'));
+              || (d.type == 'withdrawn' && updateId == d.requestId + '_withdrawn' && p.status == 'withdrawn')
+              || (d.type == 'renewed' && updateId == d.requestId + '_renewed' && p.status == 'withdrawn'
+                  && p.get('renewedAs', null) != null));
     }
     match /ledger_shared_request_updates/{updateId} {
       allow read: if (isOwner() && resource.data.ownerUid == request.auth.uid)

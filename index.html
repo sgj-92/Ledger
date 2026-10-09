@@ -4485,6 +4485,24 @@
   .pp-req.rq-withdrawn .pp-row-title { color: var(--text-2); }
   .pp-req.rq-withdrawn .pp-dot { border-style: dashed; border-color: var(--line-2); }
   .pp-req.rq-withdrawn .pp-pill { color: var(--text-3); background: none; }
+  /* upcoming: still wanted, not now — an open ring, drawn lighter */
+  .pp-req.rq-upcoming .pp-dot { border-style: dashed; }
+  /* a withdrawn row: the row opens it; ⋯ says what can happen next */
+  .pp-req-open {
+    display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; align-self: stretch; padding: 0;
+    background: none; border: none; text-align: left; font-family: var(--sans); color: inherit; cursor: pointer;
+  }
+  .pp-req-open:active { opacity: 0.65; }
+  .pp-req.rq-withdrawn { padding-top: 4px; padding-bottom: 4px; }
+  /* Past: settled requests under the open ones — the latest few, quieter, never an archive */
+  .pp-past { margin-top: var(--sp-6); }
+  .pp-past-list .pp-row { min-height: 46px; }
+  .pp-past-list .pp-row-title { font-size: 14.5px; color: var(--text-2); }
+  .pp-menu { margin-top: var(--sp-2); }
+  .pp-menu-open { font-size: 13px; color: var(--text-2); }
+  .rq-prov:empty { display: none; }
+  .rq-prov-link { display: inline-flex; align-items: center; gap: 4px; margin: 2px 0 6px; padding: 0; font-size: 12.5px; color: var(--text-2); }
+  .rq-prov-link svg { width: 12px; height: 12px; display: block; }
 
   /* -- the partner's Ledger -- */
   .partner-app {
@@ -11302,8 +11320,12 @@
     if (r.requestedTiming === 'today') return fmtDate(new Date(r.createdAt || Date.now())) === todayStr() ? 'For today' : 'For ' + shortDayLabel(fmtDate(new Date(r.createdAt)));
     if (r.requestedTiming === 'week') return 'This week';
     if (r.requestedTiming === 'date' && r.requestedDate) return 'For ' + shortDayLabel(r.requestedDate);
+    if (r.requestedTiming === 'later') return 'No rush';
     return '';
   }
+  // "Upcoming": still wanted, not asking to be scheduled yet. A request like any other
+  // (status requested, timing later); the owner still decides when, or whether.
+  function rqUpcoming(r){ return r.status === 'requested' && r.requestedTiming === 'later'; }
   function requestedWhenLabel(r){
     if (!r.createdAt) return 'Requested';
     var d = fmtDate(new Date(r.createdAt));
@@ -11330,7 +11352,7 @@
   function rqStatusLabel(r){
     if (r.status === 'done') return 'Done ✓';
     if (r.status === 'dismissed') return 'Set aside';
-    if (r.status === 'withdrawn') return 'Withdrawn';
+    if (r.status === 'withdrawn') return r.renewedAs ? 'Moved to upcoming' : 'Withdrawn';
     if (r.status === 'in_progress') return 'In progress';
     if (r.status === 'planned'){
       var d = r.plannedDate;
@@ -11339,7 +11361,7 @@
       var w = rqDayWord(d);
       return 'Planned ' + w;
     }
-    return 'Requested';
+    return rqUpcoming(r) ? 'Upcoming' : 'Requested';
   }
   function rqStatusClass(r){ return ['requested', 'planned', 'in_progress', 'done', 'dismissed', 'withdrawn'].indexOf(r.status) > -1 ? r.status : 'requested'; }
 
@@ -11397,7 +11419,9 @@
   // what happened, said from the facts recorded — never stored prose
   function rqEventText(e, names, selfRole){
     var m = e.metadata || {};
+    if (e.type === 'request_created' && m.renewedFrom) return (selfRole === 'partner' ? 'You' : names.partner) + ' moved it to upcoming, after withdrawing it';
     if (e.type === 'request_created') return selfRole === 'partner' ? 'You asked' : 'Asked by ' + names.partner;
+    if (e.type === 'renewed') return (selfRole === 'partner' ? 'You' : names.partner) + ' moved it to upcoming, as a new request';
     if (e.type === 'planned') return 'Planned for ' + rqDayWord(m.toDate);
     if (e.type === 'moved') return 'Moved to ' + rqDayWord(m.toDate);
     if (e.type === 'dismissed') return 'Set aside';
@@ -11626,6 +11650,7 @@
       '</div><button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
       '<p class="rq-state" id="rqState"></p>' +
       '<p class="rq-meta" id="rqMeta"></p>' +
+      '<div class="rq-prov" id="rqProv"></div>' +
       '<div class="rq-act" id="rqAct"></div>' +
       '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
       '<div class="rq-tl" id="rqTimeline"><p class="rq-empty">Loading…</p></div>' +
@@ -11663,6 +11688,7 @@
         act.querySelector('.rq-action-m').textContent = (a.status === 'completed' ? 'Done' : (a.status === 'partial' ? 'In progress' : 'Planned')) + ' · ' + shortDayLabel(a.date);
         document.getElementById('rqAction').addEventListener('click', function(){ openCommitmentSheet(a); });
       } else act.innerHTML = '';
+      rqProvenance(document.getElementById('rqProv'), r, sharedRequests, function(id){ rqStopDetail(); openRequestDetailSheet(id); });
       return true;
     }
     paint();
@@ -11784,7 +11810,7 @@
       if (note) note.textContent = '“' + r.note + '”';
       row.querySelector('.ib-meta').textContent = it.kind === 'update'
         ? [name + ' updated · ' + rqAgo(r.latestCommentAt), rqStatusLabel(r)].join(' · ')
-        : [requestedWhenLabel(r), requestTimingLabel(r)].concat(rqUnread(r, 'owner') ? [name + ' updated · ' + rqAgo(r.latestCommentAt)] : []).filter(Boolean).join(' · ');
+        : [requestedWhenLabel(r), rqUpcoming(r) ? 'Upcoming · no rush' : requestTimingLabel(r)].concat(rqUnread(r, 'owner') ? [name + ' updated · ' + rqAgo(r.latestCommentAt)] : []).filter(Boolean).join(' · ');
     });
     wrap.querySelectorAll('[data-ib-open]').forEach(function(b){
       b.addEventListener('click', function(){ var it = items[Number(b.dataset.ibOpen)]; if (it) openRequestDetailSheet(it.r.id); });
@@ -12052,15 +12078,57 @@
     return pp.snaps.filter(function(s){ return s.periodType === 'week' && s.periodStart <= t && t <= s.periodEnd; })
       .sort(function(a, b){ return a.periodStart < b.periodStart ? 1 : -1; })[0] || null;
   }
-  // what "From you" shows: anything still open, and what was settled in the last few days
+  // her list never shows what she has hidden (a withdrawn request she no longer needs)
+  function ppVisibleRequests(){ return pp.requests.filter(function(r){ return !r.partnerHiddenAt; }); }
+  // "From you": what is still open — asked, planned, under way, then upcoming (not now)
   function ppActiveRequests(){
-    var since = fmtDate(addDays(ppToday(), -3));
-    var rank = { requested: 0, in_progress: 1, planned: 1, done: 2, dismissed: 3, withdrawn: 4 };
-    return pp.requests.filter(function(r){
-      return r.status === 'requested' || r.status === 'planned' || r.status === 'in_progress' || rqUnread(r, 'partner') ||
-        fmtDate(new Date(r.latestUpdateAt || r.updatedAt || r.createdAt || 0)) >= since;
+    function rank(r){ return r.status === 'requested' ? (rqUpcoming(r) ? 2 : 0) : 1; }
+    return ppVisibleRequests().filter(function(r){
+      return r.status === 'requested' || r.status === 'planned' || r.status === 'in_progress';
     }).sort(function(a, b){
-      return (rank[a.status] - rank[b.status]) || ((a.createdAt || '') < (b.createdAt || '') ? 1 : -1);
+      return (rank(a) - rank(b)) || ((a.createdAt || '') < (b.createdAt || '') ? 1 : -1);
+    });
+  }
+  // "Past": what is settled — done, set aside, withdrawn — the latest few, quieter
+  var PP_PAST_MAX = 4;
+  function ppPastRequests(){
+    function key(r){ return r.latestUpdateAt || r.updatedAt || r.createdAt || ''; }
+    return ppVisibleRequests().filter(function(r){
+      return r.status === 'done' || r.status === 'dismissed' || r.status === 'withdrawn';
+    }).sort(function(a, b){ return key(a) < key(b) ? 1 : -1; });
+  }
+  function ppDayWord(iso){
+    if (!iso) return '';
+    var d = fmtDate(new Date(iso));
+    return d === ppToday() ? 'today' : (d === yesterdayStr() ? 'yesterday' : shortDayLabel(d));
+  }
+  // one request row. A withdrawn one is never a dead end: ⋯ says what can happen next
+  function ppReqRowHtml(r, attr){
+    var inner = '<span class="pp-dot" aria-hidden="true">' + (r.status === 'done' ? CHECK_SVG : '') + '</span>' +
+      '<span class="pp-row-body"><span class="pp-row-title"></span><span class="pp-row-meta"></span></span>';
+    if (r.status === 'withdrawn') return '<div class="pp-row pp-req rq-withdrawn" ' + attr + '>' +
+        '<button type="button" class="pp-req-open" data-pp-open>' + inner + '</button>' +
+        '<button type="button" class="kt-more pp-more" data-pp-more aria-label="What next for this request">' + KT_MORE_SVG + '</button></div>';
+    return '<button type="button" class="pp-row pp-req rq-' + rqStatusClass(r) + (rqUpcoming(r) ? ' rq-upcoming' : '') + '" ' + attr + ' data-pp-open>' + inner +
+      '<span class="pp-pill' + (rqStatusClass(r) === 'requested' ? ' quiet' : '') + '"></span></button>';
+  }
+  function ppReqMetaText(r){
+    if (r.status === 'withdrawn') return r.renewedAs ? 'Moved to upcoming' : 'Withdrawn ' + ppDayWord(r.latestUpdateAt || r.updatedAt);
+    if (r.status !== 'requested') return '';
+    return [requestTimingLabel(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ');
+  }
+  // rows are found by position — a request id is the partner's own string, never markup
+  function ppWireReqRows(scope, attr, list, owner, fallback){
+    list.forEach(function(r, i){
+      var row = scope.querySelector('[' + attr + '="' + i + '"]');
+      if (!row) return;
+      row.querySelector('.pp-row-title').textContent = r.text;
+      ppRowMeta(row.querySelector('.pp-row-meta'), r, owner, fallback(r));
+      var pill = row.querySelector('.pp-pill'); if (pill) pill.textContent = rqStatusLabel(r);
+      var open = row.hasAttribute('data-pp-open') ? row : row.querySelector('[data-pp-open]');
+      open.addEventListener('click', function(){ ppOpenRequest(r); });
+      var more = row.querySelector('[data-pp-more]');
+      if (more) more.addEventListener('click', function(){ ppWithdrawnMenu(r); });
     });
   }
   function ppCheckpoint(week){
@@ -12079,7 +12147,7 @@
     var m = pp.member, owner = m.ownerName || 'Your partner';
     var day = ppDaySnap(), week = ppWeekSnap();
     var shown = pp.tab === 'week' ? week : day;
-    var reqs = ppActiveRequests();
+    var reqs = ppActiveRequests(), past = ppPastRequests(), pastShown = past.slice(0, PP_PAST_MAX);
     var cp = ppCheckpoint(week);
     var scroll = el.scrollTop;
     var html = '<div class="pp-wrap">' +
@@ -12115,16 +12183,12 @@
       }).join('');
     }
     if (!pp.denied){
-      html += '<section class="pp-sec pp-requests"><div class="pp-sec-row"><h2 class="pp-sec-title">From you</h2>' +
-          (pp.requests.length > reqs.length ? '<button type="button" class="btn-link pp-all" id="ppAllReq">All requests</button>' : '') + '</div>' +
-        '<div class="pp-list">' + reqs.map(function(r, i){
-          return '<button type="button" class="pp-row pp-req rq-' + rqStatusClass(r) + '" data-pp-req="' + i + '">' +
-            '<span class="pp-dot" aria-hidden="true">' + (r.status === 'done' ? CHECK_SVG : '') + '</span>' +
-            '<span class="pp-row-body"><span class="pp-row-title"></span><span class="pp-row-meta"></span></span>' +
-            '<span class="pp-pill' + (rqStatusClass(r) === 'requested' ? ' quiet' : '') + '"></span>' +
-          '</button>';
-        }).join('') + '</div>' +
+      html += '<section class="pp-sec pp-requests"><div class="pp-sec-row"><h2 class="pp-sec-title">From you</h2></div>' +
+        (reqs.length ? '<div class="pp-list">' + reqs.map(function(r, i){ return ppReqRowHtml(r, 'data-pp-req="' + i + '"'); }).join('') + '</div>' : '') +
         '<button type="button" class="pp-add" id="ppAddReq"><span aria-hidden="true">+</span> Request something</button>' +
+        (past.length ? '<div class="pp-sec-row pp-past"><h2 class="pp-sec-title">Past</h2>' +
+            (past.length > pastShown.length ? '<button type="button" class="btn-link pp-all" id="ppAllReq">All requests</button>' : '') + '</div>' +
+          '<div class="pp-list pp-past-list">' + pastShown.map(function(r, i){ return ppReqRowHtml(r, 'data-pp-past="' + i + '"'); }).join('') + '</div>' : '') +
       '</section>';
       if (cp) html += '<div class="pp-check"><span class="pp-check-ic">' + UI_ICON.calendar + '</span>' +
         '<span><span class="pp-check-title">' + cp.title + '</span>' + (cp.sub ? '<span class="pp-check-sub">' + cp.sub + '</span>' : '') + '</span></div>';
@@ -12157,18 +12221,12 @@
       row.querySelector('.pp-row-title').textContent = it.title;
       row.querySelector('.pp-row-meta').textContent = it.meta || '';
     });
-    reqs.forEach(function(r, i){
-      var row = el.querySelector('[data-pp-req="' + i + '"]');
-      row.querySelector('.pp-row-title').textContent = r.text;
-      ppRowMeta(row.querySelector('.pp-row-meta'), r, owner, r.status === 'requested' ? [requestTimingLabel(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ') : '');
-      row.querySelector('.pp-pill').textContent = rqStatusLabel(r);
-    });
+    ppWireReqRows(el, 'data-pp-req', reqs, owner, ppReqMetaText);
+    ppWireReqRows(el, 'data-pp-past', pastShown, owner, ppReqMetaText);
+
     var who = document.getElementById('ppWho'); if (who) who.textContent = (authUser && authUser.email) || '';
     el.querySelectorAll('[data-pp-tab]').forEach(function(b){
       b.addEventListener('click', function(){ pp.tab = b.dataset.ppTab; renderPortal(); el.scrollTop = 0; });
-    });
-    el.querySelectorAll('[data-pp-req]').forEach(function(b){
-      b.addEventListener('click', function(){ var r = reqs[Number(b.dataset.ppReq)]; if (r) ppOpenRequest(r); });
     });
     var add = document.getElementById('ppAddReq'); if (add) add.addEventListener('click', function(){ ppOpenRequest(null); });
     var all = document.getElementById('ppAllReq'); if (all) all.addEventListener('click', ppOpenAllRequests);
@@ -12213,6 +12271,7 @@
       '</div><button class="sheet-close" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
       '<p class="rq-state" id="rqState"></p>' +
       '<p class="rq-meta" id="rqMeta"></p>' +
+      '<div class="rq-prov" id="rqProv"></div>' +
       '<div class="rq-own" id="rqOwn"></div>' +
       '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
       '<div class="rq-tl" id="rqTimeline"><p class="rq-empty">Loading…</p></div>' +
@@ -12233,7 +12292,14 @@
           '<button type="button" class="btn-link rq-withdraw" id="rqWithdraw">Withdraw</button>';
         document.getElementById('rqEdit').addEventListener('click', function(){ ppEditRequest(cur()); });
         document.getElementById('rqWithdraw').addEventListener('click', function(){ ppWithdraw(cur()); });
+      } else if (x.status === 'withdrawn'){
+        // withdrawn is not a dead end: ask again later, or let it go from her list
+        own.innerHTML = (x.renewedAs ? '' : '<button type="button" class="btn-link" id="rqRenew">Move to upcoming</button>') +
+          (x.partnerHiddenAt ? '' : '<button type="button" class="btn-link" id="rqHide">Hide from my list</button>');
+        var rn = document.getElementById('rqRenew'); if (rn) rn.addEventListener('click', function(){ ppRenew(cur()); });
+        var hd = document.getElementById('rqHide'); if (hd) hd.addEventListener('click', function(){ ppHide(cur()); });
       } else own.innerHTML = '';
+      rqProvenance(document.getElementById('rqProv'), x, pp.requests, function(id){ var t = pp.requests.find(function(y){ return y.id === id; }); if (t) ppOpenRequest(t); });
       return true;
     }
     paint();
@@ -12253,6 +12319,75 @@
     b.set(dbRef.collection(RQ_UPD).doc(r.id + '_withdrawn'), rqEvent(r, 'withdrawn', 'partner', null, {}));
     b.commit().then(function(){ ppSheetClose(); showPinToast('Request withdrawn', false, CHECK_SVG); })
       .catch(function(e){ console.error(e); showPinToast('It’s already been picked up, so it can’t be withdrawn.', true); });
+  }
+  // "Move to upcoming": still wanted, just not now. A new request is made from the
+  // withdrawn one — which stays as it was, pointing at the new one — so its history is
+  // never rewritten and the owner sees it again, once, as a new request.
+  function ppRenew(r){
+    if (!r || r.status !== 'withdrawn' || r.renewedAs) return;
+    var owner = (pp.member && pp.member.ownerName) || 'They';
+    var now = new Date().toISOString(), b = dbRef.batch();
+    var ref = dbRef.collection('ledger_shared_requests').doc();
+    var doc = { ownerUid: r.ownerUid, partnerUid: authUser.uid, text: r.text, note: r.note || null,
+      requestedTiming: 'later', requestedDate: null, createdAt: now, updatedAt: now, status: 'requested',
+      plannedDate: null, linkedActionId: null, latestUpdateAt: now, latestUpdateBy: 'partner',
+      latestUpdateType: 'request_created', renewedFrom: r.id };
+    b.set(ref, doc);
+    b.set(dbRef.collection(RQ_UPD).doc(ref.id + '_created'),
+      rqEvent(Object.assign({ id: ref.id }, doc), 'request_created', 'partner', null, { timing: 'later', date: null, renewedFrom: r.id }));
+    b.update(requestRef(r.id), { renewedAs: ref.id, updatedAt: now });
+    b.set(dbRef.collection(RQ_UPD).doc(r.id + '_renewed'), rqEvent(r, 'renewed', 'partner', null, { renewedAs: ref.id }));
+    b.commit().then(function(){ ppSheetClose(); showPinToast('Moved to upcoming', false, CHECK_SVG); })
+      .catch(function(e){ console.error(e); showPinToast('Couldn’t move it — check your connection and try again.', true); });
+  }
+  // "Hide from my list": requests are never deleted (their history is shared), so a
+  // withdrawn one is only taken out of her own list. The owner's copy is untouched.
+  function ppHide(r){
+    if (!r || r.status !== 'withdrawn') return;
+    var id = r.id;
+    function mark(v){ return requestRef(id).update({ partnerHiddenAt: v, updatedAt: new Date().toISOString() }); }
+    mark(new Date().toISOString()).then(function(){
+      ppSheetClose();
+      showActionToast('Hidden from your list', 'Undo', function(){
+        mark(null).catch(function(e){ console.error(e); showPinToast('Couldn’t bring it back — try again.', true); });
+      });
+    }).catch(function(e){ console.error(e); showPinToast('Couldn’t hide it — check your connection and try again.', true); });
+  }
+  // a withdrawn row's ⋯ : the two ways forward, said plainly
+  function ppWithdrawnMenu(r){
+    var owner = (pp.member && pp.member.ownerName) || 'They';
+    var sh = ppSheetOpen('<div class="sheet-handle"></div>' +
+      '<div class="sheet-head rq-head"><div class="sheet-title-wrap">' +
+        '<p class="rq-kicker" id="ppMenuKicker"></p><div class="sheet-title rq-title" id="ppMenuTitle"></div>' +
+      '</div><button class="sheet-close" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<div class="ns-opts pp-menu">' +
+        (r.renewedAs ? '' : '<button type="button" class="ns-opt" id="ppMenuRenew"><span class="ns-t">Move to upcoming</span><span class="ns-s" id="ppMenuRenewSub"></span></button>') +
+        '<button type="button" class="ns-opt" id="ppMenuHide"><span class="ns-t">Hide from my list</span><span class="ns-s" id="ppMenuHideSub"></span></button>' +
+      '</div>' +
+      '<button type="button" class="btn-link pp-menu-open" id="ppMenuOpen">See its updates</button>');
+    sh.querySelector('#ppMenuKicker').textContent = r.renewedAs ? 'Moved to upcoming' : 'Withdrawn ' + ppDayWord(r.latestUpdateAt || r.updatedAt);
+    sh.querySelector('#ppMenuTitle').textContent = r.text;
+    var rs = sh.querySelector('#ppMenuRenewSub');
+    if (rs) rs.textContent = 'You still want it, just not now. ' + owner + ' sees it again and decides when.';
+    sh.querySelector('#ppMenuHideSub').textContent = 'You don’t need it any more. ' + owner + '’s copy and its history stay.';
+    var rn = sh.querySelector('#ppMenuRenew'); if (rn) rn.addEventListener('click', function(){ rn.disabled = true; ppRenew(r); });
+    sh.querySelector('#ppMenuHide').addEventListener('click', function(){ ppHide(r); });
+    sh.querySelector('#ppMenuOpen').addEventListener('click', function(){ ppOpenRequest(r); });
+  }
+  // where a request came from, or went: one quiet link between a withdrawn request and
+  // the upcoming one made from it (both sides see the same pair)
+  function rqProvenance(el, r, all, open){
+    if (!el) return;
+    el.innerHTML = '';
+    var otherId = r.renewedFrom || r.renewedAs;
+    var other = otherId ? all.find(function(x){ return x.id === otherId; }) : null;
+    if (!other) return;
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn-link rq-prov-link';
+    b.textContent = r.renewedFrom ? 'Earlier request · withdrawn ' + ppDayWord(other.latestUpdateAt || other.updatedAt) : 'See the upcoming request';
+    b.insertAdjacentHTML('beforeend', UI_ICON.chevronRight);
+    b.addEventListener('click', function(){ open(other.id); });
+    el.appendChild(b);
   }
   // a request: one plain question, a timing, an optional note — nothing internal
   function ppEditRequest(r){
@@ -12311,21 +12446,12 @@
     function cur2(){ return pp.requests.find(function(x){ return x.id === r.id; }) || r; }
   }
   function ppOpenAllRequests(){
-    var list = pp.requests.slice().sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? 1 : -1; });
+    var list = ppVisibleRequests().sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? 1 : -1; });
     var sh = ppSheetOpen('<div class="sheet-handle"></div>' + sheetHead('', 'All requests', '', '') +
-      '<div class="pp-list">' + list.map(function(r, i){
-        return '<button type="button" class="pp-row pp-req rq-' + rqStatusClass(r) + '" data-pp-all="' + i + '">' +
-          '<span class="pp-dot" aria-hidden="true">' + (r.status === 'done' ? CHECK_SVG : '') + '</span>' +
-          '<span class="pp-row-body"><span class="pp-row-title"></span><span class="pp-row-meta"></span></span>' +
-          '<span class="pp-pill' + (rqStatusClass(r) === 'requested' ? ' quiet' : '') + '"></span></button>';
-      }).join('') + '</div>');
+      '<div class="pp-list">' + list.map(function(r, i){ return ppReqRowHtml(r, 'data-pp-all="' + i + '"'); }).join('') + '</div>');
     var owner = (pp.member && pp.member.ownerName) || 'They';
-    list.forEach(function(r, i){
-      var row = sh.querySelector('[data-pp-all="' + i + '"]');
-      row.querySelector('.pp-row-title').textContent = r.text;
-      ppRowMeta(row.querySelector('.pp-row-meta'), r, owner, r.createdAt ? 'Sent ' + shortDayLabel(fmtDate(new Date(r.createdAt))) : '');
-      row.querySelector('.pp-pill').textContent = rqStatusLabel(r);
-      row.addEventListener('click', function(){ ppOpenRequest(r); });
+    ppWireReqRows(sh, 'data-pp-all', list, owner, function(r){
+      return r.status === 'withdrawn' ? ppReqMetaText(r) : (r.createdAt ? 'Sent ' + shortDayLabel(fmtDate(new Date(r.createdAt))) : '');
     });
   }
   // a row's quiet second line: news from the owner first, otherwise the given text

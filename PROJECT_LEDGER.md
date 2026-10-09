@@ -443,6 +443,20 @@ processed requests with unread news, one row per request. Accept, dismiss and th
 Action-driven sync are Firestore transactions that write the change and its entry
 together; Dismiss waits for its Undo before writing. Withdraw is a status (requests
 are never deleted). Request statuses gain `in_progress` and `withdrawn`.
+**Withdrawn afterwards (2026-10-09).** The partner list has **From you** (requested,
+upcoming, planned, in progress) and a quieter **Past** (done, set aside, withdrawn;
+the latest four, "All requests" for the rest). A withdrawn row reads "Withdrawn
+today" with a ⋯ (also in its detail): **Move to upcoming** or **Hide from my list**.
+Move to upcoming makes a *new* request (`status: requested`, `requestedTiming:
+'later'`, `renewedFrom: <old id>`); the old one stays withdrawn with `renewedAs`,
+both written in one batch with a "renewed" entry on the old and a "moved it to
+upcoming" entry on the new; each request links to the other ("Earlier request ·
+withdrawn …"). **Upcoming** = requested with timing `later` (partner pill
+"Upcoming", owner Inbox "Upcoming · no rush"); the owner accepts, plans or
+dismisses it like any request. Hide sets `partnerHiddenAt` (Undo clears it): out of
+her list only — the record, its history and the owner's copy are untouched.
+Push: the new request notifies the owner once, "Abi moved a request to upcoming";
+the withdrawal and "renewed" entries are quiet.
 
 ---
 
@@ -574,6 +588,21 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-09 — Withdrawn requests: hide, or move to upcoming as a new request
+**Decision (Shaun's brief):** withdrawn stays a historical state, but never a dead
+end: the partner can **Move to upcoming** or **Hide from my list**. Hide, not
+delete: requests are never deleted (2026-10-07 decision, `allow delete: if false`),
+so "delete" is a partner-side `partnerHiddenAt` flag on withdrawn requests only;
+the owner's record and the shared history are not modified. Move to upcoming never
+revives the withdrawn record: it creates a new request linked both ways
+(`renewedFrom` / `renewedAs`), once per withdrawn request, enforced by the rules,
+and the owner sees it once as a new request. **Upcoming** is a partner-facing state
+with the simplest internal model: `status: requested` + `requestedTiming: 'later'`
+(still wanted, not asking to be scheduled; never an Action until the owner decides).
+The partner list separates open requests from **Past** (done, set aside,
+withdrawn). Not changed: owner-only fields (`linkedActionId`, `plannedDate`, owner
+statuses), Actions, and set-aside requests (still the owner's decision).
 
 ### 2026-10-09 — Today has two tiers: primary sections and utilities
 **Decision (Shaun's brief):** Primary — Actions, Communications, Health & fitness —
@@ -1551,9 +1580,9 @@ wider exposure — see Open Questions.
 
 Owner: Shaun
 Status: Verification (2026-10-09)
-Objective: check the Today hierarchy, header polish and the Catch-up review on the phone
+Objective: redeploy rules + functions for withdrawn Partner Requests; check the Today hierarchy, header polish and the Catch-up review on the phone
 (Next 1), and finish the remaining push device checks (Next 2–3).
-Acceptance criteria: Next 1–3 confirmed.
+Acceptance criteria: Next 1–4 confirmed.
 
 The backlog exists as GitHub Issues (#5–#19). None of it is authorised for
 implementation — see the workflow rules in `CLAUDE.md`.
@@ -1638,6 +1667,11 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-09) — Withdrawn Partner Requests: Past grouping, ⋯ with Move to upcoming /
+  Hide from my list, the Upcoming state, provenance links both ways, the push
+  wording. Rules 299 (28 new), engine 43, Partner Sharing e2e 154 (22 new), push
+  end to end 66 (renewal pushes once). **Needs the rules (and functions) redeployed.**
 
 - (2026-10-09) — Today two-tier hierarchy: primary (Actions, Communications,
   Health & fitness) vs secondary (Backlog, Day notes, Quick log, Recorded
@@ -1811,7 +1845,12 @@ minutes before", recurring/accountability).
 
 ## Next
 
-1. **Shaun: Today on the phone** — Actions, Communications and Health & fitness
+1. **Shaun: redeploy rules and functions** (withdrawn requests): `firebase deploy
+   --only firestore:rules,functions` from `~/Ledger` after `git pull`. Until then,
+   Move to upcoming and Hide are refused by the live rules. Then Abi: withdraw a
+   test request → ⋯ → Move to upcoming (Shaun's phone: "Abi moved a request to
+   upcoming") → withdraw it again → ⋯ → Hide from my list.
+2. **Shaun: Today on the phone** — Actions, Communications and Health & fitness
    read as the main sections; Backlog, Day notes, Quick log and Recorded activity
    read as quieter utilities but still look tappable. Health & fitness starts collapsed with a
    summary that matches the day; its chevron and the share icon both work and the
@@ -1819,7 +1858,7 @@ minutes before", recurring/accountability).
    training. With yesterday unclosed: the row says "Yesterday needs finishing" →
    open an Action from it → cancel → back in the review, still open → complete it →
    back, resolved → Close this day → "Yesterday is closed", back on Today.
-2. **Shaun: the remaining devices** (on `https://ledger.sgj.luxe`). Done: rules
+3. **Shaun: the remaining devices** (on `https://ledger.sgj.luxe`). Done: rules
    and functions deployed; the Samsung enabled; Mac → Samsung focus push works.
    - **iPhone and iPad**: Safari → Share → Add to Home Screen → open Ledger *from
      the icon* → sign in (the installed app has its own sign-in) → Settings →
@@ -1830,12 +1869,12 @@ minutes before", recurring/accountability).
    - Change focus on the iPhone → the Mac and Samsung follow; tap the
      notification → that Action opens. Start a Reset Sprint, tick the first item on
      another device → the focus moves on everywhere.
-3. **Abi**: installs and signs in → footer → Notifications → Enable. She sends a
+4. **Abi**: installs and signs in → footer → Notifications → Enable. She sends a
    request → Shaun's devices: "Abi sent a request"; she adds an update → Shaun;
    Shaun adds one → Abi. Tapping opens the request. Nothing private shows.
-4. If not done yet: the domain checks from 2026-10-07 (build stamp "Up to date",
+5. If not done yet: the domain checks from 2026-10-07 (build stamp "Up to date",
    password + email-link sign-in return to ledger.sgj.luxe, `?view=week` refresh)
    and the challenge line / Morning Prime check on the phone.
-5. Shaun: create the GitHub Project (Open Q7); triage #6–#19.
+6. Shaun: create the GitHub Project (Open Q7); triage #6–#19.
 
 Everything else is on the board. Do not duplicate it here.

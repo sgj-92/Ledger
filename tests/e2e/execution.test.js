@@ -383,6 +383,28 @@ async function swChecks(){
   await abiPhone.fill('#rqText', 'Thank you!'); await abiPhone.click('#rqSend');
   got = await waitPushes(mark, 3);
   check(got.length === 3 && got.every(g => g.payload.title === 'Abi updated “Pick up prescription”' && g.payload.body === 'Thank you!'), 'Abi adds an update → Shaun\'s devices');
+  await abiPhone.click('#ppSheet .sheet-close');
+  // a withdrawn request moved to upcoming: one push to Shaun, as a new request — the
+  // withdrawal and the old record's "renewed" entry stay quiet
+  mark = inbox.length;
+  await abiPhone.click('#ppAddReq'); await abiPhone.waitForSelector('#ppReqText');
+  await abiPhone.fill('#ppReqText', 'Return the library books'); await abiPhone.click('#ppReqSave');
+  got = await waitPushes(mark, 3);
+  check(got.length === 3 && got.every(g => g.payload.title === 'Abi sent a request'), 'Abi asks for something else → Shaun\'s devices');
+  mark = inbox.length;
+  await abiPhone.evaluate(() => [...document.querySelectorAll('.pp-req')].find(r => /library books/.test(r.textContent)).click());
+  await abiPhone.waitForSelector('#rqWithdraw'); await abiPhone.click('#rqWithdraw');
+  await until(abiPhone, () => [...document.querySelectorAll('.pp-past-list .pp-req')].some(r => /library books/.test(r.textContent)));
+  await abiPhone.evaluate(() => [...document.querySelectorAll('.pp-past-list .pp-req')].find(r => /library books/.test(r.textContent)).querySelector('[data-pp-more]').click());
+  await abiPhone.waitForSelector('#ppMenuRenew'); await abiPhone.click('#ppMenuRenew');
+  got = await waitPushes(mark, 3, 20000);
+  await sleep(2500);
+  got = since(mark);
+  check(got.length === 3 && got.map(g => g.device).sort().join('|') === 'iphone|mac|samsung' && got.every(g => g.payload.title === 'Abi moved a request to upcoming' && g.payload.body === 'Return the library books'),
+    'Abi withdraws it, then moves it to upcoming → Shaun\'s devices once each: "Abi moved a request to upcoming" (' + got.map(g => g.payload.title).join(' | ') + ')');
+  const books = (await all('ledger_shared_requests')).filter(r => /library books/.test(r.text));
+  const fresh = books.find(r => r.renewedFrom);
+  check(books.length === 2 && fresh && got.every(g => g.payload.url === APP_URL + '?request=' + fresh.id), 'the push opens the new request');
   const everything = JSON.stringify(inbox.map(g => g.payload));
   check(!/SECRET|accounts proposal.*private|mortgage.*note/i.test(everything) && !/SECRET/.test(everything), 'no private Ledger data in any notification (Day Notes never)');
 
@@ -412,7 +434,7 @@ async function swChecks(){
   check(await until(iphone, () => !!document.getElementById('authEmail'), null, 20000), 'iPhone: signed out');
   check(!(await all('ledger_push_subscriptions')).some(s => s.deviceId === iphoneId), 'signing out removes this device\'s record');
   const events = await all('ledger_push_events');
-  check(events.length === 9 && events.every(e => e.status === 'done'), 'every push event logged once, done (' + events.length + ')');
+  check(events.length === 11 && events.every(e => e.status === 'done'), 'every push event logged once, done (' + events.length + ')');
 
   for (const p of [mac, iphone, samsung, abiPhone]){
     const errs = p.errs.filter(e => !/permission|offline|network/i.test(e));

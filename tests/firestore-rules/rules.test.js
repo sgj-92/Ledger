@@ -250,6 +250,52 @@ async function check(name, fn){
     return assertSucceeds(b.commit());
   });
   await check('withdraw: the owner cannot revive a withdrawn request', () => assertFails(owner.doc('ledger_shared_requests/newReq1').update({ status: 'planned', plannedDate: '2026-10-08', linkedActionId: 'x' })));
+  // a withdrawn request, afterwards: hidden from the partner's own list, or moved to upcoming
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await db.doc('ledger_shared_requests/reqW').set(newRequest({ status: 'withdrawn', text: 'Sort the visa' }));
+    await db.doc('ledger_shared_requests/reqW2').set(newRequest({ partnerUid: 'partner2', status: 'withdrawn', text: 'B withdrawn' }));
+  });
+  await check('hide: partner A can hide own withdrawn request', () => assertSucceeds(partner.doc('ledger_shared_requests/newReq1').update({ partnerHiddenAt: '2026-10-09T10:00:00Z', updatedAt: 'now' })));
+  await check('hide: partner A can bring it back (Undo)', () => assertSucceeds(partner.doc('ledger_shared_requests/newReq1').update({ partnerHiddenAt: null, updatedAt: 'now' })));
+  await check('hide: partner A cannot hide an open request', () => assertFails(partner.doc('ledger_shared_requests/reqA').update({ partnerHiddenAt: 'now', updatedAt: 'now' })));
+  await check('hide: partner A cannot hide a planned request', () => assertFails(partner.doc('ledger_shared_requests/reqPlanned').update({ partnerHiddenAt: 'now', updatedAt: 'now' })));
+  await check('hide: partner A cannot change anything else with it', () => assertFails(partner.doc('ledger_shared_requests/newReq1').update({ partnerHiddenAt: 'now', text: 'changed' })));
+  await check('hide: partner A cannot revive it with it', () => assertFails(partner.doc('ledger_shared_requests/newReq1').update({ partnerHiddenAt: 'now', status: 'requested' })));
+  await check('hide: the owner cannot hide it for the partner', () => assertFails(owner.doc('ledger_shared_requests/newReq1').update({ partnerHiddenAt: 'now' })));
+  await check("hide: partner A cannot hide partner B's request", () => assertFails(partner.doc('ledger_shared_requests/reqW2').update({ partnerHiddenAt: 'now', updatedAt: 'now' })));
+  await check('hide: a withdrawn request still cannot be deleted (partner)', () => assertFails(partner.doc('ledger_shared_requests/newReq1').delete()));
+  await check('hide: a withdrawn request still cannot be deleted (owner)', () => assertFails(owner.doc('ledger_shared_requests/newReq1').delete()));
+  const renewal = (db, oldId, newId, o) => {
+    const b = db.batch();
+    b.set(db.doc('ledger_shared_requests/' + newId), newRequest(Object.assign({ requestedTiming: 'later', renewedFrom: oldId,
+      latestUpdateAt: 'now', latestUpdateBy: 'partner', latestUpdateType: 'request_created' }, o || {})));
+    b.update(db.doc('ledger_shared_requests/' + oldId), { renewedAs: newId, updatedAt: 'now' });
+    b.set(db.doc(UPD + '/' + newId + '_created'), upd({ requestId: newId, type: 'request_created', text: null, metadata: { timing: 'later', renewedFrom: oldId } }));
+    b.set(db.doc(UPD + '/' + oldId + '_renewed'), upd({ requestId: oldId, type: 'renewed', text: null, metadata: { renewedAs: newId } }));
+    return b.commit();
+  };
+  await check('upcoming: partner A can move own withdrawn request to upcoming (new request + both entries)', () => assertSucceeds(renewal(partner, 'newReq1', 'newRen1')));
+  await check('upcoming: the old record keeps its withdrawn state and points at the new one', async () => {
+    const d = (await partner.doc('ledger_shared_requests/newReq1').get()).data();
+    if (d.status !== 'withdrawn' || d.renewedAs !== 'newRen1') throw new Error(JSON.stringify(d));
+  });
+  await check('upcoming: the same withdrawn request cannot be renewed twice', () => assertFails(renewal(partner, 'newReq1', 'newRen2')));
+  await check('upcoming: an open request cannot be "renewed"', () => assertFails(renewal(partner, 'reqA', 'newRen3')));
+  await check('upcoming: a new request cannot claim a withdrawn one without marking it', () => assertFails(partner.doc('ledger_shared_requests/newRen4').set(newRequest({ requestedTiming: 'later', renewedFrom: 'reqW' }))));
+  await check('upcoming: a withdrawn request cannot point at a request that does not name it', () => assertFails(partner.doc('ledger_shared_requests/reqW').update({ renewedAs: 'reqA', updatedAt: 'now' })));
+  await check('upcoming: a withdrawn request cannot point at nothing', () => assertFails(partner.doc('ledger_shared_requests/reqW').update({ renewedAs: 'nope', updatedAt: 'now' })));
+  await check("upcoming: partner A cannot renew partner B's withdrawn request", () => assertFails(renewal(partner, 'reqW2', 'newRen5')));
+  await check('upcoming: a renewal cannot pre-set linkedActionId', () => assertFails(renewal(partner, 'reqW', 'newRen6', { linkedActionId: 'act1' })));
+  await check('upcoming: a renewal cannot pre-set an owner status', () => assertFails(renewal(partner, 'reqW', 'newRen7', { status: 'planned' })));
+  await check('upcoming: an open request cannot be given renewedAs', () => assertFails(partner.doc('ledger_shared_requests/reqA').update({ renewedAs: 'newRen1', updatedAt: 'now' })));
+  await check('upcoming: "renewed" entry only for a renewed request', () => assertFails(partner.doc(UPD + '/reqW_renewed').set(upd({ requestId: 'reqW', type: 'renewed', text: null }))));
+  await check('upcoming: "renewed" entry is written once', () => assertFails(partner.doc(UPD + '/newReq1_renewed').set(upd({ requestId: 'newReq1', type: 'renewed', text: null }))));
+  await check('upcoming: the owner cannot write the partner\'s "renewed" entry', () => assertFails(owner.doc(UPD + '/reqW_renewed').set(sysUpd({ requestId: 'reqW', type: 'renewed' }))));
+  await check('upcoming: the owner plans the new request like any other', () => assertSucceeds(owner.doc('ledger_shared_requests/newRen1').update({ status: 'planned', plannedDate: '2026-10-10', linkedActionId: 'act7', updatedAt: 'now', processedAt: 'now' })));
+  await check('upcoming: the partner cannot edit it once planned', () => assertFails(partner.doc('ledger_shared_requests/newRen1').update({ text: 'changed', updatedAt: 'now' })));
+  await check('upcoming: the owner cannot unlink the old record', () => assertFails(owner.doc('ledger_shared_requests/newReq1').update({ renewedAs: null })));
+  await check('upcoming: partner A can create an upcoming request directly', () => assertSucceeds(partner.doc('ledger_shared_requests/newUp1').set(newRequest({ requestedTiming: 'later' }))));
   // partner B (paused)
   await check('updates: partner B (inactive) cannot read own request updates', () => assertFails(forReq(partnerB, 'reqB', 'partner2').get()));
   await check('updates: partner B (inactive) cannot comment', () => assertFails(partnerB.collection(UPD).add(upd({ requestId: 'reqB', partnerUid: 'partner2', actorUid: 'partner2' }))));

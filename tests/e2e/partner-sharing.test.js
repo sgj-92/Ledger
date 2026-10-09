@@ -351,6 +351,81 @@ async function oobLink(email){
   const plumberUpd = (await all('ledger_shared_request_updates')).filter(u => u.requestId === plumber.id).map(u => u.type).sort().join(',');
   check(plumberUpd === 'request_created,withdrawn', '15 its history: asked, withdrawn (' + plumberUpd + ')');
   check(await until(S, () => !/plumber/.test(document.getElementById('inboxSection').innerText)), '15 a withdrawn request is not in the Inbox');
+
+  // ---------- Withdrawn is not a dead end: move to upcoming, or hide from her list ----------
+  const PAST = '.pp-past-list .pp-req:has-text("Ring the plumber")', ACTIVE = '.pp-requests > .pp-list:not(.pp-past-list) .pp-req:has-text("Ring the plumber")';
+  const actsBefore = (await all('ledger_commitments')).length;
+  check(await until(A, () => { const r = [...document.querySelectorAll('.pp-past-list .pp-req')].find(x => /plumber/.test(x.innerText)); return !!r && /Withdrawn today/.test(r.innerText) && !!r.querySelector('[data-pp-more]'); }),
+    'WD1 the withdrawn request sits under Past, "Withdrawn today", with a ⋯');
+  check(!(await A.$(ACTIVE)), 'WD1 it is not mixed in with the open requests');
+  await A.screenshot({ path: `${shots}/${tag}-WD01-partner-past.png`, fullPage: true });
+  await A.click(PAST + ' [data-pp-more]');
+  await A.waitForSelector('#ppMenuHide');
+  check(!!(await A.$('#ppMenuRenew')) && /Move to upcoming/.test(await txt(A, '#ppSheet')) && /Hide from my list/.test(await txt(A, '#ppSheet')), 'WD2 ⋯ offers Move to upcoming and Hide from my list');
+  await A.screenshot({ path: `${shots}/${tag}-WD02-partner-menu.png` });
+  await A.click('#ppMenuRenew');
+  check(await until(A, () => { const r = [...document.querySelectorAll('.pp-requests > .pp-list:not(.pp-past-list) .pp-req')].find(x => /plumber/.test(x.innerText)); return !!r && /Upcoming/.test(r.innerText); }),
+    'WD3 a fresh request appears under From you, as Upcoming');
+  check(await until(A, () => { const r = [...document.querySelectorAll('.pp-past-list .pp-req')].find(x => /plumber/.test(x.innerText)); return !!r && /Moved to upcoming/.test(r.innerText); }),
+    'WD3 the withdrawn one stays in Past, saying where it went');
+  await A.screenshot({ path: `${shots}/${tag}-WD03-partner-upcoming.png`, fullPage: true });
+  await sleep(800);
+  const plumbers = (await all('ledger_shared_requests')).filter(r => /plumber/.test(r.text));
+  const oldP = plumbers.find(r => r.id === plumber.id), newP = plumbers.find(r => r.id !== plumber.id);
+  check(plumbers.length === 2 && oldP.status === 'withdrawn' && oldP.renewedAs === newP.id, 'WD4 the withdrawn record is kept, pointing at the new one');
+  check(newP.status === 'requested' && newP.requestedTiming === 'later' && newP.renewedFrom === oldP.id && !newP.linkedActionId && !newP.plannedDate, 'WD4 the new one is an ordinary request: requested, timing later, no Action, from the old one');
+  const updOf = async (id) => (await all('ledger_shared_request_updates')).filter(u => u.requestId === id).map(u => u.type).sort().join(',');
+  check(await updOf(oldP.id) === 'renewed,request_created,withdrawn', 'WD6 old history kept and extended once: asked, withdrawn, renewed (' + await updOf(oldP.id) + ')');
+  check(await updOf(newP.id) === 'request_created', 'WD6 the new request starts with one entry (' + await updOf(newP.id) + ')');
+  check(await until(S, () => /Ring the plumber/.test(document.getElementById('inboxSection').innerText)), 'WD5 Shaun sees it again in the Inbox');
+  await sleep(1000);
+  const ibW = await txt(S, '#inboxSection');
+  check((ibW.match(/Ring the plumber/g) || []).length === 1 && /Upcoming · no rush/.test(ibW), 'WD5 once, as a new request: "Upcoming · no rush"');
+  await S.evaluate(() => document.getElementById('inboxSection').scrollIntoView({ block: 'center' }));
+  await S.screenshot({ path: `${shots}/${tag}-WD05-owner-inbox.png` });
+  await S.click('.ib-row:has-text("Ring the plumber") .ib-body');
+  await S.waitForSelector('#rqTimeline');
+  check(await until(S, () => /Abi moved it to upcoming, after withdrawing it/.test(document.getElementById('rqTimeline').innerText) && /Upcoming/.test(document.getElementById('rqState').innerText)), 'WD6 Shaun\'s detail: Upcoming, "Abi moved it to upcoming, after withdrawing it"');
+  check(await until(S, () => /Earlier request · withdrawn today/.test((document.getElementById('rqProv') || {}).innerText || '')), 'WD6 it links to the earlier request');
+  await S.screenshot({ path: `${shots}/${tag}-WD06-owner-detail.png` });
+  await S.click('#rqProv .rq-prov-link');
+  check(await until(S, () => /Moved to upcoming/.test(document.getElementById('rqState').innerText) && /Asked by Abi/.test(document.getElementById('rqTimeline').innerText) && /Withdrawn by Abi/.test(document.getElementById('rqTimeline').innerText) && /as a new request/.test(document.getElementById('rqTimeline').innerText)),
+    'WD6 the earlier request reads coherently: asked, withdrawn, moved to upcoming as a new request');
+  await S.click('#sheetCloseBtn');
+  // Hide: withdraw the upcoming one again, then let it go from her list
+  await A.click(ACTIVE);
+  await A.waitForSelector('#rqWithdraw');
+  check(await until(A, () => /Earlier request · withdrawn/.test((document.getElementById('rqProv') || {}).innerText || '')), 'WD6 Abi\'s detail links to the earlier request too');
+  await A.click('#rqWithdraw');
+  await sleep(1200);
+  await A.click('.pp-past-list .pp-req:has-text("Ring the plumber"):has-text("Withdrawn") [data-pp-more]');
+  await A.waitForSelector('#ppMenuHide');
+  await A.click('#ppMenuHide');
+  check(await until(A, () => [...document.querySelectorAll('.pp-past-list .pp-req')].filter(x => /plumber/.test(x.innerText)).length === 1), 'WD7 Hide from my list: gone from her list');
+  check(await until(A, () => /Hidden from your list/.test((document.querySelector('.action-toast, .pin-toast') || {}).innerText || '')), 'WD7 with an Undo');
+  await sleep(600);
+  const hidden = (await all('ledger_shared_requests')).find(r => r.id === newP.id);
+  check(hidden.status === 'withdrawn' && !!hidden.partnerHiddenAt, 'WD7 hidden, not deleted: the record and its status stay');
+  check(await updOf(newP.id) === 'request_created,withdrawn', 'WD7 hiding writes nothing into the shared history');
+  await openSettings(S); await S.waitForSelector('#setShareReq'); await S.click('#setShareReq'); await S.waitForSelector('.rq-li');
+  check((await S.$$('.rq-li:has-text("Ring the plumber")')).length === 2, 'WD7 Shaun\'s copy is untouched: both still in his Requests');
+  await S.click('#sheetCloseBtn'); await backToToday(S);
+  // what she cannot do — from her own signed-in browser
+  const nappies = (await all('ledger_shared_requests')).find(r => /nappies/.test(r.text));
+  const denied = await A.evaluate(async (ids) => {
+    const db = firebase.firestore(), out = {};
+    const tryIt = async (k, f) => { try { await f(); out[k] = 'ALLOWED'; } catch (e){ out[k] = e.code; } };
+    await tryIt('hide planned', () => db.collection('ledger_shared_requests').doc(ids.planned).update({ partnerHiddenAt: 'x', updatedAt: 'x' }));
+    await tryIt('delete withdrawn', () => db.collection('ledger_shared_requests').doc(ids.old).delete());
+    await tryIt('delete planned', () => db.collection('ledger_shared_requests').doc(ids.planned).delete());
+    await tryIt('renew planned', () => db.collection('ledger_shared_requests').doc(ids.planned).update({ renewedAs: ids.old, updatedAt: 'x' }));
+    await tryIt('renew twice', () => db.collection('ledger_shared_requests').doc(ids.old).update({ renewedAs: ids.planned, updatedAt: 'x' }));
+    await tryIt('unlink action', () => db.collection('ledger_shared_requests').doc(ids.planned).update({ linkedActionId: null }));
+    await tryIt('delete action', () => db.collection('ledger_commitments').doc(ids.act).delete());
+    return out;
+  }, { planned: nappies.id, old: oldP.id, act: nappies.linkedActionId });
+  check(Object.values(denied).every(v => v === 'permission-denied'), 'WD8 she cannot hide or delete open/planned requests, renew twice, unlink or delete an Action: ' + JSON.stringify(denied));
+  check((await all('ledger_commitments')).length === actsBefore, 'WD9 no Ledger Action was added or removed by any of it');
   await A.click('.pp-req:has-text("Pick up nappies")');
   await A.waitForSelector('#rqTimeline');
   check(!(await A.$('#rqEdit')) && !!(await A.$('#rqText')), '15 a processed request is reference only — but can take an update');

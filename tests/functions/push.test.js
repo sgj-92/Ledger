@@ -146,6 +146,15 @@ const reset = () => { sent = []; };
     await engine.handleRequestUpdate({ update: u(x), updateId: id, appUrl: APP });
   }
   check(sent.length === 0, 'moved, in progress, withdrawn and dismissed stay quiet');
+  // a withdrawn request moved to upcoming: the new request pushes once, said as such;
+  // the old record's "renewed" entry stays quiet
+  await db.doc('ledger_shared_requests/req2').set({ ownerUid: 'shaun', partnerUid: 'abi', text: 'Sort the visa', status: 'requested', requestedTiming: 'later', renewedFrom: 'req1' });
+  reset();
+  r = await engine.handleRequestUpdate({ update: u({ requestId: 'req2', type: 'request_created', text: null, metadata: { renewedFrom: 'req1' } }), updateId: 'req2_created', appUrl: APP, vapidPublicKey: KEY });
+  check(to('shaun').length === 3 && to('shaun')[0].payload.title === 'Abi moved a request to upcoming' && to('shaun')[0].payload.body === 'Sort the visa', 'moved to upcoming → Shaun, once, as a new request', to('shaun')[0] && to('shaun')[0].payload);
+  reset();
+  r = await engine.handleRequestUpdate({ update: u({ type: 'renewed', text: null, metadata: { renewedAs: 'req2' } }), updateId: 'req1_renewed', appUrl: APP });
+  check(sent.length === 0, 'the withdrawn record\'s "renewed" entry stays quiet');
   reset();
   r = await engine.handleRequestUpdate({ update: u(), updateId: 'c1', appUrl: APP });
   check(sent.length === 0 && r.skipped === 'duplicate', 'the same Update twice notifies once');

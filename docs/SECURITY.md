@@ -58,7 +58,7 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | `ledger_meta/sharing` | what each publication was chosen to include | owner |
 | `ledger_share_members` | the owner–partner relationship | owner manages own; partner reads own |
 | `ledger_shared_snapshots` | published day and week projections | owner writes own; partner reads own, while active |
-| `ledger_shared_requests` | requests from the partner | partner creates/edits/withdraws own until processed; owner moves them on; each keeps own read mark |
+| `ledger_shared_requests` | requests from the partner | partner creates/edits/withdraws own until processed, then may hide a withdrawn one or renew it once as a new request; owner moves them on; each keeps own read mark |
 | `ledger_shared_request_updates` | a request's Updates (comments and lifecycle entries) | append-only; each side writes only as itself, see below |
 | anything else | — | denied |
 
@@ -199,6 +199,13 @@ Her requests stay with Shaun.
 - **Requests are never deleted.** Withdrawn (partner, while still requested)
   and dismissed (owner) are states, so a request's history survives. The owner
   cannot revive a withdrawn request.
+- **After withdrawing** (the partner, own requests only): *hide* it from her own
+  list (`partnerHiddenAt` set or cleared, nothing else, only while `withdrawn`;
+  the owner cannot set it), or *move it to upcoming*: a new request (`requested`,
+  timing `later`) whose `renewedFrom` names the withdrawn one, written together
+  with the withdrawn one's `renewedAs` naming it back. Each must point at the
+  other in the same write, the withdrawn one must be hers and not yet renewed, so
+  it happens once; the withdrawn record keeps its status and history.
 - **Summary and read marks.** The request carries a small summary of its latest
   update (`latestUpdate*`, `latestComment*`) and each side's `ownerLastReadAt` /
   `partnerLastReadAt`. Each side may sign the summary only as itself (the owner
@@ -210,7 +217,8 @@ Her requests stay with Shaun.
   signed-in user (`actorUid`), at the server's time (`createdAt == request.time`),
   with only the known fields.
   - The partner (active relationship only) writes `comment` entries, plus the two
-    facts that are hers alone: `request_created` and `withdrawn`. Each of those
+    facts that are hers alone: `request_created`, `withdrawn` and `renewed` (only
+    once the request names its renewal). Each of those
     can be written once, on a fixed id, and only while the request says so. She
     can never write as the owner or as `system`.
   - The owner writes `comment` entries as `owner`. Lifecycle entries as `system`

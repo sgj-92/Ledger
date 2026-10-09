@@ -176,7 +176,11 @@ function createEngine(deps) {
     let to = null, title = null, body = null;
     if (u.actorRole === 'partner' && u.actorUid === r.partnerUid) {
       to = r.ownerUid;
-      if (u.type === 'request_created') { title = partnerName + ' sent a request'; body = clip(r.text, 120); }
+      // a withdrawn request moved to upcoming is a new request: one push, said as such
+      // (its old record's "renewed" entry stays quiet)
+      if (u.type === 'request_created') {
+        title = partnerName + (r.renewedFrom ? ' moved a request to upcoming' : ' sent a request'); body = clip(r.text, 120);
+      }
       else if (u.type === 'comment') { title = partnerName + ' updated “' + what + '”'; body = clip(u.text, 140); }
     } else if ((u.actorRole === 'owner' || u.actorRole === 'system') && u.actorUid === r.ownerUid) {
       to = r.partnerUid;
