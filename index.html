@@ -5518,6 +5518,43 @@
     return vals.length ? Math.round(vals.reduce(function(a, v){ return a + v; }, 0) / vals.length) : null;
   }
   function fmtSteps(n){ return n == null ? '\u2014' : Number(n).toLocaleString('en-GB'); }
+  // ---- grouped whole numbers in a field: 12242 shows as 12,242 while typing ----
+  // Presentation only: the field reads back a plain number (groupedNumber), and what
+  // is saved never changes. A text field with the numeric keypad, because a number
+  // field cannot show separators. The caret stays after the same digit it followed.
+  function groupDigits(digits){ return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function groupedNumber(el){ var d = String(el.value || '').replace(/\D/g, ''); return d ? parseInt(d, 10) : NaN; }
+  function setGroupedNumber(el, n){ el.value = (n == null || n === '' || isNaN(Number(n))) ? '' : groupDigits(String(Math.round(Number(n)))); }
+  function wireGroupedNumber(el, maxDigits){
+    if (!el) return el;
+    el.type = 'text'; el.setAttribute('inputmode', 'numeric'); el.setAttribute('pattern', '[0-9,]*');
+    el.setAttribute('autocomplete', 'off');
+    var max = maxDigits || 9, last = el.value;
+    function regroup(e){
+      var v = el.value, caret = el.selectionStart == null ? v.length : el.selectionStart;
+      // deleting only a separator would change nothing: take the digit beside it instead
+      var type = e && e.inputType;
+      if ((type === 'deleteContentBackward' || type === 'deleteContentForward') &&
+          v.replace(/\D/g, '') === last.replace(/\D/g, '') && v.length === last.length - 1){
+        var at = type === 'deleteContentBackward' ? caret - 1 : caret;
+        while (at >= 0 && at < v.length && !/\d/.test(v[at])) at += type === 'deleteContentBackward' ? -1 : 1;
+        if (at >= 0 && at < v.length){ v = v.slice(0, at) + v.slice(at + 1); if (type === 'deleteContentBackward') caret = at; }
+      }
+      var before = v.slice(0, caret).replace(/\D/g, '').length;          // digits left of the caret
+      var digits = v.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, max);
+      var out = groupDigits(digits);
+      if (out === el.value){ last = out; return; }
+      el.value = out; last = out;
+      var pos = 0, seen = 0;
+      while (pos < out.length && seen < Math.min(before, digits.length)){ if (/\d/.test(out[pos])) seen++; pos++; }
+      try { el.setSelectionRange(pos, pos); } catch(e){}
+    }
+    el.addEventListener('input', regroup);
+    el.addEventListener('focus', function(){ last = el.value; });
+    if (el.value) setGroupedNumber(el, groupedNumber(el));
+    last = el.value;
+    return el;
+  }
 
   // CHALLENGE — a named date range. Day numbers are inclusive calendar days: the start
   // date is Day 1, the end date is the last day. It defines no rules and judges nothing.
@@ -17395,9 +17432,9 @@
       '<button type="button" class="save-btn" id="czTaskSave">' + (editing ? 'Save task' : 'Add task') + '</button>' +
       (editing ? '<button type="button" class="delete-btn" id="czTaskDelete"></button>' : '');
     backdrop.classList.add('open');
-    var nameEl = document.getElementById('f_czTask'), targetEl = document.getElementById('f_czTarget'), unitEl = document.getElementById('f_czUnit');
+    var nameEl = document.getElementById('f_czTask'), targetEl = wireGroupedNumber(document.getElementById('f_czTarget')), unitEl = document.getElementById('f_czUnit');
     nameEl.value = shown ? shown.title : '';
-    targetEl.value = shown && Number(shown.target) > 0 ? shown.target : '';
+    setGroupedNumber(targetEl, shown && Number(shown.target) > 0 ? shown.target : '');
     unitEl.value = shown && kind === 'count' ? (shown.unit || '') : '';
     var optBtn = document.getElementById('czAsAction');
     function syncOpt(){
@@ -17414,7 +17451,7 @@
       });
       document.getElementById('czTargetRow').hidden = kind === 'check';
       document.getElementById('czUnitField').hidden = kind !== 'count';
-      targetEl.placeholder = kind === 'steps' ? 'e.g. 10000' : 'e.g. 50';
+      targetEl.placeholder = kind === 'steps' ? 'e.g. 10,000' : 'e.g. 50';
       if (kind === 'steps' && !nameEl.value.trim()) nameEl.value = 'Steps';
       document.getElementById('czKindNote').textContent = kind === 'steps'
         ? 'Uses the steps logged in Health & fitness — one number for both, logged from either.'
@@ -17444,7 +17481,7 @@
     function save(){
       var title = nameEl.value.trim();
       if (!title){ nameEl.focus(); return; }
-      var target = parseInt(targetEl.value, 10);
+      var target = groupedNumber(targetEl);
       if (kind !== 'check' && targetEl.value && !(target > 0)){ targetEl.focus(); return; }
       var vals = {
         title: title,
@@ -17612,20 +17649,20 @@
       '<button type="button" class="save-btn" id="czwSave">' + (editing ? 'Save target' : 'Add target') + '</button>' +
       (editing ? '<button type="button" class="delete-btn" id="czwDelete"></button>' : '');
     backdrop.classList.add('open');
-    var nameEl = document.getElementById('f_czwTitle'), targetEl = document.getElementById('f_czwTarget'),
-        unitEl = document.getElementById('f_czwUnit'), goalEl = document.getElementById('f_czwGoal');
+    var nameEl = document.getElementById('f_czwTitle'), targetEl = wireGroupedNumber(document.getElementById('f_czwTarget')),
+        unitEl = document.getElementById('f_czwUnit'), goalEl = wireGroupedNumber(document.getElementById('f_czwGoal'));
     nameEl.value = shown ? shown.title : '';
-    targetEl.value = shown && Number(shown.target) > 0 ? shown.target : '';
+    setGroupedNumber(targetEl, shown && Number(shown.target) > 0 ? shown.target : '');
     unitEl.value = shown && kind === 'count' ? (shown.unit || '') : '';
-    goalEl.value = shown && Number(shown.dailyGoal) > 0 ? shown.dailyGoal : '';
+    setGroupedNumber(goalEl, shown && Number(shown.dailyGoal) > 0 ? shown.dailyGoal : '');
     function syncKind(){
       sheetEl.querySelectorAll('[data-czw-kind]').forEach(function(b){
         var on = b.dataset.czwKind === kind;
         b.classList.toggle('sel', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
       });
       document.getElementById('czwUnitField').hidden = kind !== 'count';
-      targetEl.placeholder = kind === 'steps' ? 'e.g. 70000' : 'e.g. 350';
-      goalEl.placeholder = kind === 'steps' ? 'e.g. 10000' : 'e.g. 50';
+      targetEl.placeholder = kind === 'steps' ? 'e.g. 70,000' : 'e.g. 350';
+      goalEl.placeholder = kind === 'steps' ? 'e.g. 10,000' : 'e.g. 50';
       if (kind === 'steps' && !nameEl.value.trim()) nameEl.value = 'Steps';
       document.getElementById('czwNote').textContent = kind === 'steps'
         ? 'Adds up the steps logged each day in Health & fitness. A daily goal also sets the day’s steps target there.'
@@ -17654,7 +17691,7 @@
     function save(){
       var title = nameEl.value.trim();
       if (!title){ nameEl.focus(); return; }
-      var amount = parseInt(targetEl.value, 10), goal = parseInt(goalEl.value, 10);
+      var amount = groupedNumber(targetEl), goal = groupedNumber(goalEl);
       if (!(amount > 0)){ targetEl.focus(); return; }
       if (goalEl.value && !(goal > 0)){ goalEl.focus(); return; }
       var vals = { title: title, target: amount, unit: kind === 'count' ? (unitEl.value.trim() || 'reps') : null, dailyGoal: goal > 0 ? goal : null };
@@ -20842,18 +20879,18 @@
       sheetHead(SESSION_ICON_SVG.steps, 'Steps', challengeStepsTarget(date) ? 'One total for the day \u00b7 challenge target ' + fmtSteps(challengeStepsTarget(date)) + '.' : 'One total for the day.', '') +
       fieldDate('f_stepsDate', 'Date', date) +
       '<div class="field"><label for="f_steps">Steps</label>' +
-        '<input type="number" id="f_steps" inputmode="numeric" min="0" max="200000" step="1" placeholder="e.g. 8420" enterkeyhint="done"></div>' +
+        '<input type="number" id="f_steps" inputmode="numeric" min="0" max="200000" step="1" placeholder="e.g. 8,420" enterkeyhint="done"></div>' +
       '<p class="steps-note" id="stepsNote"></p>' +
       '<button type="button" class="save-btn" id="stepsSaveBtn">Save</button>' +
       '<button type="button" class="delete-btn" id="stepsDeleteBtn" hidden>Delete</button>';
     backdrop.classList.add('open');
     activeSheetRefresh = null;
-    var dateEl = document.getElementById('f_stepsDate'), numEl = document.getElementById('f_steps');
+    var dateEl = document.getElementById('f_stepsDate'), numEl = wireGroupedNumber(document.getElementById('f_steps'), 6);
     var note = document.getElementById('stepsNote'), del = document.getElementById('stepsDeleteBtn');
     function current(){ return (orig && orig.date === dateEl.value) ? orig : stepsRecordFor(dateEl.value); }
     function sync(first){
       var r = current();
-      if (first || !numEl.value) numEl.value = r ? r.steps : '';
+      if (first || !numEl.value) setGroupedNumber(numEl, r ? r.steps : '');
       del.hidden = !r;
       note.textContent = (r && r !== orig) ? fmtSteps(r.steps) + ' already logged for this day \u2014 saving replaces it.' : '';
     }
@@ -20862,7 +20899,7 @@
     setTimeout(function(){ numEl.focus(); }, 60);
     document.getElementById('sheetCloseBtn').addEventListener('click', done);
     function save(){
-      var n = parseInt(numEl.value, 10), d = dateEl.value || todayStr();
+      var n = groupedNumber(numEl), d = dateEl.value || todayStr();
       if (!(n >= 0) || n > 200000){ numEl.focus(); return; }
       var target = stepsRecordFor(d), now = new Date().toISOString();
       if (orig && orig.date !== d && target && target.id !== orig.id) deleteSession(orig.id);

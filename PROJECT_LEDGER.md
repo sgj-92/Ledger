@@ -187,7 +187,9 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   Nutrition record (the editor, or the summary once the day is closed); the meals
   sheet links to it too ("View food diary ›").
 - **Steps** — a line in Today's Health & fitness summary: "Steps 8,420 · 7-day avg
-  9,105", or "Log steps ›". Logged from Quick Log (Nutrition, Weight, Steps, Daily
+  9,105", or "Log steps ›". Step fields (the Steps sheet, challenge step targets and daily
+  goals) group thousands while typing ("12,242"), keep the numeric keypad and the
+  caret, and still store a plain number (`wireGroupedNumber` / `groupedNumber`). Logged from Quick Log (Nutrition, Weight, Steps, Daily
   photo, Padel, Cardio, HIIT, Strength, Mobility, Symptoms).
 - **Catch-up** — the recovery layer for whatever the evening did not close.
   Reads the day's real records *and* its Wind-down state: anything already
