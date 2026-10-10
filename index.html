@@ -1830,6 +1830,18 @@
   .day-share-link { display: block; width: 100%; text-align: center; color: var(--text-3); font-size: 12.5px; }
   .day-share-row { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; }
   .day-share-row .day-share-link { width: auto; }
+  /* Share with Claude: one quiet control; its three actions open in place below it */
+  .ch-toggle { display: inline-flex; align-items: center; gap: 5px; }
+  .ch-chev { display: flex; width: 12px; height: 12px; transition: transform 0.2s ease; }
+  .ch-chev svg { width: 100%; height: 100%; display: block; }
+  .ch-toggle[aria-expanded="true"] .ch-chev { transform: rotate(180deg); }
+  .ch-menu { max-width: 320px; margin: 2px auto var(--sp-3); }
+  .ch-menu[hidden] { display: none; }
+  .ch-menu .act-rows { margin-top: 0; }
+  .ch-menu a.act-row { text-decoration: none; }
+  .ch-foot { margin: 2px 0 0; text-align: center; font-size: 12px; color: var(--text-3); }
+  .ch-foot .btn-link { padding: 8px 0; font-size: 12px; color: var(--text-3); }
+  .ch-note.err { color: var(--danger); }
   .day-share-link.snap { color: var(--gold); }
   /* ---- snapshot sheet ---- */
   .sheet:has(.snap-presets) { overflow-x: hidden; }
@@ -4886,8 +4898,9 @@
     <button type="button" class="share-live" id="shareLiveLine" hidden><span class="share-live-dot" aria-hidden="true"></span><span class="share-live-text"></span></button>
     <div class="day-share-row">
       <button type="button" class="btn-link day-share-link snap" id="shareSnapFootBtn">Share snapshot →</button>
-      <button type="button" class="btn-link day-share-link" id="shareDayFootBtn">Share day for Claude →</button>
+      <button type="button" class="btn-link day-share-link ch-toggle" id="shareDayFootBtn" aria-expanded="false" aria-controls="claudeMenu">Share with Claude<span class="ch-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></button>
     </div>
+    <div class="ch-menu" id="claudeMenu" hidden></div>
     <p class="sync-note" id="syncNote"></p>
     </div>
   </section>
@@ -5112,6 +5125,27 @@
     return '';
   }
   function actionIsWaiting(c){ var st = actionExecState(c); return st === 'waiting' || st === 'blocked'; }
+  // ---- How long an unfinished Action has existed ----
+  // From its original createdAt — never the day it entered the Backlog or was last
+  // moved, which every mover and editor keeps. Whole local calendar days, so a clock
+  // change never shifts it; worked out at render, so it moves on with the day and
+  // writes nothing. A record without a trustworthy createdAt shows no age (none is
+  // invented). Done Actions stop counting. A fact, not a judgement.
+  function actionCreatedDate(c){
+    var v = c && c.createdAt;
+    if (!v) return null;
+    var d = v && v.toDate ? v.toDate() : (typeof v === 'string' ? new Date(v) : null);
+    if (!d || isNaN(d.getTime()) || d.getTime() > Date.now() + 5 * 60000) return null;
+    return fmtDate(d);
+  }
+  function actionAgeDays(c){
+    if (!c || c.status === 'completed') return null;
+    var cd = actionCreatedDate(c);
+    if (!cd) return null;
+    var n = Math.round((toLocalDate(todayStr()) - toLocalDate(cd)) / 86400000);
+    return n > 0 ? n : null;
+  }
+  function actionAgeLabel(c){ var n = actionAgeDays(c); return n ? n + (n === 1 ? ' day old' : ' days old') : ''; }
   // Done and reopened keep the state honest whichever way the record changed: a done
   // Action is done; one reopened from done starts again (its waiting context is history)
   function normaliseExecState(item, prev){
@@ -7830,6 +7864,8 @@
       ms.textContent = (bits.length ? ' · ' : '') + mt;
       meta.appendChild(ms);
     }
+    var age = done ? '' : actionAgeLabel(c);
+    if (age) meta.appendChild(document.createTextNode((meta.textContent ? ' · ' : '') + age));
     row.addEventListener('click', function(){ openCommitmentSheet(c); });
     if (!isRoadblock){
       row.querySelector('.commitment-status-dot').addEventListener('click', function(e){
@@ -8426,10 +8462,12 @@
       }
       if (isEditing){
         html += fieldDate('f_commitDate', 'Scheduled for', existing.date || todayStr());
-        var orig = actionOriginalDate(existing);
+        var orig = actionOriginalDate(existing), created = actionCreatedDate(existing);
         if (orig && orig !== existing.date){
           html += '<p class="commit-origin-note">' + addedLabel(orig) + '</p>';
         }
+        if (created) html += '<p class="commit-origin-note commit-created">Created ' +
+          toLocalDate(created).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + '</p>';
         if (existing.sourceType === 'partner_request') html += (shareOn() && sharedRequests.some(function(x){ return x.id === existing.sourceRequestId; })
           ? '<button type="button" class="commit-origin-note rq-origin" id="commitSourceNote"><span></span>' + UI_ICON.chevronRight + '</button>'
           : '<p class="commit-origin-note" id="commitSourceNote"></p>');
@@ -9961,7 +9999,8 @@
     var metaBits = [];
     if (compact) metaBits.push(categoryLabel(c.category));
     // the date is already the group heading when sorting by date
-    if (!opts.hideDate) metaBits.push(addedLabel(actionOriginalDate(c)));
+    // on the compact shelf the age says how long it has waited; the full Backlog keeps both
+    if (!opts.hideDate && !(compact && actionAgeLabel(c))) metaBits.push(addedLabel(actionOriginalDate(c)));
     var metaHtml = metaBits.filter(function(x){ return !!x; }).join(' · ');
     return '<div class="bk-row' + (moved ? ' moved' : '') + '" data-bk-row="' + c.id + '">' +
       (opts.check
@@ -9970,9 +10009,10 @@
       '<button type="button" class="bk-body" data-bk-open="' + c.id + '">' +
         (opts.kicker ? '<span class="bk-kicker">' + categoryLabel(c.category) + '</span>' : '') +
         '<span class="bk-title" data-bk-title="' + c.id + '"></span>' +
-        (!metaHtml && !state ? '' :
+        (!metaHtml && !state && !actionAgeLabel(c) ? '' :
           '<span class="bk-meta">' + metaHtml +
             (state ? (metaHtml ? ' · ' : '') + '<span class="bk-state">' + state + '</span>' : '') +
+            (actionAgeLabel(c) ? (metaHtml || state ? ' · ' : '') + actionAgeLabel(c) : '') +
           '</span>') +
       '</button>' +
       '<span class="bk-actions">' +
@@ -10631,6 +10671,165 @@
         ok ? resolve() : reject(new Error('copy rejected'));
       } catch(e){ reject(e); }
     });
+  }
+
+  // ============ Share with Claude ============
+  // The day's export (unchanged) goes to Shaun's ongoing Claude conversation. Ledger
+  // never talks to Claude: it copies, and it opens a link — the OS decides whether that
+  // is the Claude app or the browser. Nothing is ever sent for him.
+  //
+  // Copy & Open has to survive Safari, Chrome and installed apps, which only allow a
+  // copy and a new window inside the tap itself. So the copy is synchronous (a selected
+  // textarea and execCommand), and the "open" is the row's own link: if the copy
+  // worked the link simply follows; if not, the link is cancelled — no blank tab — and
+  // the clipboard API is tried instead, ending in "Copied — Open Claude" (a fresh tap)
+  // or, if nothing can copy, the export shown for selecting by hand.
+  var CH_COPY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6.5a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"/></svg>';
+  var CH_OPEN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h5.5V10"/><line x1="19.5" y1="4.5" x2="11" y2="13"/><path d="M18 14v4a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 18V8a1.5 1.5 0 0 1 1.5-1.5h4"/></svg>';
+  // an ongoing conversation on claude.ai, over https, and nothing else: no share links,
+  // no credentials, no other host; kept without query or fragment
+  function validClaudeUrl(raw){
+    var t = String(raw || '').trim();
+    if (!t) return null;
+    var u; try { u = new URL(t); } catch(e){ return null; }
+    if (u.protocol !== 'https:' || u.hostname !== 'claude.ai' || u.username || u.password || u.port) return null;
+    if (!/^\/chat\/[A-Za-z0-9-]{8,}\/?$/.test(u.pathname)) return null;
+    return 'https://claude.ai' + u.pathname.replace(/\/$/, '');
+  }
+  // an Owner preference (ledger_meta/presets): every one of Shaun's devices, never a partner's
+  function claudeUrl(){ return validClaudeUrl(presets.claudeUrl); }
+  function copyTextSync(text){
+    var active = document.activeElement, ok = false;
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('aria-hidden', 'true');
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:0;opacity:0;font-size:16px';
+    document.body.appendChild(ta);
+    try {
+      ta.readOnly = false; ta.contentEditable = 'true';           // iOS selects only an editable field
+      var range = document.createRange(); range.selectNodeContents(ta);
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      ta.select(); ta.setSelectionRange(0, text.length);
+      ok = document.execCommand('copy');
+    } catch(e){ ok = false; }
+    document.body.removeChild(ta);
+    try { window.getSelection().removeAllRanges(); } catch(e){}
+    if (active && active.focus && active !== document.body) try { active.focus({ preventScroll: true }); } catch(e){}
+    return !!ok;
+  }
+  // inside the tap: the synchronous copy first, then the clipboard API
+  function copyHandoffText(text){
+    if (copyTextSync(text)) return Promise.resolve();
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return Promise.reject(new Error('no clipboard'));
+  }
+  function openClaudeNow(){
+    var url = claudeUrl();
+    if (!url){ openClaudeUrlSheet(); return; }
+    // a new window from this tap; Ledger itself never navigates away
+    var w = window.open(url, '_blank');
+    if (w){ try { w.opener = null; } catch(e){} }
+    else showPinToast('Couldn’t open Claude — use Open Claude in Share with Claude', true);
+  }
+  function closeClaudeMenu(){
+    var m = document.getElementById('claudeMenu'), t = document.getElementById('shareDayFootBtn');
+    if (m) m.hidden = true;
+    if (t) t.setAttribute('aria-expanded', 'false');
+  }
+  function renderClaudeMenu(){
+    var m = document.getElementById('claudeMenu');
+    var url = claudeUrl(), dateStr = viewedDate;
+    // with a conversation saved, Copy & Open and Open are real links (the most reliable
+    // way to open something from a tap); without one they lead to setting it
+    function row(id, icon, label, sub, link){
+      return (link ? '<a class="act-row ch-opt" id="' + id + '" target="_blank" rel="noopener noreferrer">' : '<button type="button" class="act-row ch-opt" id="' + id + '">') +
+        '<span class="act-ic">' + icon + '</span><span class="act-label">' + label + '</span>' +
+        (sub ? '<span class="act-meta">' + sub + '</span>' : '') + (link ? '</a>' : '</button>');
+    }
+    m.innerHTML = '<div class="act-rows ch-rows">' +
+        row('chCopyOpen', CH_OPEN_SVG, 'Copy &amp; Open Claude', '', !!url) +
+        row('chCopy', CH_COPY_SVG, 'Copy only', '', false) +
+        row('chOpen', CH_OPEN_SVG, 'Open Claude', url ? '' : 'Set your conversation', !!url) +
+      '</div>' +
+      '<p class="ch-foot"><button type="button" class="btn-link" id="chPreview">Preview export</button>' +
+        '<span aria-hidden="true"> · </span><button type="button" class="btn-link" id="chSetUrl">' + (url ? 'Claude conversation' : 'Set Claude conversation') + '</button></p>';
+    if (url){ m.querySelector('#chCopyOpen').href = url; m.querySelector('#chOpen').href = url; }
+    function text(){ return buildDailyHandoff(dateStr, handoffWantsInstructions()); }
+    function cannotCopy(){
+      openShareDaySheet(dateStr);
+      showPinToast('Couldn’t copy here — select the text, then use Open Claude', true);
+    }
+    m.querySelector('#chCopyOpen').addEventListener('click', function(e){
+      if (!url){ e.preventDefault(); closeClaudeMenu(); openClaudeUrlSheet(); return; }
+      var t = text();
+      if (copyTextSync(t)){                                   // copied: let the link open Claude
+        markHandoffSent(dateStr); closeClaudeMenu();
+        showPinToast('Copied — paste it into Claude', false, CHECK_SVG);
+        return;
+      }
+      e.preventDefault();                                       // never a blank tab after a failed copy
+      closeClaudeMenu();
+      if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext){
+        navigator.clipboard.writeText(t).then(function(){
+          markHandoffSent(dateStr);
+          showActionToast('Copied — open Claude to paste it', 'Open Claude', openClaudeNow);
+        }).catch(cannotCopy);
+      } else cannotCopy();
+    });
+    m.querySelector('#chCopy').addEventListener('click', function(){
+      closeClaudeMenu();
+      copyHandoffText(text()).then(function(){
+        markHandoffSent(dateStr);
+        showPinToast('Day copied', false, CHECK_SVG);
+      }).catch(cannotCopy);
+    });
+    m.querySelector('#chOpen').addEventListener('click', function(e){
+      closeClaudeMenu();
+      if (!url){ e.preventDefault(); openClaudeUrlSheet(); }
+    });
+    m.querySelector('#chPreview').addEventListener('click', function(){ closeClaudeMenu(); openShareDaySheet(dateStr); });
+    m.querySelector('#chSetUrl').addEventListener('click', function(){ closeClaudeMenu(); openClaudeUrlSheet(); });
+  }
+  function toggleClaudeMenu(){
+    var m = document.getElementById('claudeMenu'), t = document.getElementById('shareDayFootBtn');
+    if (!m.hidden){ closeClaudeMenu(); return; }
+    renderClaudeMenu();                     // expanding never does anything else
+    m.hidden = false; t.setAttribute('aria-expanded', 'true');
+  }
+  // Settings → Claude conversation: paste, change or clear the link
+  function openClaudeUrlSheet(fromSettings){
+    activeSheetRefresh = null; editingId = null;
+    var cur = claudeUrl();
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(CH_OPEN_SVG, 'Claude conversation', 'Where “Share with Claude” takes the day.', '') +
+      '<div class="field"><label for="f_claudeUrl">Conversation link</label>' +
+        '<input type="url" id="f_claudeUrl" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://claude.ai/chat/…"></div>' +
+      '<p class="set-note ch-note" id="claudeUrlNote">Open your ongoing chat in Claude and copy its address (claude.ai/chat/…). Only you see it, on all your devices. Not a public share link.</p>' +
+      '<button type="button" class="save-btn" id="claudeUrlSave">Save</button>' +
+      (cur ? '<button type="button" class="delete-btn" id="claudeUrlClear">Clear</button>' : '');
+    backdrop.classList.add('open');
+    var input = document.getElementById('f_claudeUrl'), note = document.getElementById('claudeUrlNote');
+    input.value = cur || '';
+    function back(){ if (fromSettings) openSettingsSheet(); else closeSheet(); }
+    document.getElementById('sheetCloseBtn').addEventListener('click', back);
+    document.getElementById('claudeUrlSave').addEventListener('click', function(){
+      var v = validClaudeUrl(input.value);
+      if (!v){
+        note.textContent = /\/share\//.test(input.value) ? 'That’s a public share link. Use the address of the conversation itself (claude.ai/chat/…).'
+          : 'That isn’t a Claude conversation link. It should start https://claude.ai/chat/';
+        note.classList.add('err'); input.focus(); return;
+      }
+      presets.claudeUrl = v; savePresets();
+      showPinToast('Claude conversation saved', false, CHECK_SVG);
+      back();
+    });
+    var clr = document.getElementById('claudeUrlClear');
+    if (clr) clr.addEventListener('click', function(){
+      presets.claudeUrl = null; savePresets();
+      showPinToast('Claude conversation cleared', false, CHECK_SVG);
+      back();
+    });
+    if (!cur) setTimeout(function(){ try { input.focus(); } catch(e){} }, 60);
   }
 
   function openShareDaySheet(dateStr){
@@ -15662,6 +15861,7 @@
         '</div>' +
         (LOCAL_ONLY ? '' : settingsRow('setPassword', 'Password', 'Set or change')) +
         (LOCAL_ONLY ? '' : settingsRow('setNotifications', 'Notifications', '')) +
+        settingsRow('setClaudeUrl', 'Claude conversation', claudeUrl() ? 'Set' : 'Not set') +
         '</div>' +
         (LOCAL_ONLY ? '<p class="set-note">This copy of Ledger has no account and keeps everything on this device.</p>' : '') +
       '</div>' +
@@ -15746,6 +15946,7 @@
     if (pwBtn) pwBtn.addEventListener('click', openPasswordSheet);
     var ntBtn = document.getElementById('setNotifications');
     if (ntBtn) ntBtn.addEventListener('click', openNotificationsSheet);
+    document.getElementById('setClaudeUrl').addEventListener('click', function(){ openClaudeUrlSheet(true); });
     var signOutBtn = document.getElementById('setSignOut');
     if (signOutBtn) signOutBtn.addEventListener('click', function(){
       if (confirm('Sign out of Ledger on this device?')) signOutLedger();
@@ -16364,7 +16565,10 @@
     if (activeSheetRefresh) activeSheetRefresh();
   }
 
-  document.getElementById('shareDayFootBtn').addEventListener('click', function(){ openShareDaySheet(viewedDate); });
+  document.getElementById('shareDayFootBtn').addEventListener('click', toggleClaudeMenu);
+  document.getElementById('claudeMenu').addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){ closeClaudeMenu(); document.getElementById('shareDayFootBtn').focus(); }
+  });
   document.getElementById('shareSnapFootBtn').addEventListener('click', function(){ openSnapshotSheet(viewedDate); });
   document.getElementById('shareLiveLine').addEventListener('click', function(){
     openSnapshotSheet(viewedDate, null, { mode: 'partner', period: this.dataset.period === 'week' ? 'week' : 'day' });

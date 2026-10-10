@@ -205,6 +205,20 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   routing). Days go oldest first; closing one says "Wed 7 Oct is closed · next,
   Thu 8 Oct" and opens the next; closing the last says "Yesterday is closed" and
   goes back to Today. Editors opened from Today behave as before.
+- **Share with Claude** (since 2026-10-10) — Today's footer has one collapsed
+  control, "Share with Claude ˅"; tapped, three quiet rows: **Copy & Open Claude**,
+  **Copy only**, **Open Claude** (plus "Preview export" and the conversation link).
+  The destination is Shaun's saved conversation (Settings → Claude conversation;
+  `presets.claudeUrl`, Owner-only, every device; only `https://claude.ai/chat/…`,
+  never a share link). Copy & Open copies synchronously inside the tap and lets
+  the row's own link open the conversation; if that copy is refused, no tab opens
+  and the clipboard API is tried, ending in "Copied — Open Claude" or the export to
+  select by hand. Nothing is ever sent to Claude for him. The export is unchanged.
+- **Action age** (since 2026-10-10) — unfinished Actions show "9 days old" at the
+  end of their quiet meta line on Today and in the Backlog (on the compact shelf it
+  stands in for "Added …"), counted in local calendar days from the original
+  `createdAt`; none for Actions created today, done Actions or records without a
+  trustworthy `createdAt`. The editor shows "Created 1 October 2026".
 - **Daily Handoff** — "Share day" → structured text export for Claude, with an
   optional instruction footer; clipboard + Web Share API. Carries Day Notes when
   non-empty, headed `DAY NOTES UPDATED` when they have changed since the last
@@ -617,6 +631,19 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-10 — Claude handoff works on every device; Action age is a fact
+**Decision (Shaun's brief):** the Claude handoff is cross-platform (iPhone, Samsung,
+Mac; browser and installed app). The saved Claude conversation URL is an
+Owner-private preference available on all his devices (`presets.claudeUrl`,
+https claude.ai conversation links only; never public share links, never
+credentials). **Copy & Open Claude** is the primary action; **Copy only** and
+**Open Claude** stay independently available. Clipboard and pop-up limits always
+have a graceful fallback — no blank tab after a failed copy, no "copied" unless it
+was. No MCP or direct Claude integration. **Action age** uses the immutable original
+`createdAt`; date moves and Backlog transitions never reset it; legacy records
+without one show no age (nothing invented); done Actions stop counting. Age is
+factual context, not a performance judgement — no colours, badges or warnings.
 
 ### 2026-10-09 — One primary button; everything else is a quiet action row
 **Decision (Shaun's brief):** Ledger avoids stacked full-width secondary buttons.
@@ -1654,7 +1681,7 @@ Owner: Shaun
 Status: Verification (2026-10-09)
 Objective: redeploy rules + functions for withdrawn Partner Requests; check the Today hierarchy, header polish and the Catch-up review on the phone
 (Next 1), and finish the remaining push device checks (Next 2–3).
-Acceptance criteria: Next 1–4 confirmed.
+Acceptance criteria: Next 1–5 confirmed.
 
 The backlog exists as GitHub Issues (#5–#19). None of it is authorised for
 implementation — see the workflow rules in `CLAUDE.md`.
@@ -1739,6 +1766,12 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-10) — Share with Claude (saved conversation, Copy & Open / Copy only /
+  Open Claude, fallbacks) and Action age. QA 46/46 (390 dark, light, 1440) incl.
+  real clipboard reads, tab opening, refused-copy and no-copy paths, keyboard; age
+  across both UK clock changes; all suites, Partner Sharing e2e 166, push e2e 66.
+  Real-device checks are Shaun's (see Next).
 
 - (2026-10-09) — Action rows: the Action editor's Set as current focus / Pin now /
   Delete, the new-Action Pin now / Add and pin now, the activity sheet's alternate
@@ -1944,7 +1977,12 @@ minutes before", recurring/accountability).
    works). Then try "Pay staff" → Waiting → "payroll" → add an update. Then Abi: withdraw a
    test request → ⋯ → Move to upcoming (Shaun's phone: "Abi moved a request to
    upcoming") → withdraw it again → ⋯ → Hide from my list.
-2. **Shaun: Today on the phone and the MacBook** — on the Mac: Backlog + Actions,
+2. **Shaun: Share with Claude on each device** — Settings → Claude conversation →
+   paste the link of your ongoing chat (claude.ai/chat/…). Then on iPhone (Safari
+   and the Home Screen app), Samsung (Chrome and installed) and the Mac: Share
+   with Claude → Copy & Open Claude → paste in Claude. Note whether it opened the
+   Claude app or the browser (the OS decides). Also try Copy only and Open Claude.
+3. **Shaun: Today on the phone and the MacBook** — on the Mac: Backlog + Actions,
    then Communications + Health & fitness, then the quieter utilities;
    Communications opens in place, "Open Communications" goes to the Centre. On
    the phone: Actions, Communications and Health & fitness
@@ -1955,7 +1993,7 @@ minutes before", recurring/accountability).
    training. With yesterday unclosed: the row says "Yesterday needs finishing" →
    open an Action from it → cancel → back in the review, still open → complete it →
    back, resolved → Close this day → "Yesterday is closed", back on Today.
-3. **Shaun: the remaining devices** (on `https://ledger.sgj.luxe`). Done: rules
+4. **Shaun: the remaining devices** (on `https://ledger.sgj.luxe`). Done: rules
    and functions deployed; the Samsung enabled; Mac → Samsung focus push works.
    - **iPhone and iPad**: Safari → Share → Add to Home Screen → open Ledger *from
      the icon* → sign in (the installed app has its own sign-in) → Settings →
@@ -1966,12 +2004,12 @@ minutes before", recurring/accountability).
    - Change focus on the iPhone → the Mac and Samsung follow; tap the
      notification → that Action opens. Start a Reset Sprint, tick the first item on
      another device → the focus moves on everywhere.
-4. **Abi**: installs and signs in → footer → Notifications → Enable. She sends a
+5. **Abi**: installs and signs in → footer → Notifications → Enable. She sends a
    request → Shaun's devices: "Abi sent a request"; she adds an update → Shaun;
    Shaun adds one → Abi. Tapping opens the request. Nothing private shows.
-5. If not done yet: the domain checks from 2026-10-07 (build stamp "Up to date",
+6. If not done yet: the domain checks from 2026-10-07 (build stamp "Up to date",
    password + email-link sign-in return to ledger.sgj.luxe, `?view=week` refresh)
    and the challenge line / Morning Prime check on the phone.
-6. Shaun: create the GitHub Project (Open Q7); triage #6–#19.
+7. Shaun: create the GitHub Project (Open Q7); triage #6–#19.
 
 Everything else is on the board. Do not duplicate it here.
