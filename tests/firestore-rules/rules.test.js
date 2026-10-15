@@ -18,7 +18,7 @@ const NOW = () => firebase.firestore.FieldValue.serverTimestamp();
 const PRIVATE = [
   'ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_day_status',
   'ledger_priorities', 'ledger_focus', 'ledger_meals', 'ledger_meta',
-  'ledger_matters', 'ledger_conversations', 'ledger_challenges', 'ledger_sprints'
+  'ledger_matters', 'ledger_conversations', 'ledger_challenges', 'ledger_sprints', 'ledger_life_context'
 ];
 
 // a device subscription as the client writes it

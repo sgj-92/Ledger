@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-07 (ledger.sgj.luxe is the canonical production origin; Vercel migration audit done; Blaze enabled)
+Last updated: 2026-10-15 (Life Context; mobile horizontal-overflow fix)
 
 ---
 
@@ -214,6 +214,25 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   the row's own link open the conversation; if that copy is refused, no tab opens
   and the clipboard API is tried, ending in "Copied — Open Claude" or the export to
   select by hand. Nothing is ever sent to Claude for him. The export is unchanged.
+- **Life Context** (since 2026-10-15) — Owner-private records of what affected a
+  day: Illness / unwell, Injury / recovery, Poor sleep / fatigue, Family,
+  Unexpected work, Travel / disruption, Other (own label); affected areas (General
+  day, Training, Steps, Challenges, Actions, Nutrition, Routines); an optional note;
+  a start date and an optional end date. One record covers a multi-day
+  circumstance: "Just this day", "Several days" (from–to) or "Ongoing" (open end,
+  active until marked resolved; Resolve ends it today, end dates can be amended).
+  Stored in `ledger_life_context` (owner-only rules). **One editor, three ways in:**
+  Quick log → Life context; the review step "Anything that affected your day?" in
+  Evening Wind-down and Review day (after the evidence, before the day's outcome);
+  and a "Life context" step in Catch-up that returns to the same day and step.
+  When goals were missed the step states the facts first ("Training and one Action
+  weren’t completed.") and then asks; Add context / Nothing to add (remembered on
+  the day record as `lifeContextNone`); records already covering the day are listed
+  with Edit. It never gates closing a day. Progress → Last 7 days adds a Context row
+  (dotted cells) and draws a planned-but-unrecorded training day that has context
+  with a dashed outline; the Daily Handoff adds "Life context (recorded, not a
+  diagnosis or a cause): …" lines. Nothing about streaks, XP, percentages or
+  completion changes.
 - **Action age** (since 2026-10-10) — unfinished Actions show "9 days old" at the
   end of their quiet meta line on Today and in the Backlog (on the compact shelf it
   stands in for "Added …"), counted in local calendar days from the original
@@ -624,6 +643,13 @@ Conventions that should not be casually changed.
 - Order/group hints are **sparse**: unlisted ids sort after listed ones by
   creation order, so new actions land at the bottom with nothing written and
   no migration is needed.
+- **Mobile layout rule** (2026-10-15): nothing may make the page wider than the
+  screen. User text inside a shrinkable box breaks anywhere (`overflow-wrap:
+  anywhere` on the user-text classes, with `min-width: 0` on their flex parents);
+  iOS date/time inputs get `min-width: 0` and no native appearance. On iPhone a
+  page wider than the viewport widens the layout viewport and every fixed sheet
+  with it, so one long word on Today breaks every sheet. Only an intentional strip
+  scrolls sideways; never `overflow-x: hidden` on the page to hide the symptom.
 - Forms must build on top of the existing record (`Object.assign`), never
   rebuild it from scratch — doing so has silently destroyed sibling fields
   three separate times (see Decisions Log).
@@ -631,6 +657,29 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-15 — Life Context explains performance; it does not rewrite it
+**Decision (Shaun's brief):** circumstances that affected a day (illness, injury,
+poor sleep, family, unexpected work, travel, other) are recorded as **Life Context**:
+owner-private, one record per circumstance (a multi-day illness is one record with
+a start and an end, amendable or resolved — never a copy per day). One editor
+reached from Quick log, the review step of Wind-down / Review day, and Catch-up
+(which keeps its resumable return). The review step is optional and never blocks
+closure. Reviews distinguish **completed**, **incomplete with context** and
+**incomplete without context**; context never marks anything done and never
+changes streaks, XP, percentages or completion. It is exposed to readers (the
+Claude handoff) as structured evidence, explicitly "not a diagnosis or a cause".
+**Privacy:** `ledger_life_context` is owner-only in `firestore.rules`; nothing
+of it reaches Abi's view, shared snapshots, request updates or notifications.
+
+### 2026-10-15 — Day Planning overflow: fix the geometry, not the symptom
+**Finding:** an unbroken long Action title on Today made the document ~511px wide
+at every phone width; on iPhone that widens the layout viewport and the fixed
+sheets (Day Plan and others) are sized to it — hence the clipped heading,
+controls and footer and the sideways drag. Catch-up, Review day and Flow had the
+same pattern inside them. **Decision:** user text breaks anywhere inside
+shrinkable boxes and iOS date/time inputs may shrink (see the Mobile layout rule
+under Implementation conventions); no global `overflow-x: hidden`.
 
 ### 2026-10-10 — Claude handoff works on every device; Action age is a fact
 **Decision (Shaun's brief):** the Claude handoff is cross-platform (iPhone, Samsung,
@@ -1678,8 +1727,8 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Shaun
-Status: Verification (2026-10-09)
-Objective: redeploy rules + functions for withdrawn Partner Requests; check the Today hierarchy, header polish and the Catch-up review on the phone
+Status: Verification (2026-10-15)
+Objective: redeploy rules + functions (withdrawn Partner Requests, Action Updates, Life Context); check Day Planning on the iPhone, Life Context, the Today hierarchy and the Catch-up review on the phone
 (Next 1), and finish the remaining push device checks (Next 2–3).
 Acceptance criteria: Next 1–5 confirmed.
 
@@ -1759,13 +1808,20 @@ No active handoff.
 
 ### Claude Code
 
-No active handoff. Today header polish + resumable Catch-up (2026-10-09) is
-complete. **Not authorised:** a scheduled-reminder engine (timed reminders, "X
+No active handoff. Life Context + mobile overflow fix (2026-10-15) is complete. **Not authorised:** a scheduled-reminder engine (timed reminders, "X
 minutes before", recurring/accountability).
 
 ---
 
 ## Recently Completed
+
+- (2026-10-15) — Life Context (records, Quick log, Wind-down / Review day / Catch-up
+  step, Progress context row, handoff evidence) and the mobile horizontal-overflow
+  fix (Today, Day Plan, Catch-up, Review day, Flow, date inputs). Life Context QA
+  23/23 (320 and 390 dark, 390 light, 1440); overflow scan 0 views over every tab
+  and main sheet at 320 / 375 / 390 / 430 / 768 / 1024 / 1440 with long content;
+  normal-data screens pixel-identical before/after; rules 322; Partner Sharing e2e
+  166, push e2e 66. **Needs the rules redeployed** (new collection).
 
 - (2026-10-10) — Share with Claude (saved conversation, Copy & Open / Copy only /
   Open Claude, fallbacks) and Action age. QA 46/46 (390 dark, light, 1440) incl.
@@ -1970,13 +2026,19 @@ minutes before", recurring/accountability).
 
 ## Next
 
-1. **Shaun: redeploy rules and functions** (withdrawn requests, Action Updates):
+1. **Shaun: redeploy rules and functions** (withdrawn requests, Action Updates,
+   Life Context — until then Life Context saves are refused by the live rules):
    `firebase deploy --only firestore:rules,functions` from `~/Ledger` after `git
    pull`. Until then, Move to upcoming and Hide are refused by the live rules, and
    an Action's Updates say "Updates aren't available right now" (its status still
    works). Then try "Pay staff" → Waiting → "payroll" → add an update. Then Abi: withdraw a
    test request → ⋯ → Move to upcoming (Shaun's phone: "Abi moved a request to
    upcoming") → withdraw it again → ⋯ → Hide from my list.
+   Then on the **iPhone**: Today → Plan the day with a long-titled Action present —
+   the sheet must not move sideways and its heading, date fields and footer must
+   fit (also with the keyboard open, untested here). Quick log → Life context →
+   Illness, Several days, yesterday to today → Save; Wind-down shows it; Progress
+   shows the Context row.
 2. **Shaun: Share with Claude on each device** — Settings → Claude conversation →
    paste the link of your ongoing chat (claude.ai/chat/…). Then on iPhone (Safari
    and the Home Screen app), Samsung (Chrome and installed) and the Mac: Share

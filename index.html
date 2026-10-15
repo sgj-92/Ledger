@@ -1842,6 +1842,26 @@
   .ch-foot { margin: 2px 0 0; text-align: center; font-size: 12px; color: var(--text-3); }
   .ch-foot .btn-link { padding: 8px 0; font-size: 12px; color: var(--text-3); }
   .ch-note.err { color: var(--danger); }
+  /* Life context: one quiet review step, the same wherever a day is closed */
+  .lc-block { margin: var(--sp-4) 0 var(--sp-2); }
+  .lc-q { margin: 0 0 4px; font-size: 13.5px; font-weight: 500; color: var(--text); }
+  .lc-facts { margin: 0 0 2px; font-size: 12.5px; line-height: 1.5; color: var(--text-2); }
+  .lc-acts, .lc-none { margin: 0; font-size: 12.5px; color: var(--text-3); }
+  .lc-acts .btn-link, .lc-none .btn-link, .lc-add { padding: 8px 0; font-size: 13px; }
+  .lc-block .act-rows { margin-top: 4px; }
+  .lc-row-e { color: var(--text-2); }
+  /* what happened over when/what: stacked, so a long custom label or many areas wrap
+     inside the row instead of pushing it wider than the sheet */
+  .lc-row-x { display: flex; flex-direction: column; gap: 2px; }
+  .lc-row-t, .lc-row-m { overflow-wrap: anywhere; }
+  .lc-row-m { font-size: 12.5px; font-weight: 400; color: var(--text-3); }
+  .lc-dates > .field, .lc-dates > .lc-end { flex: 1; min-width: 0; }
+  .lc-dates > .lc-end[hidden] { display: none; }
+  .lc-err:empty { display: none; }
+  .lc-err { color: var(--danger); }
+  .cu-block .lc-block { margin: 0; }
+  .l7-cell.ctx { background: none; border: 1.5px dotted var(--text-3); }
+  .l7-cell.explained, .l7-k.explained { border-style: dashed; border-color: var(--text-3); }
   .day-share-link.snap { color: var(--gold); }
   /* ---- snapshot sheet ---- */
   .sheet:has(.snap-presets) { overflow-x: hidden; }
@@ -2006,7 +2026,25 @@
   }
   .icon-field-ic svg { width: 17px; height: 17px; display: block; }
   .icon-field input { width: 100%; padding-left: 40px; }
+  /* Mobile layout rule: nothing may make the page wider than the screen. On iPhone a
+     page wider than the viewport widens the layout viewport, and every fixed sheet is
+     then sized to it — the Day Plan, Catch-up and the rest slide sideways and clip.
+     So text Shaun writes (an Action title, a meal, a link with no spaces) may break
+     anywhere it has to, inside a box that can shrink; labels Ledger writes keep their
+     own sizing. */
+  .ct-text, .commitment-meta, .cu-ev-text strong, .cu-ev-text span, .bk-title, .bk-meta,
+  .tl-title, .tl-meta, .dn-value, .kt-text, .dpa-title, .rq-title, .sheet-title,
+  #reviewItemTitle, .flow-ctx-notes {
+    overflow-wrap: anywhere;
+  }
+  .commitment-body, .commitment-title, .cu-ev-text { min-width: 0; }
+  .flow-ctx-key > span { min-width: 0; overflow-wrap: anywhere; }
   .field input[type="date"], .field input[type="time"] { color-scheme: dark; font-variant-numeric: tabular-nums; }
+  /* iOS gives date and time fields a native minimum width that ignores width: 100%,
+     which pushed half-width rows (Time · Duration) and the sheet past the screen */
+  input[type="date"], input[type="time"] { min-width: 0; max-width: 100%; }
+  .field input[type="date"], .field input[type="time"] { display: block; -webkit-appearance: none; appearance: none; text-align: left; min-height: 50px; }
+  .field input[type="date"]::-webkit-date-and-time-value, .field input[type="time"]::-webkit-date-and-time-value { text-align: left; }
   .sheet-title-wrap { flex: 1; min-width: 0; }
   .sheet-title {
     font-family: var(--serif); font-size: 27px; font-weight: 400;
@@ -4876,9 +4914,13 @@
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.8" fill="currentColor" stroke="none"/><path d="M12 8v6"/><path d="M12 9c-2 2-3 3-6 3"/><path d="M12 9c2 2 3 3 6 3"/><path d="M12 14c-1.5 2-2 3-2 5.5"/><path d="M12 14c1.5 2 2 3 2 5.5"/></svg></span>
         <span class="ql-label">Mobility</span>
       </button>
-      <button class="quicklog-card symptom span-2" data-type="symptom">
+      <button class="quicklog-card symptom" data-type="symptom">
         <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.6 14.6c.9-.9 1.9-1.3 3.4-1.3s2.5.4 3.4 1.3"/><line x1="9" y1="9.2" x2="9.6" y2="9.2"/><line x1="14.4" y1="9.2" x2="15" y2="9.2"/></svg></span>
         <span class="ql-label">Symptoms</span>
+      </button>
+      <button class="quicklog-card life" data-type="life">
+        <span class="ql-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.8" r="0.6" fill="currentColor"/></svg></span>
+        <span class="ql-label">Life context</span>
       </button>
     </div>
 
@@ -6535,6 +6577,7 @@
         }, function(err){ console.error('day status snapshot error', err); });
       // Reset Sprints and the Current Focus, live on every device
       startExecListeners();
+      startLifeContextListener();
       // Partner Sharing: the owner's side of the shared namespace (see firestore.rules)
       startSharingListeners();
       startDeepLinkClock();
@@ -6561,6 +6604,7 @@
     localLoadComms();
     localLoadChallenges();
     localLoadExec();
+    lcLocalLoad();
     czLoaded = { commitments: true, plans: true, challenges: true };
     presetsLoaded = true;
     prioritiesLoaded = true;
@@ -8987,6 +9031,7 @@
       }
       if (!dayResolved()){
         return head() +
+          lcBlockHtml(dateStr, { cls: 'lc-review' }) +
           '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">' + dayLabel + ' — all actions resolved. How did the day go overall? Missing data isn\'t the same as failure.</div>' +
           '<div class="status-btn-grid" id="reviewDayStatusGrid">' +
             ['completed','partial','disrupted','unknown'].map(function(s){
@@ -8994,7 +9039,7 @@
             }).join('') +
           '</div>';
       }
-      return head() + '<div class="empty-state">' + dayLabel + ' is fully reviewed.</div>';
+      return head() + '<div class="empty-state">' + dayLabel + ' is fully reviewed.</div>' + lcBlockHtml(dateStr, { cls: 'lc-review' });
     }
 
     function render(){
@@ -9030,6 +9075,9 @@
         });
       }
 
+      wireLcBlock(sheetEl, dateStr, function(go){ go(function(){ openReviewDaySheet(dateStr); }); }, function(){
+        Promise.resolve(saveDayStatus(dateStr, { lifeContextNone: true })).then(render);
+      });
       var dayGrid = document.getElementById('reviewDayStatusGrid');
       if (dayGrid){
         dayGrid.querySelectorAll('.status-btn').forEach(function(btn){
@@ -10329,6 +10377,277 @@
     });
   }
 
+  // ============ Life Context ============
+  // What happened to a day or a stretch of days — illness, poor sleep, family, travel —
+  // recorded so a missed goal can be read honestly. It explains performance; it never
+  // rewrites it: nothing here changes a completion, a streak, XP or a percentage, and
+  // nothing is assumed — a circumstance is linked to a day only by its dates and to a
+  // goal only by the areas Shaun says it affected. One record per circumstance
+  // (ledger_life_context, owner-only; never in a partner's view, a snapshot, a request
+  // or a notification), read and edited from Quick log, Wind-down / Review day and
+  // Catch-up alike. A multi-day circumstance is one record with a start and an end (or
+  // open while ongoing, until it is marked resolved).
+  var LC_LOCAL = 'ledger_life_context_fallback';
+  var lifeContexts = [];
+  var LC_CATEGORIES = [
+    { key: 'illness', label: 'Illness / unwell' },
+    { key: 'injury', label: 'Injury / recovery' },
+    { key: 'sleep', label: 'Poor sleep / fatigue' },
+    { key: 'family', label: 'Family' },
+    { key: 'work', label: 'Unexpected work' },
+    { key: 'travel', label: 'Travel / disruption' },
+    { key: 'other', label: 'Other' }
+  ];
+  var LC_AREAS = [
+    { key: 'day', label: 'General day' }, { key: 'training', label: 'Training' }, { key: 'steps', label: 'Steps' },
+    { key: 'challenges', label: 'Challenges' }, { key: 'actions', label: 'Actions' }, { key: 'nutrition', label: 'Nutrition' },
+    { key: 'routines', label: 'Routines' }
+  ];
+  var LC_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.8" r="0.6" fill="currentColor"/></svg>';
+  function lcLocalSave(){ try { localStorage.setItem(LC_LOCAL, JSON.stringify(lifeContexts)); } catch(e){} }
+  function lcLocalLoad(){ try { lifeContexts = JSON.parse(localStorage.getItem(LC_LOCAL) || '[]') || []; } catch(e){ lifeContexts = []; } }
+  function startLifeContextListener(){
+    dbRef.collection('ledger_life_context').onSnapshot(function(snap){
+      lifeContexts = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
+      lcLocalSave();
+      lifeContextChanged();
+    }, function(err){ console.error('life context snapshot error', err); });
+  }
+  function lifeContextChanged(){
+    renderLogView();
+    if (currentView === 'stats') renderStats();
+    if (activeSheetRefresh) activeSheetRefresh();
+  }
+  function saveLifeContext(rec){
+    rec.updatedAt = new Date().toISOString();
+    var i = lifeContexts.findIndex(function(x){ return x.id === rec.id; });
+    if (i > -1) lifeContexts[i] = rec; else lifeContexts.push(rec);
+    lcLocalSave();
+    if (dbReady && dbRef){
+      var copy = Object.assign({}, rec); delete copy.id;
+      return dbRef.collection('ledger_life_context').doc(rec.id).set(copy).catch(function(e){ console.error('life context save failed', e); });
+    }
+    lifeContextChanged();
+    return Promise.resolve();
+  }
+  function deleteLifeContext(id){
+    lifeContexts = lifeContexts.filter(function(x){ return x.id !== id; });
+    lcLocalSave();
+    if (dbReady && dbRef) return dbRef.collection('ledger_life_context').doc(id).delete().catch(function(e){ console.error('life context delete failed', e); });
+    lifeContextChanged();
+    return Promise.resolve();
+  }
+  // the last day a circumstance covers: its end; while ongoing, today
+  function lcEnd(r){ return r.endDate || (r.status === 'resolved' ? r.startDate : todayStr()); }
+  function lcCovers(r, ds){ return !!r && !!r.startDate && ds >= r.startDate && ds <= lcEnd(r) && ds <= todayStr(); }
+  function lifeContextFor(ds, area){
+    return lifeContexts.filter(function(r){
+      return lcCovers(r, ds) && (!area || !(r.areas || []).length || (r.areas || []).indexOf(area) > -1 || (r.areas || []).indexOf('day') > -1);
+    }).sort(function(a, b){ return (a.startDate || '') < (b.startDate || '') ? -1 : 1; });
+  }
+  function lcCategoryLabel(r){
+    if (r.category === 'other') return (r.label || '').trim() || 'Other';
+    var c = LC_CATEGORIES.find(function(x){ return x.key === r.category; });
+    return c ? c.label : 'Life context';
+  }
+  function lcShortDay(ds){ return toLocalDate(ds).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
+  // "15 Oct", "12–15 Oct", "since 12 Oct"
+  function lcSpanLabel(r){
+    if (!r.endDate && r.status !== 'resolved') return 'since ' + lcShortDay(r.startDate);
+    var e = lcEnd(r);
+    if (e === r.startDate) return lcShortDay(r.startDate);
+    var s = toLocalDate(r.startDate), t = toLocalDate(e);
+    return (s.getMonth() === t.getMonth() ? String(s.getDate()) : lcShortDay(r.startDate)) + '–' + lcShortDay(e);
+  }
+  function lcAreasLabel(r){
+    var a = (r.areas || []).filter(function(k){ return k !== 'day'; });
+    if (!a.length) return 'General day';
+    return a.map(function(k){ var x = LC_AREAS.find(function(y){ return y.key === k; }); return x ? x.label : k; }).join(', ');
+  }
+  // what a day left undone, as facts: planned training not logged, challenge targets not
+  // met, Actions still open. Context never changes these — it only sits beside them.
+  function dayMisses(ds){
+    var out = [];
+    var plan = getPlanForDate(ds) || {};
+    var planned = (plan.trainingTypes || []).filter(function(t){ return PLAN_TRAINING_TYPES.indexOf(t) > -1; });
+    var logged = sessions.filter(function(s){ return s.date === ds && PLAN_TRAINING_TYPES.indexOf(s.type) > -1; }).map(function(s){ return s.type; });
+    if (!plan.restDay && planned.length && planned.some(function(t){ return logged.indexOf(t) === -1; })) out.push({ area: 'training', text: 'Training', one: true });
+    var ch = typeof activeChallenge === 'function' ? activeChallenge() : null;
+    if (ch && ds >= ch.startDate && ds <= ch.endDate){
+      var missed = challengeTasksOn(ch, ds).filter(function(t){ return !challengeTaskMet(ch, t, ds); }).length;
+      if (missed) out.push({ area: 'challenges', text: missed === 1 ? 'one challenge target' : numberWord(missed) + ' challenge targets', one: missed === 1 });
+    }
+    var open = commitments.filter(function(c){ return c.date === ds && c.category !== 'roadblock' && c.status === 'planned'; }).length;
+    if (open) out.push({ area: 'actions', text: open === 1 ? 'one Action' : numberWord(open) + ' Actions', one: open === 1 });
+    return out;
+  }
+  function numberWord(n){ return ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'][n] || String(n); }
+  function dayMissesSentence(ms){
+    if (!ms.length) return '';
+    var t = ms.map(function(m){ return m.text; });
+    var s = t.length === 1 ? t[0] : t.slice(0, -1).join(', ') + ' and ' + t[t.length - 1];
+    return capFirst(s) + (ms.length === 1 && ms[0].one ? ' wasn’t' : ' weren’t') + ' completed.';
+  }
+  // completed · incomplete with recorded context · incomplete without — for any review
+  function goalOutcome(ds, area, done){
+    if (done) return 'done';
+    return lifeContextFor(ds, area).length ? 'explained' : 'missed';
+  }
+  // structured evidence for a reader (Claude, a future review): what was recorded, never a cause
+  function lifeContextEvidence(ds){
+    return lifeContextFor(ds).map(function(r){
+      return { circumstance: lcCategoryLabel(r), span: lcSpanLabel(r), areas: lcAreasLabel(r), note: (r.note || '').trim() || null, status: r.status || 'active' };
+    });
+  }
+
+  // The one editor: Quick log, Wind-down, Review day and Catch-up all open this
+  function openLifeContextSheet(dateStr, existing, opts){
+    opts = opts || {};
+    activeSheetRefresh = null; editingId = null;
+    var r = existing ? Object.assign({}, existing) : null;
+    var cat = r ? r.category : null, areas = r ? (r.areas || []).slice() : [];
+    var span = r ? (r.endDate === r.startDate ? 'day' : (!r.endDate && r.status !== 'resolved' ? 'ongoing' : 'days')) : 'day';
+    var start = r ? r.startDate : dateStr;
+    function done(){ if (opts.onDone) opts.onDone(); else closeSheet(); }
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(LC_ICON, 'Life context', 'What affected the day. Private to you.', '') +
+      '<div class="field"><label>What happened</label><div class="bk-filter-pop lc-chips" role="radiogroup" aria-label="What happened">' +
+        LC_CATEGORIES.map(function(c){ return '<button type="button" class="bk-filter-chip" role="radio" data-lc-cat="' + c.key + '">' + c.label + '</button>'; }).join('') +
+      '</div></div>' +
+      '<div class="field" id="lcLabelField" hidden><label for="f_lcLabel">What was it?</label><input type="text" id="f_lcLabel" maxlength="60" autocomplete="off"></div>' +
+      '<div class="field"><label>Affected</label><div class="bk-filter-pop lc-chips" aria-label="Affected">' +
+        LC_AREAS.map(function(a){ return '<button type="button" class="bk-filter-chip" aria-pressed="false" data-lc-area="' + a.key + '">' + a.label + '</button>'; }).join('') +
+      '</div></div>' +
+      '<div class="field"><label>How long</label><div class="bk-filter-pop lc-chips" role="radiogroup" aria-label="How long">' +
+        '<button type="button" class="bk-filter-chip" role="radio" data-lc-span="day">Just this day</button>' +
+        '<button type="button" class="bk-filter-chip" role="radio" data-lc-span="days">Several days</button>' +
+        '<button type="button" class="bk-filter-chip" role="radio" data-lc-span="ongoing">Ongoing</button>' +
+      '</div></div>' +
+      '<div class="field-row lc-dates">' + fieldDate('f_lcStart', 'From', start) +
+        '<div id="lcEndWrap" class="lc-end">' + fieldDate('f_lcEnd', 'Until', (r && r.endDate) || start) + '</div></div>' +
+      '<div class="field"><label for="f_lcNote">Note <span class="pp-opt">optional</span></label><textarea id="f_lcNote" rows="2" maxlength="500"></textarea></div>' +
+      '<p class="set-note lc-err" id="lcErr" role="alert"></p>' +
+      '<button type="button" class="save-btn" id="lcSave">Save</button>' +
+      (r ? '<div class="act-rows">' +
+          (r.status !== 'resolved' && span !== 'day' ? '<button type="button" class="act-row" id="lcResolve"><span class="act-ic">' + CHECK_SVG + '</span><span class="act-label">Mark resolved</span><span class="act-meta">ends ' + (todayStr() < start ? lcShortDay(start) : 'today') + '</span></button>' : '') +
+          '<button type="button" class="act-row danger" id="lcDelete"><span class="act-ic"></span><span class="act-label">Delete</span></button>' +
+        '</div>' : '');
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', done);
+    var labelIn = document.getElementById('f_lcLabel'), noteIn = document.getElementById('f_lcNote');
+    labelIn.value = r && r.label ? r.label : ''; noteIn.value = r && r.note ? r.note : '';     // user text, as values
+    function paint(){
+      sheetEl.querySelectorAll('[data-lc-cat]').forEach(function(b){ var on = b.dataset.lcCat === cat; b.classList.toggle('sel', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+      sheetEl.querySelectorAll('[data-lc-area]').forEach(function(b){ var on = areas.indexOf(b.dataset.lcArea) > -1; b.classList.toggle('sel', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      sheetEl.querySelectorAll('[data-lc-span]').forEach(function(b){ var on = b.dataset.lcSpan === span; b.classList.toggle('sel', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+      document.getElementById('lcLabelField').hidden = cat !== 'other';
+      document.getElementById('lcEndWrap').hidden = span !== 'days';
+    }
+    sheetEl.querySelectorAll('[data-lc-cat]').forEach(function(b){ b.addEventListener('click', function(){ cat = b.dataset.lcCat; paint(); if (cat === 'other') labelIn.focus(); }); });
+    sheetEl.querySelectorAll('[data-lc-area]').forEach(function(b){ b.addEventListener('click', function(){
+      var k = b.dataset.lcArea, i = areas.indexOf(k);
+      if (i > -1) areas.splice(i, 1); else areas.push(k);
+      paint();
+    }); });
+    sheetEl.querySelectorAll('[data-lc-span]').forEach(function(b){ b.addEventListener('click', function(){ span = b.dataset.lcSpan; paint(); }); });
+    paint();
+    var err = document.getElementById('lcErr');
+    document.getElementById('lcSave').addEventListener('click', function(){
+      if (!cat){ err.textContent = 'Choose what happened.'; return; }
+      var s = document.getElementById('f_lcStart').value || dateStr, e = document.getElementById('f_lcEnd').value;
+      var end = span === 'day' ? s : (span === 'days' ? e : null);
+      if (span === 'days' && (!e || e < s)){ err.textContent = 'Choose an end on or after the start.'; return; }
+      var now = new Date().toISOString();
+      var out = Object.assign({}, r || {}, {
+        id: (r && r.id) || uid(), category: cat, label: cat === 'other' ? (labelIn.value.trim().slice(0, 60) || null) : null,
+        note: noteIn.value.trim().slice(0, 500) || null, startDate: s, endDate: end,
+        areas: areas.length ? LC_AREAS.map(function(a){ return a.key; }).filter(function(k){ return areas.indexOf(k) > -1; }) : ['day'],
+        status: span === 'ongoing' ? 'active' : ((r && r.status === 'resolved') ? 'resolved' : (end && end < todayStr() ? 'resolved' : 'active')),
+        createdAt: (r && r.createdAt) || now
+      });
+      if (out.status === 'active') out.resolvedAt = null;
+      saveLifeContext(out);
+      showPinToast('Life context saved', false, CHECK_SVG);
+      done();
+    });
+    var res = document.getElementById('lcResolve');
+    if (res) res.addEventListener('click', function(){
+      var t = todayStr(), end = r.endDate && r.endDate < t ? r.endDate : (t < r.startDate ? r.startDate : t);
+      saveLifeContext(Object.assign({}, r, { status: 'resolved', endDate: end, resolvedAt: new Date().toISOString() }));
+      showPinToast('Marked resolved', false, CHECK_SVG);
+      done();
+    });
+    var del = document.getElementById('lcDelete');
+    if (del) del.addEventListener('click', function(){
+      if (!confirm('Delete this life context?')) return;
+      deleteLifeContext(r.id); done();
+    });
+  }
+  // a day's circumstances, to read or amend (from Progress, Calendar)
+  function openLifeContextDaySheet(dateStr){
+    activeSheetRefresh = null; editingId = null;
+    function render(){
+      var list = lifeContextFor(dateStr);
+      sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+        sheetHead(LC_ICON, 'Life context', toLocalDate(dateStr).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }), '') +
+        '<div class="act-rows lc-list">' + list.map(function(r, i){
+          return '<button type="button" class="act-row" data-lc-open="' + i + '"><span class="act-ic">' + LC_ICON + '</span>' +
+            '<span class="act-label lc-row-x"><span class="lc-row-t"></span><span class="lc-row-m"></span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>';
+        }).join('') +
+        '<button type="button" class="act-row" id="lcAddDay"><span class="act-ic">+</span><span class="act-label">Add context</span></button></div>';
+      backdrop.classList.add('open');
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      list.forEach(function(r, i){
+        var row = sheetEl.querySelector('[data-lc-open="' + i + '"]');
+        row.querySelector('.lc-row-t').textContent = lcCategoryLabel(r);
+        row.querySelector('.lc-row-m').textContent = lcSpanLabel(r);
+        row.addEventListener('click', function(){ openLifeContextSheet(dateStr, r, { onDone: function(){ openLifeContextDaySheet(dateStr); } }); });
+      });
+      document.getElementById('lcAddDay').addEventListener('click', function(){ openLifeContextSheet(dateStr, null, { onDone: function(){ openLifeContextDaySheet(dateStr); } }); });
+    }
+    render();
+  }
+  // The review step, shared by Wind-down, Review day and Catch-up: the day's facts, the
+  // circumstances already recorded (each editable), Add context / Nothing to add.
+  // Optional, never a gate: closing a day never waits on it.
+  function lcBlockHtml(ds, opts){
+    opts = opts || {};
+    var list = lifeContextFor(ds), ms = dayMisses(ds), rec = getDayRecord(ds) || {};
+    var h = '<div class="lc-block' + (opts.cls ? ' ' + opts.cls : '') + '" data-lc-block>' +
+      // the facts first, then one question: "Training wasn’t completed." / "Was there anything…"
+      (ms.length ? '<p class="lc-facts">' + dayMissesSentence(ms) + '</p>' : '') +
+      (opts.noTitle ? '' : '<p class="lc-q">' + (ms.length && !list.length ? 'Was there anything that affected your day?' : 'Anything that affected your day?') + '</p>');
+    if (list.length){
+      h += '<div class="act-rows lc-list">' + list.map(function(r, i){
+        return '<button type="button" class="act-row" data-lc-edit="' + i + '"><span class="act-ic">' + LC_ICON + '</span>' +
+          '<span class="act-label lc-row-x"><span class="lc-row-t"></span><span class="lc-row-m"></span></span><span class="act-meta lc-row-e">Edit</span></button>';
+      }).join('') + '</div>' +
+      '<button type="button" class="btn-link lc-add" data-lc-add>Add another</button>';
+    } else if (rec.lifeContextNone){
+      h += '<p class="lc-none">Nothing added. <button type="button" class="btn-link" data-lc-add>Add context</button></p>';
+    } else {
+      h += '<p class="lc-acts"><button type="button" class="btn-link lc-add" data-lc-add>Add context</button>' +
+        '<span aria-hidden="true"> · </span><button type="button" class="btn-link" data-lc-none>Nothing to add</button></p>';
+    }
+    return h + '</div>';
+  }
+  // open(fn): how this surface leaves for the editor and comes back (Catch-up's return)
+  function wireLcBlock(root, ds, open, onNone){
+    var list = lifeContextFor(ds);
+    root.querySelectorAll('[data-lc-edit]').forEach(function(b){
+      var r = list[Number(b.dataset.lcEdit)];
+      b.querySelector('.lc-row-t').textContent = lcCategoryLabel(r);
+      b.querySelector('.lc-row-m').textContent = lcSpanLabel(r) + ' · ' + lcAreasLabel(r);
+      b.addEventListener('click', function(){ open(function(onDone){ openLifeContextSheet(ds, r, { onDone: onDone }); }); });
+    });
+    root.querySelectorAll('[data-lc-add]').forEach(function(b){
+      b.addEventListener('click', function(){ open(function(onDone){ openLifeContextSheet(ds, null, { onDone: onDone }); }); });
+    });
+    root.querySelectorAll('[data-lc-none]').forEach(function(b){
+      b.addEventListener('click', function(){ if (onNone) onNone(); else saveDayStatus(ds, { lifeContextNone: true }); });
+    });
+  }
+
   // ============ Daily Handoff ============
   // A deterministic, machine-first rendering of a day so it can be pasted into Claude and
   // carried into connected tools. Section order never varies; nothing internal (ids,
@@ -10633,6 +10952,11 @@
     }
     if (rec && rec.status) L.push('- Day marked ' + DAY_STATUS_LABEL[rec.status].toLowerCase());
     if (rec && rec.notes) L.push('- Note: ' + rec.notes);
+    // recorded circumstances: evidence beside the results, never a cause or an excuse
+    lifeContextEvidence(dateStr).forEach(function(e){
+      L.push('- Life context (recorded, not a diagnosis or a cause): ' + e.circumstance + ' \u00b7 ' + e.span +
+        ' \u00b7 affected: ' + e.areas + (e.status === 'resolved' ? ' \u00b7 resolved' : '') + (e.note ? ' \u00b7 "' + e.note + '"' : ''));
+    });
     // context only: these are deliberately NOT today's work
     var backlog = backlogActions().length;
     if (dateStr === todayStr() && backlog){
@@ -14573,6 +14897,9 @@
                   '</div>')), '', 'symptoms');
       }
 
+      // --- what affected the day: optional, never a gate ---
+      html += cuBlock(LC_ICON, 'Life context', lcBlockHtml(dateStr, { noTitle: false }), '', 'context');
+
       // --- the one judgement no record can make for you ---
       html += cuBlock(UI_ICON.chart, 'Overall day',
         cuSeg('status', [
@@ -14638,6 +14965,12 @@
         readNotes(); saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }));
         cuLeaveFor(dateStr, step, open);
       }
+      // Life context: the editor returns here, to this step, re-read from the records
+      wireLcBlock(sheetEl, dateStr, function(go){ leave('context', function(){ go(closeSheet); }); }, function(){
+        readNotes();
+        Promise.resolve(saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true, lifeContextNone: true })))
+          .then(function(){ openCatchUpSheet(dateStr, { resume: 'context' }); });
+      });
       var openActs = snap.actions.filter(cuActionOpen);
       function freshAct(c){ return commitments.find(function(x){ return x.id === c.id; }) || c; }
       sheetEl.querySelectorAll('[data-cu-keep]').forEach(function(el){
@@ -16475,6 +16808,7 @@
       '<div class="wd-body' + (expanded ? '' : ' collapsed') + '" id="wdBody">' +
         '<div class="wd-panel">' +
           st.items.map(function(x){ return routineRowHtml(x, {}); }).join('') +
+          lcBlockHtml(dateStr, { cls: 'lc-wd' }) +
           (st.completedAt
             ? '<p class="wd-note">Closed at ' + mpTimeLabel(st.completedAt) +
               '. Catch-up will leave this day alone.</p>' +
@@ -16489,6 +16823,7 @@
 
     fillRoutineLabels(wrap, st.items);
     wireRoutineRows(wrap, 'windDown', dateStr, st.items, renderWindDown);
+    wireLcBlock(wrap, dateStr, function(go){ go(closeSheet); });
 
     document.getElementById('wdToggle').addEventListener('click', function(){
       wdExpanded[dateStr] = !expanded;
@@ -16584,6 +16919,7 @@
       var type = card.dataset.type;
       if (type === 'symptom'){ openSymptomSheet(null, { date: viewedDate }); return; }
       if (type === 'steps'){ openStepsSheet(viewedDate); return; }
+      if (type === 'life'){ openLifeContextSheet(viewedDate, null); return; }
       var existing = type === 'nutrition' ? getNutritionForDate(viewedDate) : null;
       openSheet(type, existing, viewedDate);
     });
@@ -18698,8 +19034,14 @@
     var info = days.map(function(d){
       var ds = fmtDate(d);
       var types = PLAN_TRAINING_TYPES.filter(function(tp){ return sessions.some(function(x){ return x.date === ds && x.type === tp; }); });
-      return { d: d, ds: ds, types: types, weight: weights[ds] || null, nutrition: last7NutritionState(ds) };
+      var plan = getPlanForDate(ds) || {};
+      var planned = !plan.restDay && (plan.trainingTypes || []).some(function(tp){ return PLAN_TRAINING_TYPES.indexOf(tp) > -1; });
+      return { d: d, ds: ds, types: types, weight: weights[ds] || null, nutrition: last7NutritionState(ds),
+        // completed · missed with recorded context · missed without: context never fills a cell
+        trainingOutcome: types.length ? 'done' : (planned ? goalOutcome(ds, 'training', false) : null),
+        context: lifeContextFor(ds) };
     });
+    if (info.some(function(x){ return x.context.length; })) rows.push({ key: 'context', letter: 'C', label: 'Context', icon: LC_ICON });
     var html = '<div class="l7-grid">' +
       '<span class="l7-corner"></span>' +
       info.map(function(x){
@@ -18719,7 +19061,12 @@
                   return 'var(--' + tp + ') ' + (i * step) + '% ' + ((i + 1) * step) + '%';
                 }).join(', ') + ')';
             words = 'training: ' + x.types.map(function(tp){ return TYPE_LABEL[tp]; }).join(' and ');
-          } else words = 'no training recorded';
+          } else if (x.trainingOutcome === 'explained'){ cls += ' explained'; words = 'planned training not recorded, with life context recorded'; }
+          else if (x.trainingOutcome === 'missed') words = 'planned training not recorded';
+          else words = 'no training recorded';
+        } else if (r.key === 'context'){
+          if (x.context.length){ cls += ' ctx'; words = 'life context: ' + x.context.map(function(c){ return lcCategoryLabel(c); }).join(', '); }
+          else words = 'no life context';
         } else if (r.key === 'weight'){
           if (x.weight){ cls += ' on weight'; words = 'weight logged, ' + x.weight.kg + ' kg'; }
           else words = 'no weight logged';
@@ -18733,12 +19080,15 @@
     });
     html += '</div>' +
       '<div class="l7-key" aria-hidden="true"><span class="l7-key-lbl">Nutrition</span><span><i class="l7-k nut-on"></i>On track</span><span><i class="l7-k nut-neutral"></i>Neutral</span>' +
-      '<span><i class="l7-k nut-off"></i>Off track</span><span><i class="l7-k nut-partial"></i>Not rated</span></div>';
+      '<span><i class="l7-k nut-off"></i>Off track</span><span><i class="l7-k nut-partial"></i>Not rated</span></div>' +
+      (info.some(function(x){ return x.trainingOutcome === 'explained'; })
+        ? '<div class="l7-key" aria-hidden="true"><span><i class="l7-k explained"></i>Planned training missed, life context recorded</span></div>' : '');
     wrap.innerHTML = html;
     // a cell opens what it stands for: the day's activity, its weigh-in, its nutrition
     wrap.querySelectorAll('[data-l7]').forEach(function(b){
       b.addEventListener('click', function(){
         var ds = b.dataset.date, kind = b.dataset.l7;
+        if (kind === 'context'){ openLifeContextDaySheet(ds); return; }
         if (kind === 'training'){
           selectedDay = ds; calFilter = 'all'; calFilterKeep = true;
           calMonth = new Date(ds + 'T00:00:00'); calMonth.setDate(1);

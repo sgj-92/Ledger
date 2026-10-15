@@ -55,6 +55,9 @@ service cloud.firestore {
     match /ledger_challenges/{docId=**}         { allow read, write: if isOwner(); }
     // Reset Sprints: temporary clearing sessions. Never shared, never projected.
     match /ledger_sprints/{docId=**}            { allow read, write: if isOwner(); }
+    // Life Context: circumstances that affected a day or a stretch of days. Private like
+    // the rest of the Owner's record — never projected, never a partner's.
+    match /ledger_life_context/{docId=**}       { allow read, write: if isOwner(); }
     // An Action's Updates: what happened with it, in the owner's words, and quiet facts
     // (state changed, moved, done, reopened). Owner-private like the Action itself — never
     // projected, never a partner request's Updates. Each entry names its owner and author
