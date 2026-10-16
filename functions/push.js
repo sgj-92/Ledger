@@ -159,6 +159,10 @@ function createEngine(deps) {
   // One trigger: a new entry on a request's Updates timeline. What it says decides who
   // hears: the partner asked or added an update → the owner; the owner added an update,
   // planned it or completed it → the partner. Everything else stays quiet.
+  // A request the owner recorded on the partner's behalf (they asked in person) is
+  // announced exactly as if the partner had sent it: "Abi sent a request", to every one
+  // of the owner's devices — the one it was typed on included. Only the input differs.
+  // The partner hears nothing, as for a request of her own.
   async function handleRequestUpdate(ev) {
     const u = ev.update || {};
     if (!u.requestId || typeof u.requestId !== 'string') return { skipped: 'no request' };
@@ -182,6 +186,10 @@ function createEngine(deps) {
         title = partnerName + (r.renewedFrom ? ' moved a request to upcoming' : ' sent a request'); body = clip(r.text, 120);
       }
       else if (u.type === 'comment') { title = partnerName + ' updated “' + what + '”'; body = clip(u.text, 140); }
+    } else if (u.actorRole === 'owner' && u.actorUid === r.ownerUid && u.type === 'request_created'
+               && r.createdByRole === 'owner' && r.createdByUid === r.ownerUid) {
+      to = r.ownerUid;
+      title = partnerName + ' sent a request'; body = clip(r.text, 120);
     } else if ((u.actorRole === 'owner' || u.actorRole === 'system') && u.actorUid === r.ownerUid) {
       to = r.partnerUid;
       if (u.actorRole === 'owner' && u.type === 'comment') { title = ownerName + ' updated “' + what + '”'; body = clip(u.text, 140); }

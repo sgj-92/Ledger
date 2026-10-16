@@ -531,8 +531,9 @@ an ordinary request (`status: requested`) with `createdByUid` = Shaun's uid and
 `createdByRole: 'owner'`; its first entry is `request_created` by the owner
 ("Created by you on Abi's behalf" / "Created by Shaun on your behalf"). Shaun's
 Inbox shows it as "From Abi · added by you"; Abi's list as hers ("Your request ·
-added by Shaun"); she can edit, withdraw or delete it as her own. No push either
-way. Partner-created requests now record `createdByUid`/`createdByRole: 'partner'`
+added by Shaun"); she can edit, withdraw or delete it as her own. Push: exactly as
+if Abi had sent it — "Abi sent a request" on all of Shaun's devices, the one he
+typed it on included; nothing to Abi. Partner-created requests now record `createdByUid`/`createdByRole: 'partner'`
 too (older ones have none). **Delete request** (bottom of the request detail on
 both sides; also in a withdrawn row's ⋯ for Abi): Abi any of hers, Shaun only one
 he recorded. A confirmation sheet ("Delete this request?" · both lists, cannot be
@@ -686,10 +687,11 @@ person. The requester stays the partner (`partnerUid`), the assignee the owner
 (`ownerUid`); who wrote it is recorded separately and immutably (`createdByUid` =
 the signed-in user, `createdByRole`), enforced by the rules — no client can write
 a request as someone else or rewrite provenance. Its history says "Created by Shaun
-on Abi's behalf", never that she entered it. **No notification** for it: Shaun made
-it, and Abi asked in person (a choice; a quiet "Shaun added your request" push to
-Abi would be a small change in `functions/push.js` if wanted). No household-member
-selector yet (Phase B).
+on Abi's behalf", never that she entered it. No household-member selector yet
+(Phase B). **Notification (Shaun, 2026-10-16, superseding the first build's
+silence):** nothing changes except the input — Shaun's devices get "Abi sent a
+request" exactly as if she had sent it, including the device he typed it on; Abi
+gets nothing, as for her own request.
 
 ### 2026-10-16 — Deleting a request is soft, final and leaves the Action alone
 **Decision (Shaun's brief, Phase A):** Delete is for entries that should never have
@@ -1872,6 +1874,12 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-16) — Phase A follow-up: on-behalf requests now notify Shaun exactly as
+  if Abi had sent them (engine 49, push e2e 67: the iPhone that typed it, the Mac
+  and the Samsung all get "Abi sent a request"; Abi nothing). The Calendar's
+  selected date keeps its gold fill when the day has activity (was an inline tint
+  hiding an ink number; contrast now 9.7 dark / 5.3 light). **Needs functions
+  deployed** as well as the rules.
 - (2026-10-16) — Phase A: Life Context on the Calendar; requests recorded on Abi's
   behalf; confirmed soft deletion of requests. Rules 380 (58 new: on-behalf
   create/forgery/provenance, delete permissions, frozen deleted requests, renewal
@@ -2098,17 +2106,18 @@ minutes before", recurring/accountability).
 ## Next
 
 1. **Shaun: redeploy the rules for Phase A** — from `~/Ledger` after `git pull`:
-   `npx firebase-tools deploy --only firestore:rules --project ledger-6aec3`
-   (functions are unchanged in Phase A; Life Context's rules were deployed
-   2026-10-15). Until then "Add a request from Abi" and Delete request are refused
-   by the live rules. Then:
+   `npx firebase-tools deploy --only firestore:rules,functions --project ledger-6aec3`
+   (the rules for adding on Abi's behalf and deleting; the function so a request
+   you add for her notifies you as hers would). Until then "Add a request from
+   Abi" and Delete request are refused by the live rules. Then:
    - **Calendar** (iPhone): with a Life Context over several days, each date has a
      small ring under its number; tap one → "Life context" section → tap the row →
      change the end date → the rings follow. Resolve an ongoing one → later days
      keep only what it covered.
    - **On behalf**: Settings → Partner sharing → Requests → Add a request from Abi →
-     save → Today's Inbox shows "From Abi · added by you" → Today → one Action.
-     No notification on any device. Abi's phone: it's in her list, "added by
+     save → your phone (and other devices) show "Abi sent a request" → Today's
+     Inbox shows "From Abi · added by you" → Today → one Action. Abi gets no
+     notification. Abi's phone: it's in her list, "added by
      Shaun", history "Created by Shaun on your behalf".
    - **Delete**: Abi opens that request → Delete request → the confirmation says
      the Action will remain → Cancel (nothing happens) → Delete request → gone
@@ -2116,7 +2125,8 @@ minutes before", recurring/accountability).
      deleted"); completing it notifies nobody. Shaun: record another, open it from
      Requests → Delete request → gone from Abi's list too.
    - Earlier, still to confirm on the iPhone: Plan the day with a long-titled
-     Action — no sideways movement (also with the keyboard open).
+     Action — no sideways movement (also with the keyboard open). Calendar: tap a
+     day with activity — it turns gold with a dark, readable number.
 2. **Shaun: Share with Claude on each device** — Settings → Claude conversation →
    paste the link of your ongoing chat (claude.ai/chat/…). Then on iPhone (Safari
    and the Home Screen app), Samsung (Chrome and installed) and the Mac: Share

@@ -17344,7 +17344,9 @@
         var dominant = CAL_TYPE_ORDER.find(function(t){ return typesPresent.indexOf(t) !== -1; }) || typesPresent[0];
         var color = getComputedStyle(document.documentElement).getPropertyValue('--' + dominant).trim();
         cell.classList.add('has');
-        cell.style.background = hexToRgba(color, 0.13);
+        // the selected day keeps its gold fill: an activity tint written inline would
+        // override it and leave the ink-coloured number on a dark tint
+        if (!cell.classList.contains('selected')) cell.style.background = hexToRgba(color, 0.13);
       } else if (hasActions){
         cell.classList.add('has');
       }

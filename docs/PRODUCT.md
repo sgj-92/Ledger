@@ -268,7 +268,9 @@ Ledger.
   Assigned to: Me, and asks what she asked for, when and an optional note. It
   lands in Shaun's Inbox like any request (marked "added by you") and in Abi's
   list as hers ("added by Shaun"); its history says "Created by Shaun on Abi's
-  behalf", never that she wrote it. Nobody is notified.
+  behalf", never that she wrote it. Shaun's devices get the same notification as
+  if Abi had sent it ("Abi sent a request"), the one he typed it on included; Abi
+  gets none, as for a request of her own.
 - **Delete request** is for entries that should never have existed (a typo, a
   duplicate, a mistake). Abi can delete any of her requests; Shaun only one he
   recorded for her. A confirmation says it leaves both people's lists, cannot be

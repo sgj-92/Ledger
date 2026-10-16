@@ -405,6 +405,21 @@ async function swChecks(){
   const books = (await all('ledger_shared_requests')).filter(r => /library books/.test(r.text));
   const fresh = books.find(r => r.renewedFrom);
   check(books.length === 2 && fresh && got.every(g => g.payload.url === APP_URL + '?request=' + fresh.id), 'the push opens the new request');
+  // a request Shaun records on Abi's behalf (she asked in person), typed on the iPhone:
+  // the same notification as if she had sent it, on every one of his devices — the
+  // iPhone included — and nothing to Abi
+  mark = inbox.length;
+  await openSettings(iphone); await iphone.waitForSelector('#setShareReq'); await iphone.click('#setShareReq');
+  await iphone.waitForSelector('#rqAddOnBehalf'); await iphone.click('#rqAddOnBehalf'); await iphone.waitForSelector('#rqObText');
+  await iphone.fill('#rqObText', 'Renew the car insurance'); await iphone.click('#rqObSave');
+  got = await waitPushes(mark, 3);
+  await sleep(2500);
+  got = since(mark);
+  const obr = (await all('ledger_shared_requests')).find(r => r.text === 'Renew the car insurance');
+  check(!!obr && obr.createdByUid === owner && got.length === 3 && got.map(g => g.device).sort().join('|') === 'iphone|mac|samsung'
+    && got.every(g => g.payload.title === 'Abi sent a request' && g.payload.body === 'Renew the car insurance' && g.payload.url === APP_URL + '?request=' + obr.id),
+    'Shaun records a request for Abi on his iPhone → "Abi sent a request" on all his devices, the iPhone too; nothing to Abi (' + got.map(g => g.device + ':' + g.payload.title).join(' | ') + ')');
+  await closeSheet(iphone).catch(() => {});
   const everything = JSON.stringify(inbox.map(g => g.payload));
   check(!/SECRET|accounts proposal.*private|mortgage.*note/i.test(everything) && !/SECRET/.test(everything), 'no private Ledger data in any notification (Day Notes never)');
 
@@ -434,7 +449,7 @@ async function swChecks(){
   check(await until(iphone, () => !!document.getElementById('authEmail'), null, 20000), 'iPhone: signed out');
   check(!(await all('ledger_push_subscriptions')).some(s => s.deviceId === iphoneId), 'signing out removes this device\'s record');
   const events = await all('ledger_push_events');
-  check(events.length === 11 && events.every(e => e.status === 'done'), 'every push event logged once, done (' + events.length + ')');
+  check(events.length === 12 && events.every(e => e.status === 'done'), 'every push event logged once, done (' + events.length + ')');
 
   for (const p of [mac, iphone, samsung, abiPhone]){
     const errs = p.errs.filter(e => !/permission|offline|network/i.test(e));

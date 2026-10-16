@@ -155,12 +155,23 @@ const reset = () => { sent = []; };
   reset();
   r = await engine.handleRequestUpdate({ update: u({ type: 'renewed', text: null, metadata: { renewedAs: 'req2' } }), updateId: 'req1_renewed', appUrl: APP });
   check(sent.length === 0, 'the withdrawn record\'s "renewed" entry stays quiet');
-  // recorded by Shaun on Abi's behalf: Shaun made it (no echo to his own devices), and Abi
-  // asked for it in person (no push to her either)
+  // recorded by Shaun on Abi's behalf: announced exactly as if Abi had sent it, to every
+  // one of Shaun's devices (the one he typed it on included); Abi hears nothing
   await db.doc('ledger_shared_requests/req3').set({ ownerUid: 'shaun', partnerUid: 'abi', text: 'Book the dentist', status: 'requested', requestedTiming: 'week', createdByUid: 'shaun', createdByRole: 'owner' });
   reset();
   r = await engine.handleRequestUpdate({ update: u({ requestId: 'req3', type: 'request_created', actorUid: 'shaun', actorRole: 'owner', text: null, metadata: { onBehalf: true } }), updateId: 'req3_created', appUrl: APP, vapidPublicKey: KEY });
-  check(sent.length === 0 && r.skipped === 'quiet', 'a request Shaun records on Abi\'s behalf notifies nobody', r);
+  const ob = to('shaun')[0] && to('shaun')[0].payload;
+  check(to('shaun').length === 3 && to('abi').length === 0 && r.excluded === 0, 'a request Shaun records on Abi\'s behalf → all of Shaun\'s devices, none excluded; Abi nothing', r);
+  check(ob && ob.title === 'Abi sent a request' && ob.body === 'Book the dentist' && ob.url === APP + '?request=req3' && ob.tag === 'ledger-request-req3' && ob.kind === 'partner',
+    '…the same notification as one Abi sent herself', ob);
+  // only a request that really names Shaun as its creator is announced this way
+  await db.doc('ledger_shared_requests/req4').set({ ownerUid: 'shaun', partnerUid: 'abi', text: 'Not his', status: 'requested', requestedTiming: 'week' });
+  reset();
+  r = await engine.handleRequestUpdate({ update: u({ requestId: 'req4', type: 'request_created', actorUid: 'shaun', actorRole: 'owner', text: null }), updateId: 'req4_created', appUrl: APP, vapidPublicKey: KEY });
+  check(sent.length === 0, 'an owner "created" entry on a request he did not create sends nothing');
+  reset();
+  r = await engine.handleRequestUpdate({ update: u({ requestId: 'req3', type: 'request_created', actorUid: 'shaun', actorRole: 'owner', text: null }), updateId: 'req3_created', appUrl: APP, vapidPublicKey: KEY });
+  check(sent.length === 0 && r.skipped === 'duplicate', 'and it is announced once');
   reset();
   r = await engine.handleRequestUpdate({ update: u({ requestId: 'req3', type: 'request_created', text: null }), updateId: 'req3_fake', appUrl: APP, vapidPublicKey: KEY });
   check(to('shaun').length === 3, '(an entry is judged by who wrote it: Abi\'s own request still reaches Shaun)');

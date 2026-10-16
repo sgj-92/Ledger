@@ -210,8 +210,9 @@ Her requests stay with Shaun.
   Its one Updates entry, `request_created` as `owner` on the fixed id
   `{requestId}_created`, is accepted only for a request that names the owner as
   creator. The partner can neither write a request as the owner nor claim the
-  owner role as creator. No push is sent for it: the owner made it, and the
-  partner asked in person.
+  owner role as creator. The push sender announces it to the owner's own devices
+  exactly as a partner's request ("<partner> sent a request"), but only when the
+  request itself names the owner as creator; the partner is not notified.
 - **Requests are never removed by a client.** Withdrawn (partner, while still
   requested), dismissed (owner) and deleted are states, so a linked Action and
   the history keep something to point at. The owner cannot revive a withdrawn
