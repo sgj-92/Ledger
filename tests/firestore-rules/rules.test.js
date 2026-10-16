@@ -450,6 +450,102 @@ async function check(name, fn){
   await check('no profile: cannot read current focus', () => assertFails(stranger.doc(FOCUS).get()));
   await check('signed out: cannot read current focus', () => assertFails(anon.doc(FOCUS).get()));
 
+  // ---- Requests made in person: the owner records them on the partner's behalf ----
+  // requester = partnerUid, assignee = ownerUid, creator = createdByUid (the signed-in user)
+  const RQ = 'ledger_shared_requests';
+  const onBehalf = (o) => newRequest(Object.assign({ createdByUid: 'owner1', createdByRole: 'owner',
+    latestUpdateAt: '2026-10-16T09:00:00Z', latestUpdateBy: 'owner', latestUpdateType: 'request_created' }, o || {}));
+  const createdEntry = (id, o) => Object.assign({ requestId: id, ownerUid: 'owner1', partnerUid: 'partner1', type: 'request_created',
+    actorUid: 'owner1', actorRole: 'owner', text: null, createdAt: NOW(), metadata: { onBehalf: true } }, o || {});
+  async function ownerCreates(db, id, doc, entry){
+    const b = db.batch();
+    b.set(db.doc(RQ + '/' + id), doc);
+    if (entry !== false) b.set(db.doc(UPD + '/' + id + '_created'), entry || createdEntry(id));
+    return b.commit();
+  }
+  await check('owner: can record a request on the partner\'s behalf (with its "created" entry)', () => assertSucceeds(ownerCreates(owner, 'obA', onBehalf())));
+  await check('partner: sees the request recorded for them', () => assertSucceeds(partner.doc(RQ + '/obA').get()));
+  await check('partner: sees its "created by the owner" entry', () => assertSucceeds(partner.doc(UPD + '/obA_created').get()));
+  await check('owner: on-behalf only for the partner of an active relationship (paused)', () => assertFails(ownerCreates(owner, 'obPaused', onBehalf({ partnerUid: 'partner2' }), false)));
+  await check('owner: on-behalf never for someone outside the relationship', () => assertFails(ownerCreates(owner, 'obStranger', onBehalf({ partnerUid: 'stranger1' }), false)));
+  await check('owner: on-behalf never for themselves', () => assertFails(ownerCreates(owner, 'obSelf', onBehalf({ partnerUid: 'owner1' }), false)));
+  await check('owner: cannot name the partner as its creator', () => assertFails(ownerCreates(owner, 'obForge', onBehalf({ createdByUid: 'partner1' }), false)));
+  await check('owner: must name themselves as its creator', () => assertFails(ownerCreates(owner, 'obNoCreator', newRequest(), false)));
+  await check('owner: cannot say the partner wrote it', () => assertFails(ownerCreates(owner, 'obRole', onBehalf({ createdByRole: 'partner' }), false)));
+  await check('owner: cannot assign it to another owner', () => assertFails(ownerCreates(owner, 'obOther', onBehalf({ ownerUid: 'owner2' }), false)));
+  await check('owner: an on-behalf request starts as a request (not already planned)', () => assertFails(ownerCreates(owner, 'obPlanned', onBehalf({ status: 'planned', plannedDate: '2026-10-16', linkedActionId: 'a1' }), false)));
+  await check('owner: an on-behalf request takes no other fields', () => assertFails(ownerCreates(owner, 'obExtra', onBehalf({ deletedAt: null }), false)));
+  await check('another owner: cannot record a request for owner1\'s partner', () => assertFails(ownerCreates(owner2, 'obO2', onBehalf({ ownerUid: 'owner2', createdByUid: 'owner2' }), false)));
+  await check('no profile: cannot record a request on anyone\'s behalf', () => assertFails(ownerCreates(stranger, 'obSt', onBehalf({ createdByUid: 'stranger1' }), false)));
+  await check('owner: "created" entry only for a request they created', () => assertFails(owner.doc(UPD + '/reqB_created').set(createdEntry('reqB', { partnerUid: 'partner2' }))));
+  await check('owner: "created" entry cannot name the partner as its author', () => assertFails(ownerCreates(owner, 'obBadEntry', onBehalf(), createdEntry('obBadEntry', { actorUid: 'partner1' }))));
+  await check('partner: cannot write a request as if the owner made it', () => assertFails(partner.collection(RQ).add(newRequest({ createdByUid: 'owner1', createdByRole: 'owner' }))));
+  await check('partner: cannot claim the owner role as creator', () => assertFails(partner.collection(RQ).add(newRequest({ createdByUid: 'partner1', createdByRole: 'owner' }))));
+  await check('partner: may record themselves as creator', () => assertSucceeds(partner.collection(RQ).add(newRequest({ createdByUid: 'partner1', createdByRole: 'partner' }))));
+  await check('owner: provenance never changes (createdByUid)', () => assertFails(owner.doc(RQ + '/obA').update({ createdByUid: 'partner1' })));
+  await check('owner: provenance never changes (createdByRole)', () => assertFails(owner.doc(RQ + '/obA').update({ createdByRole: 'partner' })));
+  await check('partner: cannot rewrite provenance', () => assertFails(partner.doc(RQ + '/obA').update({ createdByUid: 'partner1', createdByRole: 'partner' })));
+  await check('partner: cannot add provenance to an older request', () => assertFails(partner.doc(RQ + '/reqA').update({ createdByUid: 'owner1' })));
+  await check('partner: can edit the wording of a request recorded for them', () => assertSucceeds(partner.doc(RQ + '/obA').update({ text: 'Buy oat milk', updatedAt: 'now' })));
+  await check('owner: processes it like any request (plan)', () => assertSucceeds(owner.doc(RQ + '/obA').update({ status: 'planned', plannedDate: '2026-10-16', linkedActionId: 'actOB', updatedAt: 'now', processedAt: 'now' })));
+  await check('owner: cannot change who asked', () => assertFails(owner.doc(RQ + '/obA').update({ partnerUid: 'partner2' })));
+
+  // ---- Deleting a request: soft, once, by the right person ----
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await db.doc(RQ + '/delP').set(newRequest({ text: 'Typo reqest', status: 'planned', plannedDate: '2026-10-16', linkedActionId: 'actP' }));
+    await db.doc(RQ + '/delP2').set(newRequest({ text: 'Another' }));
+    await db.doc(RQ + '/delO').set(onBehalf({ text: 'Recorded by mistake' }));
+    await db.doc(RQ + '/delW').set(newRequest({ text: 'Withdrawn one', status: 'withdrawn' }));
+    await db.doc(RQ + '/delB').set(newRequest({ partnerUid: 'partner2', text: 'B request' }));
+  });
+  const del = (by, role, o) => Object.assign({ deletedAt: '2026-10-16T10:00:00Z', deletedByUid: by, deletedByRole: role, updatedAt: '2026-10-16T10:00:00Z' }, o || {});
+  const delEntry = (id, by, role, o) => Object.assign({ requestId: id, ownerUid: 'owner1', partnerUid: 'partner1', type: 'deleted',
+    actorUid: by, actorRole: role, text: null, createdAt: NOW(), metadata: {} }, o || {});
+  async function deletes(db, id, by, role, o, entry){
+    const b = db.batch();
+    b.update(db.doc(RQ + '/' + id), del(by, role, o));
+    if (entry !== false) b.set(db.doc(UPD + '/' + id + '_deleted'), entry || delEntry(id, by, role));
+    return b.commit();
+  }
+  await check('owner: cannot delete a request the partner made', () => assertFails(deletes(owner, 'delP', 'owner1', 'owner')));
+  await check('owner: cannot delete one they recorded while naming the partner', () => assertFails(deletes(owner, 'delO', 'partner1', 'owner', null, false)));
+  await check('another owner: cannot delete owner1\'s requests', () => assertFails(deletes(owner2, 'delO', 'owner2', 'owner', null, false)));
+  await check('no profile: cannot delete a request', () => assertFails(deletes(stranger, 'delP2', 'stranger1', 'partner', null, false)));
+  await check('partner B: cannot delete partner A\'s request', () => assertFails(deletes(partnerB, 'delP2', 'partner2', 'partner', null, false)));
+  await check('partner B (paused): cannot delete even their own', () => assertFails(deletes(partnerB, 'delB', 'partner2', 'partner', null, false)));
+  await check('partner: cannot delete as the owner', () => assertFails(deletes(partner, 'delP2', 'partner1', 'owner', null, false)));
+  await check('partner: deleting changes nothing else', () => assertFails(deletes(partner, 'delP2', 'partner1', 'partner', { status: 'dismissed' }, false)));
+  await check('partner: cannot remove a request from Firestore', () => assertFails(partner.doc(RQ + '/delP2').delete()));
+  await check('owner: cannot remove a request from Firestore', () => assertFails(owner.doc(RQ + '/delO').delete()));
+  await check('partner: "deleted" entry only for a deleted request', () => assertFails(partner.doc(UPD + '/delP2_deleted').set(delEntry('delP2', 'partner1', 'partner'))));
+  await check('partner: can delete their planned request (its Action is the owner\'s, untouched)', () => assertSucceeds(deletes(partner, 'delP', 'partner1', 'partner')));
+  await check('owner: can delete a request they recorded on the partner\'s behalf', () => assertSucceeds(deletes(owner, 'delO', 'owner1', 'owner')));
+  await check('partner: can delete a request the owner recorded for them', () => assertSucceeds(deletes(partner, 'obA', 'partner1', 'partner')));
+  await check('partner: can delete a withdrawn request', () => assertSucceeds(deletes(partner, 'delW', 'partner1', 'partner')));
+  await check('owner: a deleted request stays readable (for its linked Action)', () => assertSucceeds(owner.doc(RQ + '/delP').get()));
+  await check('deleted: cannot be deleted again', () => assertFails(deletes(partner, 'delP', 'partner1', 'partner', { deletedAt: '2026-10-16T11:00:00Z' }, false)));
+  await check('deleted: cannot be undeleted', () => assertFails(partner.doc(RQ + '/delP').update({ deletedAt: null, deletedByUid: null, deletedByRole: null })));
+  await check('deleted: the partner cannot edit it', () => assertFails(partner.doc(RQ + '/delO').update({ text: 'Back again', updatedAt: 'now' })));
+  await check('deleted: the partner cannot withdraw it', () => assertFails(partner.doc(RQ + '/obA').update({ status: 'withdrawn', updatedAt: 'now', latestUpdateAt: 'now', latestUpdateBy: 'partner', latestUpdateType: 'withdrawn' })));
+  await check('deleted: the partner cannot hide it', () => assertFails(partner.doc(RQ + '/delW').update({ partnerHiddenAt: 'now', updatedAt: 'now' })));
+  await check('deleted: the partner cannot mark it read', () => assertFails(partner.doc(RQ + '/delP').update({ partnerLastReadAt: 'now' })));
+  await check('deleted: the owner cannot process it', () => assertFails(owner.doc(RQ + '/delO').update({ status: 'planned', plannedDate: '2026-10-16', linkedActionId: 'actX', updatedAt: 'now', processedAt: 'now' })));
+  await check('deleted: the owner cannot complete it', () => assertFails(owner.doc(RQ + '/delP').update({ status: 'done', updatedAt: 'now' })));
+  await check('deleted: a stale device cannot write it back', () => assertFails(partner.doc(RQ + '/delP2x').set(newRequest()).then(() => partner.doc(RQ + '/delO').set(onBehalf()))));
+  await check('deleted: no new update from the partner', () => assertFails(partner.collection(UPD).add(upd({ requestId: 'delP' }))));
+  await check('deleted: no new update from the owner', () => assertFails(owner.collection(UPD).add(ownerUpd({ requestId: 'delO' }))));
+  await check('deleted: no status entry from the owner', () => assertFails(owner.collection(UPD).add(sysUpd({ requestId: 'delP', type: 'status', metadata: { status: 'done' } }))));
+  await check('deleted: its "deleted" entry is written once', () => assertFails(partner.doc(UPD + '/delP_deleted').set(delEntry('delP', 'partner1', 'partner'))));
+  await check('deleted: only the person who deleted it writes its entry', () => assertFails(owner.doc(UPD + '/delW_deleted').set(delEntry('delW', 'owner1', 'owner'))));
+  await check('deleted: a withdrawn request deleted cannot be moved to upcoming', async () => {
+    const b = partner.batch(), nref = partner.collection(RQ).doc();
+    b.set(nref, newRequest({ requestedTiming: 'later', renewedFrom: 'delW' }));
+    b.update(partner.doc(RQ + '/delW'), { renewedAs: nref.id, updatedAt: 'now' });
+    await assertFails(b.commit());
+  });
+  await check('partner: still reads the deleted request\'s history (nothing else changes)', () => assertSucceeds(partner.doc(UPD + '/delP_deleted').get()));
+
   // ---- anything unlisted ----
   await check('unlisted collection: owner denied', () => assertFails(owner.collection('something_else').get()));
 

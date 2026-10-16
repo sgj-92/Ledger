@@ -152,6 +152,15 @@ Today is the centre of the product. Everything else supports it.
   Communications are whole-life — family and friends as much as clients.
 - **One closure.** A day is closed once. Wind-down closes it in the evening,
   Catch-up closes it the next morning; both write the same `closedAt`.
+- **Life Context.** Owner-private records of what affected a day or a stretch of
+  days (illness, injury, poor sleep, family, unexpected work, travel, other),
+  with the areas affected, an optional note and a start and optional end. One
+  record per circumstance. It explains performance and never rewrites it: no
+  streak, XP, percentage or completion changes. Recorded from Quick log, the
+  review step of Wind-down / Review day / Catch-up, and reviewed in Progress and
+  on the Calendar (a hollow champagne ring under each covered date — ongoing ones
+  only up to today — and a Life context section in the day's detail that opens
+  the same editor). Never shared with a partner.
 - **Reset Sprint.** A short session for clearing the small things taking up
   attention (put washing on, shower, tidy desk) before focusing properly.
   - **Not commitments.** Its items are temporary execution aids, never Actions,
@@ -254,6 +263,19 @@ Ledger.
   automatically. A new update from the other side shows quietly ("Abi updated ·
   20m"). For the owner, a processed request with news from Abi returns to the
   Inbox as one row (Update from Abi → Review), never as a second task.
+- **Requests made in person** (since 2026-10-16): Settings → Partner sharing →
+  Requests → *Add a request from Abi*. The form states Requested by: Abi ·
+  Assigned to: Me, and asks what she asked for, when and an optional note. It
+  lands in Shaun's Inbox like any request (marked "added by you") and in Abi's
+  list as hers ("added by Shaun"); its history says "Created by Shaun on Abi's
+  behalf", never that she wrote it. Nobody is notified.
+- **Delete request** is for entries that should never have existed (a typo, a
+  duplicate, a mistake). Abi can delete any of her requests; Shaun only one he
+  recorded for her. A confirmation says it leaves both people's lists, cannot be
+  undone, and — when one exists — that the Action already added to Ledger will
+  remain. The Action is untouched; its editor then says "From Abi · request
+  deleted", and completing it later tells nobody. Withdraw (she no longer needs
+  it; the history stays), Hide (out of her list only) and Delete are separate.
 - Image sharing is separate and unchanged. Share image is a one-off picture for
   anyone. Publish to Abi is the live view.
 

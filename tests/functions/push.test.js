@@ -155,6 +155,21 @@ const reset = () => { sent = []; };
   reset();
   r = await engine.handleRequestUpdate({ update: u({ type: 'renewed', text: null, metadata: { renewedAs: 'req2' } }), updateId: 'req1_renewed', appUrl: APP });
   check(sent.length === 0, 'the withdrawn record\'s "renewed" entry stays quiet');
+  // recorded by Shaun on Abi's behalf: Shaun made it (no echo to his own devices), and Abi
+  // asked for it in person (no push to her either)
+  await db.doc('ledger_shared_requests/req3').set({ ownerUid: 'shaun', partnerUid: 'abi', text: 'Book the dentist', status: 'requested', requestedTiming: 'week', createdByUid: 'shaun', createdByRole: 'owner' });
+  reset();
+  r = await engine.handleRequestUpdate({ update: u({ requestId: 'req3', type: 'request_created', actorUid: 'shaun', actorRole: 'owner', text: null, metadata: { onBehalf: true } }), updateId: 'req3_created', appUrl: APP, vapidPublicKey: KEY });
+  check(sent.length === 0 && r.skipped === 'quiet', 'a request Shaun records on Abi\'s behalf notifies nobody', r);
+  reset();
+  r = await engine.handleRequestUpdate({ update: u({ requestId: 'req3', type: 'request_created', text: null }), updateId: 'req3_fake', appUrl: APP, vapidPublicKey: KEY });
+  check(to('shaun').length === 3, '(an entry is judged by who wrote it: Abi\'s own request still reaches Shaun)');
+  // deleted: never a push, from either side, and never as if it were done
+  reset();
+  for (const [id, x] of [['d1', { type: 'deleted', text: null }], ['d2', { actorUid: 'shaun', actorRole: 'owner', type: 'deleted', text: null }]]) {
+    await engine.handleRequestUpdate({ update: u(x), updateId: id, appUrl: APP });
+  }
+  check(sent.length === 0, 'a deleted request notifies nobody');
   reset();
   r = await engine.handleRequestUpdate({ update: u(), updateId: 'c1', appUrl: APP });
   check(sent.length === 0 && r.skipped === 'duplicate', 'the same Update twice notifies once');

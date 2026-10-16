@@ -587,7 +587,7 @@ async function oobLink(email){
   const probe = await A.evaluate(async (ids) => {
     const db = firebase.firestore(), out = {};
     const tryIt = async (k, f) => { try { await f(); out[k] = 'ALLOWED'; } catch (e){ out[k] = e.code; } };
-    for (const c of ['ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_meta', 'ledger_day_status', 'ledger_matters', 'ledger_conversations', 'ledger_focus', 'ledger_priorities', 'ledger_challenges', 'ledger_meals'])
+    for (const c of ['ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_meta', 'ledger_day_status', 'ledger_matters', 'ledger_conversations', 'ledger_focus', 'ledger_priorities', 'ledger_challenges', 'ledger_meals', 'ledger_life_context', 'ledger_action_updates'])
       await tryIt(c, () => db.collection(c).get());
     await tryIt('plan doc', () => db.collection('ledger_plans').doc(ids.today).get());
     await tryIt('sharing meta', () => db.collection('ledger_meta').doc('sharing').get());
@@ -627,6 +627,150 @@ async function oobLink(email){
   check(!!d && /ledger-\d{4}-\d\d-\d\d\.png/.test(d.suggestedFilename()), '18 Save image still downloads ' + (d && d.suggestedFilename()));
   check(await S.evaluate(() => document.querySelectorAll('[data-snap-preset]').length >= 3), '18 presets still listed (incl. Abi)');
   await S.screenshot({ path: `${shots}/${tag}-18-owner-image-mode.png` });
+  await S.click('#sheetCloseBtn');
+
+  // ---------- Phase A: requests made in person, and deleting a request ----------
+  const findReq = async t => (await all('ledger_shared_requests')).find(r => r.text === t);
+  const ppOpenByTitle = (p, t) => p.evaluate(t => {
+    const el = [...document.querySelectorAll('#partnerApp .pp-row-title')].find(x => x.textContent === t);
+    if (!el) return false; el.closest('[data-pp-open]').click(); return true;
+  }, t);
+  // OB1 — Shaun records what Abi asked for in person
+  await openSettings(S); await S.waitForSelector('#setShareReq'); await S.click('#setShareReq');
+  check(await until(S, () => /Add a request from Abi/.test((document.getElementById('rqAddOnBehalf') || {}).textContent || '')), 'OB1 Requests offers "Add a request from Abi"');
+  await S.click('#rqAddOnBehalf'); await S.waitForSelector('#rqObText');
+  check(/Requested by\s*Abi/.test(await txt(S, '.rq-ob-facts')) && /Assigned to\s*Me/.test(await txt(S, '.rq-ob-facts')) && /What did Abi ask for\?/i.test(await txt(S, '#rqObLabel')),
+    'OB1 the form states Requested by: Abi · Assigned to: Me');
+  await S.screenshot({ path: `${shots}/${tag}-OB1-owner-on-behalf-form.png` });
+  await S.click('#rqObSave');
+  check(/Say what Abi asked for/.test(await txt(S, '#rqObErr')), 'OB1 an empty request is not saved');
+  await S.fill('#rqObText', 'Renew the car insurance'); await S.click('[data-rq-ob-timing="week"]'); await S.fill('#rqObNote', 'Before Friday');
+  await S.click('#rqObSave');
+  check(await until(S, () => /Added to your Inbox/.test((document.querySelector('.pin-toast') || {}).textContent || '')), 'OB1 saved: "Added to your Inbox"');
+  await sleep(600);
+  const ob = await findReq('Renew the car insurance');
+  check(!!ob && ob.ownerUid === owner && ob.partnerUid === abi && ob.createdByUid === owner && ob.createdByRole === 'owner' && ob.status === 'requested' && ob.requestedTiming === 'week' && ob.note === 'Before Friday',
+    'OB1 stored apart: requester Abi, assignee Shaun, created by Shaun (his uid)');
+  const obCreated = (await all('ledger_shared_request_updates')).find(u => u.id === ob.id + '_created');
+  check(!!obCreated && obCreated.actorUid === owner && obCreated.actorRole === 'owner' && obCreated.type === 'request_created', 'OB1 its history entry is Shaun\'s, not Abi\'s');
+  await S.click('#sheetCloseBtn'); await backToToday(S);
+  // OB2 — in Shaun's Inbox like any request
+  check(await until(S, () => [...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Renew the car insurance/.test(r.innerText) && /From Abi · added by you/i.test(r.innerText))),
+    'OB2 Shaun\'s Inbox: "From Abi · added by you"');
+  // OB3 — Abi sees it in her own list, said plainly
+  check(await until(A, () => [...document.querySelectorAll('#partnerApp .pp-row-title')].some(x => x.textContent === 'Renew the car insurance')), 'OB3 Abi sees it in her list');
+  await ppOpenByTitle(A, 'Renew the car insurance');
+  check(await until(A, () => /added by Shaun/i.test(document.getElementById('rqKicker').textContent) && /Created by Shaun on your behalf/.test(document.getElementById('rqTimeline').innerText) && !/You asked/.test(document.getElementById('rqTimeline').innerText)),
+    'OB3 Abi: "Your request · added by Shaun" and "Created by Shaun on your behalf" — never "You asked"');
+  await A.screenshot({ path: `${shots}/${tag}-OB3-partner-on-behalf.png` });
+  await A.click('#ppSheet .sheet-close');
+  // OB4 — Shaun's detail says it the other way round; it is not his to delete if Abi made it
+  await S.evaluate(t => { const r = [...document.querySelectorAll('#inboxSection .ib-row')].find(x => x.innerText.indexOf(t) > -1); r.querySelector('[data-ib-open]').click(); }, 'Renew the car insurance');
+  check(await until(S, () => /Created by you on Abi.s behalf/.test((document.getElementById('rqTimeline') || {}).innerText || '') && !!document.getElementById('rqDelBtn')),
+    'OB4 Shaun: "Created by you on Abi’s behalf", with Delete request');
+  await S.click('#sheetCloseBtn');
+  // OB5 — planned from the Inbox, once, however many taps
+  await S.evaluate(t => { const r = [...document.querySelectorAll('#inboxSection .ib-row')].find(x => x.innerText.indexOf(t) > -1); const b = r.querySelector('[data-ib-today]'); b.click(); b.click(); }, 'Renew the car insurance');
+  check(await until(S, async () => true) && await (async () => { await sleep(1500); const a = (await all('ledger_commitments')).filter(c => c.sourceRequestId === ob.id); return a.length === 1 && a[0].title === 'Renew the car insurance'; })(),
+    'OB5 planning it makes exactly one Action, even with two taps');
+  const obAct = (await all('ledger_commitments')).find(c => c.sourceRequestId === ob.id);
+  check((await findReq('Renew the car insurance')).status === 'planned' && (await findReq('Renew the car insurance')).linkedActionId === obAct.id, 'OB5 the request now points at that Action');
+  check(await until(A, () => [...document.querySelectorAll('#partnerApp .pp-req')].some(r => /Renew the car insurance/.test(r.innerText) && /Planned today/.test(r.innerText))), 'OB5 Abi sees it planned');
+  // OB6 — nobody can forge who made a request
+  const forge = await A.evaluate(async (ids) => {
+    const db = firebase.firestore(), out = {};
+    const tryIt = async (k, f) => { try { await f(); out[k] = 'ALLOWED'; } catch (e){ out[k] = e.code; } };
+    const base = { ownerUid: ids.owner, partnerUid: ids.abi, text: 'Forged', note: null, requestedTiming: 'today', requestedDate: null, status: 'requested',
+      plannedDate: null, linkedActionId: null, createdAt: 'x', updatedAt: 'x' };
+    await tryIt('as if Shaun made it', () => db.collection('ledger_shared_requests').add(Object.assign({}, base, { createdByUid: ids.owner, createdByRole: 'owner' })));
+    await tryIt('rewrite provenance', () => db.collection('ledger_shared_requests').doc(ids.req).update({ createdByUid: ids.abi, createdByRole: 'partner' }));
+    return out;
+  }, { owner, abi, req: ob.id });
+  check(Object.values(forge).every(v => v === 'permission-denied'), 'OB6 Abi cannot write a request as Shaun or rewrite its provenance: ' + JSON.stringify(forge));
+  const forgeS = await S.evaluate(async (ids) => {
+    try { await firebase.firestore().collection('ledger_shared_requests').add({ ownerUid: ids.owner, partnerUid: ids.abi, text: 'Forged', note: null, requestedTiming: 'today',
+      requestedDate: null, status: 'requested', plannedDate: null, linkedActionId: null, createdAt: 'x', updatedAt: 'x', createdByUid: ids.abi, createdByRole: 'partner' }); return 'ALLOWED'; }
+    catch (e){ return e.code; }
+  }, { owner, abi });
+  check(forgeS === 'permission-denied', 'OB6 Shaun cannot pass a request off as Abi\'s own: ' + forgeS);
+
+  // DEL1 — Abi deletes it: a confirmation that says what happens, Cancel goes back
+  await ppOpenByTitle(A, 'Renew the car insurance');
+  await A.waitForSelector('#rqDelBtn'); await A.click('#rqDelBtn');
+  await A.waitForSelector('#rqDelGo');
+  const dlg = await txt(A, '#ppSheet');
+  check(/Delete this request\?/.test(dlg) && /remove the request from both people.s request lists\. This cannot be undone\./.test(dlg) && /The Action already added to Ledger will remain\./.test(dlg)
+    && /Cancel/.test(await txt(A, '#rqDelCancel')) && /Delete request/.test(await txt(A, '#rqDelGo')), 'DEL1 the confirmation: both lists, cannot be undone, the Action remains; Cancel / Delete request');
+  await A.screenshot({ path: `${shots}/${tag}-DEL1-partner-confirm.png` });
+  await A.click('#rqDelCancel');
+  check(await until(A, () => /Renew the car insurance/.test((document.getElementById('rqTitle') || {}).textContent || '') && !!document.getElementById('rqTimeline')), 'DEL1 Cancel returns to the request, nothing deleted');
+  check(!(await findReq('Renew the car insurance')).deletedAt, 'DEL1 …and nothing was written');
+  await A.click('#rqDelBtn'); await A.waitForSelector('#rqDelGo'); await A.click('#rqDelGo');
+  check(await until(A, () => /Request deleted/.test((document.querySelector('.pin-toast') || {}).textContent || '') && ![...document.querySelectorAll('#partnerApp .pp-row-title')].some(x => x.textContent === 'Renew the car insurance')),
+    'DEL1 gone from Abi\'s list');
+  const gone = await findReq('Renew the car insurance');
+  check(!!gone.deletedAt && gone.deletedByUid === abi && gone.deletedByRole === 'partner' && gone.status === 'planned', 'DEL1 soft-deleted: when, by Abi (her uid), as the partner; its state left as it was');
+  const delEntry = (await all('ledger_shared_request_updates')).find(u => u.id === ob.id + '_deleted');
+  check(!!delEntry && delEntry.actorUid === abi && delEntry.type === 'deleted', 'DEL1 an audit entry records the deletion');
+  // DEL2 — Shaun's side: gone from the lists; his Action stays, said plainly
+  check(await until(S, () => ![...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Renew the car insurance/.test(r.innerText))), 'DEL2 gone from Shaun\'s Inbox');
+  await openSettings(S); await S.waitForSelector('#setShareReq'); await S.click('#setShareReq');
+  check(await until(S, () => !!document.getElementById('rqAddOnBehalf') && !/Renew the car insurance/.test(document.getElementById('sheet').innerText)), 'DEL2 gone from Shaun\'s Requests');
+  await S.click('#sheetCloseBtn');
+  const actAfter = (await all('ledger_commitments')).find(c => c.id === obAct.id);
+  check(!!actAfter && actAfter.title === 'Renew the car insurance' && actAfter.status === 'planned' && actAfter.sourceRequestId === ob.id, 'DEL2 the linked Action is untouched');
+  await S.evaluate(t => { const b = [...document.querySelectorAll('#commitmentsList .commitment-body')].find(x => x.innerText.indexOf(t) > -1); b.click(); }, 'Renew the car insurance');
+  await S.waitForSelector('#f_commitTitle');
+  const srcNote = await S.evaluate(() => { const e = document.getElementById('commitSourceNote'); return e ? e.tagName + '|' + e.textContent : ''; });
+  check(/^P\|From Abi.*request deleted/.test(srcNote) && !(await S.$('#auShare')), 'DEL2 its editor says "From Abi · request deleted", with no shared-update link: ' + srcNote);
+  // DEL3 — completing the Action now says nothing to anyone: the request never changes again
+  const updsBefore = (await all('ledger_shared_request_updates')).filter(u => u.requestId === ob.id).length;
+  await S.click('#sheetCloseBtn').catch(() => {});
+  await S.evaluate(id => firebase.firestore().collection('ledger_commitments').doc(id).update({ status: 'completed' }), obAct.id);
+  await sleep(2500);
+  const afterDone = await findReq('Renew the car insurance');
+  check(afterDone.status === 'planned' && (await all('ledger_shared_request_updates')).filter(u => u.requestId === ob.id).length === updsBefore,
+    'DEL3 completing the Action afterwards neither completes the request nor adds to its history (no "completed" push)');
+  // DEL4 — stale devices: nothing can edit, process, read-mark or recreate it
+  const stale = await A.evaluate(async (ids) => {
+    const db = firebase.firestore(), out = {};
+    const tryIt = async (k, f) => { try { await f(); out[k] = 'ALLOWED'; } catch (e){ out[k] = e.code; } };
+    await tryIt('edit', () => db.collection('ledger_shared_requests').doc(ids.req).update({ text: 'Back', updatedAt: 'x' }));
+    await tryIt('undelete', () => db.collection('ledger_shared_requests').doc(ids.req).update({ deletedAt: null }));
+    await tryIt('overwrite', () => db.collection('ledger_shared_requests').doc(ids.req).set({ ownerUid: ids.owner, partnerUid: ids.abi, text: 'Back', note: null, requestedTiming: 'today', requestedDate: null, status: 'requested', plannedDate: null, linkedActionId: null, createdAt: 'x', updatedAt: 'x' }));
+    await tryIt('read mark', () => db.collection('ledger_shared_requests').doc(ids.req).update({ partnerLastReadAt: 'x' }));
+    await tryIt('comment', () => db.collection('ledger_shared_request_updates').add({ requestId: ids.req, ownerUid: ids.owner, partnerUid: ids.abi, type: 'comment', actorUid: ids.abi, actorRole: 'partner', text: 'hello?', createdAt: firebase.firestore.FieldValue.serverTimestamp(), metadata: {} }));
+    return out;
+  }, { owner, abi, req: ob.id });
+  check(Object.values(stale).every(v => v === 'permission-denied'), 'DEL4 a stale partner device cannot edit, undelete, overwrite, read-mark or comment: ' + JSON.stringify(stale));
+  const staleS = await S.evaluate(async (ids) => {
+    const db = firebase.firestore(), out = {};
+    const tryIt = async (k, f) => { try { await f(); out[k] = 'ALLOWED'; } catch (e){ out[k] = e.code; } };
+    await tryIt('complete', () => db.collection('ledger_shared_requests').doc(ids.req).update({ status: 'done', updatedAt: 'x' }));
+    await tryIt('hard delete', () => db.collection('ledger_shared_requests').doc(ids.req).delete());
+    return out;
+  }, { owner, abi, req: ob.id });
+  check(Object.values(staleS).every(v => v === 'permission-denied'), 'DEL4 …nor can the owner complete or remove it: ' + JSON.stringify(staleS));
+  // DEL5 — Shaun deletes one he recorded by mistake; Abi's list follows
+  await openSettings(S); await S.waitForSelector('#setShareReq'); await S.click('#setShareReq');
+  await S.click('#rqAddOnBehalf'); await S.waitForSelector('#rqObText');
+  await S.fill('#rqObText', 'Typo reqest'); await S.click('#rqObSave');
+  check(await until(A, () => [...document.querySelectorAll('#partnerApp .pp-row-title')].some(x => x.textContent === 'Typo reqest')), 'DEL5 Abi sees the mistaken entry');
+  await until(S, () => [...document.querySelectorAll('#sheet .rq-li-t')].some(x => x.textContent === 'Typo reqest'));
+  await S.evaluate(() => { const t = [...document.querySelectorAll('#sheet .rq-li-t')].find(x => x.textContent === 'Typo reqest'); t.closest('.rq-li').click(); });
+  await S.waitForSelector('#rqDelBtn'); await S.click('#rqDelBtn'); await S.waitForSelector('#rqDelGo');
+  check(!/The Action already added/.test(await txt(S, '#sheet')), 'DEL5 no Action line when nothing was planned');
+  await S.screenshot({ path: `${shots}/${tag}-DEL5-owner-confirm.png` });
+  await S.click('#rqDelGo');
+  check(await until(S, () => /Request deleted/.test((document.querySelector('.pin-toast') || {}).textContent || '')), 'DEL5 Shaun deletes the request he recorded');
+  check(await until(A, () => ![...document.querySelectorAll('#partnerApp .pp-row-title')].some(x => x.textContent === 'Typo reqest')), 'DEL5 …and it leaves Abi\'s list');
+  const typo = await findReq('Typo reqest');
+  check(typo.deletedByUid === owner && typo.deletedByRole === 'owner', 'DEL5 recorded as deleted by Shaun');
+  // DEL6 — a request Abi wrote herself is never Shaun's to delete
+  await openSettings(S); await S.waitForSelector('#setShareReq'); await S.click('#setShareReq');
+  await until(S, () => [...document.querySelectorAll('#sheet .rq-li-t')].some(x => x.textContent === 'Pick up prescription'));
+  await S.evaluate(() => { const t = [...document.querySelectorAll('#sheet .rq-li-t')].find(x => x.textContent === 'Pick up prescription'); t.closest('.rq-li').click(); });
+  check(await until(S, () => /Pick up prescription/.test((document.getElementById('rqTitle') || {}).textContent || '')) && !(await S.$('#rqDelBtn')), 'DEL6 no Delete on a request Abi made');
   await S.click('#sheetCloseBtn');
 
   // ---------- deep links: query strings on the root, so a refresh is the same page ----------
@@ -730,7 +874,7 @@ async function oobLink(email){
   await S.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await S.screenshot({ path: `${shots}/${tag}-19-owner-foot.png` });
 
-  check(!S.errs.length, 'owner: no page errors ' + S.errs.slice(0, 3).join(' | '));
+  check(!S.errs.length, 'owner: no page errors ' + S.errs.slice(0, 3).join(' | ').slice(0, 600));
   check(!A.errs.length, 'partner: no page errors ' + A.errs.slice(0, 3).join(' | '));
   await b.close(); server.close();
   console.log(`\n${ok.length} passed, ${bad.length} failed`);

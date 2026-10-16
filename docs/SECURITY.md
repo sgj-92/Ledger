@@ -60,7 +60,7 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | `ledger_meta/sharing` | what each publication was chosen to include | owner |
 | `ledger_share_members` | the owner–partner relationship | owner manages own; partner reads own |
 | `ledger_shared_snapshots` | published day and week projections | owner writes own; partner reads own, while active |
-| `ledger_shared_requests` | requests from the partner | partner creates/edits/withdraws own until processed, then may hide a withdrawn one or renew it once as a new request; owner moves them on; each keeps own read mark |
+| `ledger_shared_requests` | requests from the partner | partner creates/edits/withdraws own until processed, then may hide a withdrawn one or renew it once as a new request; owner moves them on, and may record one on the partner's behalf; soft delete by the partner (any of hers) or by the owner (only one they recorded); each keeps own read mark |
 | `ledger_shared_request_updates` | a request's Updates (comments and lifecycle entries) | append-only; each side writes only as itself, see below |
 | anything else | — | denied |
 
@@ -198,9 +198,36 @@ Her requests stay with Shaun.
   like a generated id. It may edit the wording and timing, or withdraw it, only
   while it is still `requested`. It can never set `ownerUid`, `partnerUid`,
   `linkedActionId`, `plannedDate` or an owner status.
-- **Requests are never deleted.** Withdrawn (partner, while still requested)
-  and dismissed (owner) are states, so a request's history survives. The owner
-  cannot revive a withdrawn request.
+- **Requester, assignee, creator.** The requester is always the partner
+  (`partnerUid`), the assignee always the owner (`ownerUid`). The creator
+  (`createdByUid`, `createdByRole`) is whoever wrote the request and must equal
+  the signed-in user; requests from before it was recorded have none and were
+  written by the partner. No update rule touches these fields, so provenance
+  never changes.
+- **On the partner's behalf** (since 2026-10-16): the owner may create a request
+  for the partner of their own *active* relationship, with `createdByUid` = the
+  owner's uid, `createdByRole` = `owner`, status `requested`, no plan or link.
+  Its one Updates entry, `request_created` as `owner` on the fixed id
+  `{requestId}_created`, is accepted only for a request that names the owner as
+  creator. The partner can neither write a request as the owner nor claim the
+  owner role as creator. No push is sent for it: the owner made it, and the
+  partner asked in person.
+- **Requests are never removed by a client.** Withdrawn (partner, while still
+  requested), dismissed (owner) and deleted are states, so a linked Action and
+  the history keep something to point at. The owner cannot revive a withdrawn
+  request.
+- **Delete is soft** (since 2026-10-16): `deletedAt`, `deletedByUid` (= the
+  signed-in user), `deletedByRole`, and `updatedAt`, nothing else, in one write.
+  The partner may delete any of her own requests (including one recorded for
+  her) while the relationship is active; the owner only one they recorded on
+  the partner's behalf. A deleted request is then frozen: every update rule
+  requires `deletedAt == null`, so it cannot be edited, processed, completed,
+  renewed, hidden, read-marked, undeleted or overwritten by a stale device, and
+  no new Updates entry is accepted for it except its single `deleted` entry
+  (`{requestId}_deleted`, by whoever deleted it). A deleted withdrawn request
+  cannot be moved to upcoming. It stays readable to both, so the owner's app can
+  recognise an Action that came from it; the app drops it from every list,
+  count, Inbox and sync. A linked Action is never touched.
 - **After withdrawing** (the partner, own requests only): *hide* it from her own
   list (`partnerHiddenAt` set or cleared, nothing else, only while `withdrawn`;
   the owner cannot set it), or *move it to upcoming*: a new request (`requested`,

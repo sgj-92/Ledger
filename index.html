@@ -1041,6 +1041,14 @@
   .cal-cell.status-disrupted { box-shadow: inset 0 0 0 1px rgba(var(--day-bad-rgb),0.45); }
   .cal-cell .cal-action-mark { position: absolute; top: 5px; right: 5px; width: 4px; height: 4px; border-radius: 50%; background: var(--gold); }
   .cal-cell.selected .cal-action-mark { background: var(--ink); opacity: 0.5; }
+  /* Life Context: a quiet champagne ring beside the day's activity dots — hollow, so it
+     never reads as an activity; present, never loud */
+  .cal-cell .cal-lc-mark { flex: 0 0 auto; width: 5px; height: 5px; margin-top: -0.5px; border-radius: 50%;
+    border: 1px solid rgba(var(--gold-rgb), 0.8); box-sizing: border-box; }
+  .cal-cell.selected .cal-lc-mark { border-color: var(--ink); opacity: 0.6; }
+  .cal-lc-list { margin-top: 0; }
+  .lc-row-n { font-size: 12.5px; font-weight: 400; color: var(--text-2); line-height: 1.45; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .cal-cell .cal-dots { display: flex; gap: 2px; height: 6px; }
   .cal-cell .cal-dots .dot { width: 4px; height: 4px; }
   .cal-day-detail { margin-top: var(--sp-6); }
@@ -4532,6 +4540,24 @@
   .rq-meta:empty { display: none; }
   .rq-act .ib-actions { margin: 0 0 var(--sp-2); }
   .rq-own { display: flex; gap: 20px; margin: -4px 0 var(--sp-2); }
+  /* on-behalf: who asked and whose it is, stated once and fixed */
+  .rq-ob-facts { margin: 0 0 var(--sp-4); padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    display: grid; gap: 6px; font-size: 13px; }
+  .rq-ob-facts > div { display: flex; gap: 12px; }
+  .rq-ob-facts dt { flex: 0 0 96px; color: var(--text-3); }
+  .rq-ob-facts dd { margin: 0; min-width: 0; color: var(--text); font-weight: 500; overflow-wrap: anywhere; }
+  .rq-add-rows { margin: 0 0 var(--sp-3); border-top: none; }
+  .rq-add-rows .act-row { color: var(--gold); }
+  .rq-add-rows .act-ic { color: var(--gold); }
+  /* delete: a plain question, what it does, and two choices side by side */
+  .rq-del-btn { margin-top: var(--sp-5); }
+  .rq-del-what { margin: 0 0 var(--sp-3); font-family: var(--serif); font-size: 16px; color: var(--text); overflow-wrap: anywhere; }
+  .rq-del-p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.5; color: var(--text-2); }
+  .rq-del-btns { margin-top: var(--sp-4); }
+  .btn-ghost.danger { color: var(--danger); border-color: rgba(var(--danger-rgb),0.45); background: rgba(var(--danger-rgb),0.05); }
+  .btn-ghost.danger:active { background: rgba(var(--danger-rgb),0.12); }
+  .btn-ghost:disabled { opacity: 0.5; cursor: default; }
+  .ns-opt.danger .ns-t { color: var(--danger); }
   .rq-own:empty { display: none; }
   .rq-own .btn-link { padding: 4px 0; font-size: 12.5px; color: var(--text-2); }
   .rq-own .rq-withdraw { color: var(--danger); }
@@ -8627,7 +8653,8 @@
     sheetEl.innerHTML = buildHtml();
     var srcNote = document.getElementById('commitSourceNote');
     if (srcNote){
-      var srcText = 'From ' + (existing.sourceLabel || 'your partner') + (existing.sourceNote ? ' · “' + existing.sourceNote + '”' : '');
+      var srcText = 'From ' + (existing.sourceLabel || 'your partner') + (existing.sourceNote ? ' · “' + existing.sourceNote + '”' : '') +
+        (deletedRequestIds[existing.sourceRequestId] ? ' · request deleted' : '');
       if (srcNote.tagName === 'BUTTON'){
         srcNote.querySelector('span').textContent = srcText + ' · Updates';
         srcNote.addEventListener('click', function(){ openRequestDetailSheet(existing.sourceRequestId); });
@@ -10416,6 +10443,7 @@
   function lifeContextChanged(){
     renderLogView();
     if (currentView === 'stats') renderStats();
+    if (currentView === 'calendar') renderCalendar();
     if (activeSheetRefresh) activeSheetRefresh();
   }
   function saveLifeContext(rec){
@@ -11938,6 +11966,9 @@
   // the live sync rebuilds it from that choice when the records change — publishing
   // itself is never automatic.
   var shareMembers = [], sharedSnaps = [], sharedRequests = [];
+  // deleted requests leave every list and workflow; kept only so an Action that came from
+  // one can say so (its own record is never touched)
+  var deletedRequestIds = {};
   var sharingMeta = null;
   var shareLoaded = { members: false, snaps: false, requests: false, meta: false, sessions: false };
   var shareUnavailable = false;   // the shared namespace refused the owner (rules not yet published)
@@ -12238,6 +12269,8 @@
     }
     return rqUpcoming(r) ? 'Upcoming' : 'Requested';
   }
+  // who wrote it: the partner, or the owner recording what the partner asked in person
+  function rqOnBehalf(r){ return !!r && r.createdByRole === 'owner'; }
   function rqStatusClass(r){ return ['requested', 'planned', 'in_progress', 'done', 'dismissed', 'withdrawn'].indexOf(r.status) > -1 ? r.status : 'requested'; }
 
   // ============ Partner Requests: Updates ============
@@ -12294,6 +12327,9 @@
   // what happened, said from the facts recorded — never stored prose
   function rqEventText(e, names, selfRole){
     var m = e.metadata || {};
+    if (e.type === 'request_created' && e.actorRole === 'owner')
+      return selfRole === 'owner' ? 'Created by you on ' + names.partner + '’s behalf' : 'Created by ' + names.owner + ' on your behalf';
+    if (e.type === 'deleted') return 'Deleted';
     if (e.type === 'request_created' && m.renewedFrom) return (selfRole === 'partner' ? 'You' : names.partner) + ' moved it to upcoming, after withdrawing it';
     if (e.type === 'request_created') return selfRole === 'partner' ? 'You asked' : 'Asked by ' + names.partner;
     if (e.type === 'renewed') return (selfRole === 'partner' ? 'You' : names.partner) + ' moved it to upcoming, as a new request';
@@ -12412,6 +12448,7 @@
     return dbRef.runTransaction(function(tx){
       return tx.get(ref).then(function(snap){
         var cur = snap.exists ? Object.assign({ id: r.id }, snap.data()) : null;
+        if (cur && cur.deletedAt) throw { code: 'deleted' };
         if (!cur || cur.status !== 'requested') throw { code: 'already-processed' };
         tx.set(dbRef.collection('ledger_commitments').doc(aid), item);
         tx.update(ref, Object.assign({ status: 'planned', plannedDate: dateStr, linkedActionId: aid, updatedAt: now, processedAt: now },
@@ -12422,6 +12459,7 @@
       showPinToast('Planned for ' + rqDayWord(dateStr), false, CHECK_SVG);
     }).catch(function(e){
       if (e && e.code === 'already-processed') return;
+      if (e && e.code === 'deleted'){ showPinToast('That request was deleted.', true); return; }
       console.error('request accept failed', e); showPinToast('Couldn’t plan the request — try again.', true);
     });
   }
@@ -12444,7 +12482,7 @@
     var ref = requestRef(id), now = new Date().toISOString();
     return dbRef.runTransaction(function(tx){
       return tx.get(ref).then(function(snap){
-        if (!snap.exists || snap.data().status !== 'requested') return;
+        if (!snap.exists || snap.data().status !== 'requested' || snap.data().deletedAt) return;
         tx.update(ref, Object.assign({ status: 'dismissed', updatedAt: now, processedAt: now }, rqSummary('system', 'dismissed', null, now)));
         tx.set(dbRef.collection(RQ_UPD).doc(), rqEvent(Object.assign({ id: id }, snap.data()), 'dismissed', 'system', null, {}));
       });
@@ -12492,7 +12530,7 @@
       if (!a && !rqLinkedMissingSettled(r)) return;
       if (!rqWanted(r, a)) return;
       rqSyncing[r.id] = true;
-      rqApplySync(r.id).catch(function(e){ console.error('request sync failed', e); })
+      rqApplySync(r.id).catch(function(e){ console.error('request sync failed: ' + ((e && e.code) || '') + ' ' + ((e && e.message) || e)); })
         .then(function(){ delete rqSyncing[r.id]; });
     });
   }
@@ -12500,7 +12538,7 @@
     var ref = requestRef(id);
     return dbRef.runTransaction(function(tx){
       return tx.get(ref).then(function(snap){
-        if (!snap.exists) return;
+        if (!snap.exists || snap.data().deletedAt) return;
         var cur = Object.assign({ id: id }, snap.data());
         if (!cur.linkedActionId || ['planned', 'in_progress', 'done'].indexOf(cur.status) === -1) return;
         var a = commitments.find(function(c){ return c.id === cur.linkedActionId; });
@@ -12534,7 +12572,8 @@
       '<div class="rq-act" id="rqAct"></div>' +
       '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
       '<div class="rq-tl" id="rqTimeline"><p class="rq-empty">Loading…</p></div>' +
-      rqComposerHtml();
+      rqComposerHtml() +
+      '<div id="rqDelWrap"></div>';
     backdrop.classList.add('open');
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
     var sheetMark = sheetEl.querySelector('#rqState');
@@ -12542,7 +12581,7 @@
     function paint(){
       var r = cur();
       if (!r || !open()) return false;
-      document.getElementById('rqKicker').textContent = 'From ' + names.partner;
+      document.getElementById('rqKicker').textContent = 'From ' + names.partner + (rqOnBehalf(r) ? ' · added by you' : '');
       document.getElementById('rqTitle').textContent = r.text;
       var stEl = document.getElementById('rqState');
       stEl.textContent = rqPendingDismiss[r.id] ? 'Set aside' : rqStatusLabel(r);
@@ -12569,6 +12608,20 @@
         document.getElementById('rqAction').addEventListener('click', function(){ openCommitmentSheet(a); });
       } else act.innerHTML = '';
       rqProvenance(document.getElementById('rqProv'), r, sharedRequests, function(id){ rqStopDetail(); openRequestDetailSheet(id); });
+      // only a request the owner recorded themselves; the partner's own are theirs to delete
+      var dw = document.getElementById('rqDelWrap');
+      if (rqOnBehalf(r) && r.createdByUid === authUser.uid){
+        if (!dw.firstChild){
+          dw.innerHTML = '<button type="button" class="delete-btn rq-del-btn" id="rqDelBtn">Delete request</button>';
+          document.getElementById('rqDelBtn').addEventListener('click', function(){
+            var x = cur(); if (!x) return;
+            rqStopDetail();
+            rqConfirmDelete(x, 'owner', rqOwnerSheet,
+              function(){ openRequestDetailSheet(reqId); },
+              function(){ closeSheet(); showPinToast('Request deleted', false, CHECK_SVG); });
+          });
+        }
+      } else dw.innerHTML = '';
       return true;
     }
     paint();
@@ -12580,6 +12633,109 @@
     rqWireComposer(sheetEl, cur, 'owner', 'Add an update for ' + names.partner + '…');
     rqMarkRead(r0, 'owner');
   }
+  // the owner's sheet, for flows that replace what is showing (a confirmation)
+  function rqOwnerSheet(html){
+    activeSheetRefresh = null; editingId = null;
+    sheetEl.innerHTML = html;
+    backdrop.classList.add('open');
+    var x = sheetEl.querySelector('.sheet-close'); if (x) x.addEventListener('click', closeSheet);
+    return sheetEl;
+  }
+  // Something the partner asked for in person, recorded by the owner. Three facts, kept
+  // apart: the partner asked (partnerUid), it is the owner's to do (ownerUid), and the owner
+  // wrote it down (createdByUid — the signed-in user, which the rules insist on). It then
+  // lands in the Inbox like any request. The partner sees it in their list, said plainly as
+  // "Created by <owner> on your behalf", and is not notified: they asked in person.
+  function openOnBehalfRequestSheet(m){
+    if (!m || !m.active) return;
+    if (!dbReady){ showPinToast('You’re offline — try again when you’re connected.', true); return; }
+    activeSheetRefresh = null; editingId = null;
+    var who = partnerName(m), timing = 'today';
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead('', 'Add a request', '', '') +
+      '<dl class="rq-ob-facts"><div><dt>Requested by</dt><dd id="rqObWho"></dd></div><div><dt>Assigned to</dt><dd>Me</dd></div></dl>' +
+      '<div class="field"><label for="rqObText" id="rqObLabel"></label><textarea id="rqObText" rows="2" maxlength="280"></textarea></div>' +
+      '<div class="field"><label>When</label><div class="bk-filter-pop" id="rqObTiming" role="radiogroup" aria-label="When">' +
+        [['today', 'Today'], ['week', 'This week'], ['date', 'Choose date'], ['none', 'No preference']].map(function(t){
+          return '<button type="button" class="bk-filter-chip' + (timing === t[0] ? ' sel' : '') + '" role="radio" aria-checked="' + (timing === t[0]) + '" data-rq-ob-timing="' + t[0] + '">' + t[1] + '</button>';
+        }).join('') +
+      '</div></div>' +
+      '<div id="rqObDateField" hidden>' + fieldDate('rqObDate', 'Date', nextDateStr(todayStr())) + '</div>' +
+      '<div class="field"><label for="rqObNote">Note <span class="pp-opt">optional</span></label><textarea id="rqObNote" rows="2" maxlength="500"></textarea></div>' +
+      '<p class="auth-error" id="rqObErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="rqObSave">Add request</button>';
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', openRequestsListSheet);
+    document.getElementById('rqObWho').textContent = who;
+    document.getElementById('rqObLabel').textContent = 'What did ' + who + ' ask for?';
+    var text = document.getElementById('rqObText'), note = document.getElementById('rqObNote'), err = document.getElementById('rqObErr');
+    setTimeout(function(){ try { text.focus(); } catch(e){} }, 60);
+    sheetEl.querySelectorAll('[data-rq-ob-timing]').forEach(function(b){
+      b.addEventListener('click', function(){
+        timing = b.dataset.rqObTiming;
+        sheetEl.querySelectorAll('[data-rq-ob-timing]').forEach(function(x){ x.classList.toggle('sel', x === b); x.setAttribute('aria-checked', x === b ? 'true' : 'false'); });
+        document.getElementById('rqObDateField').hidden = timing !== 'date';
+      });
+    });
+    var save = document.getElementById('rqObSave');
+    save.addEventListener('click', function(){
+      var t = text.value.trim(), n = note.value.trim();
+      if (!t){ err.textContent = 'Say what ' + who + ' asked for.'; text.focus(); return; }
+      var d = timing === 'date' ? document.getElementById('rqObDate').value : null;
+      if (timing === 'date' && !d){ err.textContent = 'Choose a date.'; return; }
+      save.disabled = true; err.textContent = '';
+      var now = new Date().toISOString(), ref = dbRef.collection('ledger_shared_requests').doc(), b = dbRef.batch();
+      var doc = { ownerUid: authUser.uid, partnerUid: m.partnerUid, text: t.slice(0, 280), note: n ? n.slice(0, 500) : null,
+        requestedTiming: timing, requestedDate: d || null, createdAt: now, updatedAt: now, status: 'requested',
+        plannedDate: null, linkedActionId: null, latestUpdateAt: now, latestUpdateBy: 'owner', latestUpdateType: 'request_created',
+        createdByUid: authUser.uid, createdByRole: 'owner' };
+      b.set(ref, doc);
+      b.set(dbRef.collection(RQ_UPD).doc(ref.id + '_created'),
+        rqEvent(Object.assign({ id: ref.id }, doc), 'request_created', 'owner', null, { timing: timing, date: d || null, onBehalf: true }));
+      b.commit().then(function(){
+        openRequestsListSheet();
+        showPinToast('Added to your Inbox', false, CHECK_SVG);
+      }).catch(function(e){
+        console.error('on-behalf request failed', e); save.disabled = false;
+        err.textContent = 'Couldn’t add it — check your connection and try again.';
+      });
+    });
+  }
+  // Delete: for an entry that should never have been made. Soft — the request is marked
+  // deleted, by whom and when, leaves both lists, and can never change again. A linked
+  // Action is the owner's private record and is never touched.
+  function rqDelete(r, role){
+    var now = new Date().toISOString(), b = dbRef.batch();
+    b.update(requestRef(r.id), { deletedAt: now, deletedByUid: authUser.uid, deletedByRole: role, updatedAt: now });
+    b.set(dbRef.collection(RQ_UPD).doc(r.id + '_deleted'), rqEvent(r, 'deleted', role, null, { hadAction: !!r.linkedActionId }));
+    return b.commit();
+  }
+  // the confirmation, in the same sheet: Cancel goes back to where it was asked from
+  function rqConfirmDelete(r, role, show, back, done){
+    var root = show('<div class="sheet-handle"></div>' +
+      '<div class="sheet-head rq-head"><div class="sheet-title-wrap"><div class="sheet-title" id="rqDelHead">Delete this request?</div></div>' +
+      '<button class="sheet-close" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<div class="rq-del" role="alertdialog" aria-labelledby="rqDelHead" aria-describedby="rqDelBody">' +
+        '<p class="rq-del-what" id="rqDelWhat"></p>' +
+        '<div id="rqDelBody"><p class="rq-del-p">This will remove the request from both people’s request lists. This cannot be undone.</p>' +
+          (r.linkedActionId ? '<p class="rq-del-p">The Action already added to Ledger will remain.</p>' : '') + '</div>' +
+        '<p class="auth-error" id="rqDelErr" role="alert"></p>' +
+        '<div class="btn-row rq-del-btns"><button type="button" class="btn-ghost" id="rqDelCancel">Cancel</button>' +
+          '<button type="button" class="btn-ghost danger" id="rqDelGo">Delete request</button></div>' +
+      '</div>');
+    root.querySelector('#rqDelWhat').textContent = '“' + r.text + '”';
+    root.querySelector('#rqDelCancel').addEventListener('click', back);
+    var go = root.querySelector('#rqDelGo'), err = root.querySelector('#rqDelErr');
+    go.addEventListener('click', function(){
+      go.disabled = true; err.textContent = '';
+      rqDelete(r, role).then(done).catch(function(e){
+        console.error('request delete failed', e);
+        go.disabled = false;
+        err.textContent = 'Couldn’t delete it — check your connection and try again.';
+      });
+    });
+    setTimeout(function(){ try { root.querySelector('#rqDelCancel').focus(); } catch(e){} }, 60);
+  }
   // every request, newest first — the history a processed request lives in
   function openRequestsListSheet(){
     activeSheetRefresh = null;
@@ -12589,7 +12745,11 @@
       return ka < kb ? 1 : -1;
     });
     var m = shareMember();
+    var canAdd = !!(m && m.active);
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' + sheetHead('', 'Requests', '', '') +
+      (canAdd ? '<div class="act-rows rq-add-rows"><button type="button" class="act-row" id="rqAddOnBehalf">' +
+        '<span class="act-ic">' + BK_PLUS_SVG + '</span><span class="act-label" id="rqAddOnBehalfLabel"></span>' +
+        '<span class="act-chev">' + UI_ICON.chevronRight + '</span></button></div>' : '') +
       (list.length ? '<div class="rq-list">' + list.map(function(r, i){
         return '<button type="button" class="rq-li" data-rq-li="' + i + '">' +
           '<span class="rq-li-body"><span class="rq-li-t"></span><span class="rq-li-m"></span></span>' +
@@ -12597,6 +12757,10 @@
       }).join('') + '</div>' : '<p class="rq-empty">No requests yet</p>');
     backdrop.classList.add('open');
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    if (canAdd){
+      document.getElementById('rqAddOnBehalfLabel').textContent = 'Add a request from ' + partnerName(m);
+      document.getElementById('rqAddOnBehalf').addEventListener('click', function(){ openOnBehalfRequestSheet(m); });
+    }
     list.forEach(function(r, i){
       var row = sheetEl.querySelector('[data-rq-li="' + i + '"]');
       row.querySelector('.rq-li-t').textContent = r.text;
@@ -12624,7 +12788,11 @@
       sharedSnaps = snap.docs.map(shareDoc); shareLoaded.snaps = true; sharingChanged();
     }, refused('snapshots'));
     dbRef.collection('ledger_shared_requests').where('ownerUid', '==', me).onSnapshot(function(snap){
-      sharedRequests = snap.docs.map(shareDoc); shareLoaded.requests = true; reconcileRequests(); sharingChanged();
+      var all = snap.docs.map(shareDoc);
+      deletedRequestIds = {};
+      all.forEach(function(r){ if (r.deletedAt) deletedRequestIds[r.id] = true; });
+      sharedRequests = all.filter(function(r){ return !r.deletedAt; });
+      shareLoaded.requests = true; reconcileRequests(); sharingChanged();
       tryHandleDeepLink();
     }, refused('requests'));
     dbRef.collection('ledger_meta').doc('sharing').onSnapshot(function(doc){
@@ -12682,7 +12850,7 @@
     items.forEach(function(it, i){
       var r = it.r, row = wrap.querySelector('[data-ib-row="' + i + '"]');
       var name = partnerName(rqMember(r));
-      row.querySelector('.ib-kicker').textContent = (it.kind === 'update' ? 'Update from ' : 'From ') + name;
+      row.querySelector('.ib-kicker').textContent = (it.kind === 'update' ? 'Update from ' : 'From ') + name + (rqOnBehalf(r) && it.kind !== 'update' ? ' · added by you' : '');
       row.querySelector('.ib-title').textContent = r.text;
       var q = row.querySelector('.ib-quote');
       if (q) q.textContent = '“' + r.latestCommentText + '”';
@@ -12933,7 +13101,8 @@
     function refused(err){ console.warn('shared read refused', err && err.code); pp.denied = true; renderPortal(); }
     pp.stops.push(q('ledger_shared_snapshots').onSnapshot(function(snap){ pp.snaps = snap.docs.map(shareDoc); pp.snapsLoaded = true; renderPortal(); }, refused));
     pp.stops.push(q('ledger_shared_requests').onSnapshot(function(snap){
-      pp.requests = snap.docs.map(shareDoc); pp.reqLoaded = true; renderPortal();
+      // a deleted request is gone from her side too: lists, counts, links
+      pp.requests = snap.docs.map(shareDoc).filter(function(r){ return !r.deletedAt; }); pp.reqLoaded = true; renderPortal();
       if (ppDetailRefresh) ppDetailRefresh();
       ppHandleDeepLink();
     }, refused));
@@ -13147,7 +13316,7 @@
     function cur(){ return pp.requests.find(function(x){ return x.id === reqId; }) || null; }
     var sh = ppSheetOpen('<div class="sheet-handle"></div>' +
       '<div class="sheet-head rq-head"><div class="sheet-title-wrap">' +
-        '<p class="rq-kicker">Your request</p><div class="sheet-title rq-title" id="rqTitle"></div>' +
+        '<p class="rq-kicker" id="rqKicker">Your request</p><div class="sheet-title rq-title" id="rqTitle"></div>' +
       '</div><button class="sheet-close" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
       '<p class="rq-state" id="rqState"></p>' +
       '<p class="rq-meta" id="rqMeta"></p>' +
@@ -13155,13 +13324,15 @@
       '<div class="rq-own" id="rqOwn"></div>' +
       '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
       '<div class="rq-tl" id="rqTimeline"><p class="rq-empty">Loading…</p></div>' +
-      rqComposerHtml());
+      rqComposerHtml() +
+      '<button type="button" class="delete-btn rq-del-btn" id="rqDelBtn">Delete request</button>');
     var sheetMark = sh.querySelector('#rqState');
     function open(){ var bd = document.getElementById('ppBackdrop'); return !!bd && bd.classList.contains('open') && sh.contains(sheetMark); }
     function paint(){
       var x = cur();
       if (!x || !open()) return false;
       document.getElementById('rqTitle').textContent = x.text;
+      document.getElementById('rqKicker').textContent = 'Your request' + (rqOnBehalf(x) ? ' · added by ' + owner : '');
       var st = document.getElementById('rqState');
       st.textContent = rqStatusLabel(x); st.className = 'rq-state st-' + rqStatusClass(x);
       document.getElementById('rqMeta').textContent = [requestTimingLabel(x), x.note ? '“' + x.note + '”' : ''].filter(Boolean).join(' · ');
@@ -13183,6 +13354,10 @@
       return true;
     }
     paint();
+    document.getElementById('rqDelBtn').addEventListener('click', function(){
+      var x = cur(); if (!x) return;
+      ppConfirmDelete(x, function(){ ppOpenRequest(cur()); });
+    });
     ppDetailRefresh = function(){
       if (!paint()){ ppDetailRefresh = null; return; }
       rqMarkRead(cur(), 'partner');
@@ -13211,7 +13386,7 @@
     var doc = { ownerUid: r.ownerUid, partnerUid: authUser.uid, text: r.text, note: r.note || null,
       requestedTiming: 'later', requestedDate: null, createdAt: now, updatedAt: now, status: 'requested',
       plannedDate: null, linkedActionId: null, latestUpdateAt: now, latestUpdateBy: 'partner',
-      latestUpdateType: 'request_created', renewedFrom: r.id };
+      latestUpdateType: 'request_created', renewedFrom: r.id, createdByUid: authUser.uid, createdByRole: 'partner' };
     b.set(ref, doc);
     b.set(dbRef.collection(RQ_UPD).doc(ref.id + '_created'),
       rqEvent(Object.assign({ id: ref.id }, doc), 'request_created', 'partner', null, { timing: 'later', date: null, renewedFrom: r.id }));
@@ -13233,6 +13408,12 @@
       });
     }).catch(function(e){ console.error(e); showPinToast('Couldn’t hide it — check your connection and try again.', true); });
   }
+  // her own requests are hers to delete, including one recorded for her
+  function ppConfirmDelete(r, back){
+    rqStopDetail();
+    rqConfirmDelete(r, 'partner', ppSheetOpen, function(){ if (back) back(); else ppSheetClose(); },
+      function(){ ppSheetClose(); showPinToast('Request deleted', false, CHECK_SVG); });
+  }
   // a withdrawn row's ⋯ : the two ways forward, said plainly
   function ppWithdrawnMenu(r){
     var owner = (pp.member && pp.member.ownerName) || 'They';
@@ -13243,6 +13424,7 @@
       '<div class="ns-opts pp-menu">' +
         (r.renewedAs ? '' : '<button type="button" class="ns-opt" id="ppMenuRenew"><span class="ns-t">Move to upcoming</span><span class="ns-s" id="ppMenuRenewSub"></span></button>') +
         '<button type="button" class="ns-opt" id="ppMenuHide"><span class="ns-t">Hide from my list</span><span class="ns-s" id="ppMenuHideSub"></span></button>' +
+        '<button type="button" class="ns-opt danger" id="ppMenuDelete"><span class="ns-t">Delete request</span><span class="ns-s" id="ppMenuDeleteSub"></span></button>' +
       '</div>' +
       '<button type="button" class="btn-link pp-menu-open" id="ppMenuOpen">See its updates</button>');
     sh.querySelector('#ppMenuKicker').textContent = r.renewedAs ? 'Moved to upcoming' : 'Withdrawn ' + ppDayWord(r.latestUpdateAt || r.updatedAt);
@@ -13252,6 +13434,8 @@
     sh.querySelector('#ppMenuHideSub').textContent = 'You don’t need it any more. ' + owner + '’s copy and its history stay.';
     var rn = sh.querySelector('#ppMenuRenew'); if (rn) rn.addEventListener('click', function(){ rn.disabled = true; ppRenew(r); });
     sh.querySelector('#ppMenuHide').addEventListener('click', function(){ ppHide(r); });
+    sh.querySelector('#ppMenuDeleteSub').textContent = 'It should never have been sent. Gone from both lists, for good.';
+    sh.querySelector('#ppMenuDelete').addEventListener('click', function(){ ppConfirmDelete(r, function(){ ppWithdrawnMenu(r); }); });
     sh.querySelector('#ppMenuOpen').addEventListener('click', function(){ ppOpenRequest(r); });
   }
   // where a request came from, or went: one quiet link between a withdrawn request and
@@ -13306,12 +13490,14 @@
       var now = new Date().toISOString();
       var body = { text: t.slice(0, 280), note: n ? n.slice(0, 500) : null, requestedTiming: timing, requestedDate: d || null, updatedAt: now };
       var save;
+      if (r && !pp.requests.some(function(x){ return x.id === r.id; })){ err.textContent = 'This request was deleted.'; return; }
       if (r) save = requestRef(r.id).update(body);
       else {
         // the request and its first entry ("asked") together
         var ref = dbRef.collection('ledger_shared_requests').doc(), b = dbRef.batch();
         var doc = Object.assign({ ownerUid: pp.member.ownerUid, partnerUid: authUser.uid, createdAt: now, status: 'requested',
-          plannedDate: null, linkedActionId: null, latestUpdateAt: now, latestUpdateBy: 'partner', latestUpdateType: 'request_created' }, body);
+          plannedDate: null, linkedActionId: null, latestUpdateAt: now, latestUpdateBy: 'partner', latestUpdateType: 'request_created',
+          createdByUid: authUser.uid, createdByRole: 'partner' }, body);
         b.set(ref, doc);
         b.set(dbRef.collection(RQ_UPD).doc(ref.id + '_created'),
           rqEvent(Object.assign({ id: ref.id }, doc), 'request_created', 'partner', null, { timing: timing, date: d || null }));
@@ -17164,6 +17350,12 @@
       }
 
       var dotsHtml = typesPresent.slice(0,4).map(function(t){ return '<span class="dot ' + t + '"></span>'; }).join('');
+      // Life Context: one quiet ring however many circumstances cover the day; context
+      // for any filter, so it shows on every view
+      var hasContext = lifeContextFor(dateStr).length > 0;
+      if (hasContext) cell.classList.add('has-ctx');
+      // the ring sits with the day's dots, under the number, so it reads as that day's
+      if (hasContext) dotsHtml += '<span class="cal-lc-mark" aria-hidden="true"></span>';
       cell.innerHTML = '<span>' + day + '</span>' + (dotsHtml ? '<span class="cal-dots">' + dotsHtml + '</span>' : '') +
         (hasActions ? '<span class="cal-action-mark"></span>' : '');
       cell.addEventListener('click', function(ds){
@@ -17396,6 +17588,30 @@
       wrap.appendChild(e);
     } else {
       daySessions.forEach(function(s){ wrap.appendChild(renderSessionItem(s)); });
+    }
+
+    var dayContext = lifeContextFor(dateStr);
+    if (dayContext.length){
+      var lcHead = document.createElement('div'); lcHead.className = 'cal-day-section-title'; lcHead.textContent = 'Life context';
+      wrap.appendChild(lcHead);
+      var lcList = document.createElement('div'); lcList.className = 'act-rows lc-list cal-lc-list';
+      dayContext.forEach(function(r){
+        var row = document.createElement('button');
+        row.type = 'button'; row.className = 'act-row';
+        row.innerHTML = '<span class="act-ic">' + LC_ICON + '</span>' +
+          '<span class="act-label lc-row-x"><span class="lc-row-t"></span><span class="lc-row-m"></span></span>' +
+          '<span class="act-chev">' + UI_ICON.chevronRight + '</span>';
+        row.querySelector('.lc-row-t').textContent = lcCategoryLabel(r);
+        row.querySelector('.lc-row-m').textContent = lcSpanLabel(r) + ' · ' + lcAreasLabel(r) + (r.status === 'resolved' ? ' · resolved' : '');
+        if ((r.note || '').trim()){
+          var n = document.createElement('span'); n.className = 'lc-row-n'; n.textContent = r.note.trim();
+          row.querySelector('.lc-row-x').appendChild(n);
+        }
+        row.setAttribute('aria-label', 'Edit life context: ' + lcCategoryLabel(r) + ', ' + lcSpanLabel(r));
+        row.addEventListener('click', function(){ openLifeContextSheet(dateStr, r); });
+        lcList.appendChild(row);
+      });
+      wrap.appendChild(lcList);
     }
 
     if (dayStatus && (dayStatus.status || dayStatus.closedAt)){

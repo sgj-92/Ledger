@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-15 (Life Context; mobile horizontal-overflow fix)
+Last updated: 2026-10-16 (Phase A: Life Context on the Calendar; requests recorded on Abi's behalf; request deletion)
 
 ---
 
@@ -232,7 +232,12 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   (dotted cells) and draws a planned-but-unrecorded training day that has context
   with a dashed outline; the Daily Handoff adds "Life context (recorded, not a
   diagnosis or a cause): …" lines. Nothing about streaks, XP, percentages or
-  completion changes.
+  completion changes. **Calendar** (since 2026-10-16): a hollow champagne ring in
+  each covered date's dot row — one however many records cover it, on every
+  filter; ongoing records only up to today — and a "Life context" section in the
+  day detail (after Recorded, before Outcome: circumstance, dates · areas, note)
+  whose rows open the same editor. Saving, resolving or deleting redraws the
+  Calendar at once; no Calendar copy of the data.
 - **Action age** (since 2026-10-10) — unfinished Actions show "9 days old" at the
   end of their quiet meta line on Today and in the Backlog (on the compact shelf it
   stands in for "Added …"), counted in local calendar days from the original
@@ -519,6 +524,23 @@ dismisses it like any request. Hide sets `partnerHiddenAt` (Undo clears it): out
 her list only — the record, its history and the owner's copy are untouched.
 Push: the new request notifies the owner once, "Abi moved a request to upcoming";
 the withdrawal and "renewed" entries are quiet.
+**Phase A (2026-10-16) — requests made in person, and Delete.** Settings → Partner
+sharing → Requests → **Add a request from Abi** (shown while sharing is active):
+"Requested by Abi · Assigned to Me", what she asked for, when, optional note. It is
+an ordinary request (`status: requested`) with `createdByUid` = Shaun's uid and
+`createdByRole: 'owner'`; its first entry is `request_created` by the owner
+("Created by you on Abi's behalf" / "Created by Shaun on your behalf"). Shaun's
+Inbox shows it as "From Abi · added by you"; Abi's list as hers ("Your request ·
+added by Shaun"); she can edit, withdraw or delete it as her own. No push either
+way. Partner-created requests now record `createdByUid`/`createdByRole: 'partner'`
+too (older ones have none). **Delete request** (bottom of the request detail on
+both sides; also in a withdrawn row's ⋯ for Abi): Abi any of hers, Shaun only one
+he recorded. A confirmation sheet ("Delete this request?" · both lists, cannot be
+undone · "The Action already added to Ledger will remain." when linked · Cancel /
+Delete request). Soft: `deletedAt`, `deletedByUid`, `deletedByRole` + a `deleted`
+entry; both apps drop it from every list, count, Inbox and sync; the rules freeze
+it. A linked Action is untouched; its editor says "From Abi · request deleted",
+without the shared-update link, and completing it later changes nothing shared.
 
 ---
 
@@ -657,6 +679,37 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-16 — Requester, assignee and creator are separate facts
+**Decision (Shaun's brief, Phase A):** Shaun may record a request Abi made in
+person. The requester stays the partner (`partnerUid`), the assignee the owner
+(`ownerUid`); who wrote it is recorded separately and immutably (`createdByUid` =
+the signed-in user, `createdByRole`), enforced by the rules — no client can write
+a request as someone else or rewrite provenance. Its history says "Created by Shaun
+on Abi's behalf", never that she entered it. **No notification** for it: Shaun made
+it, and Abi asked in person (a choice; a quiet "Shaun added your request" push to
+Abi would be a small change in `functions/push.js` if wanted). No household-member
+selector yet (Phase B).
+
+### 2026-10-16 — Deleting a request is soft, final and leaves the Action alone
+**Decision (Shaun's brief, Phase A):** Delete is for entries that should never have
+existed; Withdraw (no longer needed, history kept) and Hide (out of Abi's list
+only) stay separate. Abi may delete any of her requests, Shaun only one he
+recorded on her behalf, after an explicit confirmation. Deletion marks the request
+(`deletedAt`, `deletedByUid`, `deletedByRole`, a `deleted` entry) rather than
+removing it, so a linked Action and the audit trail keep something to point at;
+the text stays in Firestore for integrity and troubleshooting but is shown nowhere.
+A deleted request never changes again (rules), never notifies, and is excluded
+from every list and workflow. A linked Action is never deleted or edited; the app
+derives "request deleted" from the request rather than writing to the Action.
+Supersedes "requests are never deleted" (2026-10-07) only in this soft sense:
+nothing is ever removed from Firestore by a client.
+
+### 2026-10-16 — Life Context on the Calendar is a marker, not a layer
+**Decision (Shaun's brief, Phase A):** one restrained champagne ring per covered
+date (never a cluster), shown on every filter because context explains absences
+of any activity; ongoing circumstances only through today. The day detail lists the
+day's records and opens the one editor. Same data, no Calendar copy.
 
 ### 2026-10-15 — Life Context explains performance; it does not rewrite it
 **Decision (Shaun's brief):** circumstances that affected a day (illness, injury,
@@ -1727,9 +1780,10 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Shaun
-Status: Verification (2026-10-15)
-Objective: redeploy rules + functions (withdrawn Partner Requests, Action Updates, Life Context); check Day Planning on the iPhone, Life Context, the Today hierarchy and the Catch-up review on the phone
-(Next 1), and finish the remaining push device checks (Next 2–3).
+Status: Verification (2026-10-16)
+Objective: redeploy the rules for Phase A and check it on devices (Next 1); then the
+earlier device checks (Next 2–6). Phase B (Household Requests: more members, roles,
+bidirectional assignment) is a separate future workstream — not started.
 Acceptance criteria: Next 1–5 confirmed.
 
 The backlog exists as GitHub Issues (#5–#19). None of it is authorised for
@@ -1808,12 +1862,29 @@ No active handoff.
 
 ### Claude Code
 
-No active handoff. Life Context + mobile overflow fix (2026-10-15) is complete. **Not authorised:** a scheduled-reminder engine (timed reminders, "X
+No active handoff. Phase A (Life Context Calendar + Partner Request
+improvements, 2026-10-16) is complete. **Not authorised:** Phase B — nanny or other
+household accounts, generalised roles, bidirectional assignment, giving Abi any
+access to private Actions, a Partner Sharing rebuild, a separate task engine. **Not authorised:** a scheduled-reminder engine (timed reminders, "X
 minutes before", recurring/accountability).
 
 ---
 
 ## Recently Completed
+
+- (2026-10-16) — Phase A: Life Context on the Calendar; requests recorded on Abi's
+  behalf; confirmed soft deletion of requests. Rules 380 (58 new: on-behalf
+  create/forgery/provenance, delete permissions, frozen deleted requests, renewal
+  and Updates after deletion); push engine 46 (3 new: on-behalf and deleted stay
+  quiet); Partner Sharing e2e 200 (34 new, OB1–OB6 and DEL1–DEL6, incl. one
+  Action from a double tap, stale-device writes refused, Abi denied
+  `ledger_life_context`) at 390 dark and 1440 light; push e2e 66; Calendar QA
+  17/17 (320, 390 dark/light, 1440); Life Context QA 23; normal-data screens
+  pixel-identical, overflow scan 0. **Needs the rules redeployed** (functions
+  unchanged). In 7 Partner Sharing e2e runs at 390 dark: one owner console error
+  "request sync failed" with no detail (the sync error now logs its code), and one
+  run stopped in the existing private-update step (Add button stayed disabled);
+  neither in the new steps, neither reproduced.
 
 - (2026-10-15) — Life Context (records, Quick log, Wind-down / Review day / Catch-up
   step, Progress context row, handoff evidence) and the mobile horizontal-overflow
@@ -2026,19 +2097,26 @@ minutes before", recurring/accountability).
 
 ## Next
 
-1. **Shaun: redeploy rules and functions** (withdrawn requests, Action Updates,
-   Life Context — until then Life Context saves are refused by the live rules):
-   `firebase deploy --only firestore:rules,functions` from `~/Ledger` after `git
-   pull`. Until then, Move to upcoming and Hide are refused by the live rules, and
-   an Action's Updates say "Updates aren't available right now" (its status still
-   works). Then try "Pay staff" → Waiting → "payroll" → add an update. Then Abi: withdraw a
-   test request → ⋯ → Move to upcoming (Shaun's phone: "Abi moved a request to
-   upcoming") → withdraw it again → ⋯ → Hide from my list.
-   Then on the **iPhone**: Today → Plan the day with a long-titled Action present —
-   the sheet must not move sideways and its heading, date fields and footer must
-   fit (also with the keyboard open, untested here). Quick log → Life context →
-   Illness, Several days, yesterday to today → Save; Wind-down shows it; Progress
-   shows the Context row.
+1. **Shaun: redeploy the rules for Phase A** — from `~/Ledger` after `git pull`:
+   `npx firebase-tools deploy --only firestore:rules --project ledger-6aec3`
+   (functions are unchanged in Phase A; Life Context's rules were deployed
+   2026-10-15). Until then "Add a request from Abi" and Delete request are refused
+   by the live rules. Then:
+   - **Calendar** (iPhone): with a Life Context over several days, each date has a
+     small ring under its number; tap one → "Life context" section → tap the row →
+     change the end date → the rings follow. Resolve an ongoing one → later days
+     keep only what it covered.
+   - **On behalf**: Settings → Partner sharing → Requests → Add a request from Abi →
+     save → Today's Inbox shows "From Abi · added by you" → Today → one Action.
+     No notification on any device. Abi's phone: it's in her list, "added by
+     Shaun", history "Created by Shaun on your behalf".
+   - **Delete**: Abi opens that request → Delete request → the confirmation says
+     the Action will remain → Cancel (nothing happens) → Delete request → gone
+     from both lists; Shaun's Action is still there ("From Abi · request
+     deleted"); completing it notifies nobody. Shaun: record another, open it from
+     Requests → Delete request → gone from Abi's list too.
+   - Earlier, still to confirm on the iPhone: Plan the day with a long-titled
+     Action — no sideways movement (also with the keyboard open).
 2. **Shaun: Share with Claude on each device** — Settings → Claude conversation →
    paste the link of your ongoing chat (claude.ai/chat/…). Then on iPhone (Safari
    and the Home Screen app), Samsung (Chrome and installed) and the Mac: Share
