@@ -99,7 +99,11 @@ async function oobLink(email){
   await A0('f2', 'Collect the dry cleaning', 'personal');
   await A0('f3', 'Order the birthday cake', 'family');
   await A0('c1', 'Call Mark about padel', 'communicate');
-  await A0('f4', 'School pickup', 'family', { date: plus(1), originalDate: plus(1) });
+  // another day of this week (weeks start on Monday): tomorrow, or yesterday on a Sunday,
+  // already closed so it asks for no Catch-up
+  const OTHER_DAY = now.getDay() === 0 ? plus(-1) : plus(1);
+  await A0('f4', 'School pickup', 'family', { date: OTHER_DAY, originalDate: OTHER_DAY, status: OTHER_DAY < TODAY ? 'completed' : 'planned' });
+  if (OTHER_DAY < TODAY) await put(`ledger_day_status/${OTHER_DAY}`, { caughtUpAt: OTHER_DAY + 'T20:00:00.000Z' });
   await put(`ledger_plans/${TODAY}`, { trainingTypes: ['hiit'], dayNotes: 'SECRET NOTE — feeling low about work', meals: [{ id: 'm1', text: 'Porridge with berries', completed: true }] });
 
   const b = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
@@ -290,6 +294,7 @@ async function oobLink(email){
   check(await until(A, () => /Order the birthday cake[\s\S]{0,80}Moved to/.test(document.getElementById('partnerApp').innerText), null, 15000), '12 a moved Action reads "Moved to …" — live, without republishing');
   await completeRow(S, 'Book swimming lessons');
   check(await until(A, () => { const r = [...document.querySelectorAll('.pp-row')].find(x => /Book swimming/.test(x.innerText)); return r && r.classList.contains('st-done'); }, null, 15000), '12 a completed shared Action shows done');
+  check(await until(S, () => { const h = document.getElementById('actionsDoneToggle'); return !!h && /Completed/.test(h.innerText) && h.getAttribute('aria-expanded') === 'false'; }), '12 on Shaun\'s Today it folds into the Completed group');
   // a new family Action joins the published day by the preset's allow-list; a work one does not
   // written from elsewhere (another device): the owner's listeners pick them up
   await put('ledger_commitments/n1', { date: TODAY, originalDate: TODAY, title: 'Buy a present for Nan', category: 'family', status: 'planned', createdAt: new Date().toISOString() });
@@ -780,14 +785,14 @@ async function oobLink(email){
     'D1 ?request= opens that request (with its Updates) for the owner');
   check(await until(S, () => location.search === ''), 'D1 …and leaves the address clean');
   await S.reload();
-  check(await until(S, () => /Book swimming lessons/.test(document.querySelector('main').innerText) && document.getElementById('authGate').hidden, null, 20000), 'D1 refreshing afterwards is ordinary Ledger');
+  check(await until(S, () => /Finish the quarterly plan/.test(document.querySelector('main').innerText) && document.getElementById('authGate').hidden, null, 20000), 'D1 refreshing afterwards is ordinary Ledger');
   // owner: an Action
   await S.goto(APP + '?openAction=' + rxActs[0].id);
   check(await until(S, () => (document.getElementById('f_commitTitle') || {}).value === 'Pick up prescription', null, 20000), 'D2 ?openAction= opens that Action');
   await S.click('#sheetCloseBtn').catch(() => {});
   // owner: a link to something that does not exist lands on Today, quietly
   await S.goto(APP + '?request=doesNotExist');
-  check(await until(S, () => /Book swimming lessons/.test(document.querySelector('main').innerText) && !document.getElementById('sheetBackdrop').classList.contains('open'), null, 20000), 'D3 an unknown request lands on Today');
+  check(await until(S, () => /Finish the quarterly plan/.test(document.querySelector('main').innerText) && !document.getElementById('sheetBackdrop').classList.contains('open'), null, 20000), 'D3 an unknown request lands on Today');
   // partner: the week view, and a request's detail
   await A.goto(APP + '?view=week&request=' + rx.id);
   check(await until(A, () => !document.getElementById('partnerApp').hidden && /Shaun.s week/.test(document.getElementById('partnerApp').innerText) &&
@@ -851,10 +856,10 @@ async function oobLink(email){
   await S.fill('#authEmail', SHAUN); await S.fill('#authPassword', 'not-the-password'); await S.click('#authSignIn');
   check(await until(S, () => /don.t match/.test(document.getElementById('authError').textContent) && /· auth\//.test(document.getElementById('authError').textContent)), 'P4 a wrong password is named, with its code: ' + await S.evaluate(() => document.getElementById('authError').textContent));
   await S.fill('#authPassword', 'correct-horse-9'); await S.click('#authSignIn');
-  check(await until(S, () => /Book swimming lessons/.test(document.querySelector('main').innerText) && document.getElementById('authGate').hidden, null, 20000), 'P5 password sign-in opens Ledger with its data');
+  check(await until(S, () => /Finish the quarterly plan/.test(document.querySelector('main').innerText) && document.getElementById('authGate').hidden, null, 20000), 'P5 password sign-in opens Ledger with its data');
   check(await S.evaluate(o => { const r = JSON.parse(localStorage.getItem('ledger_auth_role')); return r.uid === o && r.role === 'owner'; }, owner), 'P5 same account, still the owner');
   await S.reload();
-  check(await until(S, () => /Book swimming lessons/.test(document.querySelector('main').innerText) && document.getElementById('authGate').hidden), 'P5 a reload stays signed in');
+  check(await until(S, () => /Finish the quarterly plan/.test(document.querySelector('main').innerText) && document.getElementById('authGate').hidden), 'P5 a reload stays signed in');
   // Abi sets one through the password email, then signs in with it
   await A.click('#ppSignOut');
   check(await until(A, () => (document.getElementById('authCard') || { getAttribute: () => null }).getAttribute('data-state') === 'signin' && !!document.getElementById('authPassword'), null, 20000), 'P6 partner signed out');

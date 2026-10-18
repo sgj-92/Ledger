@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-16 (Phase A: Life Context on the Calendar; requests recorded on Abi's behalf; request deletion)
+Last updated: 2026-10-18 (Phase A verified on devices; completed Actions collapse; Household Requests design for review)
 
 ---
 
@@ -83,6 +83,16 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   - **Groups view**: collapsible category sections, each with its own internal order.
   - Orders stored separately as `plan.actionOrder` and `plan.groupOrder[category]`.
   - Reordering is pointer-event based (HTML5 drag-and-drop does not work on touch).
+  - **Completed** (since 2026-10-18): in both views only outstanding Actions are in the
+    list; completed ones sit beneath in one quiet group, "Completed · N", collapsed by
+    default (open/closed per device: `ledger_actions_done_open`). A category whose
+    Actions are all done appears only there. Dragging the outstanding ones fills the
+    slots they held, so completed Actions keep their places in `actionOrder` /
+    `groupOrder` and reopening one puts it back where it was. **Flow** has a quiet
+    "Hide completed" / "Show completed · N" under its heading (`ledger_flow_hide_done`):
+    completed Actions leave the visible timeline only; "x of y done" and the stored
+    flow are unchanged, and they return in their own places. Display only — no status,
+    evidence or reporting changes.
 - **Action status + Updates** (since 2026-10-09) — what is actually happening with
   an Action: **Not started · In progress · Waiting · Blocked · Done** (editor
   Status, chips; past days also offer "For the record: Disrupted · Not done").
@@ -680,6 +690,19 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-18 — Completed Actions step aside; they never lose their place
+**Decision (Shaun's brief):** Today keeps outstanding Actions prominent in their own
+order; completed ones collapse into one counted group (Overview) or can be hidden
+(Flow). A preference per device, never a status. Reordering what is shown never moves
+what is hidden, so a reopened Action returns to its slot.
+
+### 2026-10-18 — Household Requests: designed first, built only after review
+Phase B (Shaun, Abi and the nanny; requests in any direction) is a separate shared
+namespace with its own membership and rules — never a third person bolted onto the
+owner/partner model, never access to private Ledger. The design, migration and
+rollback are in `docs/HOUSEHOLD_DESIGN.md`; implementation waits for Shaun's answers to
+its open questions (his recommendation, 2026-10-18).
 
 ### 2026-10-16 — Requester, assignee and creator are separate facts
 **Decision (Shaun's brief, Phase A):** Shaun may record a request Abi made in
@@ -1782,11 +1805,11 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Shaun
-Status: Verification (2026-10-16)
-Objective: redeploy the rules for Phase A and check it on devices (Next 1); then the
-earlier device checks (Next 2–6). Phase B (Household Requests: more members, roles,
-bidirectional assignment) is a separate future workstream — not started.
-Acceptance criteria: Next 1–5 confirmed.
+Status: Review (2026-10-18)
+Objective: Shaun reviews `docs/HOUSEHOLD_DESIGN.md` and answers its open questions;
+completed Actions on the phone (Next 1). Household implementation starts at Stage 1
+only after that review.
+Acceptance criteria: design approved (or amended); Next 1 confirmed.
 
 The backlog exists as GitHub Issues (#5–#19). None of it is authorised for
 implementation — see the workflow rules in `CLAUDE.md`.
@@ -1864,15 +1887,28 @@ No active handoff.
 
 ### Claude Code
 
-No active handoff. Phase A (Life Context Calendar + Partner Request
-improvements, 2026-10-16) is complete. **Not authorised:** Phase B — nanny or other
-household accounts, generalised roles, bidirectional assignment, giving Abi any
-access to private Actions, a Partner Sharing rebuild, a separate task engine. **Not authorised:** a scheduled-reminder engine (timed reminders, "X
+**Waiting on Shaun's review** of `docs/HOUSEHOLD_DESIGN.md`. Once approved, build it
+in the stages there (1 members → 2 requests engine → 3 Shaun/Abi UI → 4 nanny → 5
+migration), updating this ledger after each. **Not authorised until then:** any
+household code, nanny accounts or roles, migration of existing requests, giving Abi
+access to private Actions. **Not authorised:** a scheduled-reminder engine (timed reminders, "X
 minutes before", recurring/accountability).
 
 ---
 
 ## Recently Completed
+
+- (2026-10-18) — **Phase A verified on Shaun's devices** (his confirmation,
+  2026-10-18): rules and functions deployed; Calendar rings, on-behalf requests (and
+  their "Abi sent a request" notification), deletion and the selected-date fix.
+- (2026-10-18) — Completed Actions: the collapsed Completed group in Overview (Order
+  and Groups) and Hide/Show completed in Flow. QA 24/24 at 390 and 1440, dark and
+  light (incl. real drags: completed slots kept in `actionOrder` and the flow, reopen
+  returns to its place, preferences survive a reload, no status changed); normal
+  screens pixel-identical; overflow 0; Partner Sharing e2e 201 (390 dark, 1440 light;
+  its sign-in checks now look for an open Action, and its "another day this week"
+  fixture no longer fails on Sundays), push e2e 67. Household Requests design written
+  (`docs/HOUSEHOLD_DESIGN.md`) — not implemented.
 
 - (2026-10-16) — Phase A follow-up: on-behalf requests now notify Shaun exactly as
   if Abi had sent them (engine 49, push e2e 67: the iPhone that typed it, the Mac
@@ -2105,7 +2141,13 @@ minutes before", recurring/accountability).
 
 ## Next
 
-1. **Shaun: redeploy the rules for Phase A** — from `~/Ledger` after `git pull`:
+1. **Shaun: review the Household design** (`docs/HOUSEHOLD_DESIGN.md`, open questions
+   in §6) and check **completed Actions** on the phone: complete an Action → it moves
+   into "Completed · N" under the list; open the group → tap its tick → it's back in
+   its place; Groups the same; Flow → Hide completed → Show completed. Nothing to
+   deploy (Vercel only).
+2. ~~Phase A device checks~~ — done 2026-10-18. For reference, what was checked:
+   **Shaun: redeploy the rules for Phase A** — from `~/Ledger` after `git pull`:
    `npx firebase-tools deploy --only firestore:rules,functions --project ledger-6aec3`
    (the rules for adding on Abi's behalf and deleting; the function so a request
    you add for her notifies you as hers would). Until then "Add a request from

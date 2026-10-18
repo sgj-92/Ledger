@@ -433,6 +433,23 @@
     color: var(--text-3); margin: var(--sp-5) 0 10px; padding: 0 2px;
   }
   .act-group-label:first-child { margin-top: 0; }
+  /* completed Actions: one quiet group beneath the outstanding ones, shut by default */
+  .act-done { margin-top: var(--sp-3); }
+  .act-done-head {
+    display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 10px 2px;
+    background: none; border: none; border-top: 1px solid var(--line); cursor: pointer; text-align: left;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--text-3); letter-spacing: 0.01em;
+  }
+  .act-done-count { font-variant-numeric: tabular-nums; color: var(--text-3); opacity: 0.85; }
+  .act-done-chev { margin-left: auto; display: flex; transition: transform 0.2s ease; }
+  .act-done-chev svg { width: 14px; height: 14px; display: block; }
+  .act-done.open .act-done-chev { transform: rotate(180deg); }
+  .act-done-head:active { opacity: 0.6; }
+  .act-done-rows[hidden] { display: none; }
+  /* Flow: hide or show completed Actions — a quiet word under the heading */
+  .flow-done-toggle { display: block; margin: -6px 0 6px auto; padding: 6px 2px; background: none; border: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text-3); letter-spacing: 0.01em; }
+  .flow-done-toggle:active { opacity: 0.6; }
   .act-group-label.roadblock { color: rgba(var(--danger-rgb),0.85); }
   .commitment-group-title { /* legacy alias */
     font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.2em;
@@ -7684,6 +7701,9 @@
   var ACTION_VIEW_KEY = 'ledger_actions_view';
   var ACTIONS_COLLAPSED_KEY = 'ledger_actions_collapsed';
   var ACTION_GROUPS_KEY = 'ledger_action_groups_collapsed';
+  // completed Actions: a display preference only, per device — statuses are never touched
+  var ACTIONS_DONE_OPEN_KEY = 'ledger_actions_done_open';   // Overview: the Completed group open
+  var FLOW_HIDE_DONE_KEY = 'ledger_flow_hide_done';         // Flow: completed Actions hidden
 
   function lsGet(k, fallback){
     try { var v = localStorage.getItem(k); return v == null ? fallback : v; } catch(e){ return fallback; }
@@ -7692,6 +7712,16 @@
 
   var actionsViewMode = lsGet(ACTION_VIEW_KEY, 'order') === 'groups' ? 'groups' : 'order';
   var actionsCollapsed = lsGet(ACTIONS_COLLAPSED_KEY, '0') === '1';
+  var actionsDoneOpen = lsGet(ACTIONS_DONE_OPEN_KEY, '0') === '1';
+  var flowHideDone = lsGet(FLOW_HIDE_DONE_KEY, '0') === '1';
+  // Reordering what is shown never moves what is not: the shown ids, in their new order,
+  // fill the slots they held in the full sequence. A completed Action keeps its place, so
+  // reopening it puts it back exactly where it was.
+  function mergeSubsetOrder(fullIds, shownIds){
+    var shown = {}, k = 0;
+    shownIds.forEach(function(id){ shown[id] = true; });
+    return fullIds.map(function(id){ return shown[id] ? shownIds[k++] : id; });
+  }
   var actionGroupCollapsed = (function(){
     try { return JSON.parse(lsGet(ACTION_GROUPS_KEY, '{}')) || {}; } catch(e){ return {}; }
   })();
@@ -8048,15 +8078,49 @@
   // ---- Order view: one manual sequence for the whole day ----
   function renderActionsOrderView(list, dateStr, actionable){
     var ordered = sortByOrderHint(actionable, dayActionOrder(dateStr));
-    var wrap = document.createElement('div');
-    wrap.className = 'sort-list';
-    ordered.forEach(function(c, i){
-      wrap.appendChild(buildCommitmentRow(c, dateStr, { seq: i + 1, drag: true, showCategory: true }));
+    var open = ordered.filter(function(c){ return c.status !== 'completed'; });
+    if (open.length){
+      var wrap = document.createElement('div');
+      wrap.className = 'sort-list';
+      open.forEach(function(c, i){
+        wrap.appendChild(buildCommitmentRow(c, dateStr, { seq: i + 1, drag: true, showCategory: true }));
+      });
+      list.appendChild(wrap);
+      makeSortable(wrap, function(ids){
+        // global sequence only; group order is untouched. Completed ones keep their slots.
+        saveActionOrder(dateStr, mergeSubsetOrder(ordered.map(function(c){ return c.id; }), ids));
+      });
+    }
+    renderDoneGroup(list, dateStr, ordered.filter(function(c){ return c.status === 'completed'; }));
+  }
+  // Completed Actions: beneath the outstanding ones, one quiet collapsed group with its
+  // count. Expanding it is a per-device preference; each row keeps its tick to reopen.
+  function renderDoneGroup(list, dateStr, done){
+    if (!done.length) return;
+    var sec = document.createElement('div');
+    sec.className = 'act-done' + (actionsDoneOpen ? ' open' : '');
+    var head = document.createElement('button');
+    head.type = 'button';
+    head.className = 'act-done-head';
+    head.id = 'actionsDoneToggle';
+    head.setAttribute('aria-expanded', actionsDoneOpen ? 'true' : 'false');
+    head.setAttribute('aria-controls', 'actionsDoneRows');
+    head.innerHTML = '<span class="act-done-label">Completed</span><span class="act-done-count">' + done.length + '</span>' +
+      '<span class="act-done-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>';
+    head.addEventListener('click', function(){
+      actionsDoneOpen = !actionsDoneOpen;
+      lsSet(ACTIONS_DONE_OPEN_KEY, actionsDoneOpen ? '1' : '0');
+      renderCommitments();
+      var t = document.getElementById('actionsDoneToggle'); if (t) try { t.focus(); } catch(e){}
     });
-    list.appendChild(wrap);
-    makeSortable(wrap, function(ids){
-      saveActionOrder(dateStr, ids);   // global sequence only; group order is untouched
-    });
+    sec.appendChild(head);
+    var rows = document.createElement('div');
+    rows.className = 'act-done-rows';
+    rows.id = 'actionsDoneRows';
+    rows.hidden = !actionsDoneOpen;
+    if (actionsDoneOpen) done.forEach(function(c){ rows.appendChild(buildCommitmentRow(c, dateStr, { showCategory: true })); });
+    sec.appendChild(rows);
+    list.appendChild(sec);
   }
 
   // ============ Today: Overview and Flow ============
@@ -8183,6 +8247,11 @@
     var plan = getPlanForDate(dateStr);
     var items = flowItemsWithSprints(dateStr);
     var done = items.filter(function(it){ return flowItemDone(it, plan); }).length;
+    // Hide completed: completed Actions leave the visible timeline only. The flow itself is
+    // unchanged, so they come back in their own places; the count still covers everything.
+    var doneActs = items.filter(function(it){ return it.kind === 'action' && it.c.status === 'completed'; }).length;
+    var hideDone = flowHideDone && doneActs > 0;
+    var shown = hideDone ? items.filter(function(it){ return !(it.kind === 'action' && it.c.status === 'completed'); }) : items;
 
     function trainDet(type){ return (plan && plan.trainingDetails && plan.trainingDetails[type]) || {}; }
     function itemTime(it){
@@ -8243,8 +8312,8 @@
       return '<div class="tl-now" aria-label="Now ' + minToTime(nowMin) + '"><span class="tl-time">' + minToTime(nowMin) + '</span>' +
         '<span class="tl-rail"><span class="tl-now-dot"></span></span><span class="tl-now-line"></span></div>';
     }
-    var parts = [], prevEnd = null, nowPlaced = !isToday || !items.some(itemTime);
-    items.forEach(function(it){
+    var parts = [], prevEnd = null, nowPlaced = !isToday || !shown.some(itemTime);
+    shown.forEach(function(it){
       var t = itemTime(it);
       if (t){
         var start = timeToMin(t);
@@ -8269,10 +8338,14 @@
       '<div class="sec-head flow-head"><span class="sec-label">' + (isToday ? 'Today’s flow' : 'Flow') + '</span>' +
         '<span class="sec-rule"></span>' +
         (items.length ? '<span class="sec-value">' + done + ' of ' + items.length + ' done</span>' : '') + '</div>' +
+      (doneActs ? '<button type="button" class="flow-done-toggle" id="flowDoneToggle" aria-pressed="' + (hideDone ? 'true' : 'false') + '">' +
+        (hideDone ? 'Show completed · ' + doneActs : 'Hide completed') + '</button>' : '') +
       '<p class="flow-intention" id="flowIntention" hidden></p>' +
-      (items.length
+      (shown.length
         ? '<div class="tl-list sort-list" id="flowList">' + parts.join('') + '</div>'
-        : '<div class="flow-empty"><p>Nothing in the day yet.</p></div>') +
+        : items.length
+          ? '<div class="flow-empty"><p>Everything here is done.</p></div>'
+          : '<div class="flow-empty"><p>Nothing in the day yet.</p></div>') +
       '<div class="flow-add">' +
         '<button type="button" class="dpa-add-btn" id="flowAddAction">' + BK_PLUS_SVG + 'Add action</button>' +
         (flowBacklogN ? '<button type="button" class="dpa-add-btn quiet" id="flowBacklog">' + UI_ICON.box + 'Backlog · ' + flowBacklogN + '</button>' : '') +
@@ -8295,7 +8368,7 @@
     wrap.innerHTML = main + ctx;
 
     // user text is written as text
-    items.forEach(function(it){
+    shown.forEach(function(it){
       var key = flowKey(it);
       var t = wrap.querySelector('[data-flow-title="' + key + '"]');
       var m = wrap.querySelector('[data-flow-meta="' + key + '"]');
@@ -8374,7 +8447,15 @@
       el.addEventListener('click', function(){ openFlowItemSheet(dateStr, el.dataset.flowMore, openItem); });
     });
     var list = document.getElementById('flowList');
-    if (list) makeSortable(list, function(keys){ saveDayFlow(dateStr, keys); });
+    var allKeys = items.map(flowKey);
+    if (list) makeSortable(list, function(keys){ saveDayFlow(dateStr, mergeSubsetOrder(allKeys, keys)); });
+    var doneToggle = document.getElementById('flowDoneToggle');
+    if (doneToggle) doneToggle.addEventListener('click', function(){
+      flowHideDone = !hideDone;
+      lsSet(FLOW_HIDE_DONE_KEY, flowHideDone ? '1' : '0');
+      renderFlow();
+      var t = document.getElementById('flowDoneToggle'); if (t) try { t.focus(); } catch(e){}
+    });
     document.getElementById('flowAddAction').addEventListener('click', function(){ openCommitmentSheet(null, { date: dateStr }); });
     var flowBacklogBtn = document.getElementById('flowBacklog');
     if (flowBacklogBtn) flowBacklogBtn.addEventListener('click', function(){ openBacklogSheet(); });
@@ -8454,6 +8535,8 @@
     keys.forEach(function(key){
       var items = sortByOrderHint(byKey[key], dayGroupOrder(dateStr, key));
       var done = items.filter(function(c){ return c.status === 'completed'; }).length;
+      var openItems = items.filter(function(c){ return c.status !== 'completed'; });
+      if (!openItems.length) return;     // a section that is all done lives in Completed
       var collapsed = !!actionGroupCollapsed[key];
 
       var head = document.createElement('button');
@@ -8481,16 +8564,18 @@
       if (!collapsed){
         var rows = document.createElement('div');
         rows.className = 'sort-list action-group-rows';
-        items.forEach(function(c){
+        openItems.forEach(function(c){
           rows.appendChild(buildCommitmentRow(c, dateStr, { drag: true }));
         });
         section.appendChild(rows);
         makeSortable(rows, function(ids){
-          saveGroupOrder(dateStr, key, ids);   // this section only; the day sequence stands
+          // this section only; the day sequence stands. Completed ones keep their slots.
+          saveGroupOrder(dateStr, key, mergeSubsetOrder(items.map(function(c){ return c.id; }), ids));
         });
       }
       list.appendChild(section);
     });
+    renderDoneGroup(list, dateStr, sortByOrderHint(actionable, dayActionOrder(dateStr)).filter(function(c){ return c.status === 'completed'; }));
   }
 
   // opts.date: the day a new action is for (Plan passes the planned day).
