@@ -7,6 +7,10 @@
 //   ledger_meta/currentFocus (written)            → the owner's other devices
 //   ledger_shared_request_updates/{id} (created)  → the other side of the request
 //   ledger_pins/{id} (created)                    → the owner's devices (Pin now)
+//   ledger_home_requests/{id}/updates/{u} (created) → the people the request involves
+//
+// And one that is not a push: ledger_meta/homeMigration, written by the owner, moves his
+// Partner Sharing requests into Home (migrate.js).
 //
 // Recipients come from those trusted records, checked again here (the Admin SDK is not
 // subject to the security rules). Push is best effort: Firestore is already the truth.
@@ -28,6 +32,7 @@ const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
 const webpush = require('web-push');
 const { createEngine } = require('./push');
+const { createMigrator } = require('./migrate');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -90,5 +95,36 @@ exports.onPinCreated = onDocumentCreated(
       pin: event.data.data() || {}, pinId: event.params.pinId, ref: event.data.ref
     }, common()));
     report('pin push', result);
+  }
+);
+
+exports.onHomeUpdateCreated = onDocumentCreated(
+  { document: 'ledger_home_requests/{requestId}/updates/{updateId}', secrets: [VAPID_PRIVATE_KEY] },
+  async (event) => {
+    if (!event.data) return;
+    const result = await engine().handleHomeUpdate(Object.assign({
+      update: event.data.data() || {}, requestId: event.params.requestId, updateId: event.params.updateId
+    }, common()));
+    report('home request push', result);
+  }
+);
+
+// Shaun moves his Partner Sharing requests into Home. Only a write that asks for it, by the
+// owner it names, runs it; the function's own writes back (running, done) never do.
+exports.onHomeMigrationRequested = onDocumentWritten(
+  { document: 'ledger_meta/homeMigration' },
+  async (event) => {
+    const after = event.data && event.data.after && event.data.after.exists ? event.data.after.data() : null;
+    if (!after || after.status !== 'requested' || !after.requestedBy) return;
+    const ref = event.data.after.ref;
+    await ref.set({ status: 'running', startedAt: new Date().toISOString() }, { merge: true });
+    try {
+      const out = await createMigrator({ db }).migrate(after.requestedBy);
+      await ref.set(Object.assign({ status: 'done', finishedAt: new Date().toISOString() }, out), { merge: true });
+      logger.info('home migration', out);
+    } catch (e) {
+      await ref.set({ status: 'failed', error: String((e && e.message) || e), finishedAt: new Date().toISOString() }, { merge: true });
+      logger.warn('home migration failed', e);
+    }
   }
 );

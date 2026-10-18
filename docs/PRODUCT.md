@@ -290,6 +290,30 @@ Not yet: more than one partner, general chat or
 comments outside requests, attachments, reactions, mentions, the partner editing
 Actions, calendar sharing.
 
+## Home (since 2026-10-18)
+
+One shared place for requests between Shaun, Abi and the people who help at home (a
+nanny, long-term). Never Shaun's Ledger. Full model: `docs/HOUSEHOLD_DESIGN.md`.
+
+- **Asking:** anyone at Home asks anyone else. Shaun and Abi (admins) may also add a
+  request on someone's behalf, shown plainly as "Created by Shaun on <name>'s behalf".
+- **Who sees it:** a request is private to the people in it unless it is shared with
+  everyone at Home (one current assignee, everyone can see it). Shaun and Abi see
+  everything at Home; the nanny sees only what she is in or what is shared.
+- **Doing it:**
+  - The assignee starts it, finishes it, says **Can't do** (with a reason) or **passes it
+    on** to someone else.
+  - Requests that are Shaun's arrive in his Today Inbox. Taking one on makes one private
+    Action; the request then follows it, without exposing the Action itself.
+- **Notifications:** go only to the people a request involves. Shaun and Abi can choose
+  to follow requests between others (off by default).
+- **People:** only Shaun adds and removes people. Removing someone ends their access at
+  once and keeps the history.
+- **Where it lives:**
+  - Shaun: a quiet Home row on Today and Settings → Home.
+  - Abi: a Home section in her portal.
+  - The nanny: a small Home app with nothing else in it.
+
 ## Privacy and data
 
 - Firebase Firestore (project `ledger-6aec3`) with a complete localStorage

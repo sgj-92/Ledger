@@ -63,13 +63,14 @@ function createEngine(deps) {
     if (!uid || typeof uid !== 'string') return null;
     const doc = await db.collection('ledger_users').doc(uid).get();
     const role = doc.exists ? (doc.data() || {}).role : null;
-    return role === 'owner' || role === 'partner' ? role : null;
+    return role === 'owner' || role === 'partner' || role === 'household' ? role : null;
   }
-  // a user's own choice for one kind of notification; on unless they turned it off
-  async function wants(uid, kind) {
+  // a user's own choice for one kind of notification; on unless they turned it off —
+  // or, for something they must opt into, off unless they turned it on
+  async function wants(uid, kind, optIn) {
     const doc = await db.collection(PREFS).doc(uid).get();
     const p = doc.exists ? (doc.data() || {}) : {};
-    return p[kind] !== false;
+    return optIn ? p[kind] === true : p[kind] !== false;
   }
 
   // Sends one payload to every device the user has registered (minus, optionally, the
@@ -211,6 +212,90 @@ function createEngine(deps) {
     return result;
   }
 
+  // ---- Home requests ----
+  // One trigger: a new entry in ledger_home_requests/{id}/updates. Everything is read
+  // again here — the request, and each person's membership of its Home — so a push only
+  // ever goes to someone the request involves (or, if they chose to follow them, an admin
+  // of that Home), never to anyone an entry claims. Who hears what:
+  //   created     → the assignee, said as from the requester ("Maria sent a request"), on
+  //                 all their devices — even when they wrote it themselves on someone's
+  //                 behalf (only the input differs). Admins following Home: "Abi asked Maria".
+  //   comment     → everyone in it but its author.
+  //   planned, done, can't do → the requester, and its writer if someone else; never the
+  //                 person who did it. Admins following Home also hear "done".
+  //   reassigned  → the new assignee.
+  //   everything else (started, moved, withdrawn, shared, deleted) stays quiet.
+  async function handleHomeUpdate(ev) {
+    const u = ev.update || {};
+    const rid = ev.requestId;
+    if (!rid || typeof rid !== 'string') return { skipped: 'no request' };
+    // history copied in by the move from Partner Sharing (migrate.js) is not news
+    if (u.metadata && Object.prototype.hasOwnProperty.call(u.metadata, 'legacyRole')) return { skipped: 'migrated' };
+    const reqSnap = await db.collection('ledger_home_requests').doc(rid).get();
+    if (!reqSnap.exists) return { skipped: 'no request' };
+    const r = reqSnap.data() || {};
+    if (r.deletedAt) return { skipped: 'deleted' };
+    const memberCache = {};
+    async function member(uid) {
+      if (!uid || typeof uid !== 'string') return null;
+      if (!(uid in memberCache)) {
+        const d = await db.collection('ledger_home_members').doc(uid).get();
+        const m = d.exists ? (d.data() || {}) : null;
+        memberCache[uid] = m && m.homeId === r.homeId && m.status === 'active' ? m : null;
+      }
+      return memberCache[uid];
+    }
+    const actor = await member(u.actorUid);
+    if (!actor) return { skipped: 'not at Home' };
+    const name = async (uid) => clip(((await member(uid)) || {}).displayName || 'Someone', 40);
+    const what = clip(r.text, 60);
+    const plan = [];          // { to, title, body, optIn }
+    const tellAsker = async (title, body) => {
+      for (const to of new Set([r.requesterUid, r.createdByUid])) if (to && to !== u.actorUid) plan.push({ to, title, body });
+    };
+    const follow = async (title, body) => {
+      const admins = await db.collection('ledger_home_members').where('homeId', '==', r.homeId).where('role', '==', 'admin').get();
+      admins.docs.forEach((d) => {
+        const uid = d.id, m = d.data() || {};
+        if (m.status !== 'active' || uid === u.actorUid || (r.participants || []).indexOf(uid) > -1) return;
+        plan.push({ to: uid, title, body, optIn: true });
+      });
+    };
+    if (u.type === 'created') {
+      plan.push({ to: r.assigneeUid, title: (await name(r.requesterUid)) + ' sent a request', body: clip(r.text, 120) });
+      await follow((await name(r.requesterUid)) + ' asked ' + (await name(r.assigneeUid)), clip(r.text, 120));
+    } else if (u.type === 'comment') {
+      const title = (await name(u.actorUid)) + ' updated “' + what + '”';
+      for (const to of new Set(r.participants || [])) if (to !== u.actorUid) plan.push({ to, title, body: clip(u.text, 140) });
+    } else if (u.type === 'planned') {
+      await tellAsker((await name(u.actorUid)) + ' planned your request', clip(r.text, 120));
+    } else if (u.type === 'status' && u.metadata && u.metadata.status === 'done') {
+      await tellAsker((await name(u.actorUid)) + ' completed your request', clip(r.text, 120));
+      await follow((await name(u.actorUid)) + ' completed “' + what + '”', 'Asked by ' + (await name(r.requesterUid)));
+    } else if (u.type === 'cant_do') {
+      await tellAsker((await name(u.actorUid)) + ' can’t do “' + what + '”', clip(r.cantDoReason || '', 140));
+    } else if (u.type === 'reassigned' && u.metadata && u.metadata.toUid === r.assigneeUid && r.assigneeUid !== u.actorUid) {
+      plan.push({ to: r.assigneeUid, title: (await name(u.actorUid)) + ' passed you a request', body: clip(r.text, 120) });
+    }
+    if (!plan.length) return { skipped: 'quiet' };
+    const eventId = 'home_' + rid + '_' + ev.updateId;
+    if (!(await claimEvent(eventId, { kind: 'home_' + u.type, requestId: rid }))) return { skipped: 'duplicate' };
+    const results = [];
+    const seen = {};
+    for (const p of plan) {
+      if (seen[p.to]) continue;
+      seen[p.to] = true;
+      if (!(await member(p.to)) || !(await userRole(p.to))) continue;
+      if (!(await wants(p.to, p.optIn ? 'homeOversight' : 'partner', !!p.optIn))) continue;
+      const payload = { title: p.title, body: p.body || '', url: appLink(ev.appUrl, { home: rid }),
+        tag: 'ledger-home-' + rid, renotify: true, kind: 'home' };
+      results.push(await sendPushToUser(p.to, payload, { urgency: 'normal', ttl: 24 * 3600, vapidPublicKey: ev.vapidPublicKey }));
+    }
+    const sum = { recipients: results.map((x) => x.recipientUid), sent: results.reduce((n, x) => n + x.sent, 0), failed: results.reduce((n, x) => n + x.failed, 0) };
+    await recordEvent(eventId, Object.assign({ status: 'done' }, sum));
+    return Object.assign(sum, { results });
+  }
+
   // ---- Pin now ----
   // The owner asks for a push to their own devices, all of them.
   async function handlePinCreated(ev) {
@@ -232,7 +317,7 @@ function createEngine(deps) {
     return result;
   }
 
-  return { sendPushToUser, handleFocusWrite, handleRequestUpdate, handlePinCreated, claimEvent };
+  return { sendPushToUser, handleFocusWrite, handleRequestUpdate, handleHomeUpdate, handlePinCreated, claimEvent };
 }
 
 module.exports = { createEngine, appLink, clip, FOCUS_TAG };

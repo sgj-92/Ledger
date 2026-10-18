@@ -546,6 +546,138 @@ async function check(name, fn){
   });
   await check('partner: still reads the deleted request\'s history (nothing else changes)', () => assertSucceeds(partner.doc(UPD + '/delP_deleted').get()));
 
+  // ---- Home: Shaun (owner, admin), Abi (partner, admin), the nanny (household, member) ----
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await db.doc('ledger_users/nanny1').set({ role: 'household', displayName: 'Nanny' });
+    await db.doc('ledger_users/nanny2').set({ role: 'household', displayName: 'Nanny two' });
+    await db.doc('ledger_users/exnanny').set({ role: 'household', displayName: 'Ex' });
+    await db.doc('ledger_homes/owner1').set({ name: 'Home', ownerUid: 'owner1', createdAt: 'x' });
+    const M = (role, status, name) => ({ homeId: 'owner1', role, status, displayName: name, addedByUid: 'owner1', addedAt: 'x' });
+    await db.doc('ledger_home_members/owner1').set(M('admin', 'active', 'Shaun'));
+    await db.doc('ledger_home_members/partner1').set(M('admin', 'active', 'Abi'));
+    await db.doc('ledger_home_members/nanny1').set(M('member', 'active', 'Maria'));
+    await db.doc('ledger_home_members/exnanny').set(M('member', 'removed', 'Ex'));
+    const R = (o) => Object.assign({ homeId: 'owner1', text: 'x', note: null, requestedTiming: 'today', requestedDate: null, visibility: 'private',
+      status: 'requested', plannedDate: null, linkedActionId: null, createdAt: 'x', updatedAt: 'x' }, o);
+    await db.doc('ledger_home_requests/hr1').set(R({ text: 'Bath at 6', requesterUid: 'owner1', assigneeUid: 'nanny1', createdByUid: 'owner1', participants: ['owner1', 'nanny1'] }));
+    await db.doc('ledger_home_requests/hr2').set(R({ text: 'Private between us', requesterUid: 'partner1', assigneeUid: 'owner1', createdByUid: 'partner1', participants: ['partner1', 'owner1'] }));
+    await db.doc('ledger_home_requests/hr3').set(R({ text: 'Shared: tidy the playroom', requesterUid: 'partner1', assigneeUid: 'owner1', createdByUid: 'partner1', participants: ['partner1', 'owner1'], visibility: 'home' }));
+    await db.doc('ledger_home_requests/hr4').set(R({ text: 'Nappies running low', requesterUid: 'nanny1', assigneeUid: 'partner1', createdByUid: 'nanny1', participants: ['nanny1', 'partner1'] }));
+    await db.doc('ledger_home_requests/hr1/updates/created').set({ type: 'created', actorUid: 'owner1', text: null, createdAt: 'x', metadata: {} });
+    await db.doc('ledger_home_requests/hr2/updates/created').set({ type: 'created', actorUid: 'partner1', text: null, createdAt: 'x', metadata: {} });
+  });
+  const nanny = env.authenticatedContext('nanny1', { email: 'n@example.com' }).firestore();
+  const nanny2 = env.authenticatedContext('nanny2', { email: 'n2@example.com' }).firestore();
+  const exnanny = env.authenticatedContext('exnanny', { email: 'x@example.com' }).firestore();
+  const HM = 'ledger_home_members', HR = 'ledger_home_requests';
+  const member = (o) => Object.assign({ homeId: 'owner1', role: 'member', status: 'active', displayName: 'Nanny two', addedByUid: 'owner1', addedAt: 'now' }, o || {});
+  // the Home and its people
+  await check('home: an owner creates their own Home', () => assertSucceeds(owner2.doc('ledger_homes/owner2').set({ name: 'Home', ownerUid: 'owner2', createdAt: 'now' })));
+  await check('home: never under someone else\'s id', () => assertFails(owner.doc('ledger_homes/owner2x').set({ name: 'Home', ownerUid: 'owner1', createdAt: 'now' })));
+  await check('home: a partner cannot create one', () => assertFails(partner.doc('ledger_homes/partner1').set({ name: 'Home', ownerUid: 'partner1', createdAt: 'now' })));
+  await check('home: members read their Home', () => assertSucceeds(nanny.doc('ledger_homes/owner1').get()));
+  await check('home: members list the people at Home', () => assertSucceeds(nanny.collection(HM).where('homeId', '==', 'owner1').get()));
+  await check('home: a removed member cannot', () => assertFails(exnanny.collection(HM).where('homeId', '==', 'owner1').get()));
+  await check('home: someone not at Home cannot', () => assertFails(nanny2.collection(HM).where('homeId', '==', 'owner1').get()));
+  await check('home: a removed member still reads their own record', () => assertSucceeds(exnanny.doc(HM + '/exnanny').get()));
+  await check('home: no profile, nothing', () => assertFails(stranger.collection(HM).where('homeId', '==', 'owner1').get()));
+  await check('members: the owner adds a household account', () => assertSucceeds(owner.doc(HM + '/nanny2').set(member())));
+  await check('members: never someone without an app role', () => assertFails(owner.doc(HM + '/stranger1').set(member({ displayName: 'S' }))));
+  await check('members: a household account is never an admin', () => assertFails(owner.doc(HM + '/nanny2').set(member({ role: 'admin' }))));
+  await check('members: never another owner', () => assertFails(owner.doc(HM + '/owner2').set(member({ role: 'admin', displayName: 'O2' }))));
+  await check('members: Abi (admin) cannot add or remove people', () => assertFails(partner.doc(HM + '/nanny2').set(member({ status: 'removed' }))));
+  await check('members: the nanny cannot either', () => assertFails(nanny.doc(HM + '/nanny2').set(member({ status: 'removed' }))));
+  await check('members: another owner cannot add to this Home', () => assertFails(owner2.doc(HM + '/nanny2').set(member())));
+  await check('members: the owner cannot step down or leave', () => assertFails(owner.doc(HM + '/owner1').update({ status: 'removed' })));
+  await check('members: nobody promotes themselves', () => assertFails(nanny.doc(HM + '/nanny1').update({ role: 'admin' })));
+  await check('members: the owner removes someone (a state; no delete)', () => assertSucceeds(owner.doc(HM + '/nanny2').set(member({ status: 'removed', removedByUid: 'owner1', removedAt: 'now' }))));
+  await check('members: never deleted', () => assertFails(owner.doc(HM + '/nanny2').delete()));
+  // who sees which request
+  await check('requests: an admin sees the whole Home', () => assertSucceeds(owner.collection(HR).where('homeId', '==', 'owner1').get()));
+  await check('requests: Abi (admin) too', () => assertSucceeds(partner.collection(HR).where('homeId', '==', 'owner1').get()));
+  await check('requests: the nanny sees the ones she is part of', () => assertSucceeds(nanny.collection(HR).where('homeId', '==', 'owner1').where('participants', 'array-contains', 'nanny1').get()));
+  await check('requests: …and the ones shared with the whole Home', () => assertSucceeds(nanny.collection(HR).where('homeId', '==', 'owner1').where('visibility', '==', 'home').get()));
+  await check('requests: the nanny cannot list the whole Home', () => assertFails(nanny.collection(HR).where('homeId', '==', 'owner1').get()));
+  await check('requests: …nor read one between Shaun and Abi', () => assertFails(nanny.doc(HR + '/hr2').get()));
+  await check('requests: …nor its history', () => assertFails(nanny.collection(HR + '/hr2/updates').get()));
+  await check('requests: she reads a shared one', () => assertSucceeds(nanny.doc(HR + '/hr3').get()));
+  await check('requests: she reads her own one\'s history', () => assertSucceeds(nanny.collection(HR + '/hr1/updates').get()));
+  await check('requests: a removed member reads nothing', () => assertFails(exnanny.doc(HR + '/hr1').get()));
+  await check('requests: someone not at Home reads nothing', () => assertFails(nanny2.doc(HR + '/hr3').get()));
+  await check('requests: no profile, nothing', () => assertFails(stranger.doc(HR + '/hr1').get()));
+  await check('requests: another owner, nothing', () => assertFails(owner2.doc(HR + '/hr1').get()));
+  // asking
+  const ask = (o) => Object.assign({ homeId: 'owner1', text: 'Milk', note: null, requestedTiming: 'today', requestedDate: null, visibility: 'private',
+    status: 'requested', plannedDate: null, linkedActionId: null, createdAt: 'now', updatedAt: 'now' }, o);
+  const created = (by) => ({ type: 'created', actorUid: by, text: null, createdAt: NOW(), metadata: {} });
+  async function asks(db, id, doc, by){ const b = db.batch(); b.set(db.doc(HR + '/' + id), doc); b.set(db.doc(HR + '/' + id + '/updates/created'), created(by)); return b.commit(); }
+  await check('ask: the nanny asks Shaun', () => assertSucceeds(asks(nanny, 'n1', ask({ requesterUid: 'nanny1', assigneeUid: 'owner1', createdByUid: 'nanny1', participants: ['nanny1', 'owner1'] }), 'nanny1')));
+  await check('ask: Abi asks the nanny, shared with the whole Home', () => assertSucceeds(asks(partner, 'a1', ask({ requesterUid: 'partner1', assigneeUid: 'nanny1', createdByUid: 'partner1', participants: ['partner1', 'nanny1'], visibility: 'home' }), 'partner1')));
+  await check('ask: Shaun records the nanny asking Abi (on her behalf)', () => assertSucceeds(asks(owner, 'o1', ask({ requesterUid: 'nanny1', assigneeUid: 'partner1', createdByUid: 'owner1', participants: ['nanny1', 'partner1', 'owner1'] }), 'owner1')));
+  await check('ask: the nanny never asks on someone else\'s behalf', () => assertFails(asks(nanny, 'n2', ask({ requesterUid: 'partner1', assigneeUid: 'owner1', createdByUid: 'nanny1', participants: ['partner1', 'owner1', 'nanny1'] }), 'nanny1')));
+  await check('ask: the creator is always the one writing', () => assertFails(asks(nanny, 'n3', ask({ requesterUid: 'nanny1', assigneeUid: 'owner1', createdByUid: 'owner1', participants: ['nanny1', 'owner1'] }), 'nanny1')));
+  await check('ask: never of someone removed', () => assertFails(asks(owner, 'o2', ask({ requesterUid: 'owner1', assigneeUid: 'exnanny', createdByUid: 'owner1', participants: ['owner1', 'exnanny'] }), 'owner1')));
+  await check('ask: never of someone not at Home', () => assertFails(asks(owner, 'o3', ask({ requesterUid: 'owner1', assigneeUid: 'nanny2', createdByUid: 'owner1', participants: ['owner1', 'nanny2'] }), 'owner1')));
+  await check('ask: never of yourself', () => assertFails(asks(nanny, 'n4', ask({ requesterUid: 'nanny1', assigneeUid: 'nanny1', createdByUid: 'nanny1', participants: ['nanny1'] }), 'nanny1')));
+  await check('ask: participants are exactly who it involves (none left out)', () => assertFails(asks(owner, 'o4', ask({ requesterUid: 'nanny1', assigneeUid: 'partner1', createdByUid: 'owner1', participants: ['nanny1', 'partner1'] }), 'owner1')));
+  await check('ask: …and nobody added', () => assertFails(asks(nanny, 'n5', ask({ requesterUid: 'nanny1', assigneeUid: 'owner1', createdByUid: 'nanny1', participants: ['nanny1', 'owner1', 'partner1'] }), 'nanny1')));
+  await check('ask: starts as a request, unlinked', () => assertFails(asks(nanny, 'n6', ask({ requesterUid: 'nanny1', assigneeUid: 'owner1', createdByUid: 'nanny1', participants: ['nanny1', 'owner1'], status: 'done' }), 'nanny1')));
+  await check('ask: never with a private Action attached', () => assertFails(asks(owner, 'o5', ask({ requesterUid: 'owner1', assigneeUid: 'nanny1', createdByUid: 'owner1', participants: ['owner1', 'nanny1'], linkedActionId: 'a1' }), 'owner1')));
+  await check('ask: only private or the whole Home', () => assertFails(asks(nanny, 'n7', ask({ requesterUid: 'nanny1', assigneeUid: 'owner1', createdByUid: 'nanny1', participants: ['nanny1', 'owner1'], visibility: 'public' }), 'nanny1')));
+  await check('ask: never into another Home', () => assertFails(asks(nanny, 'n8', ask({ homeId: 'owner2', requesterUid: 'nanny1', assigneeUid: 'owner1', createdByUid: 'nanny1', participants: ['nanny1', 'owner1'] }), 'nanny1')));
+  await check('ask: its "created" entry is the creator\'s', () => assertFails(nanny.doc(HR + '/hr4/updates/created2').set(created('nanny1'))));
+  await check('ask: a removed member cannot ask', () => assertFails(asks(exnanny, 'x1', ask({ requesterUid: 'exnanny', assigneeUid: 'owner1', createdByUid: 'exnanny', participants: ['exnanny', 'owner1'] }), 'exnanny')));
+  // working on it
+  const sumBy = (uid, type, o) => Object.assign({ latestUpdateAt: 'now', latestUpdateByUid: uid, latestUpdateType: type, updatedAt: 'now' }, o || {});
+  const entry = (by, type, meta, text) => ({ type, actorUid: by, text: text || null, createdAt: NOW(), metadata: meta || {} });
+  async function act(db, id, patch, e){ const b = db.batch(); b.update(db.doc(HR + '/' + id), patch); if (e) b.set(db.collection(HR + '/' + id + '/updates').doc(), e); return b.commit(); }
+  await check('work: the requester rewords it while it waits', () => assertSucceeds(nanny.doc(HR + '/hr4').update({ text: 'Nappies: size 5', updatedAt: 'now' })));
+  await check('work: the assignee cannot reword it', () => assertFails(partner.doc(HR + '/hr4').update({ text: 'Something else', updatedAt: 'now' })));
+  await check('work: the nanny starts what was asked of her', () => assertSucceeds(act(nanny, 'hr1', Object.assign({ status: 'in_progress' }, sumBy('nanny1', 'status')), entry('nanny1', 'status', { status: 'in_progress' }))));
+  await check('work: …and finishes it', () => assertSucceeds(act(nanny, 'hr1', Object.assign({ status: 'done' }, sumBy('nanny1', 'status')), entry('nanny1', 'status', { status: 'done' }))));
+  await check('work: a "done" entry only when it is done', () => assertFails(nanny.collection(HR + '/hr4/updates').add(entry('nanny1', 'status', { status: 'done' }))));
+  await check('work: the nanny never links an Action', () => assertFails(nanny.doc(HR + '/hr1').update({ linkedActionId: 'a9', linkedByUid: 'nanny1' })));
+  await check('work: an admin does not change someone else\'s work', () => assertFails(partner.doc(HR + '/hr1').update({ status: 'requested', updatedAt: 'now' })));
+  await check('work: Shaun plans what is his, linking his Action by id', () => assertSucceeds(act(owner, 'hr2', Object.assign({ status: 'planned', plannedDate: '2026-10-18', linkedActionId: 'actH2', linkedByUid: 'owner1', processedAt: 'now' }, sumBy('owner1', 'planned')), entry('owner1', 'planned', { toDate: '2026-10-18' }))));
+  await check('work: "Can\'t do", with a reason', () => assertSucceeds(act(partner, 'hr4', Object.assign({ status: 'cant_do', cantDoReason: 'Out until Friday' }, sumBy('partner1', 'cant_do')), entry('partner1', 'cant_do', {}, null))));
+  await check('work: nobody rewrites who asked', () => assertFails(owner.doc(HR + '/hr2').update({ requesterUid: 'owner1' })));
+  await check('work: …who wrote it', () => assertFails(partner.doc(HR + '/hr4').update({ createdByUid: 'partner1' })));
+  await check('work: …or which Home', () => assertFails(owner.doc(HR + '/hr2').update({ homeId: 'owner2' })));
+  // passing it on
+  const pass = (from, to, parts) => ({ assigneeUid: to, participants: parts, status: 'requested', plannedDate: null, linkedActionId: null, linkedByUid: null, cantDoReason: null, latestUpdateAt: 'now', latestUpdateByUid: from, latestUpdateType: 'reassigned', updatedAt: 'now' });
+  await check('pass: Abi passes the nanny\'s request on to Shaun', () => assertSucceeds(act(partner, 'hr4', pass('partner1', 'owner1', ['nanny1', 'partner1', 'owner1']), entry('partner1', 'reassigned', { fromUid: 'partner1', toUid: 'owner1' }))));
+  await check('pass: never back to the person who asked', () => assertFails(act(owner, 'hr4', pass('owner1', 'nanny1', ['nanny1', 'partner1', 'owner1']))));
+  await check('pass: nobody drops out of it', () => assertFails(act(owner, 'hr2', pass('owner1', 'nanny1', ['owner1', 'nanny1']))));
+  await check('pass: the nanny cannot pass on what is not hers', () => assertFails(act(nanny, 'hr3', pass('nanny1', 'nanny1', ['partner1', 'owner1', 'nanny1']))));
+  await check('pass: an admin passes work on (Shaun → Abi takes the nanny\'s)', () => assertSucceeds(act(owner, 'n1', pass('owner1', 'partner1', ['nanny1', 'owner1', 'partner1']), entry('owner1', 'reassigned', { fromUid: 'owner1', toUid: 'partner1' }))));
+  await check('pass: a "reassigned" entry only in the write that passes it', () => assertFails(nanny.collection(HR + '/n1/updates').add(entry('nanny1', 'reassigned', { fromUid: 'nanny1', toUid: 'partner1' }))));
+  // who can see it, comments, read marks
+  await check('visibility: its creator shares it with the whole Home', () => assertSucceeds(act(nanny, 'hr4', Object.assign({ visibility: 'home' }, sumBy('nanny1', 'visibility')), entry('nanny1', 'visibility', { visibility: 'home' }))));
+  await check('visibility: not someone else\'s to change', () => assertFails(nanny.doc(HR + '/hr3').update({ visibility: 'private', updatedAt: 'now' })));
+  await check('comment: the nanny adds an update to her request', () => assertSucceeds(act(nanny, 'hr1', { latestCommentAt: 'now', latestCommentByUid: 'nanny1', latestCommentText: 'Bath done, early night', latestUpdateAt: 'now', latestUpdateByUid: 'nanny1', latestUpdateType: 'comment', updatedAt: 'now' }, entry('nanny1', 'comment', {}, 'Bath done, early night'))));
+  await check('comment: never signed as someone else', () => assertFails(nanny.doc(HR + '/hr1').update({ latestCommentByUid: 'owner1', latestCommentText: 'x', latestCommentAt: 'now' })));
+  await check('comment: not on a request she cannot see', () => assertFails(nanny.collection(HR + '/hr2/updates').add(entry('nanny1', 'comment', {}, 'hi'))));
+  await check('read: her own read mark', () => assertSucceeds(nanny.doc(HR + '/hr1').update({ 'readAt.nanny1': 'now' })));
+  await check('read: never someone else\'s', () => assertFails(nanny.doc(HR + '/hr1').update({ 'readAt.owner1': 'now' })));
+  // deleting (soft, as in Phase A)
+  const hdel = (by) => ({ deletedAt: 'now', deletedByUid: by, updatedAt: 'now' });
+  await check('delete: not by an assignee who neither asked nor wrote it', () => assertFails(nanny.doc(HR + '/a1').update(hdel('nanny1'))));
+  await check('delete: the person who asked deletes it', () => assertSucceeds(act(partner, 'a1', hdel('partner1'), null).then(() => partner.doc(HR + '/a1/updates/deleted').set(entry('partner1', 'deleted')))));
+  await check('delete: then it is frozen', () => assertFails(nanny.doc(HR + '/a1').update({ status: 'done', updatedAt: 'now' })));
+  await check('delete: no more history', () => assertFails(partner.collection(HR + '/a1/updates').add(entry('partner1', 'comment', {}, 'hello?'))));
+  await check('delete: never removed outright', () => assertFails(owner.doc(HR + '/hr1').delete()));
+  // the boundary: the nanny reaches nothing private, nothing of Partner Sharing
+  for (const c of ['ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_life_context', 'ledger_meta', 'ledger_action_updates', 'ledger_day_status'])
+    await check('nanny: cannot read ' + c, () => assertFails(nanny.collection(c).get()));
+  await check('nanny: cannot read published snapshots', () => assertFails(nanny.doc('ledger_shared_snapshots/owner1_partner1_day_2026-10-07').get()));
+  await check('nanny: cannot read Partner Sharing requests', () => assertFails(nanny.doc('ledger_shared_requests/reqA').get()));
+  await check('nanny: cannot read Shaun\'s profile', () => assertFails(nanny.doc('ledger_users/owner1').get()));
+  await check('nanny: registers her own device', () => assertSucceeds(nanny.doc('ledger_push_subscriptions/nanny1_d1').set(sub('nanny1'))));
+  await check('nanny: her own notification choices', () => assertSucceeds(nanny.doc('ledger_notification_prefs/nanny1').set({ partner: true, updatedAt: 'now' })));
+  await check('Abi: may follow requests between others', () => assertSucceeds(partner.doc('ledger_notification_prefs/partner1').set({ partner: true, homeOversight: true, updatedAt: 'now' })));
+  await check('prefs: on/off only', () => assertFails(partner.doc('ledger_notification_prefs/partner1').set({ homeOversight: 'yes' })));
+
   // ---- anything unlisted ----
   await check('unlisted collection: owner denied', () => assertFails(owner.collection('something_else').get()));
 

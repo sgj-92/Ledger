@@ -423,6 +423,50 @@ async function swChecks(){
   const everything = JSON.stringify(inbox.map(g => g.payload));
   check(!/SECRET|accounts proposal.*private|mortgage.*note/i.test(everything) && !/SECRET/.test(everything), 'no private Ledger data in any notification (Day Notes never)');
 
+  // ---- Home: the same engine, through its own trigger ----
+  await put(`ledger_homes/${owner}`, { name: 'Home', ownerUid: owner, createdAt: TODAY });
+  await put(`ledger_home_members/${owner}`, { homeId: owner, role: 'admin', status: 'active', displayName: 'Shaun' });
+  await put(`ledger_home_members/${abi}`, { homeId: owner, role: 'admin', status: 'active', displayName: 'Abi' });
+  await sleep(500);
+  mark = inbox.length;
+  const hid = await mac.evaluate(async (ids) => {
+    const db = firebase.firestore(), ref = db.collection('ledger_home_requests').doc(), now = new Date().toISOString(), b = db.batch();
+    b.set(ref, { homeId: ids.owner, text: 'Pick up the dry cleaning', note: null, requestedTiming: 'today', requestedDate: null, requesterUid: ids.owner, assigneeUid: ids.abi,
+      createdByUid: ids.owner, participants: [ids.owner, ids.abi], visibility: 'private', status: 'requested', plannedDate: null, linkedActionId: null,
+      createdAt: now, updatedAt: now, latestUpdateAt: now, latestUpdateByUid: ids.owner, latestUpdateType: 'created', readAt: { [ids.owner]: now } });
+    b.set(ref.collection('updates').doc('created'), { type: 'created', actorUid: ids.owner, text: null, createdAt: firebase.firestore.FieldValue.serverTimestamp(), metadata: {} });
+    await b.commit();
+    return ref.id;
+  }, { owner, abi });
+  got = await waitPushes(mark, 1);
+  await sleep(2000); got = since(mark);
+  check(got.length === 1 && got[0].device === 'abi' && got[0].payload.title === 'Shaun sent a request' && got[0].payload.body === 'Pick up the dry cleaning' && got[0].payload.url === APP_URL + '?home=' + hid,
+    'Home: Shaun asks Abi → Abi\'s phone only, "Shaun sent a request", opening it (' + got.map(g => g.device + ':' + g.payload.title).join(' | ') + ')');
+  mark = inbox.length;
+  await abiPhone.evaluate(async (ids) => {
+    const db = firebase.firestore(), ref = db.collection('ledger_home_requests').doc(ids.hid), now = new Date().toISOString(), b = db.batch();
+    b.update(ref, { status: 'done', latestUpdateAt: now, latestUpdateByUid: ids.abi, latestUpdateType: 'status', updatedAt: now });
+    b.set(ref.collection('updates').doc(), { type: 'status', actorUid: ids.abi, text: null, createdAt: firebase.firestore.FieldValue.serverTimestamp(), metadata: { status: 'done' } });
+    await b.commit();
+  }, { abi, hid });
+  got = await waitPushes(mark, 3);
+  await sleep(2000); got = since(mark);
+  check(got.length === 3 && got.map(g => g.device).sort().join('|') === 'iphone|mac|samsung' && got.every(g => g.payload.title === 'Abi completed your request'),
+    'Home: Abi completes it → Shaun\'s devices, "Abi completed your request"; nothing back to Abi');
+  // moving Partner Sharing requests into Home: run by the function, announcing nothing
+  mark = inbox.length;
+  await mac.evaluate(o => firebase.firestore().collection('ledger_meta').doc('homeMigration').set({ status: 'requested', requestedBy: o, requestedAt: new Date().toISOString() }), owner);
+  let mig = null;
+  for (let i = 0; i < 40; i++){ mig = (await all('ledger_meta')).find(d => d.id === 'homeMigration'); if (mig && (mig.status === 'done' || mig.status === 'failed')) break; await sleep(500); }
+  const legacy = await all('ledger_shared_requests');
+  const moved = await all('ledger_home_requests');
+  check(mig && mig.status === 'done' && mig.migrated === legacy.length && legacy.every(r => r.migratedTo === r.id) && legacy.every(r => moved.some(m => m.id === r.id && m.requesterUid === abi && m.assigneeUid === owner && m.visibility === 'private')),
+    'migration: every Partner Sharing request moves into Home under the same id, private to Shaun and Abi (' + (mig && (mig.status + ' ' + mig.migrated + '/' + legacy.length + ' ' + (mig.errors || []).join(';'))) + ')');
+  await sleep(3000);
+  check(since(mark).length === 0, 'migration: its copied history notifies nobody (' + since(mark).length + ')');
+  const linkedOld = legacy.find(r => r.linkedActionId);
+  check(!linkedOld || moved.find(m => m.id === linkedOld.id).linkedActionId === linkedOld.linkedActionId, 'migration: a linked Action stays linked by the same id');
+
   // ---- turning a device off; signing out ----
   await openSettings(samsung); await samsung.click('#setNotifications');
   await samsung.waitForSelector('#ntDisable:not([hidden])', { timeout: 15000 }); await samsung.click('#ntDisable');
@@ -449,7 +493,7 @@ async function swChecks(){
   check(await until(iphone, () => !!document.getElementById('authEmail'), null, 20000), 'iPhone: signed out');
   check(!(await all('ledger_push_subscriptions')).some(s => s.deviceId === iphoneId), 'signing out removes this device\'s record');
   const events = await all('ledger_push_events');
-  check(events.length === 12 && events.every(e => e.status === 'done'), 'every push event logged once, done (' + events.length + ')');
+  check(events.length === 14 && events.every(e => e.status === 'done'), 'every push event logged once, done (' + events.length + ')');
 
   for (const p of [mac, iphone, samsung, abiPhone]){
     const errs = p.errs.filter(e => !/permission|offline|network/i.test(e));

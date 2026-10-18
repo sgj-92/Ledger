@@ -4575,6 +4575,16 @@
   .btn-ghost.danger:active { background: rgba(var(--danger-rgb),0.12); }
   .btn-ghost:disabled { opacity: 0.5; cursor: default; }
   .ns-opt.danger .ns-t { color: var(--danger); }
+  /* Home: the same rows, sheets and pills as requests — one quiet status on each row */
+  .hm-sec-title { margin-top: var(--sp-5); }
+  .hm-sec-title:first-child { margin-top: var(--sp-2); }
+  .hm-li .hm-pill { flex-shrink: 0; margin-left: 8px; font-size: 11.5px; color: var(--text-3); white-space: nowrap; }
+  .hm-li.st-dismissed .hm-pill, .hm-li.st-withdrawn .hm-pill { opacity: 0.8; }
+  .hn-note { margin: 6px 0 0; font-size: 12.5px; color: var(--text-2); }
+  .hd-share { margin-top: var(--sp-5); }
+  .act-row.hm-removed .lc-row-t { color: var(--text-3); }
+  .act-row.on { color: var(--gold); }
+  .hp-list .rq-empty { margin: var(--sp-3) 0; }
   .rq-own:empty { display: none; }
   .rq-own .btn-link { padding: 4px 0; font-size: 12.5px; color: var(--text-2); }
   .rq-own .rq-withdraw { color: var(--danger); }
@@ -4914,6 +4924,8 @@
     </div>
 
     <div class="today-extra">
+    <!-- Home: requests between the people at home — one quiet row -->
+    <div id="homeRowSection"></div>
     <div id="dayNotesSection"></div>
 
     <button type="button" class="section-toggle" id="quickLogToggle" aria-expanded="false" aria-controls="quickLogGrid">
@@ -6111,7 +6123,7 @@
   var authUser = null, authRole = null, authProfile = null;
   var ownerDataStarted = false;
   var authLinkPending = false;
-  var ROLE_VALUES = ['owner', 'partner'];
+  var ROLE_VALUES = ['owner', 'partner', 'household'];
 
   function authGateEl(){ return document.getElementById('authGate'); }
   function appRegions(){
@@ -6187,6 +6199,8 @@
     if (ownerDataStarted){ location.reload(); return; }
     // a partner sees only what has been published to them — never this device's copy
     if (role === 'partner'){ startPartner(); return; }
+    // someone who helps at home: their Home, and nothing of Ledger
+    if (role === 'household'){ startHousehold(); return; }
     if (pp.started){ location.reload(); return; }
     lockApp();
     renderGate(r.offline ? 'offline' : 'noaccess');
@@ -6369,6 +6383,15 @@
             '<p class="auth-sub">You’re signed in as <strong data-role="auth-email"></strong>. Nothing is shown while sharing is paused.</p>'
           : '<h1 class="auth-title">Shared Ledger access is being set up.</h1>' +
             '<p class="auth-sub">You’re signed in as <strong data-role="auth-email"></strong>. Nothing has been shared with you yet — this is where it will appear.</p>' +
+            '<div class="auth-id"><span class="auth-label">Account ID</span><code data-role="auth-uid"></code>' +
+              '<button type="button" class="btn-link" id="authCopyUid">Copy</button></div>') +
+        '<button type="button" class="btn-link auth-alt" id="authSignOut">Sign out</button>';
+    } else if (state === 'home'){
+      html += (info.removed
+          ? '<h1 class="auth-title">You’re no longer at Home</h1>' +
+            '<p class="auth-sub">You’re signed in as <strong data-role="auth-email"></strong>. Your access to Home has ended.</p>'
+          : '<h1 class="auth-title">Almost there</h1>' +
+            '<p class="auth-sub">You’re signed in as <strong data-role="auth-email"></strong>. You’ll see Home here once you’re added. Send this Account ID if you’re asked for it.</p>' +
             '<div class="auth-id"><span class="auth-label">Account ID</span><code data-role="auth-uid"></code>' +
               '<button type="button" class="btn-link" id="authCopyUid">Copy</button></div>') +
         '<button type="button" class="btn-link auth-alt" id="authSignOut">Sign out</button>';
@@ -6623,6 +6646,7 @@
       startLifeContextListener();
       // Partner Sharing: the owner's side of the shared namespace (see firestore.rules)
       startSharingListeners();
+      if (shareOn()){ startHome('owner'); watchHomeMigration(); }
       startDeepLinkClock();
       touchThisDevice();
     } catch(e){
@@ -7953,7 +7977,7 @@
     if (stateLabel) bits.unshift(stateLabel);
     if (opts.showCategory) bits.push(actionCategoryLabel(actionCategoryKey(c)));
     if (c.minVersion && !done) bits.push('Min: ' + c.minVersion);
-    if (c.sourceType === 'partner_request') bits.push('From ' + (c.sourceLabel || 'your partner'));
+    if (c.sourceType === 'partner_request' || c.sourceType === 'home_request') bits.push('From ' + (c.sourceLabel || 'your partner'));
     var meta = row.querySelector('.commitment-meta');
     meta.textContent = bits.join(' · ');
     // the wider matter an action belongs to, quietly
@@ -8623,7 +8647,7 @@
         }
         if (created) html += '<p class="commit-origin-note commit-created">Created ' +
           toLocalDate(created).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + '</p>';
-        if (existing.sourceType === 'partner_request') html += (shareOn() && sharedRequests.some(function(x){ return x.id === existing.sourceRequestId; })
+        if (existing.sourceType === 'partner_request' || existing.sourceType === 'home_request') html += ((shareOn() && sharedRequests.some(function(x){ return x.id === existing.sourceRequestId; })) || !!homeReq(existing.sourceRequestId)
           ? '<button type="button" class="commit-origin-note rq-origin" id="commitSourceNote"><span></span>' + UI_ICON.chevronRight + '</button>'
           : '<p class="commit-origin-note" id="commitSourceNote"></p>');
         // Status: five plain states; a few words for waiting or blocked. How a past day
@@ -8647,8 +8671,8 @@
         // Private updates: what happened with it, in Shaun's words, and the quiet facts.
         // When it came from a partner, the one way to tell them is the request's own
         // Updates — a link there, never a second shared form here.
-        var shareReq = existing.sourceType === 'partner_request' && shareOn() &&
-          sharedRequests.some(function(x){ return x.id === existing.sourceRequestId; });
+        var shareReq = ((existing.sourceType === 'partner_request' && shareOn() &&
+          sharedRequests.some(function(x){ return x.id === existing.sourceRequestId; })) || !!homeReq(existing.sourceRequestId));
         html += '<div class="au-sec"><h3 class="cz-sec-title rq-upd-title">Private updates</h3>' +
           '<p class="au-private">Only you can see these.</p>' +
           '<div class="rq-tl au-tl" id="auTimeline"><p class="rq-empty">Loading…</p></div>' +
@@ -8739,10 +8763,12 @@
     var srcNote = document.getElementById('commitSourceNote');
     if (srcNote){
       var srcText = 'From ' + (existing.sourceLabel || 'your partner') + (existing.sourceNote ? ' · “' + existing.sourceNote + '”' : '') +
-        (deletedRequestIds[existing.sourceRequestId] ? ' · request deleted' : '');
+        (deletedRequestIds[existing.sourceRequestId] || home.deletedIds[existing.sourceRequestId] ? ' · request deleted' : '');
       if (srcNote.tagName === 'BUTTON'){
         srcNote.querySelector('span').textContent = srcText + ' · Updates';
-        srcNote.addEventListener('click', function(){ openRequestDetailSheet(existing.sourceRequestId); });
+        srcNote.addEventListener('click', function(){
+          if (homeReq(existing.sourceRequestId)) openHomeDetail(existing.sourceRequestId); else openRequestDetailSheet(existing.sourceRequestId);
+        });
       } else srcNote.textContent = srcText;
     }
     backdrop.classList.add('open');
@@ -8811,7 +8837,7 @@
         wireActionUpdates(existing);
         var shareBtn = document.getElementById('auShare');
         if (shareBtn) shareBtn.addEventListener('click', function(){
-          openRequestDetailSheet(existing.sourceRequestId);
+          if (homeReq(existing.sourceRequestId)) openHomeDetail(existing.sourceRequestId); else openRequestDetailSheet(existing.sourceRequestId);
           setTimeout(function(){ var t = document.getElementById('rqText'); if (t) try { t.focus(); } catch(e){} }, 80);
         });
         document.getElementById('deleteCommitBtn').addEventListener('click', function(){
@@ -12796,7 +12822,7 @@
     return b.commit();
   }
   // the confirmation, in the same sheet: Cancel goes back to where it was asked from
-  function rqConfirmDelete(r, role, show, back, done){
+  function rqConfirmDelete(r, role, show, back, done, deleteFn){
     var root = show('<div class="sheet-handle"></div>' +
       '<div class="sheet-head rq-head"><div class="sheet-title-wrap"><div class="sheet-title" id="rqDelHead">Delete this request?</div></div>' +
       '<button class="sheet-close" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
@@ -12813,7 +12839,7 @@
     var go = root.querySelector('#rqDelGo'), err = root.querySelector('#rqDelErr');
     go.addEventListener('click', function(){
       go.disabled = true; err.textContent = '';
-      rqDelete(r, role).then(done).catch(function(e){
+      (deleteFn || rqDelete)(r, role).then(done).catch(function(e){
         console.error('request delete failed', e);
         go.disabled = false;
         err.textContent = 'Couldn’t delete it — check your connection and try again.';
@@ -12876,7 +12902,8 @@
       var all = snap.docs.map(shareDoc);
       deletedRequestIds = {};
       all.forEach(function(r){ if (r.deletedAt) deletedRequestIds[r.id] = true; });
-      sharedRequests = all.filter(function(r){ return !r.deletedAt; });
+      // a request moved into Home lives there now (same id, its Action still linked)
+      sharedRequests = all.filter(function(r){ return !r.deletedAt && !r.migratedTo; });
       shareLoaded.requests = true; reconcileRequests(); sharingChanged();
       tryHandleDeepLink();
     }, refused('requests'));
@@ -12885,7 +12912,7 @@
     }, refused('publications'));
   }
   // anything the owner's records change may change a projection or a request
-  function sharingSourcesChanged(){ reconcileRequests(); scheduleShareSync(); if (rqDetailRefresh) rqDetailRefresh(); }
+  function sharingSourcesChanged(){ reconcileRequests(); reconcileHome(); scheduleShareSync(); if (rqDetailRefresh) rqDetailRefresh(); if (home.detailRefresh) home.detailRefresh(); }
   function sharingChanged(){
     renderInboxSection();
     if (rqDetailRefresh) rqDetailRefresh();
@@ -12910,10 +12937,22 @@
     var wrap = document.getElementById('inboxSection');
     if (!wrap) return;
     var items = shareOn() && viewedDate === todayStr() ? inboxItems() : [];
-    if (!items.length){ wrap.innerHTML = ''; return; }
+    var hItems = viewedDate === todayStr() ? homeInboxItems() : [];
+    if (!items.length && !hItems.length){ wrap.innerHTML = ''; return; }
     wrap.innerHTML =
-      '<div class="tsec inbox-head"><span class="tsec-title">Inbox</span><span class="tsec-status">' + items.length + '</span></div>' +
-      '<div class="ib-list">' + items.map(function(it, i){
+      '<div class="tsec inbox-head"><span class="tsec-title">Inbox</span><span class="tsec-status">' + (items.length + hItems.length) + '</span></div>' +
+      '<div class="ib-list">' + hItems.map(function(it, i){
+        var upd = it.kind === 'update';
+        return '<div class="ib-row' + (upd ? ' ib-update' : '') + '" data-hb-row="' + i + '">' +
+          '<button type="button" class="ib-body" data-hb-open="' + i + '"><span class="ib-kicker"></span><span class="ib-title"></span>' +
+            (upd && it.r.latestCommentText ? '<span class="ib-quote"></span>' : (it.r.note ? '<span class="ib-note"></span>' : '')) + '<span class="ib-meta"></span></button>' +
+          '<div class="ib-actions">' + (upd
+            ? '<button type="button" class="bk-btn gold" data-hb-open="' + i + '">Review</button>'
+            : '<button type="button" class="bk-btn gold" data-hb-today="' + i + '">' + BK_PLUS_SVG + 'Today</button>' +
+              '<button type="button" class="bk-btn" data-hb-day="' + i + '">' + UI_ICON.calendar + 'Choose day</button>' +
+              '<button type="button" class="bk-btn ib-dismiss" data-hb-cant="' + i + '">Can’t do</button>') +
+          '</div></div>';
+      }).join('') + items.map(function(it, i){
         var r = it.r, upd = it.kind === 'update' || rqUnread(r, 'owner');
         return '<div class="ib-row' + (it.kind === 'update' ? ' ib-update' : '') + '" data-ib-row="' + i + '">' +
           '<button type="button" class="ib-body" data-ib-open="' + i + '">' +
@@ -12931,6 +12970,23 @@
           '</div>' +
         '</div>';
       }).join('') + '</div>';
+    // Home rows: found by position too; every word is text
+    hItems.forEach(function(it, i){
+      var r = it.r, row = wrap.querySelector('[data-hb-row="' + i + '"]');
+      var from = homeNameOf(it.kind === 'update' ? r.latestCommentByUid : r.requesterUid);
+      row.querySelector('.ib-kicker').textContent = (it.kind === 'update' ? 'Update from ' : 'From ') + from +
+        (it.kind === 'new' && r.createdByUid && r.createdByUid !== r.requesterUid ? ' · added by ' + (r.createdByUid === homeMe() ? 'you' : homeNameOf(r.createdByUid)) : '');
+      row.querySelector('.ib-title').textContent = r.text;
+      var q = row.querySelector('.ib-quote'); if (q) q.textContent = '“' + r.latestCommentText + '”';
+      var nt = row.querySelector('.ib-note'); if (nt) nt.textContent = '“' + r.note + '”';
+      row.querySelector('.ib-meta').textContent = it.kind === 'update'
+        ? [from + ' updated · ' + rqAgo(r.latestCommentAt), hrStatusLabel(r)].join(' · ')
+        : [requestedWhenLabel(r), requestTimingLabel(r), 'Home'].filter(Boolean).join(' · ');
+    });
+    wrap.querySelectorAll('[data-hb-open]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbOpen)]; if (it) openHomeDetail(it.r.id); }); });
+    wrap.querySelectorAll('[data-hb-today]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbToday)]; if (it) hrAccept(it.r, todayStr()); }); });
+    wrap.querySelectorAll('[data-hb-day]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbDay)]; if (it) openRequestDaySheet(it.r, hrAccept, 'From ' + homeNameOf(it.r.requesterUid)); }); });
+    wrap.querySelectorAll('[data-hb-cant]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbCant)]; if (it) openHomeCantDo(it.r); }); });
     // ids are the partner's to choose, so rows are found by position, never by id in markup
     items.forEach(function(it, i){
       var r = it.r, row = wrap.querySelector('[data-ib-row="' + i + '"]');
@@ -12958,7 +13014,7 @@
       b.addEventListener('click', function(){ var it = items[Number(b.dataset.ibDismiss)]; if (it) dismissRequest(it.r); });
     });
   }
-  function openRequestDaySheet(r){
+  function openRequestDaySheet(r, onPlan, fromLabel, onCancel){
     activeSheetRefresh = null;
     editingId = null;
     var suggested = requestSuggestedDate(r);
@@ -12985,9 +13041,9 @@
     backdrop.classList.add('open');
     var m = shareMembers.find(function(x){ return x.partnerUid === r.partnerUid; });
     document.getElementById('rqTitle').textContent = r.text;
-    document.getElementById('rqMeta').textContent = ['From ' + partnerName(m), requestTimingLabel(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ');
-    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
-    document.getElementById('rqCancelBtn').addEventListener('click', closeSheet);
+    document.getElementById('rqMeta').textContent = [fromLabel || 'From ' + partnerName(m), requestTimingLabel(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ');
+    document.getElementById('sheetCloseBtn').addEventListener('click', onCancel || closeSheet);
+    document.getElementById('rqCancelBtn').addEventListener('click', onCancel || closeSheet);
     sheetEl.querySelectorAll('[data-rq-quick]').forEach(function(el){
       el.addEventListener('click', function(){
         document.getElementById('f_rqDay').value = el.dataset.rqQuick;
@@ -12999,7 +13055,7 @@
       var dateStr = document.getElementById('f_rqDay').value;
       if (!dateStr) return;
       closeSheet();
-      acceptRequest(r, dateStr);
+      (onPlan || acceptRequest)(r, dateStr);
     });
   }
 
@@ -13147,6 +13203,878 @@
     setTimeout(hide, 5000);
   }
 
+  // ============ Home: Shaun, Abi and the people who help at home ============
+  // A shared namespace beside Ledger, never inside it (firestore.rules → "Home"). Who is at
+  // Home lives in ledger_home_members/{uid}; each request is one shared record in
+  // ledger_home_requests/{id}, with its history in …/updates. Requester, assignee and
+  // creator are separate facts; a request is private to the people in it unless it is
+  // shared with the whole Home. Nothing private crosses: when Shaun takes a request on,
+  // his Action stays his — only its id, and where it stands, reach the request.
+  // The same code serves three surfaces through a "host": Shaun's sheets, and the portal
+  // sheet that Abi and the people who help at home use.
+  var HOME_REQ = 'ledger_home_requests', HOME_MEMBERS = 'ledger_home_members';
+  var home = { started: false, me: null, members: [], requests: [], reqLoaded: false, membersLoaded: false,
+    stops: [], meStop: null, surface: null, detailRefresh: null, listRefresh: null, migration: null, deletedIds: {} };
+  function homeOn(){ return !!home.me && home.me.status === 'active'; }
+  function homeIsAdmin(){ return homeOn() && home.me.role === 'admin'; }
+  function homeMe(){ return authUser ? authUser.uid : null; }
+  function homeMember(uid){ return home.members.find(function(m){ return m.uid === uid; }) || null; }
+  function homeActiveMembers(){ return home.members.filter(function(m){ return m.status === 'active'; }); }
+  function homeNameOf(uid){ var m = homeMember(uid); return (m && m.displayName) || 'Someone'; }
+  // "You" for the person looking; their name for everyone else
+  function homeWho(uid){ return uid === homeMe() ? 'You' : homeNameOf(uid); }
+  function homeWhose(uid){ return uid === homeMe() ? 'your' : homeNameOf(uid) + '’s'; }
+  function homeReq(id){ return home.requests.find(function(r){ return r.id === id; }) || null; }
+  function homeRef(id){ return dbRef.collection(HOME_REQ).doc(id); }
+
+  // ---- data: started with the rest of a person's data, stopped when they leave Home ----
+  function startHome(surface){
+    if (home.started || LOCAL_ONLY || !dbRef || !authUser) return;
+    home.started = true; home.surface = surface;
+    var me = homeMe();
+    // only a membership the server has confirmed opens Home: the reads that follow are
+    // judged against the saved record, never this device's unsent copy
+    home.meStop = dbRef.collection(HOME_MEMBERS).doc(me).onSnapshot({ includeMetadataChanges: true }, function(doc){
+      if (doc.metadata && doc.metadata.hasPendingWrites) return;
+      var m = doc.exists ? Object.assign({ uid: doc.id }, doc.data()) : null;
+      var was = homeOn() ? home.me.homeId + '|' + home.me.role : '';
+      home.me = m;
+      var now = homeOn() ? m.homeId + '|' + m.role : '';
+      if (now !== was){ stopHomeData(); if (homeOn()) startHomeData(); }
+      homeChanged();
+    }, function(err){ console.warn('home membership unavailable', err && err.code); home.me = null; stopHomeData(); homeChanged(); });
+  }
+  function startHomeData(){
+    var me = homeMe(), H = home.me.homeId;
+    // a refused read (rules not yet published, a membership still settling) is tried again
+    function refused(what){
+      return function(err){
+        console.warn('home ' + what + ' unavailable', err && err.code);
+        clearTimeout(home.retry);
+        home.retry = setTimeout(function(){ if (homeOn()){ stopHomeData(); startHomeData(); } }, 4000);
+      };
+    }
+    home.stops.push(dbRef.collection(HOME_MEMBERS).where('homeId', '==', H).onSnapshot(function(snap){
+      home.members = snap.docs.map(function(d){ return Object.assign({ uid: d.id }, d.data()); });
+      home.membersLoaded = true; homeChanged();
+    }, refused('members')));
+    // an admin sees the whole Home; anyone else, what they are part of and what is shared
+    var parts = {}, shared = {}, all = {};
+    function merge(){
+      var byId = {};
+      [all, parts, shared].forEach(function(src){ Object.keys(src).forEach(function(k){ byId[k] = src[k]; }); });
+      home.deletedIds = {};
+      Object.keys(byId).forEach(function(k){ if (byId[k].deletedAt) home.deletedIds[k] = true; });
+      home.requests = Object.keys(byId).map(function(k){ return byId[k]; }).filter(function(r){ return !r.deletedAt; });
+      home.reqLoaded = true;
+      if (home.surface === 'owner') reconcileHome();
+      homeChanged();
+      homeHandleDeepLink();
+    }
+    function into(target){
+      return function(snap){
+        Object.keys(target).forEach(function(k){ delete target[k]; });
+        snap.docs.forEach(function(d){ target[d.id] = Object.assign({ id: d.id }, d.data()); });
+        merge();
+      };
+    }
+    if (home.me.role === 'admin'){
+      home.stops.push(dbRef.collection(HOME_REQ).where('homeId', '==', H).onSnapshot(into(all), refused('requests')));
+    } else {
+      home.stops.push(dbRef.collection(HOME_REQ).where('homeId', '==', H).where('participants', 'array-contains', me).onSnapshot(into(parts), refused('requests')));
+      home.stops.push(dbRef.collection(HOME_REQ).where('homeId', '==', H).where('visibility', '==', 'home').onSnapshot(into(shared), refused('shared requests')));
+    }
+  }
+  function stopHomeData(){
+    home.stops.forEach(function(f){ try { f(); } catch(e){} });
+    home.stops = []; home.members = []; home.requests = []; home.reqLoaded = false; home.membersLoaded = false;
+  }
+  function homeChanged(){
+    if (home.detailRefresh) home.detailRefresh();
+    if (home.listRefresh) home.listRefresh();
+    if (home.surface === 'owner'){ renderInboxSection(); renderHomeRow(); renderHomeSettings(); }
+    else if (home.surface === 'partner'){ renderPortal(); }
+    else if (home.surface === 'household'){ renderHomePortal(); }
+  }
+
+  // ---- what a request says, from where the viewer stands ----
+  function hrOpen(r){ return ['requested', 'planned', 'in_progress'].indexOf(r.status) > -1; }
+  function hrStatusLabel(r){
+    if (r.status === 'done') return 'Done ✓';
+    if (r.status === 'cant_do') return 'Can’t do';
+    if (r.status === 'withdrawn') return 'Withdrawn';
+    if (r.status === 'dismissed') return 'Set aside';
+    if (r.status === 'in_progress') return 'In progress';
+    if (r.status === 'planned') return r.plannedDate ? (r.plannedDate < todayStr() ? 'On the list' : 'Planned ' + rqDayWord(r.plannedDate)) : 'Accepted';
+    return r.requestedTiming === 'later' ? 'Upcoming' : 'Requested';
+  }
+  function hrStatusClass(r){ return r.status === 'cant_do' ? 'dismissed' : (['requested', 'planned', 'in_progress', 'done', 'dismissed', 'withdrawn'].indexOf(r.status) > -1 ? r.status : 'requested'); }
+  function hrUnread(r){
+    var me = homeMe();
+    return !!r.latestCommentByUid && r.latestCommentByUid !== me && (r.latestCommentAt || '') > ((r.readAt || {})[me] || '');
+  }
+  function hrMarkRead(r){
+    if (!r || !hrUnread(r)) return;
+    var at = new Date().toISOString();
+    if ((r.latestCommentAt || '') > at) at = r.latestCommentAt;
+    var patch = {}; patch['readAt.' + homeMe()] = at;
+    homeRef(r.id).update(patch).catch(function(e){ console.warn('home read mark failed', e && e.code); });
+  }
+  // "From Abi · for Maria", and who wrote it when that was someone else
+  function hrKicker(r){
+    var me = homeMe();
+    var s = r.assigneeUid === me ? 'From ' + homeNameOf(r.requesterUid)
+      : (r.requesterUid === me ? 'For ' + homeNameOf(r.assigneeUid) : homeNameOf(r.requesterUid) + ' → ' + homeNameOf(r.assigneeUid));
+    if (r.createdByUid && r.createdByUid !== r.requesterUid) s += ' · added by ' + (r.createdByUid === me ? 'you' : homeNameOf(r.createdByUid));
+    return s;
+  }
+  function hrMeta(r){
+    var bits = [];
+    if (hrUnread(r)) bits.push(homeNameOf(r.latestCommentByUid) + ' updated · ' + rqAgo(r.latestCommentAt));
+    bits.push(hrKicker(r));
+    if (r.visibility === 'home') bits.push('Everyone at Home');
+    return bits.join(' · ');
+  }
+  // the viewer's groups: what is theirs to do, what they asked, what the Home shares, the rest
+  function homeGroups(){
+    var me = homeMe(), seen = {}, out = [];
+    function take(title, list, max){
+      list = list.filter(function(r){ return !seen[r.id]; });
+      list.forEach(function(r){ seen[r.id] = true; });
+      if (list.length) out.push({ title: title, items: max ? list.slice(0, max) : list, more: max && list.length > max ? list.length - max : 0 });
+    }
+    function newest(a, b){ var ka = a.latestUpdateAt || a.updatedAt || a.createdAt || '', kb = b.latestUpdateAt || b.updatedAt || b.createdAt || ''; return ka < kb ? 1 : -1; }
+    var reqs = home.requests.filter(function(r){ return !(r.hiddenFor && r.hiddenFor[me]); }).slice().sort(newest);
+    take('For you', reqs.filter(function(r){ return r.assigneeUid === me && hrOpen(r); }));
+    take('You asked', reqs.filter(function(r){ return (r.requesterUid === me || r.createdByUid === me) && (hrOpen(r) || r.status === 'cant_do'); }));
+    take('Shared at Home', reqs.filter(function(r){ return r.visibility === 'home' && hrOpen(r); }));
+    if (homeIsAdmin()) take('Between others', reqs.filter(function(r){ return hrOpen(r) || r.status === 'cant_do'; }));
+    take('Done lately', reqs.filter(function(r){ return !hrOpen(r); }), 6);
+    return out;
+  }
+  // one list renderer for every surface; rows are found by position, and every word is text
+  function homeListInto(el, opts){
+    opts = opts || {};
+    el.innerHTML = '';
+    var groups = homeGroups();
+    if (!groups.length){
+      var p = document.createElement('p'); p.className = 'rq-empty'; p.textContent = home.reqLoaded ? 'Nothing at Home yet.' : 'Opening…';
+      el.appendChild(p);
+    }
+    groups.forEach(function(g){
+      if (opts.only && opts.only.indexOf(g.title) === -1) return;
+      var h = document.createElement('h3'); h.className = 'cz-sec-title hm-sec-title'; h.textContent = g.title;
+      el.appendChild(h);
+      var list = document.createElement('div'); list.className = 'rq-list hm-list';
+      g.items.forEach(function(r){
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'rq-li hm-li st-' + hrStatusClass(r);
+        b.innerHTML = '<span class="rq-li-body"><span class="rq-li-t"></span><span class="rq-li-m"></span></span><span class="hm-pill"></span><span class="rq-li-chev">' + UI_ICON.chevronRight + '</span>';
+        b.querySelector('.rq-li-t').textContent = r.text;
+        var m = b.querySelector('.rq-li-m'); m.textContent = hrMeta(r); if (hrUnread(r)) m.classList.add('unread');
+        b.querySelector('.hm-pill').textContent = hrStatusLabel(r);
+        b.addEventListener('click', function(){ openHomeDetail(r.id); });
+        list.appendChild(b);
+      });
+      el.appendChild(list);
+    });
+  }
+
+  // ---- hosts: Shaun's sheet, or the portal's ----
+  function homeHost(){
+    if (home.surface === 'owner') return {
+      open: function(html){
+        activeSheetRefresh = null; editingId = null;
+        sheetEl.innerHTML = html; backdrop.classList.add('open');
+        var x = sheetEl.querySelector('.sheet-close'); if (x) x.addEventListener('click', homeCloseAll);
+        return sheetEl;
+      },
+      close: function(){ homeCloseAll(); }
+    };
+    return { open: ppSheetOpen, close: ppSheetClose };
+  }
+  function homeCloseAll(){
+    home.detailRefresh = null; home.listRefresh = null;
+    if (rqTimelineStop){ rqTimelineStop(); rqTimelineStop = null; }
+    if (home.surface === 'owner') closeSheet(); else ppSheetClose();
+  }
+
+  // ---- writes: the change and its entry together; the summary names the one writing ----
+  function hrEntry(type, text, meta){
+    return { type: type, actorUid: homeMe(), text: text || null, createdAt: firebase.firestore.FieldValue.serverTimestamp(), metadata: meta || {} };
+  }
+  function hrSummary(type, text){
+    var now = new Date().toISOString(), s = { latestUpdateAt: now, latestUpdateByUid: homeMe(), latestUpdateType: type, updatedAt: now };
+    if (type === 'comment'){ s.latestCommentAt = now; s.latestCommentByUid = homeMe(); s.latestCommentText = text; s['readAt.' + homeMe()] = now; }
+    return s;
+  }
+  function hrWrite(r, patch, type, text, meta, entryId){
+    var b = dbRef.batch();
+    b.update(homeRef(r.id), Object.assign({}, patch, hrSummary(type, text)));
+    b.set(entryId ? homeRef(r.id).collection('updates').doc(entryId) : homeRef(r.id).collection('updates').doc(), hrEntry(type, text, meta));
+    return b.commit();
+  }
+  function hrFail(what){ return function(e){ console.error('home ' + what + ' failed', e); showPinToast('Couldn’t ' + what + ' — check your connection and try again.', true); }; }
+  function hrSetStatus(r, st){
+    return hrWrite(r, { status: st }, 'status', null, { status: st }).then(function(){
+      showPinToast(st === 'done' ? 'Done — ' + homeNameOf(r.requesterUid) + ' will see it' : (st === 'in_progress' ? 'Started' : 'Reopened'), false, CHECK_SVG);
+    }).catch(hrFail('update it'));
+  }
+  function hrCantDo(r, reason){
+    return hrWrite(r, { status: 'cant_do', cantDoReason: reason || null }, 'cant_do', reason || null, {})
+      .then(function(){ showPinToast(homeNameOf(r.requesterUid) + ' will see you can’t do it', false, CHECK_SVG); }).catch(hrFail('update it'));
+  }
+  function hrPassOn(r, toUid){
+    var parts = (r.participants || []).slice(); if (parts.indexOf(toUid) === -1) parts.push(toUid);
+    return hrWrite(r, { assigneeUid: toUid, participants: parts, status: 'requested', plannedDate: null, linkedActionId: null, linkedByUid: null, cantDoReason: null },
+      'reassigned', null, { fromUid: r.assigneeUid, toUid: toUid })
+      .then(function(){ showPinToast('Passed to ' + homeNameOf(toUid), false, CHECK_SVG); }).catch(hrFail('pass it on'));
+  }
+  function hrWithdraw(r){
+    return hrWrite(r, { status: 'withdrawn' }, 'withdrawn', null, {}, 'withdrawn')
+      .then(function(){ showPinToast('Withdrawn', false, CHECK_SVG); }).catch(hrFail('withdraw it'));
+  }
+  function hrShare(r, v){
+    return hrWrite(r, { visibility: v }, 'visibility', null, { visibility: v })
+      .then(function(){ showPinToast(v === 'home' ? 'Everyone at Home can see it' : 'Only the people in it can see it', false, CHECK_SVG); }).catch(hrFail('change who sees it'));
+  }
+  function hrDelete(r){
+    var now = new Date().toISOString(), b = dbRef.batch();
+    b.update(homeRef(r.id), { deletedAt: now, deletedByUid: homeMe(), updatedAt: now });
+    b.set(homeRef(r.id).collection('updates').doc('deleted'), hrEntry('deleted', null, { hadAction: !!r.linkedActionId }));
+    return b.commit();
+  }
+  // Shaun takes one on: ONE private Action, and the request told where it went, together —
+  // in a transaction that first checks it is still waiting and still his
+  function hrAccept(r, dateStr){
+    if (!dbReady){ showPinToast('You’re offline — try again when you’re connected.', true); return Promise.resolve(); }
+    var now = new Date().toISOString(), aid = uid(), ref = homeRef(r.id);
+    var item = { date: dateStr, originalDate: dateStr, title: r.text, priorityId: null, minVersion: null, status: 'planned',
+      disruptionReason: null, category: 'family', createdAt: now,
+      sourceType: 'home_request', sourceRequestId: r.id, sourceLabel: homeNameOf(r.requesterUid) };
+    if (r.note) item.sourceNote = r.note;
+    return dbRef.runTransaction(function(tx){
+      return tx.get(ref).then(function(snap){
+        var cur = snap.exists ? snap.data() : null;
+        if (!cur || cur.deletedAt) throw { code: 'deleted' };
+        if (cur.status !== 'requested' || cur.assigneeUid !== homeMe()) throw { code: 'already-processed' };
+        tx.set(dbRef.collection('ledger_commitments').doc(aid), item);
+        tx.update(ref, Object.assign({ status: 'planned', plannedDate: dateStr, linkedActionId: aid, linkedByUid: homeMe(), processedAt: now }, hrSummary('planned')));
+        tx.set(ref.collection('updates').doc(), hrEntry('planned', null, { toDate: dateStr }));
+      });
+    }).then(function(){ showPinToast('Planned for ' + rqDayWord(dateStr), false, CHECK_SVG); })
+      .catch(function(e){
+        if (e && e.code === 'already-processed') return;
+        if (e && e.code === 'deleted'){ showPinToast('That request was deleted.', true); return; }
+        console.error('home accept failed', e); showPinToast('Couldn’t plan the request — try again.', true);
+      });
+  }
+  // The request follows Shaun's Action (planned day, in progress, done; back to requested if
+  // the Action is gone) — the same rules as Partner Sharing's, never anything private.
+  var hrSyncing = {};
+  function reconcileHome(){
+    if (home.surface !== 'owner' || !dbReady || !home.reqLoaded || !czLoaded.commitments) return;
+    commitments.forEach(function(c){ shareSeenActions[c.id] = true; });
+    home.requests.forEach(function(r){
+      if (r.assigneeUid !== homeMe() || !r.linkedActionId || r.linkedByUid !== homeMe() || ['planned', 'in_progress', 'done'].indexOf(r.status) === -1 || hrSyncing[r.id]) return;
+      var a = commitments.find(function(c){ return c.id === r.linkedActionId; });
+      if (!a && !rqLinkedMissingSettled(r)) return;
+      if (!rqWanted(r, a)) return;
+      hrSyncing[r.id] = true;
+      var ref = homeRef(r.id);
+      dbRef.runTransaction(function(tx){
+        return tx.get(ref).then(function(snap){
+          if (!snap.exists || snap.data().deletedAt) return;
+          var cur = Object.assign({ id: r.id }, snap.data());
+          if (cur.assigneeUid !== homeMe() || !cur.linkedActionId || ['planned', 'in_progress', 'done'].indexOf(cur.status) === -1) return;
+          var act = commitments.find(function(c){ return c.id === cur.linkedActionId; });
+          if (!act && !rqLinkedMissingSettled(cur)) return;
+          var w = rqWanted(cur, act);
+          if (!w) return;
+          tx.update(ref, Object.assign({}, w.patch, hrSummary(w.events[w.events.length - 1][0])));
+          w.events.forEach(function(e, i){ tx.set(ref.collection('updates').doc(), hrEntry(e[0], null, Object.assign({ order: i }, e[1]))); });
+        });
+      }).catch(function(e){ console.error('home sync failed: ' + ((e && e.code) || '') + ' ' + ((e && e.message) || e)); })
+        .then(function(){ delete hrSyncing[r.id]; });
+    });
+  }
+
+  // ---- the history: people above facts, said from the facts recorded ----
+  function hrEventText(e, r){
+    var m = e.metadata || {}, who = homeWho(e.actorUid);
+    if (e.type === 'created'){
+      if (r.createdByUid && r.createdByUid !== r.requesterUid && e.actorUid === r.createdByUid)
+        return 'Created by ' + (e.actorUid === homeMe() ? 'you' : homeNameOf(e.actorUid)) + ' on ' + homeWhose(r.requesterUid) + ' behalf';
+      if (m.renewedFrom) return who + ' moved it to upcoming, after withdrawing it';
+      return who === 'You' ? 'You asked' : 'Asked by ' + who;
+    }
+    if (e.type === 'renewed') return who + ' moved it to upcoming, as a new request';
+    if (e.type === 'planned') return 'Planned for ' + rqDayWord(m.toDate);
+    if (e.type === 'moved') return 'Moved to ' + rqDayWord(m.toDate);
+    if (e.type === 'dismissed') return 'Set aside';
+    if (e.type === 'withdrawn') return who + (who === 'You' ? ' withdrew it' : ' withdrew it');
+    if (e.type === 'cant_do') return who + (who === 'You' ? ' can’t do it' : ' can’t do it') + (e.text ? ': “' + e.text + '”' : '');
+    if (e.type === 'reassigned') return who + ' passed it to ' + (m.toUid === homeMe() ? 'you' : homeNameOf(m.toUid));
+    if (e.type === 'visibility') return m.visibility === 'home' ? 'Shared with everyone at Home' : 'Made private to the people in it';
+    if (e.type === 'deleted') return 'Deleted';
+    if (e.type === 'status'){
+      if (m.status === 'done') return 'Done ✓';
+      if (m.status === 'in_progress') return 'Started';
+      if (m.status === 'planned') return 'Reopened';
+      if (m.status === 'requested') return 'Back to requested';
+    }
+    return 'Updated';
+  }
+  function hrWatchTimeline(r, el, onChange){
+    if (rqTimelineStop){ rqTimelineStop(); rqTimelineStop = null; }
+    var stop = homeRef(r.id).collection('updates').onSnapshot(function(snap){
+      var shown = document.body.contains(el) && !!el.closest('.sheet-backdrop.open');
+      if (!shown){ stop(); if (rqTimelineStop === stop) rqTimelineStop = null; return; }
+      var cur = homeReq(r.id) || r;
+      var evs = snap.docs.map(function(d){
+        var x = d.data({ serverTimestamps: 'estimate' }) || {};
+        x.at = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date(x.createdAt || Date.now());
+        return x;
+      }).sort(function(a, b){ return (a.at - b.at) || (((a.metadata || {}).order || 0) - ((b.metadata || {}).order || 0)); });
+      el.innerHTML = '';
+      if (!evs.length){ var em = document.createElement('p'); em.className = 'rq-empty'; em.textContent = 'No updates yet'; el.appendChild(em); }
+      evs.forEach(function(e){
+        var item = document.createElement('div');
+        var when = document.createElement('span'); when.className = 'rq-when'; when.textContent = rqWhen(e.at);
+        if (e.type === 'comment'){
+          item.className = 'rq-ev human' + (e.actorUid === homeMe() ? ' self' : '');
+          var head = document.createElement('div'); head.className = 'rq-ev-head';
+          var w = document.createElement('span'); w.className = 'rq-who'; w.textContent = homeWho(e.actorUid);
+          head.appendChild(w); head.appendChild(when);
+          var p = document.createElement('p'); p.className = 'rq-text'; p.textContent = e.text || '';
+          item.appendChild(head); item.appendChild(p);
+        } else {
+          item.className = 'rq-ev sys' + (e.type === 'status' && (e.metadata || {}).status === 'done' ? ' done' : '');
+          var s = document.createElement('span'); s.className = 'rq-sys'; s.textContent = hrEventText(e, cur);
+          item.appendChild(s); item.appendChild(when);
+        }
+        el.appendChild(item);
+      });
+      if (onChange) onChange();
+    }, function(err){
+      console.warn('home updates unavailable', err && err.code);
+      if (document.body.contains(el)){ el.innerHTML = ''; var p = document.createElement('p'); p.className = 'rq-empty'; p.textContent = 'Updates aren’t available right now.'; el.appendChild(p); }
+    });
+    rqTimelineStop = stop;
+  }
+
+  // ---- Home: the list ----
+  function openHomeSheet(){
+    if (!homeOn()) return;
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Home', '<span id="hmWho"></span>', '') +
+      '<div class="act-rows rq-add-rows"><button type="button" class="act-row" id="hmNew"><span class="act-ic">' + BK_PLUS_SVG + '</span>' +
+        '<span class="act-label">New request</span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button></div>' +
+      '<div id="hmList"></div>');
+    var mark = sh.querySelector('#hmList');
+    function paint(){
+      if (!document.body.contains(mark)){ home.listRefresh = null; return; }
+      var names = homeActiveMembers().map(function(m){ return m.uid === homeMe() ? null : m.displayName; }).filter(Boolean);
+      sh.querySelector('#hmWho').textContent = names.length ? 'You, ' + names.join(', ') : '';
+      homeListInto(mark);
+    }
+    home.detailRefresh = null;
+    home.listRefresh = paint;
+    paint();
+    sh.querySelector('#hmNew').addEventListener('click', function(){ openHomeNew(); });
+  }
+
+  // ---- a new request: who it's for, (for an admin) who asked, what, when, who sees it ----
+  function openHomeNew(){
+    var me = homeMe(), admin = homeIsAdmin();
+    var people = homeActiveMembers().slice().sort(function(a, b){ return (a.displayName || '').localeCompare(b.displayName || ''); });
+    var requester = me, assignee = null, timing = 'today', shared = false;
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'New request', '', '') +
+      (admin ? '<div class="field"><label>Asked by</label><div class="bk-filter-pop" id="hnFrom" role="radiogroup" aria-label="Asked by"></div>' +
+        '<p class="hn-note" id="hnFromNote" hidden></p></div>' : '') +
+      '<div class="field"><label>For</label><div class="bk-filter-pop" id="hnFor" role="radiogroup" aria-label="For"></div></div>' +
+      '<div class="field"><label for="hnText" id="hnTextLabel">What’s needed?</label><textarea id="hnText" rows="2" maxlength="280"></textarea></div>' +
+      '<div class="field"><label>When</label><div class="bk-filter-pop" id="hnTiming" role="radiogroup" aria-label="When">' +
+        [['today', 'Today'], ['week', 'This week'], ['date', 'Choose date'], ['none', 'No preference']].map(function(t){
+          return '<button type="button" class="bk-filter-chip' + (timing === t[0] ? ' sel' : '') + '" role="radio" aria-checked="' + (timing === t[0]) + '" data-hn-timing="' + t[0] + '">' + t[1] + '</button>';
+        }).join('') + '</div></div>' +
+      '<div id="hnDateField" hidden>' + fieldDate('hnDate', 'Date', nextDateStr(todayStr())) + '</div>' +
+      '<div class="field"><label for="hnNote">Note <span class="pp-opt">optional</span></label><textarea id="hnNote" rows="2" maxlength="500"></textarea></div>' +
+      '<button type="button" class="cz-opt" id="hnShare" role="switch" aria-checked="false">' +
+        '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+        '<span class="cz-opt-text"><span class="cz-opt-title">Everyone at Home can see it</span>' +
+        '<span class="cz-opt-sub">Otherwise only the people in it.</span></span></button>' +
+      '<p class="auth-error" id="hnErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="hnSave">Send request</button>');
+    function chips(el, list, sel, attr){
+      el.innerHTML = '';
+      list.forEach(function(m){
+        var b = document.createElement('button'); b.type = 'button';
+        b.className = 'bk-filter-chip' + (m.uid === sel ? ' sel' : ''); b.setAttribute('role', 'radio');
+        b.setAttribute('aria-checked', m.uid === sel ? 'true' : 'false');
+        b.dataset[attr] = String(people.indexOf(m));
+        b.textContent = m.uid === me ? 'Me' : m.displayName;
+        el.appendChild(b);
+      });
+    }
+    function paint(){
+      if (admin){
+        chips(sh.querySelector('#hnFrom'), people, requester, 'hnFrom');
+        var note = sh.querySelector('#hnFromNote');
+        note.hidden = requester === me;
+        if (requester !== me) note.textContent = 'You’re adding it for ' + homeNameOf(requester) + '. It shows as created by you on their behalf.';
+      }
+      if (assignee === requester) assignee = null;
+      chips(sh.querySelector('#hnFor'), people.filter(function(m){ return m.uid !== requester; }), assignee, 'hnFor');
+      sh.querySelector('#hnTextLabel').textContent = requester === me ? 'What’s needed?' : 'What did ' + homeNameOf(requester) + ' ask for?';
+      wire();
+    }
+    function wire(){
+      sh.querySelectorAll('[data-hn-from]').forEach(function(b){ b.onclick = function(){ requester = people[Number(b.dataset.hnFrom)].uid; paint(); }; });
+      sh.querySelectorAll('[data-hn-for]').forEach(function(b){ b.onclick = function(){ assignee = people[Number(b.dataset.hnFor)].uid; paint(); }; });
+    }
+    paint();
+    sh.querySelectorAll('[data-hn-timing]').forEach(function(b){
+      b.addEventListener('click', function(){
+        timing = b.dataset.hnTiming;
+        sh.querySelectorAll('[data-hn-timing]').forEach(function(x){ x.classList.toggle('sel', x === b); x.setAttribute('aria-checked', x === b ? 'true' : 'false'); });
+        sh.querySelector('#hnDateField').hidden = timing !== 'date';
+      });
+    });
+    var share = sh.querySelector('#hnShare');
+    share.addEventListener('click', function(){ shared = !shared; share.classList.toggle('on', shared); share.setAttribute('aria-checked', shared ? 'true' : 'false'); });
+    var text = sh.querySelector('#hnText'), noteEl = sh.querySelector('#hnNote'), err = sh.querySelector('#hnErr'), save = sh.querySelector('#hnSave');
+    save.addEventListener('click', function(){
+      var t = text.value.trim(), n = noteEl.value.trim();
+      if (!assignee){ err.textContent = 'Choose who it’s for.'; return; }
+      if (!t){ err.textContent = 'Say what’s needed.'; text.focus(); return; }
+      var d = timing === 'date' ? sh.querySelector('#hnDate').value : null;
+      if (timing === 'date' && !d){ err.textContent = 'Choose a date.'; return; }
+      if (!dbRef){ err.textContent = 'You’re offline — try again when you’re connected.'; return; }
+      save.disabled = true; err.textContent = '';
+      var now = new Date().toISOString(), ref = dbRef.collection(HOME_REQ).doc(), b = dbRef.batch();
+      var parts = [requester, assignee]; if (parts.indexOf(me) === -1) parts.push(me);
+      var readAt = {}; readAt[me] = now;
+      b.set(ref, { homeId: home.me.homeId, text: t.slice(0, 280), note: n ? n.slice(0, 500) : null, requestedTiming: timing, requestedDate: d || null,
+        requesterUid: requester, assigneeUid: assignee, createdByUid: me, participants: parts, visibility: shared ? 'home' : 'private',
+        status: 'requested', plannedDate: null, linkedActionId: null, createdAt: now, updatedAt: now,
+        latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created', readAt: readAt });
+      b.set(ref.collection('updates').doc('created'), hrEntry('created', null, { timing: timing, date: d || null, onBehalf: requester !== me }));
+      b.commit().then(function(){
+        // Shaun returns to the Home list; in the portal, the page itself is that list
+        if (home.surface === 'owner') openHomeSheet(); else homeCloseAll();
+        showPinToast('Sent to ' + homeNameOf(assignee), false, CHECK_SVG);
+      }).catch(function(e){ console.error('home request failed', e); save.disabled = false; err.textContent = 'Couldn’t send — check your connection and try again.'; });
+    });
+    setTimeout(function(){ try { (admin ? sh.querySelector('#hnFor .bk-filter-chip') : text).focus(); } catch(e){} }, 60);
+  }
+
+  // ---- a request, opened: where it stands, what can happen next, its history ----
+  function openHomeDetail(rid){
+    var r0 = homeReq(rid);
+    if (!r0) return;
+    var sh = homeHost().open('<div class="sheet-handle"></div>' +
+      '<div class="sheet-head rq-head"><div class="sheet-title-wrap">' +
+        '<p class="rq-kicker" id="hdKicker"></p><div class="sheet-title rq-title" id="hdTitle"></div>' +
+      '</div><button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<p class="rq-state" id="hdState"></p>' +
+      '<p class="rq-meta" id="hdMeta"></p>' +
+      '<div class="rq-act" id="hdAct"></div>' +
+      '<div class="rq-own" id="hdOwn"></div>' +
+      '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
+      '<div class="rq-tl" id="hdTimeline"><p class="rq-empty">Loading…</p></div>' +
+      rqComposerHtml() +
+      '<div id="hdShareWrap"></div>' +
+      '<div id="hdDelWrap"></div>');
+    var mark = sh.querySelector('#hdState');
+    function cur(){ return homeReq(rid); }
+    function open(){ return document.body.contains(mark) && !!mark.closest('.sheet-backdrop.open'); }
+    function btn(id, label, cls){ return '<button type="button" class="bk-btn' + (cls ? ' ' + cls : '') + '" id="' + id + '">' + label + '</button>'; }
+    function paint(){
+      var r = cur();
+      if (!r || !open()) return false;
+      var me = homeMe(), mine = r.assigneeUid === me, asker = r.requesterUid === me || r.createdByUid === me;
+      sh.querySelector('#hdKicker').textContent = hrKicker(r) + (r.visibility === 'home' ? ' · everyone at Home' : '');
+      sh.querySelector('#hdTitle').textContent = r.text;
+      var st = sh.querySelector('#hdState');
+      st.textContent = hrStatusLabel(r) + (r.status === 'cant_do' && r.cantDoReason ? ' — “' + r.cantDoReason + '”' : '');
+      st.className = 'rq-state st-' + hrStatusClass(r);
+      sh.querySelector('#hdMeta').textContent = [requestedWhenLabel(r), requestTimingLabel(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ');
+      var act = sh.querySelector('#hdAct'), html = '';
+      var canPass = (mine || homeIsAdmin()) && ['requested', 'planned', 'in_progress', 'cant_do'].indexOf(r.status) > -1;
+      var a = (home.surface === 'owner' && r.linkedActionId && r.linkedByUid === me) ? commitments.find(function(c){ return c.id === r.linkedActionId; }) : null;
+      if (mine && r.status === 'requested'){
+        html = home.surface === 'owner'
+          ? btn('hdToday', BK_PLUS_SVG + 'Today', 'gold') + btn('hdDay', UI_ICON.calendar + 'Choose day')
+          : btn('hdStart', 'Start', 'gold') + btn('hdDone', 'Done');
+        html += btn('hdCant', 'Can’t do', 'ib-dismiss');
+      } else if (mine && a){
+        html = '';
+      } else if (mine && (r.status === 'in_progress' || r.status === 'planned')){
+        html = btn('hdDone', 'Done', 'gold') + btn('hdCant', 'Can’t do', 'ib-dismiss');
+      } else if (mine && (r.status === 'done' || r.status === 'cant_do')){
+        html = btn('hdReopen', 'Reopen');
+      }
+      if (canPass) html += btn('hdPass', 'Pass on');
+      act.innerHTML = html ? '<div class="ib-actions">' + html + '</div>' : '';
+      if (a){
+        // Shaun's Action stays private: its title and state for him, and a way in
+        var link = document.createElement('button'); link.type = 'button'; link.className = 'rq-action'; link.id = 'hdAction';
+        link.innerHTML = '<span class="rq-action-k">Your action</span><span class="rq-action-t"></span><span class="rq-action-m"></span><span class="rq-action-chev">' + UI_ICON.chevronRight + '</span>';
+        link.querySelector('.rq-action-t').textContent = a.title;
+        link.querySelector('.rq-action-m').textContent = (a.status === 'completed' ? 'Done' : (a.status === 'partial' ? 'In progress' : 'Planned')) + ' · ' + shortDayLabel(a.date);
+        link.addEventListener('click', function(){ openCommitmentSheet(a); });
+        act.insertBefore(link, act.firstChild);
+      }
+      function on(id, fn){ var el = sh.querySelector('#' + id); if (el) el.addEventListener('click', fn); }
+      on('hdToday', function(){ hrAccept(cur(), todayStr()); });
+      on('hdDay', function(){ var x = cur(); openRequestDaySheet(x, hrAccept, 'From ' + homeNameOf(x.requesterUid), function(){ openHomeDetail(rid); }); });
+      on('hdStart', function(){ hrSetStatus(cur(), 'in_progress'); });
+      on('hdDone', function(){ hrSetStatus(cur(), 'done'); });
+      on('hdReopen', function(){ var x = cur(); if (x.status === 'cant_do') hrWrite(x, { status: 'requested', cantDoReason: null }, 'status', null, { status: 'requested' }).catch(hrFail('reopen it')); else hrSetStatus(x, 'in_progress'); });
+      on('hdCant', function(){ openHomeCantDo(cur()); });
+      on('hdPass', function(){ openHomePass(cur()); });
+      var own = sh.querySelector('#hdOwn');
+      own.innerHTML = asker && r.status === 'requested'
+        ? '<button type="button" class="btn-link" id="hdEdit">Edit request</button><button type="button" class="btn-link rq-withdraw" id="hdWithdraw">Withdraw</button>' : '';
+      on('hdEdit', function(){ openHomeEdit(cur()); });
+      on('hdWithdraw', function(){ if (confirm('Withdraw this request?')) hrWithdraw(cur()); });
+      var shareWrap = sh.querySelector('#hdShareWrap');
+      if (r.createdByUid === me || homeIsAdmin()){
+        if (!shareWrap.firstChild){
+          shareWrap.innerHTML = '<button type="button" class="cz-opt hd-share" id="hdShare" role="switch">' +
+            '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+            '<span class="cz-opt-text"><span class="cz-opt-title">Everyone at Home can see it</span>' +
+            '<span class="cz-opt-sub">Otherwise only the people in it.</span></span></button>';
+          shareWrap.querySelector('#hdShare').addEventListener('click', function(){ var x = cur(); hrShare(x, x.visibility === 'home' ? 'private' : 'home'); });
+        }
+        var sw = shareWrap.querySelector('#hdShare');
+        sw.classList.toggle('on', r.visibility === 'home'); sw.setAttribute('aria-checked', r.visibility === 'home' ? 'true' : 'false');
+      } else shareWrap.innerHTML = '';
+      var dw = sh.querySelector('#hdDelWrap');
+      if (asker){
+        if (!dw.firstChild){
+          dw.innerHTML = '<button type="button" class="delete-btn rq-del-btn" id="hdDelBtn">Delete request</button>';
+          dw.querySelector('#hdDelBtn').addEventListener('click', function(){ openHomeDelete(cur()); });
+        }
+      } else dw.innerHTML = '';
+      return true;
+    }
+    paint();
+    home.listRefresh = null;
+    home.detailRefresh = function(){ if (!paint()){ home.detailRefresh = null; return; } hrMarkRead(cur()); };
+    hrWatchTimeline(r0, sh.querySelector('#hdTimeline'), function(){ if (open()) hrMarkRead(cur()); });
+    var ta = sh.querySelector('#rqText'), send = sh.querySelector('#rqSend');
+    ta.placeholder = 'Add an update…';
+    function size(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 140) + 'px'; }
+    ta.addEventListener('input', function(){ send.disabled = !ta.value.trim(); size(); });
+    send.addEventListener('click', function(){
+      var t = ta.value.trim().slice(0, 500), r = cur();
+      if (!t || !r) return;
+      send.disabled = true; ta.disabled = true;
+      hrWrite(r, {}, 'comment', t, {}).then(function(){ ta.value = ''; ta.disabled = false; size(); })
+        .catch(function(e){ console.error('home update failed', e); ta.disabled = false; send.disabled = false; showPinToast('Couldn’t send the update — try again.', true); });
+    });
+    hrMarkRead(r0);
+  }
+  function openHomeEdit(r){
+    var timing = r.requestedTiming || 'none';
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Edit request', '', '') +
+      '<div class="field"><label for="heText">What’s needed?</label><textarea id="heText" rows="2" maxlength="280"></textarea></div>' +
+      '<div class="field"><label>When</label><div class="bk-filter-pop" id="heTiming" role="radiogroup">' +
+        [['today', 'Today'], ['week', 'This week'], ['date', 'Choose date'], ['none', 'No preference']].map(function(t){
+          return '<button type="button" class="bk-filter-chip' + (timing === t[0] ? ' sel' : '') + '" role="radio" aria-checked="' + (timing === t[0]) + '" data-he-timing="' + t[0] + '">' + t[1] + '</button>';
+        }).join('') + '</div></div>' +
+      '<div id="heDateField"' + (timing === 'date' ? '' : ' hidden') + '>' + fieldDate('heDate', 'Date', r.requestedDate || nextDateStr(todayStr())) + '</div>' +
+      '<div class="field"><label for="heNote">Note <span class="pp-opt">optional</span></label><textarea id="heNote" rows="2" maxlength="500"></textarea></div>' +
+      '<p class="auth-error" id="heErr" role="alert"></p><button type="button" class="btn-primary" id="heSave">Save</button>');
+    sh.querySelector('#heText').value = r.text; sh.querySelector('#heNote').value = r.note || '';
+    sh.querySelectorAll('[data-he-timing]').forEach(function(b){
+      b.addEventListener('click', function(){
+        timing = b.dataset.heTiming;
+        sh.querySelectorAll('[data-he-timing]').forEach(function(x){ x.classList.toggle('sel', x === b); x.setAttribute('aria-checked', x === b ? 'true' : 'false'); });
+        sh.querySelector('#heDateField').hidden = timing !== 'date';
+      });
+    });
+    sh.querySelector('#heSave').addEventListener('click', function(){
+      var t = sh.querySelector('#heText').value.trim(), n = sh.querySelector('#heNote').value.trim(), err = sh.querySelector('#heErr');
+      if (!t){ err.textContent = 'Say what’s needed.'; return; }
+      if (!homeReq(r.id)){ err.textContent = 'This request was deleted.'; return; }
+      var d = timing === 'date' ? sh.querySelector('#heDate').value : null;
+      homeRef(r.id).update({ text: t.slice(0, 280), note: n ? n.slice(0, 500) : null, requestedTiming: timing, requestedDate: d || null, updatedAt: new Date().toISOString() })
+        .then(function(){ openHomeDetail(r.id); showPinToast('Request updated', false, CHECK_SVG); })
+        .catch(function(e){ console.error(e); err.textContent = 'It’s already been picked up, so it can’t be changed — add an update instead.'; });
+    });
+  }
+  function openHomeCantDo(r){
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Can’t do it', '<span id="hcWho"></span>', '') +
+      '<div class="field"><label for="hcReason">Why <span class="pp-opt">optional</span></label><textarea id="hcReason" rows="2" maxlength="200" placeholder="e.g. Out until Friday"></textarea></div>' +
+      '<button type="button" class="btn-primary" id="hcSave">Tell ' + escHome(homeNameOf(r.requesterUid)) + '</button>' +
+      '<button type="button" class="btn-quiet" id="hcBack">Back</button>');
+    sh.querySelector('#hcWho').textContent = r.text;
+    sh.querySelector('#hcBack').addEventListener('click', function(){ openHomeDetail(r.id); });
+    sh.querySelector('#hcSave').addEventListener('click', function(){
+      var reason = sh.querySelector('#hcReason').value.trim().slice(0, 200);
+      hrCantDo(r, reason).then(function(){ openHomeDetail(r.id); });
+    });
+  }
+  function escHome(t){ return String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function openHomePass(r){
+    var people = homeActiveMembers().filter(function(m){ return m.uid !== r.assigneeUid && m.uid !== r.requesterUid; });
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Pass it on', '<span id="hpWhat"></span>', '') +
+      (people.length ? '<div class="act-rows" id="hpList"></div>' : '<p class="rq-empty">There’s nobody else to pass it to.</p>') +
+      '<button type="button" class="btn-quiet" id="hpBack">Back</button>');
+    sh.querySelector('#hpWhat').textContent = r.text;
+    var list = sh.querySelector('#hpList');
+    people.forEach(function(m){
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'act-row';
+      b.innerHTML = '<span class="act-label"></span><span class="act-chev">' + UI_ICON.chevronRight + '</span>';
+      b.querySelector('.act-label').textContent = m.uid === homeMe() ? 'Me' : m.displayName;
+      b.addEventListener('click', function(){ b.disabled = true; hrPassOn(r, m.uid).then(function(){ openHomeDetail(r.id); }); });
+      list.appendChild(b);
+    });
+    sh.querySelector('#hpBack').addEventListener('click', function(){ openHomeDetail(r.id); });
+  }
+  function openHomeDelete(r){
+    if (rqTimelineStop){ rqTimelineStop(); rqTimelineStop = null; }
+    home.detailRefresh = null;
+    var host = homeHost();
+    rqConfirmDelete(r, 'home', host.open, function(){ openHomeDetail(r.id); },
+      function(){ homeCloseAll(); showPinToast('Request deleted', false, CHECK_SVG); }, hrDelete);
+  }
+
+  // ---- Shaun's Today: one quiet row among the utilities ----
+  function renderHomeRow(){
+    var wrap = document.getElementById('homeRowSection');
+    if (!wrap) return;
+    if (!homeOn() || viewedDate !== todayStr()){ wrap.innerHTML = ''; return; }
+    var me = homeMe();
+    var mineN = home.requests.filter(function(r){ return r.assigneeUid === me && hrOpen(r); }).length;
+    var unread = home.requests.filter(hrUnread).length;
+    var open = home.requests.filter(hrOpen).length;
+    wrap.innerHTML = '<button type="button" class="dn-row hm-row" id="homeRowBtn"><span class="dn-label">Home</span><span class="dn-rule"></span>' +
+      '<span class="dn-value" id="homeRowValue"></span><span class="chev">' + UI_ICON.chevronRight + '</span></button>';
+    document.getElementById('homeRowValue').textContent = unread ? unread + (unread === 1 ? ' update' : ' updates')
+      : (mineN ? mineN + ' for you' : (open ? open + ' open' : 'Nothing open'));
+    document.getElementById('homeRowBtn').addEventListener('click', openHomeSheet);
+  }
+  // Inbox: what is Shaun's to decide at Home — new, and processed with news
+  function homeInboxItems(){
+    if (!homeOn()) return [];
+    var me = homeMe();
+    var fresh = home.requests.filter(function(r){ return r.assigneeUid === me && r.status === 'requested'; })
+      .sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1; });
+    var upd = home.requests.filter(function(r){ return !(r.assigneeUid === me && r.status === 'requested') && hrUnread(r) && (r.participants || []).indexOf(me) > -1; });
+    return fresh.map(function(r){ return { r: r, kind: 'new' }; }).concat(upd.map(function(r){ return { r: r, kind: 'update' }; }));
+  }
+
+  // ---- Settings → Home (Shaun): set it up, the people, earlier requests ----
+  function renderHomeSettings(){
+    var wrap = document.getElementById('setHome');
+    if (!wrap || home.surface !== 'owner') return;
+    var html = '<span class="set-group-label">Home</span>';
+    if (!homeOn()){
+      html += '<div class="set-card">' + settingsRow('setHomeCreate', 'Set up Home', '') + '</div>' +
+        '<p class="set-note">One shared place for requests between you, Abi and the people who help at home. Never your Ledger.</p>';
+    } else {
+      var legacy = sharedRequests.filter(function(r){ return !r.migratedTo; }).length;
+      var mig = home.migration;
+      html += '<div class="set-card">' +
+        settingsRow('setHomeOpen', 'Requests', String(home.requests.filter(hrOpen).length || '')) +
+        settingsRow('setHomePeople', 'People', String(homeActiveMembers().length)) +
+        (legacy ? settingsRow('setHomeMigrate', 'Bring in requests with ' + escHome(partnerName()), legacy + (mig && mig.status === 'running' ? ' · moving…' : '')) : '') +
+      '</div>' +
+      (mig && mig.status === 'failed' ? '<p class="set-note">Couldn’t move them yet: <span id="setHomeMigErr"></span></p>' : '') +
+      (legacy ? '<p class="set-note">Earlier requests move into Home and stay private to the two of you.</p>' : '');
+    }
+    wrap.innerHTML = html;
+    var c = document.getElementById('setHomeCreate'); if (c) c.addEventListener('click', createHome);
+    var o = document.getElementById('setHomeOpen'); if (o) o.addEventListener('click', openHomeSheet);
+    var pe = document.getElementById('setHomePeople'); if (pe) pe.addEventListener('click', openHomePeople);
+    var mg = document.getElementById('setHomeMigrate'); if (mg) mg.addEventListener('click', startHomeMigration);
+    var me2 = document.getElementById('setHomeMigErr'); if (me2) me2.textContent = (home.migration && home.migration.error) || '';
+  }
+  function createHome(){
+    var me = homeMe(), now = new Date().toISOString(), m = shareMember();
+    var myName = (m && m.ownerName) || (authProfile && authProfile.displayName) || 'Me';
+    dbRef.collection('ledger_homes').doc(me).set({ name: 'Home', ownerUid: me, createdAt: now, updatedAt: now }).then(function(){
+      var b = dbRef.batch();
+      b.set(dbRef.collection(HOME_MEMBERS).doc(me), { homeId: me, role: 'admin', status: 'active', displayName: myName.slice(0, 40), label: null, addedByUid: me, addedAt: now, updatedAt: now });
+      if (m && m.active) b.set(dbRef.collection(HOME_MEMBERS).doc(m.partnerUid), { homeId: me, role: 'admin', status: 'active', displayName: (m.displayName || 'Partner').slice(0, 40), label: null, addedByUid: me, addedAt: now, updatedAt: now });
+      return b.commit();
+    }).then(function(){ showPinToast('Home is set up', false, CHECK_SVG); })
+      .catch(function(e){ console.error('home setup failed', e); showPinToast('Couldn’t set up Home — the updated rules may not be published yet.', true); });
+  }
+  function startHomeMigration(){
+    if (!confirm('Move your requests with ' + partnerName() + ' into Home? They stay private to the two of you, with their history and any linked Actions.')) return;
+    dbRef.collection('ledger_meta').doc('homeMigration').set({ status: 'requested', requestedBy: homeMe(), requestedAt: new Date().toISOString() })
+      .then(function(){ showPinToast('Moving them into Home…', false, CHECK_SVG); })
+      .catch(hrFail('start that'));
+  }
+  function watchHomeMigration(){
+    dbRef.collection('ledger_meta').doc('homeMigration').onSnapshot(function(doc){
+      var prev = home.migration && home.migration.status;
+      home.migration = doc.exists ? doc.data() : null;
+      if (prev === 'running' && home.migration && home.migration.status === 'done')
+        showPinToast((home.migration.migrated || 0) + ' request' + (home.migration.migrated === 1 ? '' : 's') + ' moved into Home', false, CHECK_SVG);
+      renderHomeSettings();
+    }, function(){});
+  }
+  // the people at Home: only Shaun adds and removes them; removing is a state, so their
+  // history stays and their access ends at once
+  function openHomePeople(){
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead(UI_ICON.people, 'People at Home', 'Only you add or remove people.', '') +
+      '<div class="act-rows" id="hpeList"></div>' +
+      '<div class="act-rows rq-add-rows"><button type="button" class="act-row" id="hpeAdd"><span class="act-ic">' + BK_PLUS_SVG + '</span><span class="act-label">Add someone</span>' +
+        '<span class="act-chev">' + UI_ICON.chevronRight + '</span></button></div>');
+    var list = sh.querySelector('#hpeList');
+    home.detailRefresh = null;
+    home.listRefresh = function(){ if (!document.body.contains(list)){ home.listRefresh = null; return; } paintPeople(); };
+    paintPeople();
+    sh.querySelector('#hpeAdd').addEventListener('click', openHomeAdd);
+    function paintPeople(){
+    list.innerHTML = '';
+    home.members.slice().sort(function(a, b){ return (a.status === b.status ? 0 : (a.status === 'active' ? -1 : 1)) || (a.role === b.role ? 0 : (a.role === 'admin' ? -1 : 1)); }).forEach(function(m){
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'act-row' + (m.status === 'removed' ? ' hm-removed' : '');
+      b.innerHTML = '<span class="act-label lc-row-x"><span class="lc-row-t"></span><span class="lc-row-m"></span></span>' + (m.uid === homeMe() ? '' : '<span class="act-chev">' + UI_ICON.chevronRight + '</span>');
+      b.querySelector('.lc-row-t').textContent = m.displayName + (m.uid === homeMe() ? ' (you)' : '');
+      b.querySelector('.lc-row-m').textContent = [m.label, m.role === 'admin' ? 'Admin — sees every request' : 'Sees the requests they’re in', m.status === 'removed' ? 'Removed' : ''].filter(Boolean).join(' · ');
+      if (m.uid !== homeMe()) b.addEventListener('click', function(){ openHomeMemberSheet(m); });
+      list.appendChild(b);
+    });
+    }
+  }
+  function openHomeMemberSheet(m){
+    var active = m.status === 'active';
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', '<span id="hmmName"></span>', '<span id="hmmSub"></span>', '') +
+      (active ? '<p class="set-note">Removing ' + escHome(m.displayName) + ' ends their access at once. Their requests and history stay.</p>' +
+          '<button type="button" class="delete-btn" id="hmmRemove">Remove from Home</button>'
+        : '<button type="button" class="btn-primary" id="hmmBack">Add back to Home</button>') +
+      '<button type="button" class="btn-quiet" id="hmmDone">Back</button>');
+    sh.querySelector('#hmmName').textContent = m.displayName;
+    sh.querySelector('#hmmSub').textContent = m.role === 'admin' ? 'Admin' : (m.label || 'Member');
+    var ref = dbRef.collection(HOME_MEMBERS).doc(m.uid), now = new Date().toISOString();
+    var base = { homeId: m.homeId, role: m.role, displayName: m.displayName, label: m.label || null, addedByUid: m.addedByUid || homeMe(), addedAt: m.addedAt || now, updatedAt: now };
+    var rm = sh.querySelector('#hmmRemove');
+    if (rm) rm.addEventListener('click', function(){
+      if (!confirm('Remove ' + m.displayName + ' from Home?')) return;
+      ref.set(Object.assign({}, base, { status: 'removed', removedByUid: homeMe(), removedAt: now })).then(function(){ openHomePeople(); showPinToast(m.displayName + ' removed', false, CHECK_SVG); }).catch(hrFail('remove them'));
+    });
+    var bk = sh.querySelector('#hmmBack');
+    if (bk) bk.addEventListener('click', function(){
+      ref.set(Object.assign({}, base, { status: 'active', removedByUid: null, removedAt: null })).then(function(){ openHomePeople(); showPinToast(m.displayName + ' is back', false, CHECK_SVG); }).catch(hrFail('add them back'));
+    });
+    sh.querySelector('#hmmDone').addEventListener('click', openHomePeople);
+  }
+  // someone new: an account that already has its role (set in the Firebase Console)
+  function openHomeAdd(){
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Add someone', 'Their account needs its role first: Firebase Console → ledger_users → their Account ID, role: household.', '') +
+      '<div class="act-rows" id="haList"><p class="rq-empty">Looking…</p></div>' +
+      '<div id="haForm" hidden>' +
+        '<div class="field"><label for="haName">Their name</label><input type="text" id="haName" maxlength="40" autocomplete="off"></div>' +
+        '<div class="field"><label for="haLabel">Role at home <span class="pp-opt">optional</span></label><input type="text" id="haLabel" maxlength="40" autocomplete="off" placeholder="e.g. Nanny"></div>' +
+        '<p class="auth-error" id="haErr" role="alert"></p><button type="button" class="btn-primary" id="haSave">Add to Home</button></div>' +
+      '<button type="button" class="btn-quiet" id="haBack">Back</button>');
+    sh.querySelector('#haBack').addEventListener('click', openHomePeople);
+    var chosen = null;
+    dbRef.collection('ledger_users').get().then(function(snap){
+      var at = {}; home.members.forEach(function(m){ if (m.status === 'active') at[m.uid] = true; });
+      var cands = snap.docs.map(function(d){ return Object.assign({ uid: d.id }, d.data()); })
+        .filter(function(u){ return (u.role === 'household' || u.role === 'partner') && !at[u.uid]; });
+      var list = sh.querySelector('#haList'); list.innerHTML = '';
+      if (!cands.length){ var p = document.createElement('p'); p.className = 'rq-empty'; p.textContent = 'Nobody to add yet. Give their account the household role first.'; list.appendChild(p); return; }
+      cands.forEach(function(u){
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'act-row';
+        b.innerHTML = '<span class="act-label lc-row-x"><span class="lc-row-t"></span><span class="lc-row-m"></span></span>';
+        b.querySelector('.lc-row-t').textContent = u.displayName || u.email || u.uid;
+        b.querySelector('.lc-row-m').textContent = (u.role === 'partner' ? 'Partner account · admin' : 'Household account') + (u.email ? ' · ' + u.email : '');
+        b.addEventListener('click', function(){
+          chosen = u;
+          list.querySelectorAll('.act-row').forEach(function(x){ x.classList.toggle('on', x === b); });
+          sh.querySelector('#haForm').hidden = false;
+          sh.querySelector('#haName').value = u.displayName || '';
+          sh.querySelector('#haName').focus();
+        });
+        list.appendChild(b);
+      });
+    }).catch(function(e){ console.error(e); sh.querySelector('#haList').textContent = 'Couldn’t load accounts — check your connection.'; });
+    sh.querySelector('#haSave').addEventListener('click', function(){
+      var name = sh.querySelector('#haName').value.trim(), label = sh.querySelector('#haLabel').value.trim(), err = sh.querySelector('#haErr');
+      if (!chosen){ err.textContent = 'Choose who to add.'; return; }
+      if (!name){ err.textContent = 'Add their name.'; return; }
+      var now = new Date().toISOString();
+      dbRef.collection(HOME_MEMBERS).doc(chosen.uid).set({ homeId: homeMe(), role: chosen.role === 'partner' ? 'admin' : 'member', status: 'active',
+        displayName: name.slice(0, 40), label: label ? label.slice(0, 40) : null, addedByUid: homeMe(), addedAt: now, updatedAt: now })
+        .then(function(){ openHomePeople(); showPinToast(name + ' is at Home', false, CHECK_SVG); })
+        .catch(function(e){ console.error(e); err.textContent = 'Couldn’t add them — check their account has its role, then try again.'; });
+    });
+  }
+
+  // ---- the household app: what someone who helps at home sees, and nothing else ----
+  function startHousehold(){
+    if (pp.started) return;
+    pp.started = true;
+    lockApp(); renderGate('splash');
+    touchThisDevice();
+    startHome('household');
+    // the household app has no Actions, sprints or shared views to open
+    DEEP.action = null; DEEP.request = null; DEEP.view = null; DEEP.sprint = null;
+    startDeepLinkClock();
+  }
+  function renderHomePortal(){
+    if (home.surface !== 'household') return;
+    if (!homeOn()){ hidePortal(); lockApp(); renderGate('home', { removed: !!home.me }); return; }
+    showPortal();
+    var el = portalEl();
+    var bd = document.getElementById('ppBackdrop');
+    if (bd && bd.classList.contains('open')) return;
+    var scroll = el.scrollTop;
+    el.innerHTML = '<div class="pp-wrap">' +
+      '<header class="pp-head"><img class="pp-mark" src="icon-192.png" alt="" width="34" height="34">' +
+        '<p class="pp-kicker">Home</p><h1 class="pp-title" id="hpTitle"></h1><p class="pp-date" id="hpDate"></p></header>' +
+      '<button type="button" class="pp-add" id="hpNew"><span aria-hidden="true">+</span> New request</button>' +
+      '<div id="hpList" class="hp-list"></div>' +
+      '<footer class="pp-foot">' +
+        '<div class="theme-switch" id="themeSwitch" aria-label="Theme">' +
+          '<button type="button" data-theme-set="dark">Dark</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="system">System</button>' +
+        '</div>' +
+        '<p class="pp-who"><span id="ppWho"></span> · <button type="button" class="btn-link" id="ppNotify">Notifications</button> · <button type="button" class="btn-link" id="ppPassword">Password</button> · <button type="button" class="btn-link" id="ppSignOut">Sign out</button></p>' +
+      '</footer></div>' +
+      '<div class="sheet-backdrop pp-backdrop" id="ppBackdrop"><div class="sheet" id="ppSheet" role="dialog" aria-modal="true"></div></div>';
+    document.getElementById('hpTitle').textContent = 'Hi, ' + (home.me.displayName || '').split(' ')[0];
+    document.getElementById('hpDate').textContent = toLocalDate(todayStr()).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+    homeListInto(document.getElementById('hpList'));
+    document.getElementById('hpNew').addEventListener('click', openHomeNew);
+    var who = document.getElementById('ppWho'); if (who) who.textContent = (authUser && authUser.email) || '';
+    document.getElementById('ppSignOut').addEventListener('click', function(){ if (confirm('Sign out on this device?')) signOutLedger(); });
+    document.getElementById('ppNotify').addEventListener('click', function(){ wireNotificationsSheet(ppSheetOpen(notificationsSheetHtml())); });
+    document.getElementById('ppPassword').addEventListener('click', function(){
+      var sh = ppSheetOpen('<div class="sheet-handle"></div>' + sheetHead('', 'Password', 'Sign in with your email and this password.', '') + passwordFormHtml());
+      wirePasswordForm(sh, ppSheetClose);
+    });
+    renderThemeSwitch();
+    el.querySelectorAll('[data-theme-set]').forEach(function(b){ b.addEventListener('click', function(){ setThemePref(b.dataset.themeSet); }); });
+    el.scrollTop = scroll;
+  }
+  // Abi's portal: Home beneath what Shaun shares with her
+  function homePortalSectionHtml(){
+    return '<section class="pp-sec pp-home"><div class="pp-sec-row"><h2 class="pp-sec-title">Home</h2>' +
+      '<button type="button" class="btn-link pp-all" id="ppHomeAll">Open Home</button></div>' +
+      '<div id="ppHomeList" class="hp-list"></div>' +
+      '<button type="button" class="pp-add" id="ppHomeNew"><span aria-hidden="true">+</span> New request</button></section>';
+  }
+  function wireHomePortalSection(el){
+    var list = el.querySelector('#ppHomeList');
+    if (!list) return;
+    homeListInto(list, { only: ['For you', 'You asked', 'Shared at Home', 'Between others'] });
+    el.querySelector('#ppHomeAll').addEventListener('click', openHomeSheet);
+    el.querySelector('#ppHomeNew').addEventListener('click', openHomeNew);
+  }
+  function homeHandleDeepLink(){
+    if (deepLinkHandled || !DEEP.home || !home.reqLoaded) return;
+    var id = DEEP.home; DEEP.home = null;
+    if (homeReq(id)) openHomeDetail(id);
+    deepLinkDone();
+  }
+
   // ============ Partner Sharing: the partner's Ledger ============
   // A partner's whole Ledger is this page: what has been published to them and their own
   // requests. It starts only after auth → partner role → an active membership, reads only
@@ -13155,6 +14083,7 @@
   function startPartner(){
     if (pp.started) return;
     pp.started = true;
+    startHome('partner');
     lockApp(); renderGate('splash');
     var me = authUser.uid;
     var timer = setTimeout(function(){ if (!pp.seen) renderGate('offline'); }, 10000);
@@ -13187,7 +14116,7 @@
     pp.stops.push(q('ledger_shared_snapshots').onSnapshot(function(snap){ pp.snaps = snap.docs.map(shareDoc); pp.snapsLoaded = true; renderPortal(); }, refused));
     pp.stops.push(q('ledger_shared_requests').onSnapshot(function(snap){
       // a deleted request is gone from her side too: lists, counts, links
-      pp.requests = snap.docs.map(shareDoc).filter(function(r){ return !r.deletedAt; }); pp.reqLoaded = true; renderPortal();
+      pp.requests = snap.docs.map(shareDoc).filter(function(r){ return !r.deletedAt && !r.migratedTo; }); pp.reqLoaded = true; renderPortal();
       if (ppDetailRefresh) ppDetailRefresh();
       ppHandleDeepLink();
     }, refused));
@@ -13316,14 +14245,18 @@
           }).join('') + '</div></section>';
       }).join('');
     }
-    if (!pp.denied){
-      html += '<section class="pp-sec pp-requests"><div class="pp-sec-row"><h2 class="pp-sec-title">From you</h2></div>' +
+    if (!pp.denied && homeOn()) html += homePortalSectionHtml();
+    // earlier requests to Shaun: here until they move into Home
+    if (!pp.denied && (!homeOn() || pp.requests.length)){
+      html += '<section class="pp-sec pp-requests"><div class="pp-sec-row"><h2 class="pp-sec-title">' + (homeOn() ? 'Earlier requests' : 'From you') + '</h2></div>' +
         (reqs.length ? '<div class="pp-list">' + reqs.map(function(r, i){ return ppReqRowHtml(r, 'data-pp-req="' + i + '"'); }).join('') + '</div>' : '') +
-        '<button type="button" class="pp-add" id="ppAddReq"><span aria-hidden="true">+</span> Request something</button>' +
+        (homeOn() ? '' : '<button type="button" class="pp-add" id="ppAddReq"><span aria-hidden="true">+</span> Request something</button>') +
         (past.length ? '<div class="pp-sec-row pp-past"><h2 class="pp-sec-title">Past</h2>' +
             (past.length > pastShown.length ? '<button type="button" class="btn-link pp-all" id="ppAllReq">All requests</button>' : '') + '</div>' +
           '<div class="pp-list pp-past-list">' + pastShown.map(function(r, i){ return ppReqRowHtml(r, 'data-pp-past="' + i + '"'); }).join('') + '</div>' : '') +
       '</section>';
+    }
+    if (!pp.denied){
       if (cp) html += '<div class="pp-check"><span class="pp-check-ic">' + UI_ICON.calendar + '</span>' +
         '<span><span class="pp-check-title">' + cp.title + '</span>' + (cp.sub ? '<span class="pp-check-sub">' + cp.sub + '</span>' : '') + '</span></div>';
     }
@@ -13357,6 +14290,7 @@
     });
     ppWireReqRows(el, 'data-pp-req', reqs, owner, ppReqMetaText);
     ppWireReqRows(el, 'data-pp-past', pastShown, owner, ppReqMetaText);
+    wireHomePortalSection(el);
 
     var who = document.getElementById('ppWho'); if (who) who.textContent = (authUser && authUser.email) || '';
     el.querySelectorAll('[data-pp-tab]').forEach(function(b){
@@ -13389,7 +14323,8 @@
     var bd = document.getElementById('ppBackdrop');
     if (bd) bd.classList.remove('open');
     rqStopDetail();
-    renderPortal();
+    home.detailRefresh = null; home.listRefresh = null;
+    if (home.surface === 'household') renderHomePortal(); else renderPortal();
   }
   // a request, opened: where it stands, what has happened, and room to add something.
   // The partner can say anything here; none of it moves the Action — the owner decides.
@@ -16361,8 +17296,13 @@
           '<span class="cz-opt-sub">When you set it on one device, your others show it.</span></span></button>' : '') +
         '<button type="button" class="cz-opt" id="ntPartner" role="switch" aria-checked="true">' +
           '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
-          '<span class="cz-opt-text"><span class="cz-opt-title">Partner requests &amp; updates</span>' +
-          '<span class="cz-opt-sub">' + (owner ? 'A new request, or something added to one.' : 'Something added to your requests, or one planned or done.') + '</span></span></button>' +
+          '<span class="cz-opt-text"><span class="cz-opt-title">' + (homeOn() ? 'Requests &amp; updates' : 'Partner requests &amp; updates') + '</span>' +
+          '<span class="cz-opt-sub">' + (homeOn() ? 'A request for you, something added to one you’re in, or yours planned, done or passed on.'
+            : (owner ? 'A new request, or something added to one.' : 'Something added to your requests, or one planned or done.')) + '</span></span></button>' +
+        (homeIsAdmin() ? '<button type="button" class="cz-opt" id="ntOversight" role="switch" aria-checked="false">' +
+          '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+          '<span class="cz-opt-text"><span class="cz-opt-title">Requests between others</span>' +
+          '<span class="cz-opt-sub">When someone else asks something at Home, and when it’s done. Off unless you turn it on.</span></span></button>' : '') +
         '<p class="set-note">On a lock screen a notification shows its first line. How long it stays is up to the device.</p>' +
       '</div>';
   }
@@ -16393,11 +17333,11 @@
       disableThisDevice().then(function(){ paintState('off'); showPinToast('Notifications off for this device', false, CHECK_SVG); });
     });
     loadNotifPrefs().then(function(p){
-      [['ntFocus', 'currentFocus'], ['ntPartner', 'partner']].forEach(function(x){
+      [['ntFocus', 'currentFocus'], ['ntPartner', 'partner'], ['ntOversight', 'homeOversight']].forEach(function(x){
         var b = root.querySelector('#' + x[0]);
         if (!b) return;
         function paint(on){ b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
-        var on = p[x[1]] !== false;
+        var on = x[1] === 'homeOversight' ? p[x[1]] === true : p[x[1]] !== false;
         paint(on);
         b.addEventListener('click', function(){
           on = !on; paint(on);
@@ -16420,10 +17360,11 @@
   function openLedgerLink(url){
     var p;
     try { p = new URL(url, location.href).searchParams; } catch(e){ return; }
-    DEEP = { action: p.get('openAction'), request: p.get('request'), view: p.get('view'), sprint: p.get('sprint') };
-    deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view || DEEP.sprint);
+    DEEP = { action: p.get('openAction'), request: p.get('request'), view: p.get('view'), sprint: p.get('sprint'), home: p.get('home') };
+    deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view || DEEP.sprint || DEEP.home);
     if (deepLinkHandled) return;
     if (ownerDataStarted || LOCAL_ONLY) tryHandleDeepLink();
+    else if (home.surface === 'household'){ DEEP.action = DEEP.request = DEEP.view = DEEP.sprint = null; homeHandleDeepLink(); }
     else if (pp.started) ppHandleDeepLink();
   }
   if ('serviceWorker' in navigator){
@@ -16470,6 +17411,7 @@
         (LOCAL_ONLY ? '<p class="set-note">This copy of Ledger has no account and keeps everything on this device.</p>' : '') +
       '</div>' +
       (shareOn() ? '<div class="set-group" id="setSharing"></div>' : '') +
+      (shareOn() ? '<div class="set-group" id="setHome"></div>' : '') +
 
       '<div class="set-group">' +
         '<span class="set-group-label">Appearance</span>' +
@@ -16557,6 +17499,7 @@
     });
     renderThemeSwitch();
     renderSharingSettings();
+    renderHomeSettings();
     sheetEl.querySelectorAll('[data-theme-set]').forEach(function(btn){
       btn.addEventListener('click', function(){ setThemePref(btn.dataset.themeSet); });
     });
@@ -17124,6 +18067,7 @@
     renderCommsSummary();
     renderMorningPrime();
     renderDayNotes();
+    renderHomeRow();
     renderWindDown();
     renderCommitments();
     renderInboxSection();
@@ -22527,10 +23471,10 @@
   // 404. Each waits for sign-in and its data, then opens once and leaves the address bar
   // clean. Ids are only ever compared, never written into the page.
   var deepLinkParams = new URLSearchParams(window.location.search);
-  var DEEP = { action: deepLinkParams.get('openAction'), request: deepLinkParams.get('request'), view: deepLinkParams.get('view'), sprint: deepLinkParams.get('sprint') };
-  var deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view || DEEP.sprint);
+  var DEEP = { action: deepLinkParams.get('openAction'), request: deepLinkParams.get('request'), view: deepLinkParams.get('view'), sprint: deepLinkParams.get('sprint'), home: deepLinkParams.get('home') };
+  var deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view || DEEP.sprint || DEEP.home);
   function deepLinkDone(){
-    if (DEEP.action || DEEP.request || DEEP.view || DEEP.sprint) return;
+    if (DEEP.action || DEEP.request || DEEP.view || DEEP.sprint || DEEP.home) return;
     if (!deepLinkHandled){ deepLinkHandled = true; try { history.replaceState(null, '', window.location.pathname); } catch(e){} }
   }
   // once the data has started, a link that never finds its record is dropped quietly
@@ -22563,6 +23507,9 @@
         renderAll();
         openSprintSheet(sid);
       }
+    } else if (DEEP.home && ownerDataStarted){
+      homeHandleDeepLink();
+      return;
     } else if (DEEP.request && ownerDataStarted){
       if (!shareLoaded.requests) return;  // retried from the requests snapshot
       var reqId = DEEP.request;
@@ -22578,6 +23525,7 @@
     DEEP.sprint = null;                                 // nor a sprint
     if (DEEP.view === 'week' || DEEP.view === 'today'){ pp.tab = DEEP.view; DEEP.view = null; renderPortal(); }
     else DEEP.view = null;
+    if (DEEP.home){ homeHandleDeepLink(); return; }
     if (DEEP.request){
       if (!pp.reqLoaded) return;
       var r = pp.requests.find(function(x){ return x.id === DEEP.request; });

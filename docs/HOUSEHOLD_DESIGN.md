@@ -1,236 +1,212 @@
-# Household Requests — design (Phase B, for review)
+# Home (Household Requests) — design, as built
 
-Status: **proposed, not implemented.** Written 2026-10-18 for Shaun's review before
-any code changes. Nothing below is built yet. Open questions are at the end.
+Status: **built 2026-10-18** (Phase B). Proposed earlier the same day and reviewed by
+Shaun. His answers shaped what was built; they are recorded under §2. Rules, push
+engine, migration and app all ship together.
 
-Principle: the Household is useful to the whole family, but it never touches Ledger's
-identity as Shaun's private planning system. It is a **separate shared namespace**
-with its own collections and rules. No household member, Abi included, ever gets a view
-of a private Ledger collection.
+Principle: Home is useful to the whole family, but it never touches Ledger's identity
+as Shaun's private planning system. It is a **separate shared namespace** with its own
+collections and rules. Nobody at Home, Abi included, ever gets a view of a private
+Ledger collection.
 
 ---
 
-## 1. What exists today (Phase A)
+## 1. Model
 
-- `ledger_users/{uid}` holds a role, `owner` or `partner`, set in the Firebase Console
-  only. The app opens Ledger for an owner and the partner portal for a partner.
-- Partner Sharing is a two-person relationship, `ledger_share_members/{owner}_{partner}`.
-- Requests (`ledger_shared_requests`) always run partner → owner: `partnerUid` is the
-  requester, `ownerUid` is the assignee, and `createdByUid` is the creator. Updates live
-  in `ledger_shared_request_updates`. Delete is soft.
-- A request the owner plans makes one private Action (`sourceRequestId`), and the
-  request follows that Action's status.
-- Published day/week snapshots (`ledger_shared_snapshots`) are Abi's view of Shaun's
-  day.
-
-The request model is hard-wired to two people in one direction. Adding a third person
-to it would mean overloading `ownerUid`/`partnerUid`, so we don't do that.
-
-## 2. Model
-
-### Roles (two layers, kept apart)
+### Roles: two layers, kept apart
 
 | Layer | Where | Who sets it | Values |
 | --- | --- | --- | --- |
-| App role | `ledger_users/{uid}.role` | Firebase Console only (unchanged) | `owner` (Shaun), `partner` (Abi), **`household`** (new: the nanny) |
-| Household role | `ledger_household_members/{uid}.role` | household admins, in the app, within the rules | `admin` (Shaun, Abi), `member` (the nanny) |
+| App role | `ledger_users/{uid}.role` | Firebase Console only (unchanged) | `owner` (Shaun), `partner` (Abi), `household` (the nanny; new) |
+| Home role | `ledger_home_members/{uid}.role` | Shaun, in the app, within the rules | `admin` (Shaun, Abi), `member` (the nanny) |
 
-The app role decides which app opens: Ledger, the partner portal, or a new household
-view. The household role decides what someone can do with requests. Only an account
-that already has an app role can be added to the household, so no one can sign up
-their way in.
+- **App role:** decides which app opens:
+  - Ledger, for Shaun;
+  - the partner portal, for Abi, with Home inside it;
+  - the Home app, for the nanny, with nothing of Ledger.
+- **Home role:** decides what someone sees and can do with requests.
+- **Who can join:** only an account that already holds an app role can be added. A
+  partner account joins as an admin, a household account as a member.
 
-### Collections (all new)
+### Collections
 
-- **`ledger_households/{householdId}`**: `{ name, ownerUid, createdAt }`. One
-  household; `ownerUid` = Shaun, who is permanent.
-- **`ledger_household_members/{uid}`**: one doc per person (one household each).
-  Fields: `householdId`, `role`, `status` (`active` | `removed`), `displayName`,
-  `label` (e.g. "Nanny"), `addedByUid`, `addedAt`, `removedByUid`, `removedAt`.
-  Removing someone sets `status: removed`. The rules check `active` on every read, so
-  access is revoked immediately, and the record and its history stay.
-- **`ledger_household_requests/{requestId}`**: the single source of truth, with no
-  copies per member. Fields:
-  - People: `householdId`, `requesterUid`, `assigneeUid`, `createdByUid`.
-  - Visibility: `participants` = exactly those three uids (a query and rules aid).
-  - Content and timing: `text`, `note`, `requestedTiming`, `requestedDate`,
-    `plannedDate`, `createdAt`, `updatedAt`.
-  - `status`: `requested` → `accepted` / `declined` → `in_progress` → `done`; also
-    `withdrawn` and `dismissed`.
-  - Owner link: `linkedActionId` and `linkedByUid`, only when the assignee is Shaun.
-  - Summary: `latestUpdateAt`, `latestUpdateByUid`, `latestUpdateType`, and the
-    `latestComment*` fields.
-  - Read marks: `readAt` (a map uid → time; each person may write only their own key).
-  - Soft delete: `deletedAt`, `deletedByUid`.
-- **`ledger_household_requests/{requestId}/updates/{updateId}`**: the append-only
-  history (comments plus facts: created, created on behalf, accepted, planned, moved,
-  in progress, done, declined, withdrawn, reassigned, deleted). It is a subcollection,
-  so its rules can read the parent request by path, and a list query is allowed exactly
-  when the parent is readable.
+- **`ledger_homes/{homeId}`:** `{ name, ownerUid }`. `homeId` is Shaun's uid, so there
+  is one Home.
+- **`ledger_home_members/{uid}`:** one per person. Fields:
+  - `homeId`;
+  - `role`, and `status` (`active` | `removed`);
+  - `displayName`, plus an optional `label` (e.g. "Nanny");
+  - who added or removed them, and when.
+- **`ledger_home_requests/{id}`:** one shared record per request, never copied per person.
+  - **People:** `requesterUid`, `assigneeUid`, `createdByUid`. They are separate,
+    immutable facts; the assignee changes only by passing the request on.
+  - **Visibility:** `participants` lists the requester, the creator and everyone it has
+    been assigned to. `visibility` is `private` (the default) or `home` (everyone at
+    Home).
+  - **`status`:** `requested`, `planned`, `in_progress`, `done`, `cant_do` (with a
+    `cantDoReason`) or `withdrawn`. Moved requests can also carry `dismissed`.
+  - **Dates and link:** `plannedDate`, plus `linkedActionId` and `linkedByUid` (Shaun
+    only: just the id of his private Action).
+  - **Summary:** `latestUpdate*` and `latestComment*`.
+  - **Read marks:** `readAt`, keyed by uid; each person writes only their own key.
+  - **Soft delete:** `deletedAt` and `deletedByUid`, as in Phase A.
+- **`ledger_home_requests/{id}/updates/{u}`:** the append-only history.
+  - **Comments.**
+  - **Facts:** created, planned, moved, status, can't do, reassigned, visibility,
+    withdrawn, deleted.
+  - **Rules:** each entry is written by the signed-in user at the server's time, and a
+    fact is accepted only when the request itself says so.
 
-### Who sees what (enforced by the rules, not the UI)
+### Who sees what (enforced by `firestore.rules`)
 
-| | Shaun (admin, owner) | Abi (admin) | Nanny (member) |
+| | Shaun (owner, admin) | Abi (admin) | The nanny (member) |
 | --- | --- | --- | --- |
 | Shaun's private Ledger | yes | **no** | **no** |
-| Abi's published snapshots | publishes | reads | **no** |
-| Household members list | read, manage | read, manage members | read (names only) |
-| Requests they are part of | read | read | read |
-| All other household requests | read (oversight) | read (oversight) | **no** |
-| Request history (updates) | if they can read the request | same | same |
-
-Read rule for a request: the signed-in user is an active member of
-`resource.data.householdId` **and** (they are an admin **or** their uid is in
-`participants`). The nanny's app queries `participants array-contains me`; an admin's
-queries `householdId == H`.
+| Published snapshots of Shaun's day/week | publishes | reads | **no** |
+| People at Home | reads, **adds and removes** | reads | reads (names only) |
+| Requests they are in | yes | yes | yes |
+| Requests shared with everyone at Home | yes | yes | yes |
+| Every other request at Home (oversight) | yes | yes | **no** |
 
 ### Who may change what
 
-- **Create.** Any active member, for their own household. `requesterUid` and
-  `assigneeUid` must both be active members. `createdByUid` must be the signed-in
-  user. If the creator is not the requester, it is an on-behalf request, and only
-  admins may create those. Starts `requested`.
-- **Requester or creator** (while `requested`): edit the wording and timing, or
-  withdraw.
-- **Assignee:**
-  - accept, decline (optional reason), start, complete or reopen;
-  - set `plannedDate`;
-  - link one private Action (Shaun only, `linkedByUid` = him).
-- **Admins:** reassign (to another active member, written as a "reassigned" entry)
-  and set aside (`dismissed`).
-- **Everyone involved:** comment, and set their own read mark.
-- **Delete (soft, as Phase A):** the requester or the creator, after confirmation.
-  A deleted request is frozen for everyone, and its linked Action is untouched.
-- **Never changeable after create:** `householdId`, `createdByUid`, `createdAt`.
-  The requester changes only on reassignment-from-requester, which is not allowed;
-  the requester is fixed.
-- **Membership.**
-  - Admins add or remove `member`s.
-  - Only the household owner (Shaun) grants or removes `admin`.
-  - Nobody can remove the owner.
-  - A removed member's own records stay, but they lose access.
+- **Ask (create):** any active member, for themselves.
+  - Only an admin may ask on someone else's behalf. The request then shows "Created by
+    Shaun on <her name>'s behalf".
+  - The creator is always the signed-in user, and both requester and assignee must be
+    active members.
+- **The person who asked or wrote it,** while it waits: reword it, or withdraw it.
+- **The assignee:** start, done, can't do (optional reason), reopen. Shaun alone links
+  his own Action, by id.
+- **Pass on (reassign):** the assignee or an admin can pass it to another active
+  member, never back to the requester. The new assignee joins `participants` and nobody
+  leaves them.
+- **Who sees it:** its creator or an admin switches `private` ↔ `home`.
+- **Anyone who can see it:** comment, and set their own read mark.
+- **Delete (soft):** the requester or the creator, after the Phase A confirmation.
+  Afterwards it is frozen for everyone.
+- **Members:** only Shaun adds and removes. Removing someone is a state: their access
+  ends at once and the history stays. Nobody can remove Shaun or promote themselves.
 
-### Linked Actions (Shaun only)
+### Shaun's Actions
 
-- When Shaun accepts a request assigned to him, Ledger makes one private Action (in a
-  transaction, as now) and writes only its id to the request.
-- The request follows the Action: planned date, in progress, done, and back to
-  requested if the Action is deleted. The same existing sync code, pointed at the new
-  collection.
-- Only the status and date travel. The Action's title edits, notes, private updates,
-  category and order never do.
-- Abi and the nanny have no private Actions. As assignees they change the request
-  itself.
+- **Taking one on:** when a request is Shaun's, Today, or Choose day, makes **one**
+  private Action (`sourceType: 'home_request'`, `sourceRequestId`). It is created in a
+  transaction that checks the request is still his and still waiting, so a double tap
+  never makes two.
+- **Sync:** the request follows the Action — its planned day, in progress, done, and
+  back to requested if the Action is gone. This is the same sync code as Partner
+  Sharing.
+- **Privacy:** only the id and the request's state travel. Abi and the nanny have no
+  Actions; they change the request itself.
 
-### Notifications (one engine, `functions/push.js`)
+### Notifications (`functions/push.js` → `handleHomeUpdate`)
 
-- **One trigger:** a new entry in a request's `updates`. The recipients come from the
-  request and active membership, server-side. The browser never names a recipient.
-- **New request:** the assignee, said as from the requester ("Abi sent a request").
-  This includes on-behalf requests, reaching every device of the assignee, as Shaun
-  chose in Phase A. The requester isn't told about a request made on their behalf.
-- **Accepted, planned, done, declined:** the requester, plus the creator if different.
-- **Comments:** every participant except the person who wrote it.
-- **Reassigned:** the new assignee.
-- **Never:**
-  - the actor, when they are also the recipient — except the "as if from" case above;
-  - admins who are not participants (oversight is something you look at, not
-    something that pings you);
-  - anything for deleted, withdrawn or moved entries.
-- **Each person's own on/off** (`ledger_notification_prefs`) applies as today.
+The trigger is `ledger_home_requests/{id}/updates/{u}`. The recipients are worked out on
+the server from the request and the people currently at Home.
 
-## 3. UI (mobile first, the existing patterns)
+| Entry | Who hears |
+| --- | --- |
+| created | the assignee, "Abi sent a request", on all their devices — also when Shaun recorded it for himself on someone's behalf (as Phase A) |
+| comment | everyone in it except its author |
+| planned, done, can't do | the requester, and its writer if different; never the person who did it |
+| reassigned | the new assignee, "Abi passed you a request" |
+| started, moved, withdrawn, shared, deleted | nobody |
 
-- **Shaun.**
-  - Requests assigned to him appear in Today's **Inbox**, exactly as now (Today ·
-    Choose day · Set aside). Today stays his private planning surface.
-  - A **Household** sheet holds everything:
-    - For me / From me / Everyone (oversight; Open and Done);
-    - **+ Request** (to: Abi or the nanny; for: me or on someone's behalf);
-    - the request detail with its history;
-    - Members (add, remove, roles) under Settings → Household.
-- **Abi.**
-  - Her portal keeps Today / This week (Shaun's published snapshots).
-  - Her current "From you" becomes **Household**: For me, From me, Everyone; plus
-    + Request (to Shaun or the nanny, or on the nanny's behalf), and member management.
-- **The nanny.** A small, calm household app:
-  - **For you** (assigned, with Accept / Done) and **From you**, with + Request (to
-    Shaun or Abi);
-  - each request opens its history and an update box;
-  - nothing else: no Ledger, no snapshots, no other people's requests.
-- Every new screen reuses Ledger's sheets, rows, chips, status pills and empty states,
-  checked against `docs/UX_PLAYBOOK.md`.
+- **Following Home (admins only):** opt-in, off by default (Settings → Notifications →
+  "Requests between others", `homeOversight`). Admins who aren't in a request hear when
+  someone else asks something, and when it's done.
+- **Other preferences:** each person's "Requests & updates" switch applies. Removed
+  members hear nothing.
+- **Migrated history:** entries copied in by the move are never announced.
 
-## 4. Migration and rollback
+## 2. Shaun's answers (2026-10-18)
 
-Additive stages. Partner Sharing keeps working, unchanged, until the last stage.
+1. **The nanny's account:** yes. She gets her own sign-in, with the `household` role set
+   in the Console.
+2. **Membership:** only Shaun adds and removes people. Abi is an admin for oversight
+   only.
+3. **Visibility:** the nanny sees only what she's part of. Requests can also be shared
+   with everyone at Home, with one current assignee and everyone able to see.
+4. **Oversight notifications:** off by default. A setting lets each admin follow what
+   the other asks the nanny, and when she finishes it.
+5. **Can't do and Pass on (reassign):** both available.
+6. **Earlier requests:** yes, move them into Home, keeping requests between Shaun and Abi
+   private to them.
+7. **Name:** "Home".
 
-1. **Members.** Create the household and members collections, rules and tests, plus
-   Settings → Household (create, add Abi as admin, add the nanny). No change to
-   requests.
-2. **Requests engine.** Requests and updates rules, emulator tests, push handling. No
-   UI yet.
-3. **Shaun and Abi UI.** Household sheet, Inbox integration, Abi's Household tab. Old
-   partner requests still show alongside.
-4. **Nanny.** The `household` app role gate and her view; end-to-end tests with three
-   browsers.
-5. **Move existing requests.**
-   - A callable Cloud Function, run once by Shaun from Settings, copies every
-     `ledger_shared_requests` record into `ledger_household_requests`. It keeps the
-     same id, so each linked Action's `sourceRequestId` still matches with no Action
-     write.
-   - Field mapping: `requesterUid` = partnerUid, `assigneeUid` = ownerUid, and
-     `createdByUid` = createdByUid or partnerUid. The history is copied into
-     `updates`, and deleted ones stay deleted.
-   - It is idempotent (the same ids), and it marks the old record `migratedTo` (a
-     server-only field).
-   - The app then creates new requests only in the household collection, and the old
-     collection becomes read-only in the rules.
+## 3. Where it lives in the app
+
+- **Shaun:**
+  - Today has a quiet **Home** row among the utilities ("1 for you", "2 updates",
+    "Nothing open"). It opens the Home sheet:
+    - New request: for, asked by, when, note, "Everyone at Home can see it";
+    - For you, You asked, Shared at Home, Between others, Done lately.
+  - Requests that are his to decide also land in Today's **Inbox**, with Today, Choose
+    day and Can't do.
+  - Settings → **Home**: Set up Home, Requests, People, and "Bring in requests with Abi"
+    while earlier ones exist.
+- **Abi:** her portal keeps Today / This week. Below it is **Home** (For you, You asked,
+  Shared, Between others, + New request, Open Home). Her earlier requests show as
+  "Earlier requests" until they move.
+- **The nanny:** a small Home app: "Hi, <her name>", + New request, For you, You asked, Shared
+  at Home, Done lately, and each request's detail with its history. Nothing else.
+
+## 4. Moving Partner Sharing requests into Home
+
+- **Starting it:** Shaun taps "Bring in requests with Abi", which writes
+  `ledger_meta/homeMigration` (owner-only). A Cloud Function
+  (`onHomeMigrationRequested` → `functions/migrate.js`) then copies each
+  `ledger_shared_requests` record into `ledger_home_requests` with the same id, so every
+  linked Action's `sourceRequestId` still matches.
+- **What is kept:**
+  - `requesterUid` = partner, `assigneeUid` = owner, `createdByUid` = creator or
+    partner;
+  - `visibility: 'private'`;
+  - status, dates, link, summary, read marks, soft deletion and hidden-for-Abi;
+  - its history, keeping who and when.
+- **The old record:** it is marked `migratedTo` and never deleted. The apps stop listing
+  it.
+- **Running it again:** it copies nothing twice, and it picks up any request a stale app
+  made afterwards.
 
 **Rollback.**
-- Stages 1–4 add collections and rules blocks only. Rolling back is redeploying the
-  previous rules and hiding the UI; nothing existing was changed.
-- Stage 5 copies and never deletes. Rolling back is:
-  1. switching the app back to the old collection (a flag in `ledger_meta/presets`);
-  2. redeploying the pre-Stage-5 rules, which make it writable again;
-  3. optionally deleting the household copies with the Admin SDK.
-- Requests made in the household collection between the migration and a rollback
-  would need copying back; the same function can run in reverse for those.
+- **Before the move:** Home is additive (new collections and rules blocks), so
+  redeploying the previous rules removes it; nothing existing changed.
+- **After the move:** the old records still exist. Clearing their `migratedTo` (Admin
+  SDK) makes the apps list them again; the Home copies can then be deleted.
 
-**Deploys.** Every stage needs `firestore:rules`. Stages 2, 4 and 5 also need
-`functions`. Stage 4 needs the nanny's Firebase account, with
-`ledger_users/{uid}.role = household` set in the Console (as was done for Abi).
+## 5. Deploy
 
-## 5. Tests per stage
+```
+npx firebase-tools deploy --only firestore:rules,firestore:indexes,functions --project ledger-6aec3
+```
 
-- **Rules (emulator).** Every row of the permission tables above, permitted and
-  forbidden, including:
-  - forged creators and requesters;
-  - a removed member's immediate loss of access;
-  - the nanny denied every private Ledger collection, snapshots and unrelated
+- **New rules:** Home, the `household` role, and `homeOversight`.
+- **A composite index:** `homeId` + `participants` (for the nanny's list).
+- **Two new functions:** `onHomeUpdateCreated` and `onHomeMigrationRequested`.
+
+**The nanny's account.**
+1. She opens `ledger.sgj.luxe` and signs in (email link or password). She sees "This
+   account isn't set up" with her Account ID.
+2. Shaun adds `ledger_users/{that id}` with `role: household` and `displayName` in the
+   Console.
+3. She taps "try again", and sees "Almost there".
+4. Shaun goes to Settings → Home → People → Add someone, picks her, and adds the label
+   "Nanny".
+
+## 6. Tests
+
+- **Rules:** 473 in all. Among them:
+  - every permission row;
+  - forged creators;
+  - removed members;
+  - the nanny denied every private collection, snapshots, Partner Sharing and other
     requests;
-  - read-mark keys limited to one's own;
-  - frozen deleted requests.
-- **Engine.** Recipients and wording for every event, including no echo to the actor
-  and no push to non-participant admins.
-- **End to end.** Three browsers (Shaun, Abi, the nanny) over the Auth, Firestore and
-  Functions emulators: create in each direction, on behalf, accept → Action → done →
-  the requester sees done, comments both ways, delete, member removal mid-session.
-- **Regression.** The existing Partner Sharing and push suites stay green at every
-  stage.
-
-## 6. Open questions for Shaun
-
-1. **The nanny's account:** her name and email. She signs in like Abi (password or
-   email link), and you set her `household` role in the Console. OK?
-2. **Abi as admin:** may she add and remove the nanny? Proposed: yes. Only you can
-   make or remove an admin, and nobody can remove you.
-3. **The nanny's visibility:** she sees only requests she is part of. Confirm she
-   should not see requests between you and Abi.
-4. **Notifications:** proposed as above. In particular, admins are not notified about
-   requests between other people; is that right?
-5. **Decline:** should an assignee be able to say "Can't do" (with a reason), or
-   only accept and do?
-6. **Existing requests:** move them into the Household at Stage 5 (recommended, one
-   history), or keep them as a separate legacy list?
-7. **Name:** "Household" in the UI, or something warmer ("Home")?
+  - frozen deletions.
+- **Engine and migration:** 31, plus 49 for push.
+- **End to end:**
+  - Home (`tests/e2e/home.test.js`, three browsers): 73;
+  - push (`execution.test.js`, the real triggers and the migration through the Functions
+    emulator): 72;
+  - Partner Sharing: 201.

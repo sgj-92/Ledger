@@ -62,6 +62,10 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | `ledger_shared_snapshots` | published day and week projections | owner writes own; partner reads own, while active |
 | `ledger_shared_requests` | requests from the partner | partner creates/edits/withdraws own until processed, then may hide a withdrawn one or renew it once as a new request; owner moves them on, and may record one on the partner's behalf; soft delete by the partner (any of hers) or by the owner (only one they recorded); each keeps own read mark |
 | `ledger_shared_request_updates` | a request's Updates (comments and lifecycle entries) | append-only; each side writes only as itself, see below |
+| `ledger_homes` | the Home (one, id = owner uid) | owner creates and renames; active members read |
+| `ledger_home_members` | who is at Home, their role and status | owner adds/removes (accounts that already hold an app role); members read their Home's |
+| `ledger_home_requests` | requests between the people at Home | admins read all at their Home; members read those they are in, or shared with everyone at Home; writes per role, see "Home" below |
+| `ledger_home_requests/{id}/updates` | each request's history | append-only; readable with the request; facts only when the request says so |
 | anything else | — | denied |
 
 ## The app's side
@@ -273,6 +277,58 @@ into them. What was chosen (the selection) stays private in
 `ledger_meta/sharing`. Presets are allow-lists: a section or Action category
 is shared only when named. A new kind of data is therefore not shared until
 someone chooses it. Day Notes and Communications are never offered.
+
+## Home (Phase B, 2026-10-18)
+
+A shared namespace for Shaun, Abi and the people who help at home. Full model:
+`docs/HOUSEHOLD_DESIGN.md`. What the rules enforce:
+
+- **A third app role, `household`,** set in the Console like the others. It opens only
+  the Home app. It may register its own devices and set its own notification choices,
+  and nothing else outside Home.
+- **Membership** (`ledger_home_members/{uid}`):
+  - Only the Home's owner writes it, and only for an account that already holds an app
+    role.
+  - Admins are owner or partner accounts; a household account is always a member.
+  - The owner's own record is an active admin, always.
+  - Nobody can promote themselves or remove the owner.
+  - `status: removed` ends access immediately: every read checks `active`.
+- **Reading a request:** the reader must be an active member of its Home, and also an
+  admin, in `participants`, or reading a request with `visibility: 'home'`. The history
+  subcollection follows its request. The nanny's queries must filter by her
+  `participants` or by `visibility == 'home'`; listing the whole Home is refused.
+- **Creating a request:**
+  - `createdByUid` must be the signed-in user. Requester and assignee are distinct
+    active members of that Home.
+  - On someone's behalf (requester ≠ creator) is allowed for admins only.
+  - `participants` is exactly requester, assignee and creator.
+  - It starts `requested`, unplanned and unlinked.
+- **Updating a request:**
+  - **Requester or creator:** wording and timing, or withdraw, while it waits.
+  - **Assignee:** status (`requested`, `planned`, `in_progress`, `done`, `cant_do`),
+    planned date and a can't-do reason. Only the owner sets `linkedActionId`, naming
+    himself as `linkedByUid`.
+  - **Assignee or admin:** pass it on to another active member who isn't the requester.
+    The new assignee is added to `participants`; nobody is removed. It returns to
+    `requested`, unlinked.
+  - **Creator or admin:** `visibility`.
+  - **Anyone who can read it:** the summary, signed as themselves, and their own key in
+    `readAt`.
+  - **Soft delete:** the requester or creator only. Then no update and no new history
+    entry is accepted, except the single `deleted` entry.
+  - **Never changeable by anyone:** `homeId`, `requesterUid`, `createdByUid`,
+    `createdAt`.
+- **History entries** carry `actorUid` = the signed-in user and `createdAt` = the server
+  time. A fact is accepted only when the request says so:
+  - "done" only when it is done;
+  - "reassigned" only in the same write that passes it on;
+  - "created" only by its creator.
+- **Moving Partner Sharing requests in** is done by a Cloud Function (Admin SDK) when
+  the owner writes `ledger_meta/homeMigration`. It keeps every id and person, and marks
+  the old record `migratedTo` (server-only).
+- **Notifications** go only to active members the request involves, plus admins who
+  opted in to following Home. Recipients are derived server-side, never from an entry's
+  claims.
 
 ## Hosting and origins
 

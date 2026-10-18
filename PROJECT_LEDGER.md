@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-18 (Phase A verified on devices; completed Actions collapse; Household Requests design for review)
+Last updated: 2026-10-18 (Home — Household Requests for Shaun, Abi and the nanny — built; completed Actions collapse)
 
 ---
 
@@ -553,6 +553,36 @@ entry; both apps drop it from every list, count, Inbox and sync; the rules freez
 it. A linked Action is untouched; its editor says "From Abi · request deleted",
 without the shared-update link, and completing it later changes nothing shared.
 
+### Home — Household Requests (Phase B, built 2026-10-18; live once rules, index and functions are deployed)
+A separate shared namespace for Shaun, Abi and the people who help at home (the nanny),
+never a view of Ledger. Model, rules, notifications and migration:
+`docs/HOUSEHOLD_DESIGN.md`.
+- **Accounts:** a third app role, `household` (set in the Console), opens a small Home
+  app and nothing else.
+- **People:** `ledger_home_members` (admin: Shaun, Abi; member: the nanny). Only Shaun
+  adds and removes; removing is a state, so access ends at once.
+- **Requests:** one shared record in `ledger_home_requests`, with history in
+  `…/updates`.
+  - Requester, assignee and creator are separate and immutable; the assignee changes only
+    by passing it on.
+  - Private to the people in it, or shared with everyone at Home.
+  - Statuses: requested, planned, in progress, done, can't do (with a reason), withdrawn.
+  - Soft delete as in Phase A.
+- **Shaun's Actions:** requests that are his go to Today's Inbox (Today / Choose day /
+  Can't do). Taking one on makes one private Action, and the request follows it; only
+  its id is shared.
+- **Shaun's other ways in:** a quiet **Home** row on Today opens the Home sheet (New
+  request; For you, You asked, Shared at Home, Between others, Done lately). Settings →
+  Home: set up, People, "Bring in requests with Abi".
+- **Abi:** her portal gains a Home section, and keeps her shared Today / This week.
+- **Notifications** (`handleHomeUpdate`):
+  - to the people a request involves, never echoing the actor;
+  - a new request reaches its assignee "as if from" the requester;
+  - admins can opt in to "Requests between others" (`homeOversight`, off by default).
+- **Moving earlier requests:** Partner Sharing requests move into Home through a Cloud
+  Function (same ids, private to Shaun and Abi). Until then, Partner Sharing requests
+  work as before.
+
 ---
 
 ## Product Vision
@@ -690,6 +720,26 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-18 — Home: Shaun's answers, and what was built from them
+**Decision (Shaun, 2026-10-18, answering `docs/HOUSEHOLD_DESIGN.md`):**
+1. **The nanny's account:** her own sign-in, with the `household` role.
+2. **Membership:** only Shaun adds and removes people; Abi is an admin for oversight.
+3. **Visibility:** the nanny sees only what she's in. Any request can be shared with
+   everyone at Home, with one current assignee.
+4. **Oversight:** admins aren't notified about requests between others unless they turn
+   on "Requests between others".
+5. **Can't do and Pass on:** both, for the assignee; an admin may also pass one on.
+6. **Earlier requests:** they move into Home, private to Shaun and Abi.
+7. **Name:** "Home".
+
+**Built as** a separate namespace (`ledger_home*`), with rules enforcing every boundary
+independently of the UI. Implementation notes:
+- **Starting the move:** an owner-written `ledger_meta/homeMigration` triggers it,
+  rather than a callable function, so no new client SDK is needed.
+- **Migrated history:** never re-announced.
+- **The nanny's list:** a composite index (`homeId` + `participants`), declared in
+  `firestore.indexes.json` because the emulator doesn't enforce indexes.
 
 ### 2026-10-18 — Completed Actions step aside; they never lose their place
 **Decision (Shaun's brief):** Today keeps outstanding Actions prominent in their own
@@ -1805,11 +1855,10 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Shaun
-Status: Review (2026-10-18)
-Objective: Shaun reviews `docs/HOUSEHOLD_DESIGN.md` and answers its open questions;
-completed Actions on the phone (Next 1). Household implementation starts at Stage 1
-only after that review.
-Acceptance criteria: design approved (or amended); Next 1 confirmed.
+Status: Deploy + verify (2026-10-18)
+Objective: deploy Home (rules, index, functions), set up the nanny's account, and check
+Home on the three people's phones (Next 1); completed Actions on the phone.
+Acceptance criteria: Next 1 confirmed on devices.
 
 The backlog exists as GitHub Issues (#5–#19). None of it is authorised for
 implementation — see the workflow rules in `CLAUDE.md`.
@@ -1887,16 +1936,32 @@ No active handoff.
 
 ### Claude Code
 
-**Waiting on Shaun's review** of `docs/HOUSEHOLD_DESIGN.md`. Once approved, build it
-in the stages there (1 members → 2 requests engine → 3 Shaun/Abi UI → 4 nanny → 5
-migration), updating this ledger after each. **Not authorised until then:** any
-household code, nanny accounts or roles, migration of existing requests, giving Abi
-access to private Actions. **Not authorised:** a scheduled-reminder engine (timed reminders, "X
+No active handoff. Home (Phase B) and completed Actions are built (2026-10-18), and wait
+on Shaun's deploy and device checks. **Not authorised:**
+- giving Abi or the nanny access to private Actions or Ledger data;
+- more Homes per owner;
+- a separate task engine. **Not authorised:** a scheduled-reminder engine (timed reminders, "X
 minutes before", recurring/accountability).
 
 ---
 
 ## Recently Completed
+
+- (2026-10-18) — **Home (Household Requests, Phase B):**
+  - rules (473 tests: 93 new);
+  - push engine and migration (31 new, push 49);
+  - the app for Shaun, Abi and the nanny;
+  - Home e2e, three browsers: 73, at 390 dark and 1440 light;
+  - push e2e: 72, including Home pushes through the real triggers and the migration run
+    by the Functions emulator, announcing nothing.
+
+  Regression green: Partner Sharing 201, completed Actions 24, Life Context 23, Calendar
+  18, overflow 0. Found and fixed in testing:
+  - Home's reads now wait for a server-confirmed membership, and retry if refused;
+  - the new-request form wrongly reported "offline" outside Shaun's Ledger;
+  - the migration's copied history would have re-announced old requests.
+
+  **Needs deploying:** rules, index and functions.
 
 - (2026-10-18) — **Phase A verified on Shaun's devices** (his confirmation,
   2026-10-18): rules and functions deployed; Calendar rings, on-behalf requests (and
@@ -2141,11 +2206,34 @@ minutes before", recurring/accountability).
 
 ## Next
 
-1. **Shaun: review the Household design** (`docs/HOUSEHOLD_DESIGN.md`, open questions
-   in §6) and check **completed Actions** on the phone: complete an Action → it moves
-   into "Completed · N" under the list; open the group → tap its tick → it's back in
-   its place; Groups the same; Flow → Hide completed → Show completed. Nothing to
-   deploy (Vercel only).
+1. **Shaun: deploy Home and set it up.**
+   1. From `~/Ledger` after `git pull`:
+      `npx firebase-tools deploy --only firestore:rules,firestore:indexes,functions --project ledger-6aec3`
+      If it asks to delete indexes that aren't in the file, answer **No**.
+   2. **The nanny's account:**
+      - She opens `ledger.sgj.luxe` and signs in. She sees her Account ID.
+      - In the Console: `ledger_users/{that id}` → `role: household`,
+        `displayName: <her name>`.
+      - She taps "try again" → "Almost there".
+   3. **Set up Home:** Settings → Home → Set up Home (Abi joins as admin) → People → Add
+      someone → her → label "Nanny".
+   4. Then **"Bring in requests with Abi"**: your earlier requests move into Home and
+      stay private to the two of you.
+   5. **Phones:**
+      - you ask her something from Today's Home row → her phone: "Shaun sent a
+        request";
+      - she taps Done → your phones: "<her name> completed your request";
+      - she asks Abi something → only Abi is told; Abi says Can't do → she sees why →
+        Abi passes it to you → your Inbox → Today makes one Action → complete it → she
+        sees Done.
+   6. **Also check:**
+      - a request between you and Abi never shows on her phone;
+      - one marked "Everyone at Home can see it" does;
+      - Abi: Notifications → "Requests between others" (off by default).
+   7. **Completed Actions on the phone:**
+      - complete an Action → "Completed · N" under the list → open → tap its tick → it's
+        back in its place;
+      - Flow → Hide / Show completed.
 2. ~~Phase A device checks~~ — done 2026-10-18. For reference, what was checked:
    **Shaun: redeploy the rules for Phase A** — from `~/Ledger` after `git pull`:
    `npx firebase-tools deploy --only firestore:rules,functions --project ledger-6aec3`
