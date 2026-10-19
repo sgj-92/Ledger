@@ -12600,9 +12600,39 @@
     }).catch(function(e){ console.error('dismiss failed', e); showPinToast('Couldn’t set it aside — try again.', true); })
       .then(function(){ delete rqPendingDismiss[id]; renderInboxSection(); });
   }
-  // a dismissal waiting on its Undo is written before the page goes away
+  // Done, straight from the request: for something quick enough to just do — no Action,
+  // no day. Like a dismissal it waits for its Undo before anything is written, so an
+  // undone tap leaves no trace and tells nobody; then the partner sees it done.
+  var rqPendingDone = {};
+  function completeRequestNow(r){
+    if (!r || rqPendingDone[r.id] || rqPendingDismiss[r.id]) return;
+    rqPendingDone[r.id] = setTimeout(function(){ rqCommitDone(r.id); }, 5200);
+    renderInboxSection();
+    if (rqDetailRefresh) rqDetailRefresh();
+    showActionToast('Done — ' + partnerName(rqMember(r)) + ' will see it', 'Undo', function(){
+      clearTimeout(rqPendingDone[r.id]); delete rqPendingDone[r.id];
+      renderInboxSection();
+      if (rqDetailRefresh) rqDetailRefresh();
+    });
+  }
+  function rqCommitDone(id){
+    clearTimeout(rqPendingDone[id]);
+    var ref = requestRef(id), now = new Date().toISOString();
+    return dbRef.runTransaction(function(tx){
+      return tx.get(ref).then(function(snap){
+        if (!snap.exists || snap.data().status !== 'requested' || snap.data().deletedAt) return;
+        tx.update(ref, Object.assign({ status: 'done', updatedAt: now, processedAt: now }, rqSummary('system', 'status', null, now)));
+        tx.set(dbRef.collection(RQ_UPD).doc(), rqEvent(Object.assign({ id: id }, snap.data()), 'status', 'system', null, { status: 'done' }));
+      });
+    }).catch(function(e){ console.error('request done failed', e); showPinToast('Couldn’t mark it done — try again.', true); })
+      .then(function(){ delete rqPendingDone[id]; renderInboxSection(); if (rqDetailRefresh) rqDetailRefresh(); });
+  }
+  // a dismissal or a Done waiting on its Undo is written before the page goes away
   document.addEventListener('visibilitychange', function(){
-    if (document.visibilityState === 'hidden') Object.keys(rqPendingDismiss).forEach(rqCommitDismiss);
+    if (document.visibilityState === 'hidden'){
+      Object.keys(rqPendingDismiss).forEach(rqCommitDismiss);
+      Object.keys(rqPendingDone).forEach(rqCommitDone);
+    }
   });
 
   // The request follows its Action: in progress, done, its day when it moves. An Action
@@ -12695,18 +12725,20 @@
       document.getElementById('rqKicker').textContent = 'From ' + names.partner + (rqOnBehalf(r) ? ' · added by you' : '');
       document.getElementById('rqTitle').textContent = r.text;
       var stEl = document.getElementById('rqState');
-      stEl.textContent = rqPendingDismiss[r.id] ? 'Set aside' : rqStatusLabel(r);
+      stEl.textContent = rqPendingDismiss[r.id] ? 'Set aside' : (rqPendingDone[r.id] ? 'Done ✓' : rqStatusLabel(r));
       stEl.className = 'rq-state st-' + rqStatusClass(r);
       document.getElementById('rqMeta').textContent = [requestedWhenLabel(r), requestTimingLabel(r), r.note ? '“' + r.note + '”' : ''].filter(Boolean).join(' · ');
       var act = document.getElementById('rqAct');
       var a = r.linkedActionId ? commitments.find(function(c){ return c.id === r.linkedActionId; }) : null;
-      if (r.status === 'requested' && !rqPendingDismiss[r.id]){
+      if (r.status === 'requested' && !rqPendingDismiss[r.id] && !rqPendingDone[r.id]){
         act.innerHTML = '<div class="ib-actions">' +
           '<button type="button" class="bk-btn gold" id="rqToday">' + BK_PLUS_SVG + 'Today</button>' +
           '<button type="button" class="bk-btn" id="rqDay">' + UI_ICON.calendar + 'Choose day</button>' +
+          '<button type="button" class="bk-btn ib-done" id="rqDoneNow">' + CHECK_SVG + 'Done</button>' +
           '<button type="button" class="bk-btn ib-dismiss" id="rqDismiss">Dismiss</button></div>';
         document.getElementById('rqToday').addEventListener('click', function(){ acceptRequest(cur(), todayStr()); });
         document.getElementById('rqDay').addEventListener('click', function(){ openRequestDaySheet(cur()); });
+        document.getElementById('rqDoneNow').addEventListener('click', function(){ completeRequestNow(cur()); });
         document.getElementById('rqDismiss').addEventListener('click', function(){ dismissRequest(cur()); });
       } else if (a){
         // the Action itself stays private: its title and state, and a way into it
@@ -12927,7 +12959,7 @@
   // a request already planned that has a new update from the partner. An update is
   // context, never another task.
   function inboxItems(){
-    var fresh = sharedRequests.filter(function(r){ return r.status === 'requested' && !rqPendingDismiss[r.id]; })
+    var fresh = sharedRequests.filter(function(r){ return r.status === 'requested' && !rqPendingDismiss[r.id] && !rqPendingDone[r.id]; })
       .sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1; });
     var updated = sharedRequests.filter(function(r){ return r.status !== 'requested' && r.status !== 'withdrawn' && rqUnread(r, 'owner'); })
       .sort(function(a, b){ return (a.latestCommentAt || '') < (b.latestCommentAt || '') ? 1 : -1; });
@@ -12950,6 +12982,7 @@
             ? '<button type="button" class="bk-btn gold" data-hb-open="' + i + '">Review</button>'
             : '<button type="button" class="bk-btn gold" data-hb-today="' + i + '">' + BK_PLUS_SVG + 'Today</button>' +
               '<button type="button" class="bk-btn" data-hb-day="' + i + '">' + UI_ICON.calendar + 'Choose day</button>' +
+              '<button type="button" class="bk-btn ib-done" data-hb-done="' + i + '">' + CHECK_SVG + 'Done</button>' +
               '<button type="button" class="bk-btn ib-dismiss" data-hb-cant="' + i + '">Can’t do</button>') +
           '</div></div>';
       }).join('') + items.map(function(it, i){
@@ -12966,6 +12999,7 @@
               ? '<button type="button" class="bk-btn gold" data-ib-open="' + i + '">Review</button>'
               : '<button type="button" class="bk-btn gold" data-ib-today="' + i + '">' + BK_PLUS_SVG + 'Today</button>' +
                 '<button type="button" class="bk-btn" data-ib-day="' + i + '">' + UI_ICON.calendar + 'Choose day</button>' +
+                '<button type="button" class="bk-btn ib-done" data-ib-done="' + i + '">' + CHECK_SVG + 'Done</button>' +
                 '<button type="button" class="bk-btn ib-dismiss" data-ib-dismiss="' + i + '">Dismiss</button>') +
           '</div>' +
         '</div>';
@@ -12986,6 +13020,7 @@
     wrap.querySelectorAll('[data-hb-open]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbOpen)]; if (it) openHomeDetail(it.r.id); }); });
     wrap.querySelectorAll('[data-hb-today]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbToday)]; if (it) hrAccept(it.r, todayStr()); }); });
     wrap.querySelectorAll('[data-hb-day]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbDay)]; if (it) openRequestDaySheet(it.r, hrAccept, 'From ' + homeNameOf(it.r.requesterUid)); }); });
+    wrap.querySelectorAll('[data-hb-done]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbDone)]; if (it) hrSetStatus(it.r, 'done'); }); });
     wrap.querySelectorAll('[data-hb-cant]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbCant)]; if (it) openHomeCantDo(it.r); }); });
     // ids are the partner's to choose, so rows are found by position, never by id in markup
     items.forEach(function(it, i){
@@ -13009,6 +13044,9 @@
     });
     wrap.querySelectorAll('[data-ib-day]').forEach(function(b){
       b.addEventListener('click', function(){ var it = items[Number(b.dataset.ibDay)]; if (it) openRequestDaySheet(it.r); });
+    });
+    wrap.querySelectorAll('[data-ib-done]').forEach(function(b){
+      b.addEventListener('click', function(){ var it = items[Number(b.dataset.ibDone)]; if (it) completeRequestNow(it.r); });
     });
     wrap.querySelectorAll('[data-ib-dismiss]').forEach(function(b){
       b.addEventListener('click', function(){ var it = items[Number(b.dataset.ibDismiss)]; if (it) dismissRequest(it.r); });
@@ -13703,7 +13741,7 @@
       var a = (home.surface === 'owner' && r.linkedActionId && r.linkedByUid === me) ? commitments.find(function(c){ return c.id === r.linkedActionId; }) : null;
       if (mine && r.status === 'requested'){
         html = home.surface === 'owner'
-          ? btn('hdToday', BK_PLUS_SVG + 'Today', 'gold') + btn('hdDay', UI_ICON.calendar + 'Choose day')
+          ? btn('hdToday', BK_PLUS_SVG + 'Today', 'gold') + btn('hdDay', UI_ICON.calendar + 'Choose day') + btn('hdDone', CHECK_SVG + 'Done', 'ib-done')
           : btn('hdStart', 'Start', 'gold') + btn('hdDone', 'Done');
         html += btn('hdCant', 'Can’t do', 'ib-dismiss');
       } else if (mine && a){

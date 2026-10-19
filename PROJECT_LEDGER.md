@@ -721,6 +721,16 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-19 — A request can be done on the spot
+**Decision (Shaun):** some requests take less time to do than to plan. A request waiting
+for Shaun now offers **Done** beside Today / Choose day. Where it appears:
+- the Inbox row and the request sheet, for Partner Sharing requests;
+- the Inbox row and the request detail, for Home requests that are his.
+
+It completes the request with no Action and no day. For Partner Sharing it waits for its
+Undo (like Dismiss) before anything is written, so an undone tap tells nobody. Then the
+requester sees it done ("Shaun completed your request").
+
 ### 2026-10-18 — Home: Shaun's answers, and what was built from them
 **Decision (Shaun, 2026-10-18, answering `docs/HOUSEHOLD_DESIGN.md`):**
 1. **The nanny's account:** her own sign-in, with the `household` role.
@@ -1946,6 +1956,11 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-19) — **Done, straight from a request:** Partner Sharing (Inbox and sheet,
+  with Undo) and Home. No rules or functions change: it uses the existing owner status
+  write and its "status" entry. Partner Sharing e2e 209 (8 new; 320, 390 dark, 1440
+  light) and Home e2e 73.
 
 - (2026-10-18) — **Home (Household Requests, Phase B):**
   - rules (473 tests: 93 new);

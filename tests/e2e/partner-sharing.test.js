@@ -778,6 +778,41 @@ async function oobLink(email){
   check(await until(S, () => /Pick up prescription/.test((document.getElementById('rqTitle') || {}).textContent || '')) && !(await S.$('#rqDelBtn')), 'DEL6 no Delete on a request Abi made');
   await S.click('#sheetCloseBtn');
 
+  // ---------- Done, straight from a request: no Action, no day ----------
+  await backToToday(S);
+  await A.click('#ppAddReq'); await A.waitForSelector('#ppReqText');
+  await A.fill('#ppReqText', 'Bring the washing in'); await A.click('#ppReqSave');
+  check(await until(S, () => [...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Bring the washing in/.test(r.innerText) && !!r.querySelector('[data-ib-done]'))), 'Q1 the Inbox row offers Done beside Today / Choose day');
+  await S.locator('#inboxSection').scrollIntoViewIfNeeded(); await S.locator('#inboxSection').screenshot({ path: `${shots}/${tag}-Q1-inbox-done.png` });
+  const ibDone = () => S.evaluate(t => { const r = [...document.querySelectorAll('#inboxSection .ib-row')].find(x => x.innerText.indexOf(t) > -1); r.querySelector('[data-ib-done]').click(); }, 'Bring the washing in');
+  const updsOf = async id => (await all('ledger_shared_request_updates')).filter(u => u.requestId === id).length;
+  const wash0 = await findReq('Bring the washing in');
+  const u0 = await updsOf(wash0.id);
+  await ibDone();
+  check(await until(S, () => ![...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Bring the washing in/.test(r.innerText)) && /will see it/.test((document.querySelector('.pin-toast') || {}).textContent || '')), 'Q2 Done: it leaves the Inbox, "Done — Abi will see it" with Undo');
+  await S.click('.pin-toast-act');
+  await sleep(6000);
+  check((await findReq('Bring the washing in')).status === 'requested' && await updsOf(wash0.id) === u0 && await until(S, () => [...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Bring the washing in/.test(r.innerText))),
+    'Q2 Undo: back in the Inbox, nothing written, nobody told');
+  await ibDone();
+  await sleep(6500);
+  const wash = await findReq('Bring the washing in');
+  check(wash.status === 'done' && !wash.linkedActionId && !(await all('ledger_commitments')).some(c => c.sourceRequestId === wash.id), 'Q3 after the Undo window: done, with no Action and no day');
+  check((await all('ledger_shared_request_updates')).some(u => u.requestId === wash.id && u.type === 'status' && (u.metadata || {}).status === 'done'), 'Q3 its history says Done ✓');
+  check(await until(A, () => [...document.querySelectorAll('.pp-row')].some(r => /Bring the washing in/.test(r.innerText) && /Done/.test(r.innerText))), 'Q3 Abi sees it done');
+  // the same from the request's own sheet
+  await A.click('#ppAddReq'); await A.waitForSelector('#ppReqText');
+  await A.fill('#ppReqText', 'Text Mum back'); await A.click('#ppReqSave');
+  await until(S, () => [...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Text Mum back/.test(r.innerText)));
+  await S.evaluate(t => { const r = [...document.querySelectorAll('#inboxSection .ib-row')].find(x => x.innerText.indexOf(t) > -1); r.querySelector('[data-ib-open]').click(); }, 'Text Mum back');
+  await S.waitForSelector('#rqDoneNow');
+  await S.screenshot({ path: `${shots}/${tag}-Q4-detail-done.png` });
+  await S.click('#rqDoneNow');
+  check(await until(S, () => /Done ✓/.test(document.getElementById('rqState').textContent) && !document.getElementById('rqDoneNow')), 'Q4 from its sheet: Done ✓ at once');
+  await sleep(6500);
+  check((await findReq('Text Mum back')).status === 'done', 'Q4 …and written after the Undo window');
+  await S.click('#sheetCloseBtn');
+
   // ---------- deep links: query strings on the root, so a refresh is the same page ----------
   // owner: a Partner Request, opened cold from its link
   await S.goto(APP + '?request=' + rx.id);
