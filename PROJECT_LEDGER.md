@@ -1923,8 +1923,9 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Claude Code
-Status: Navigation Redesign & Home Expansion — all four milestones built (2026-10-22);
-waiting on Shaun's deploy (rules, functions, Cloud Scheduler) and device checks (Next 1).
+Status: Navigation Redesign & Home Expansion — all four milestones built, and deployed by
+Shaun (2026-10-22: rules, indexes, all eight functions, Cloud Scheduler enabled). Waiting
+on device checks (Next 1).
 Objective: Shaun's brief of 2026-10-22, in four milestones.
 Acceptance criteria: each milestone tested and reviewed for UX; deploy requirements
 recorded in Next 1; device checks listed for Shaun.
