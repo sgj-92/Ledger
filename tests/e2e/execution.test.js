@@ -472,6 +472,27 @@ async function swChecks(){
   await sleep(3000); got = since(mark);
   check(got.length === 1 && got[0].device === 'abi' && got[0].payload.title === 'Shaun sent you 3 requests' && got[0].payload.body === 'Empty the dishwasher, Wash the school uniform, Tidy the toy box' && got[0].payload.url === APP_URL + '?home=all',
     'Home list: three requests → Abi\'s phone ONCE, "Shaun sent you 3 requests", opening Home (' + got.map(g => g.device + ':' + g.payload.title).join(' | ') + ')');
+  // a recurring responsibility: set up once → the server makes today's at once → its person hears
+  mark = inbox.length;
+  const tid = await mac.evaluate(async (ids) => {
+    const db = firebase.firestore(), ref = db.collection('ledger_home_recurring').doc(), now = new Date().toISOString();
+    await ref.set({ homeId: ids.owner, title: 'Water the plants', note: null, createdByUid: ids.owner, mode: 'assigned', assigneeUid: ids.abi, visibility: 'private',
+      schedule: { freq: 'daily', days: [], monthDay: 1, every: 2, startDate: '2026-01-01', endDate: null, time: null }, timezone: 'Europe/London', checklist: ['Front', 'Back'],
+      status: 'active', createdAt: now, updatedAt: now, updatedByUid: ids.owner });
+    return ref.id;
+  }, { owner, abi });
+  got = await waitPushes(mark, 1);
+  await sleep(3000); got = since(mark);
+  const occs = (await all('ledger_home_requests')).filter(r => r.recurringId === tid);
+  check(occs.length === 1 && occs[0].assigneeUid === abi && occs[0].requesterUid === owner && occs[0].hasChecklist === true && /_\d{8}$/.test(occs[0].id),
+    'Recurring: set up → the server makes today\'s at once: one ordinary request for Abi, with its checklist (' + occs.map(o => o.id).join() + ')');
+  check(got.length === 1 && got[0].device === 'abi' && got[0].payload.title === 'Today: Water the plants' && got[0].payload.body === 'Regular, from Shaun',
+    'Recurring: Abi\'s phone, once — "Today: Water the plants" · "Regular, from Shaun" (' + got.map(g => g.device + ':' + g.payload.title).join(' | ') + ')');
+  mark = inbox.length;
+  await mac.evaluate(async (id) => { const db = firebase.firestore(); await db.collection('ledger_home_recurring').doc(id).update({ status: 'paused', updatedAt: new Date().toISOString(), updatedByUid: firebase.auth().currentUser.uid });
+    await db.collection('ledger_home_recurring').doc(id).update({ status: 'active', updatedAt: new Date().toISOString(), updatedByUid: firebase.auth().currentUser.uid }); }, tid);
+  await sleep(3000);
+  check((await all('ledger_home_requests')).filter(r => r.recurringId === tid).length === 1 && since(mark).length === 0, 'Recurring: pause and resume the same day → still one, and no second notification');
   // moving Partner Sharing requests into Home: run by the function, announcing nothing
   mark = inbox.length;
   await mac.evaluate(o => firebase.firestore().collection('ledger_meta').doc('homeMigration').set({ status: 'requested', requestedBy: o, requestedAt: new Date().toISOString() }), owner);
@@ -512,7 +533,7 @@ async function swChecks(){
   check(await until(iphone, () => !!document.getElementById('authEmail'), null, 20000), 'iPhone: signed out');
   check(!(await all('ledger_push_subscriptions')).some(s => s.deviceId === iphoneId), 'signing out removes this device\'s record');
   const events = await all('ledger_push_events');
-  check(events.length === 15 && events.every(e => e.status === 'done'), 'every push event logged once, done (' + events.length + ')');
+  check(events.length === 16 && events.every(e => e.status === 'done'), 'every push event logged once, done (' + events.length + ')');
 
   for (const p of [mac, iphone, samsung, abiPhone]){
     const errs = p.errs.filter(e => !/permission|offline|network/i.test(e));

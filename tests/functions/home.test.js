@@ -135,6 +135,19 @@ const fire = (rid, u) => engine.handleHomeUpdate({ update: u, requestId: rid, up
   check(to('maria').length === 1 && to('shaun').length === 2 && to('shaun')[0].payload.title === 'Abi asked Maria for 2 things', 'Shaun following Home hears it once: "Abi asked Maria for 2 things"', to('shaun').map((x) => x.payload.title));
   await db.doc('ledger_notification_prefs/shaun').delete();
 
+  // ---- recurring responsibilities: made by the server, announced by the same engine ----
+  await db.doc('ledger_home_requests/t1_20261025').set(R({ text: 'School uniform ready', requesterUid: 'abi', assigneeUid: 'maria', createdByUid: 'abi', participants: ['abi', 'maria'], recurringId: 't1', occurrenceDate: '2026-10-25' }));
+  reset(); await fire('t1_20261025', { type: 'created', actorUid: 'abi', metadata: { recurring: 't1', occurrence: '2026-10-25', mode: 'assigned' } });
+  check(who() === 'maria' && to('maria')[0].payload.title === 'Today: School uniform ready' && to('maria')[0].payload.body === 'Regular, from Abi', 'a recurring one, due today → its person: "Today: …" · "Regular, from Abi"', sent.map((x) => x.payload));
+  await db.doc('ledger_home_requests/t2_20261026').set(R({ text: 'Bins out', requesterUid: 'abi', assigneeUid: null, createdByUid: 'abi', participants: ['abi'], visibility: 'home', recurringId: 't2', occurrenceDate: '2026-10-26' }));
+  reset(); await fire('t2_20261026', { type: 'created', actorUid: 'abi', metadata: { recurring: 't2', occurrence: '2026-10-26', mode: 'anyone' } });
+  check(who() === 'maria,shaun' && to('maria')[0].payload.title === 'Today at Home: Bins out' && to('maria')[0].payload.body === 'Anyone can take it', 'anyone at Home → everyone at Home but Abi who set it up (and never the removed)', who());
+  await db.doc('ledger_home_requests/t2_20261026').update({ assigneeUid: 'maria', participants: ['abi', 'maria'] });
+  reset(); await fire('t2_20261026', { type: 'claimed', actorUid: 'maria' });
+  check(who() === 'abi' && to('abi')[0].payload.title === 'Maria will do “Bins out”', '"I’ll do it" → Abi: "Maria will do “Bins out”"');
+  reset(); await fire('t1_20261025', { type: 'missed', actorUid: 'abi', metadata: { next: '2026-11-01' } });
+  check(sent.length === 0, 'missed: nobody is told');
+
   // ---- the migration ----
   const H = (id, o) => db.doc('ledger_shared_requests/' + id).set(Object.assign({ ownerUid: 'shaun', partnerUid: 'abi', note: null, requestedTiming: 'today', requestedDate: null,
     createdAt: '2026-10-01T09:00:00Z', updatedAt: '2026-10-01T09:00:00Z' }, o));

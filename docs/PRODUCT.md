@@ -111,7 +111,7 @@ a date always opens Calendar on that date).
 | **Me → Progress** | Am I moving there? Towards your focus, weekly chart, health and training stats, stat detail. |
 | **Me → Focus** | Where am I going? Player card, priorities (optionally linked to evidence), active focus, target weight, Settings. |
 | **Comms** | Who has the ball? Matters and the conversations inside them, by attention state. Its own tab (headed Communications); Today keeps its Communications section and links. |
-| **Home** | What needs doing at home, shared with Abi and the people who help: a summary (for me, assigned to others, overdue), today, upcoming, recent updates, People. Add one request or a whole list at once. Never Shaun's private Ledger. |
+| **Home** | What needs doing at home, shared with Abi and the people who help: a summary (for me, assigned to others, overdue), today, upcoming, recent updates, People. Add one request, a whole list at once, a checklist (the shopping), or a recurring responsibility set up once. Never Shaun's private Ledger. |
 
 Today is the centre of the product. Everything else supports it.
 

@@ -1,7 +1,11 @@
 # Home — recurring responsibilities: architecture
 
-Status: **designed 2026-10-22; build in progress** (Milestone 4 of the navigation and Home
+Status: **designed, then built, 2026-10-22** (Milestone 4 of the navigation and Home
 brief). This was written first, and the build follows it.
+- **Code:** `functions/recur.js` (the generator), `functions/index.js` (the hourly tick
+  and the template trigger), `index.html` ("recurring responsibilities").
+- **Tests:** `tests/functions/recur.test.js`, the rules suite, Home e2e H15, and push
+  e2e.
 
 Scope: recurring household responsibilities at Home only. This is separate from any
 Ledger reminder or scheduling idea, which stays unauthorised. Nothing here touches a

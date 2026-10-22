@@ -263,7 +263,15 @@ function createEngine(deps) {
         plan.push({ to: uid, title, body, optIn: true });
       });
     };
-    if (u.type === 'created') {
+    if (u.type === 'created' && u.metadata && typeof u.metadata.recurring === 'string') {
+      // a recurring responsibility, due today: its person; or, when anyone can take it,
+      // everyone at Home but the one who set it up
+      if (r.assigneeUid) plan.push({ to: r.assigneeUid, title: 'Today: ' + clip(r.text, 80), body: 'Regular, from ' + (await name(r.requesterUid)) });
+      else {
+        const all = await db.collection('ledger_home_members').where('homeId', '==', r.homeId).get();
+        all.docs.forEach((d) => { if ((d.data() || {}).status === 'active' && d.id !== r.createdByUid) plan.push({ to: d.id, title: 'Today at Home: ' + clip(r.text, 80), body: 'Anyone can take it' }); });
+      }
+    } else if (u.type === 'created') {
       plan.push({ to: r.assigneeUid, title: (await name(r.requesterUid)) + ' sent a request', body: clip(r.text, 120) });
       await follow((await name(r.requesterUid)) + ' asked ' + (await name(r.assigneeUid)), clip(r.text, 120));
     } else if (u.type === 'comment') {
@@ -276,6 +284,8 @@ function createEngine(deps) {
       await follow((await name(u.actorUid)) + ' completed “' + what + '”', 'Asked by ' + (await name(r.requesterUid)));
     } else if (u.type === 'cant_do') {
       await tellAsker((await name(u.actorUid)) + ' can’t do “' + what + '”', clip(r.cantDoReason || '', 140));
+    } else if (u.type === 'claimed' && r.assigneeUid === u.actorUid) {
+      await tellAsker((await name(u.actorUid)) + ' will do “' + what + '”', 'They took it on');
     } else if (u.type === 'reassigned' && u.metadata && u.metadata.toUid === r.assigneeUid && r.assigneeUid !== u.actorUid) {
       plan.push({ to: r.assigneeUid, title: (await name(u.actorUid)) + ' passed you a request', body: clip(r.text, 120) });
     }

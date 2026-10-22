@@ -4661,6 +4661,31 @@
     .hs-loading span, .hs-row .commitment-status-dot.completed { animation: none; }
   }
   .pp-home-link { margin: var(--sp-5) 0; }
+  /* recurring: a quiet repeat mark; the responsibility rows; "I'll do it" */
+  .rc-inline { display: inline-flex; vertical-align: -2px; margin-left: 6px; color: var(--text-3); }
+  .rc-inline svg { width: 13px; height: 13px; display: block; }
+  .rc-mark { flex-shrink: 0; width: 21px; height: 21px; display: flex; align-items: center; justify-content: center; color: var(--gold); }
+  html[data-theme="light"] .rc-mark { color: var(--gold-2); }
+  .rc-mark svg { width: 16px; height: 16px; display: block; }
+  button.rc-row { width: 100%; text-align: left; font-family: var(--sans); color: inherit; border-left: none; border-right: none; border-top: none; }
+  .rc-row.paused .commitment-title { color: var(--text-2); }
+  .rc-row.paused .rc-mark { color: var(--text-3); }
+  .hs-pill.warn { color: var(--danger); }
+  .hs-claim { flex-shrink: 0; min-height: 34px; padding: 0 14px; border-radius: 100px; border: 1px solid rgba(var(--gold-rgb),0.4);
+    background: rgba(var(--gold-rgb),0.08); color: var(--gold); font-family: var(--sans); font-size: 12.5px; font-weight: 500; cursor: pointer; }
+  html[data-theme="light"] .hs-claim { color: var(--gold-2); }
+  .hs-claim:disabled { opacity: 0.5; }
+  .hs-row.st-missed .hs-mark { border-style: dashed; border-color: rgba(var(--danger-rgb),0.45); }
+  .hs-row.st-missed .hs-pill { color: rgba(var(--danger-rgb),0.85); }
+  .rc-days .bk-filter-chip { min-width: 44px; justify-content: center; }
+  .rc-num input { max-width: 120px; }
+  .rc-dates { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .rc-dates .field { min-width: 0; }
+  .rc-dates input { min-width: 0; width: 100%; }
+  .rc-preview { margin: var(--sp-3) 0 0; font-size: 13px; color: var(--text-2); }
+  .rc-preview:empty { display: none; }
+  .rc-actions { margin-top: var(--sp-4); }
+  .rc-ended { margin-top: 10px; }
   /* a checklist inside a request: tick, text, a handle to reorder; ticked ones fold away */
   .hl-wrap { margin: var(--sp-4) 0 var(--sp-2); }
   .hl-wrap:empty { display: none; }
@@ -9054,7 +9079,13 @@
             document.getElementById('asCtxLabel').textContent = stateVal === 'blocked' ? 'What’s blocking this?' : 'Waiting on';
             ctxIn.placeholder = stateVal === 'blocked' ? 'e.g. missing documents' : 'e.g. payroll';
             document.getElementById('disruptionReasonField').style.display = stateVal === 'disrupted' ? '' : 'none';
-            if (wait && !ctxIn.value) setTimeout(function(){ try { ctxIn.focus(); } catch(e){} }, 30);
+            // a moment later, unless they've already moved to another field: never steal
+            // focus from something being typed (it once put a private update in "Waiting on")
+            if (wait && !ctxIn.value) setTimeout(function(){
+              var at = document.activeElement;
+              if (at && at !== btn && at !== ctxIn && /^(INPUT|TEXTAREA|SELECT)$/.test(at.tagName)) return;
+              try { ctxIn.focus(); } catch(e){}
+            }, 30);
           });
         });
         wireActionUpdates(existing);
@@ -13542,6 +13573,28 @@
         merge();
       };
     }
+    // recurring responsibilities: an admin reads them all; anyone else, theirs and the shared
+    var tAll = {}, tMine = {}, tFor = {}, tShared = {};
+    function mergeT(){
+      var byId = {};
+      [tAll, tMine, tFor, tShared].forEach(function(src){ Object.keys(src).forEach(function(k){ byId[k] = src[k]; }); });
+      home.templates = Object.keys(byId).map(function(k){ return byId[k]; });
+      homeChanged();
+    }
+    function intoT(target){
+      return function(snap){
+        Object.keys(target).forEach(function(k){ delete target[k]; });
+        snap.docs.forEach(function(d){ target[d.id] = Object.assign({ id: d.id }, d.data()); });
+        mergeT();
+      };
+    }
+    var RC = dbRef.collection(HOME_RECUR);
+    if (home.me.role === 'admin') home.stops.push(RC.where('homeId', '==', H).onSnapshot(intoT(tAll), refused('recurring')));
+    else {
+      home.stops.push(RC.where('homeId', '==', H).where('createdByUid', '==', me).onSnapshot(intoT(tMine), refused('recurring')));
+      home.stops.push(RC.where('homeId', '==', H).where('assigneeUid', '==', me).onSnapshot(intoT(tFor), refused('recurring')));
+      home.stops.push(RC.where('homeId', '==', H).where('visibility', '==', 'home').onSnapshot(intoT(tShared), refused('recurring')));
+    }
     if (home.me.role === 'admin'){
       home.stops.push(dbRef.collection(HOME_REQ).where('homeId', '==', H).onSnapshot(into(all), refused('requests')));
     } else {
@@ -13553,7 +13606,7 @@
     Object.keys(home.itemStops || {}).forEach(function(k){ try { home.itemStops[k](); } catch(e){} });
     home.itemStops = {}; home.items = {};
     home.stops.forEach(function(f){ try { f(); } catch(e){} });
-    home.stops = []; home.members = []; home.requests = []; home.reqLoaded = false; home.membersLoaded = false;
+    home.stops = []; home.members = []; home.requests = []; home.templates = []; home.reqLoaded = false; home.membersLoaded = false;
   }
   function homeChanged(){
     if (home.detailRefresh) home.detailRefresh();
@@ -13568,6 +13621,8 @@
   function hrOpen(r){ return ['requested', 'planned', 'in_progress'].indexOf(r.status) > -1; }
   function hrStatusLabel(r){
     if (r.status === 'done') return 'Done ✓';
+    if (r.status === 'missed') return 'Missed';
+    if (hrOpen(r) && !r.assigneeUid) return 'Anyone can take it';
     if (r.status === 'cant_do') return 'Can’t do';
     if (r.status === 'withdrawn') return 'Withdrawn';
     if (r.status === 'dismissed') return 'Set aside';
@@ -13575,7 +13630,7 @@
     if (r.status === 'planned') return r.plannedDate ? (r.plannedDate < todayStr() ? 'On the list' : 'Planned ' + rqDayWord(r.plannedDate)) : 'Accepted';
     return r.requestedTiming === 'later' ? 'Upcoming' : 'Requested';
   }
-  function hrStatusClass(r){ return r.status === 'cant_do' ? 'dismissed' : (['requested', 'planned', 'in_progress', 'done', 'dismissed', 'withdrawn'].indexOf(r.status) > -1 ? r.status : 'requested'); }
+  function hrStatusClass(r){ return r.status === 'cant_do' ? 'dismissed' : (['requested', 'planned', 'in_progress', 'done', 'dismissed', 'withdrawn', 'missed'].indexOf(r.status) > -1 ? r.status : 'requested'); }
   // news is for the people in a request; following Home is the opt-in notification, not a dot
   function hrUnread(r){
     var me = homeMe();
@@ -13591,6 +13646,7 @@
   // "From Abi · for Maria", and who wrote it when that was someone else
   function hrKicker(r){
     var me = homeMe();
+    if (!r.assigneeUid) return (r.requesterUid === me ? 'For anyone at Home' : 'From ' + homeNameOf(r.requesterUid) + ' · for anyone at Home');
     var s = r.assigneeUid === me ? 'From ' + homeNameOf(r.requesterUid)
       : (r.requesterUid === me ? 'For ' + homeNameOf(r.assigneeUid) : homeNameOf(r.requesterUid) + ' → ' + homeNameOf(r.assigneeUid));
     if (r.createdByUid && r.createdByUid !== r.requesterUid) s += ' · added by ' + (r.createdByUid === me ? 'you' : homeNameOf(r.createdByUid));
@@ -13893,6 +13949,7 @@
     }
     var body = document.createElement('button'); body.type = 'button'; body.className = 'commitment-body hs-row-body';
     var t = document.createElement('span'); t.className = 'commitment-title'; t.textContent = r.text;
+    if (r.recurringId){ var rcm = document.createElement('span'); rcm.className = 'rc-inline'; rcm.setAttribute('role', 'img'); rcm.setAttribute('aria-label', 'repeats'); rcm.innerHTML = RC_ICON; t.appendChild(rcm); }
     var m = document.createElement('span'); m.className = 'commitment-meta';
     if (opts.activity){
       m.textContent = hrActivityLine(r);
@@ -13908,6 +13965,12 @@
     body.appendChild(t); body.appendChild(m);
     body.addEventListener('click', function(){ openHomeDetail(r.id); });
     row.appendChild(body);
+    if (hrOpen(r) && !r.assigneeUid && r.recurringId && homeOn()){
+      var claim = document.createElement('button'); claim.type = 'button'; claim.className = 'hs-claim'; claim.textContent = 'I’ll do it';
+      claim.addEventListener('click', function(e){ e.stopPropagation(); claim.disabled = true; hrClaim(r); });
+      row.appendChild(claim);
+      return row;
+    }
     var pill = document.createElement('span'); pill.className = 'hs-pill';
     // the mark already says done; the pill speaks only where it adds something
     pill.textContent = pending || r.status === 'done' || (r.status === 'requested' && !opts.activity) ? '' : hrStatusLabel(r);
@@ -13925,6 +13988,8 @@
     else if (t === 'cant_do') verb = 'can’t do it';
     else if (t === 'reassigned') verb = 'passed it to ' + homeWho(r.assigneeUid).replace('You', 'you');
     else if (t === 'withdrawn') verb = 'withdrew it';
+    else if (t === 'claimed') verb = 'took it on';
+    else if (t === 'missed') return 'Missed · ' + shortDayLabel(r.occurrenceDate || r.requestedDate);
     else if (t === 'visibility') verb = r.visibility === 'home' ? 'shared it with Home' : 'made it private';
     else verb = 'updated it';
     return who + ' ' + verb + ' · ' + rqAgo(r.latestUpdateAt || r.createdAt);
@@ -14032,19 +14097,296 @@
     });
     if (opts.keepScroll !== false && home.surface === 'owner') window.scrollTo(0, scrollY);
   }
-  // recurring responsibilities: added with Milestone 4
-  function homeRecurringInto(){}
+  // ---- recurring responsibilities (docs/HOME_RECURRENCE.md) ----
+  // A template says what repeats and for whom; on each due date the server makes ONE
+  // ordinary request from it (id `${template}_${YYYYMMDD}`). Here: the templates, their
+  // next date (computed, never stored), and the forms. The schedule maths matches
+  // functions/recur.js line for line.
+  var HOME_RECUR = 'ledger_home_recurring';
+  var RC_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var RC_DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  function rcToDays(s){ var p = String(s).split('-').map(Number); return Math.round(Date.UTC(p[0], p[1] - 1, p[2]) / 86400000); }
+  function rcFromDays(n){ var t = new Date(n * 86400000); return t.getUTCFullYear() + '-' + String(t.getUTCMonth() + 1).padStart(2, '0') + '-' + String(t.getUTCDate()).padStart(2, '0'); }
+  function rcWeekday(s){ return new Date(rcToDays(s) * 86400000).getUTCDay(); }
+  function rcIsDue(sc, date){
+    if (!sc || !sc.startDate || date < sc.startDate) return false;
+    if (sc.endDate && date > sc.endDate) return false;
+    var wd = rcWeekday(date);
+    if (sc.freq === 'daily') return true;
+    if (sc.freq === 'weekdays') return (sc.days || []).indexOf(wd) > -1;
+    if (sc.freq === 'weekly') return (sc.days || [])[0] === wd;
+    if (sc.freq === 'monthly'){
+      var p = date.split('-').map(Number), last = new Date(Date.UTC(p[0], p[1], 0)).getUTCDate();
+      return p[2] === Math.min(Number(sc.monthDay) || 1, last);
+    }
+    if (sc.freq === 'interval'){
+      var every = Math.max(2, Math.min(365, Number(sc.every) || 2));
+      return (rcToDays(date) - rcToDays(sc.startDate)) % every === 0;
+    }
+    return false;
+  }
+  function rcNextDue(sc, from){
+    if (!sc || !sc.startDate) return null;
+    var n = rcToDays(from > sc.startDate ? from : sc.startDate);
+    for (var i = 0; i < 400; i++, n++){
+      var d = rcFromDays(n);
+      if (sc.endDate && d > sc.endDate) return null;
+      if (rcIsDue(sc, d)) return d;
+    }
+    return null;
+  }
+  function rcOrdinal(n){ var s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+  function rcLabel(sc){
+    if (!sc) return '';
+    var t = sc.time ? ' at ' + sc.time : '';
+    if (sc.freq === 'daily') return 'Every day' + t;
+    if (sc.freq === 'weekly') return 'Every ' + RC_DAYS_LONG[(sc.days || [0])[0]] + t;
+    if (sc.freq === 'weekdays'){
+      var d = (sc.days || []).slice().sort();
+      if (d.join() === '1,2,3,4,5') return 'Weekdays' + t;
+      if (d.join() === '0,6') return 'Weekends' + t;
+      return d.map(function(x){ return RC_DAYS[x]; }).join(', ') + t;
+    }
+    if (sc.freq === 'monthly') return 'Monthly on the ' + rcOrdinal(Number(sc.monthDay) || 1) + t;
+    if (sc.freq === 'interval') return 'Every ' + (sc.every || 2) + ' days' + t;
+    return '';
+  }
+  function rcTemplate(id){ return (home.templates || []).find(function(t){ return t.id === id; }) || null; }
+  function rcCanEdit(t){ return !!t && (t.createdByUid === homeMe() || homeIsAdmin()); }
+  function rcWho(t){ return t.mode === 'anyone' ? 'Anyone at Home' : (t.assigneeUid === homeMe() ? 'You' : homeNameOf(t.assigneeUid)); }
+  function rcTimezone(){ try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/London'; } catch(e){ return 'Europe/London'; } }
+
+  // the Recurring section (and, filtered, the whole list)
+  function homeRecurringInto(wrap, full){
+    var list = (home.templates || []).filter(function(t){ return t.status !== 'ended'; })
+      .sort(function(a, b){ var na = rcNextDue(a.schedule, todayStr()) || '9999', nb = rcNextDue(b.schedule, todayStr()) || '9999'; return na < nb ? -1 : (na > nb ? 1 : 0); });
+    if (!list.length && !full) return;
+    var sec = document.createElement('section'); sec.className = 'hs-sec rc-sec';
+    var head = document.createElement(full ? 'div' : 'button'); head.className = 'hs-sec-head';
+    if (!full){ head.type = 'button'; head.addEventListener('click', function(){ home.filter = 'recurring'; homeChanged(); window.scrollTo(0, 0); }); }
+    head.innerHTML = '<h3 class="cz-sec-title">Recurring</h3><span class="cz-sec-count"></span>' + (full ? '' : '<span class="chev">' + UI_ICON.chevronRight + '</span>');
+    head.querySelector('.cz-sec-count').textContent = list.length ? String(list.length) : '';
+    sec.appendChild(head);
+    var box = document.createElement('div'); box.className = 'hs-list';
+    (full ? list : list.slice(0, 4)).forEach(function(t){
+      var row = document.createElement('button'); row.type = 'button'; row.className = 'commitment-item hs-row rc-row' + (t.status === 'paused' ? ' paused' : '');
+      row.innerHTML = '<span class="rc-mark" aria-hidden="true">' + RC_ICON + '</span><span class="commitment-body hs-row-body"><span class="commitment-title"></span><span class="commitment-meta"></span></span><span class="hs-pill"></span>';
+      row.querySelector('.commitment-title').textContent = t.title;
+      var next = t.status === 'active' ? rcNextDue(t.schedule, todayStr()) : null;
+      row.querySelector('.commitment-meta').textContent = [rcLabel(t.schedule), rcWho(t), next ? 'next ' + (rcDayWordCap(next)) : ''].filter(Boolean).join(' · ');
+      var pill = row.querySelector('.hs-pill');
+      if (t.blocked === 'assignee_removed') { pill.textContent = 'Needs someone new'; pill.classList.add('warn'); }
+      else if (t.status === 'paused') pill.textContent = 'Paused';
+      else pill.remove();
+      row.addEventListener('click', function(){ openHomeTemplate(t.id); });
+      box.appendChild(row);
+    });
+    if (!list.length){ var p = document.createElement('p'); p.className = 'hs-empty'; p.textContent = 'Nothing repeats yet. Add → Recurring responsibility sets one up once.'; box.appendChild(p); }
+    sec.appendChild(box);
+    if (full){
+      var ended = (home.templates || []).filter(function(t){ return t.status === 'ended'; });
+      if (ended.length){
+        var eh = document.createElement('p'); eh.className = 'hs-empty rc-ended'; eh.textContent = ended.length + ' ended — kept with their history.';
+        sec.appendChild(eh);
+      }
+    }
+    wrap.appendChild(sec);
+  }
+  function rcDayWordCap(d){ var w = rqDayWord(d); return w.charAt(0).toUpperCase() + w.slice(1); }
+  var RC_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3L19.5 9"/><polyline points="19.5 4.5 19.5 9 15 9"/><path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3L4.5 15"/><polyline points="4.5 19.5 4.5 15 9 15"/></svg>';
+
+  // one responsibility: what, when, who; Edit, Pause / Resume, End
+  function openHomeTemplate(tid){
+    var t0 = rcTemplate(tid);
+    if (!t0) return;
+    var sh = homeHost().open('<div class="sheet-handle"></div>' +
+      '<div class="sheet-head rq-head"><div class="sheet-title-wrap"><p class="rq-kicker" id="rcKicker"></p><div class="sheet-title rq-title" id="rcTitle"></div></div>' +
+      '<button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<p class="rq-state" id="rcState"></p><p class="rq-meta" id="rcMeta"></p>' +
+      '<div id="rcList"></div>' +
+      '<div class="ib-actions rc-actions" id="rcAct"></div>');
+    var mark = sh.querySelector('#rcState');
+    function paint(){
+      var t = rcTemplate(tid);
+      if (!t || !document.body.contains(mark)) return false;
+      sh.querySelector('#rcKicker').textContent = 'Recurring · ' + (t.createdByUid === homeMe() ? 'set up by you' : 'from ' + homeNameOf(t.createdByUid));
+      sh.querySelector('#rcTitle').textContent = t.title;
+      var next = t.status === 'active' ? rcNextDue(t.schedule, todayStr()) : null;
+      mark.textContent = t.status === 'ended' ? 'Ended' : (t.status === 'paused' ? 'Paused' : (t.blocked === 'assignee_removed' ? 'Needs someone new' : (next ? 'Next ' + rcDayWordCap(next) : 'No more dates')));
+      mark.className = 'rq-state' + (t.blocked ? ' st-dismissed' : '');
+      sh.querySelector('#rcMeta').textContent = [rcLabel(t.schedule), rcWho(t), t.schedule.endDate ? 'until ' + shortDayLabel(t.schedule.endDate) : '', t.note ? '“' + t.note + '”' : ''].filter(Boolean).join(' · ');
+      var ll = sh.querySelector('#rcList'); ll.innerHTML = '';
+      if ((t.checklist || []).length){
+        var h = document.createElement('h3'); h.className = 'cz-sec-title rq-upd-title'; h.textContent = 'Checklist each time · ' + t.checklist.length; ll.appendChild(h);
+        var ul = document.createElement('div'); ul.className = 'hl-list';
+        t.checklist.forEach(function(x){ var r = document.createElement('div'); r.className = 'hl-row'; var s = document.createElement('span'); s.className = 'hl-text'; s.textContent = x; r.appendChild(s); ul.appendChild(r); });
+        ll.appendChild(ul);
+      }
+      var act = sh.querySelector('#rcAct');
+      act.innerHTML = '';
+      if (rcCanEdit(t) && t.status !== 'ended'){
+        act.innerHTML = '<button type="button" class="bk-btn gold" id="rcEdit">Edit</button>' +
+          '<button type="button" class="bk-btn" id="rcPause">' + (t.status === 'paused' ? 'Resume' : 'Pause') + '</button>' +
+          '<button type="button" class="bk-btn ib-dismiss" id="rcEnd">End</button>';
+        act.querySelector('#rcEdit').addEventListener('click', function(){ openHomeRecurring(rcTemplate(tid)); });
+        act.querySelector('#rcPause').addEventListener('click', function(){ var x = rcTemplate(tid); rcSetStatus(x, x.status === 'paused' ? 'active' : 'paused'); });
+        act.querySelector('#rcEnd').addEventListener('click', function(){
+          if (!confirm('End “' + rcTemplate(tid).title + '”? Nothing more is made from it; what was done stays in history.')) return;
+          rcSetStatus(rcTemplate(tid), 'ended').then(function(){ homeCloseAll(); });
+        });
+      }
+      return true;
+    }
+    paint();
+    home.listRefresh = null;
+    home.detailRefresh = function(){ if (!paint()) home.detailRefresh = null; };
+  }
+  function rcSetStatus(t, st){
+    var now = new Date().toISOString(), patch = { status: st, updatedAt: now, updatedByUid: homeMe() };
+    if (st === 'ended') patch.endedAt = now;
+    return dbRef.collection(HOME_RECUR).doc(t.id).update(patch)
+      .then(function(){ showPinToast(st === 'paused' ? 'Paused — nothing new until you resume it' : (st === 'active' ? 'Resumed' : 'Ended'), false, CHECK_SVG); })
+      .catch(hrFail(st === 'ended' ? 'end it' : 'change it'));
+  }
+
+  // set one up, or edit the series (the change applies from the next one)
+  function openHomeRecurring(t){
+    var me = homeMe(), editing = !!t;
+    var people = homeActiveMembers().filter(function(m){ return m.uid !== ((t && t.createdByUid) || me); }).sort(function(a, b){ return (a.displayName || '').localeCompare(b.displayName || ''); });
+    var helpers = people.filter(function(m){ return m.role === 'member'; });
+    var sc = t ? Object.assign({}, t.schedule) : { freq: 'weekly', days: [rcWeekday(todayStr())], monthDay: Number(todayStr().slice(8)), every: 2, startDate: todayStr(), endDate: null, time: null };
+    var st = { mode: t ? t.mode : 'assigned', assignee: t ? t.assigneeUid : (helpers.length === 1 ? helpers[0].uid : null), shared: t ? t.visibility === 'home' : false };
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', editing ? 'Edit responsibility' : 'Recurring responsibility', editing ? 'Changes apply from the next one.' : 'Set it up once; it comes round by itself.', '') +
+      '<div class="field"><label for="rcText">What</label><textarea id="rcText" rows="2" maxlength="280" placeholder="e.g. School uniform washed, ironed and ready"></textarea></div>' +
+      '<div class="field"><label>Who</label><div class="bk-filter-pop" id="rcMode" role="radiogroup" aria-label="Who"></div></div>' +
+      '<div class="field" id="rcForField"><label>For</label><div class="bk-filter-pop" id="rcFor" role="radiogroup" aria-label="For"></div></div>' +
+      '<div class="field"><label>Repeats</label><div class="bk-filter-pop" id="rcFreq" role="radiogroup" aria-label="Repeats"></div></div>' +
+      '<div class="field" id="rcDaysField"><label>On</label><div class="bk-filter-pop rc-days" id="rcDays" role="group" aria-label="Days"></div></div>' +
+      '<div class="field rc-num" id="rcMonthField"><label for="rcMonthDay">Day of the month</label><input type="number" id="rcMonthDay" min="1" max="31" inputmode="numeric"></div>' +
+      '<div class="field rc-num" id="rcEveryField"><label for="rcEvery">Every how many days</label><input type="number" id="rcEvery" min="2" max="365" inputmode="numeric"></div>' +
+      '<div class="rc-dates">' + fieldDate('rcStart', 'Starts', sc.startDate) +
+        '<div class="field"><label for="rcTime">Time <span class="pp-opt">optional</span></label><input type="time" id="rcTime"></div></div>' +
+      fieldDate('rcEnd', 'Ends <span class="pp-opt">optional</span>', sc.endDate || '') +
+      '<div class="field"><label for="rcNote">Note <span class="pp-opt">optional</span></label><input type="text" id="rcNote" maxlength="500" autocomplete="off"></div>' +
+      '<div class="field"><label for="rcList">Checklist each time <span class="pp-opt">optional · one per line</span></label><textarea id="rcList" rows="3" maxlength="4000"></textarea></div>' +
+      '<button type="button" class="cz-opt" id="rcShare" role="switch" aria-checked="false">' +
+        '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+        '<span class="cz-opt-text"><span class="cz-opt-title">Everyone at Home can see it</span>' +
+        '<span class="cz-opt-sub" id="rcShareSub">Otherwise only the people in it.</span></span></button>' +
+      '<p class="rc-preview" id="rcPreview"></p>' +
+      '<p class="auth-error" id="rcErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="rcSave">' + (editing ? 'Save' : 'Set it up') + '</button>');
+    sh.querySelector('#rcText').value = t ? t.title : '';
+    sh.querySelector('#rcNote').value = t && t.note ? t.note : '';
+    sh.querySelector('#rcList').value = t ? (t.checklist || []).join('\n') : '';
+    sh.querySelector('#rcMonthDay').value = sc.monthDay || 1;
+    sh.querySelector('#rcEvery').value = sc.every || 2;
+    sh.querySelector('#rcTime').value = sc.time || '';
+    function chipRow(el, opts, sel, onPick, multi){
+      el.innerHTML = '';
+      opts.forEach(function(o){
+        var on = multi ? sel.indexOf(o[0]) > -1 : sel === o[0];
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'bk-filter-chip' + (on ? ' sel' : '');
+        b.setAttribute('role', multi ? 'checkbox' : 'radio'); b.setAttribute('aria-checked', on ? 'true' : 'false');
+        b.textContent = o[1];
+        b.addEventListener('click', function(){ onPick(o[0]); paint(); });
+        el.appendChild(b);
+      });
+    }
+    function readSchedule(){
+      var out = { freq: sc.freq, days: (sc.days || []).slice().sort(), monthDay: Math.max(1, Math.min(31, Number(sh.querySelector('#rcMonthDay').value) || 1)),
+        every: Math.max(2, Math.min(365, Number(sh.querySelector('#rcEvery').value) || 2)), startDate: sh.querySelector('#rcStart').value || todayStr(),
+        endDate: sh.querySelector('#rcEnd').value || null, time: sh.querySelector('#rcTime').value || null };
+      if (out.freq === 'weekly') out.days = [out.days.length ? out.days[0] : rcWeekday(out.startDate)];
+      return out;
+    }
+    function paint(){
+      chipRow(sh.querySelector('#rcMode'), [['assigned', 'A named person'], ['anyone', 'Anyone at Home']], st.mode, function(v){ st.mode = v; });
+      sh.querySelector('#rcForField').hidden = st.mode !== 'assigned';
+      chipRow(sh.querySelector('#rcFor'), people.map(function(m){ return [m.uid, m.displayName]; }), st.assignee, function(v){ st.assignee = v; });
+      chipRow(sh.querySelector('#rcFreq'), [['daily', 'Daily'], ['weekdays', 'Chosen days'], ['weekly', 'Weekly'], ['monthly', 'Monthly'], ['interval', 'Every few days']], sc.freq, function(v){
+        sc.freq = v;
+        if (v === 'weekdays' && (!sc.days || sc.days.length < 2)) sc.days = [1, 2, 3, 4, 5];
+        if (v === 'weekly') sc.days = [(sc.days && sc.days.length ? sc.days[0] : rcWeekday(todayStr()))];
+      });
+      var daysOn = sc.freq === 'weekdays' || sc.freq === 'weekly';
+      sh.querySelector('#rcDaysField').hidden = !daysOn;
+      if (daysOn) chipRow(sh.querySelector('#rcDays'), [1, 2, 3, 4, 5, 6, 0].map(function(d){ return [d, RC_DAYS[d]]; }), sc.freq === 'weekly' ? (sc.days || [])[0] : (sc.days || []), function(d){
+        if (sc.freq === 'weekly'){ sc.days = [d]; return; }
+        var i = sc.days.indexOf(d); if (i > -1) sc.days.splice(i, 1); else sc.days.push(d);
+      }, sc.freq === 'weekdays');
+      sh.querySelector('#rcMonthField').hidden = sc.freq !== 'monthly';
+      sh.querySelector('#rcEveryField').hidden = sc.freq !== 'interval';
+      var share = sh.querySelector('#rcShare'), on = st.mode === 'anyone' || st.shared;
+      share.classList.toggle('on', on); share.setAttribute('aria-checked', on ? 'true' : 'false'); share.disabled = st.mode === 'anyone';
+      sh.querySelector('#rcShareSub').textContent = st.mode === 'anyone' ? 'Always, so anyone can take it.' : 'Otherwise only the people in it.';
+      preview();
+    }
+    function preview(){
+      var s2 = readSchedule(), next = rcNextDue(s2, todayStr()), label = rcLabel(s2);
+      sh.querySelector('#rcPreview').textContent = label ? label + (next ? ' · first ' + rcDayWordCap(next) : ' · no dates in that range') : '';
+    }
+    sh.querySelector('#rcShare').addEventListener('click', function(){ if (st.mode !== 'anyone'){ st.shared = !st.shared; paint(); } });
+    ['#rcMonthDay', '#rcEvery', '#rcStart', '#rcEnd', '#rcTime'].forEach(function(id){ sh.querySelector(id).addEventListener('input', preview); sh.querySelector(id).addEventListener('change', preview); });
+    paint();
+    sh.querySelector('#rcSave').addEventListener('click', function(){
+      var err = sh.querySelector('#rcErr'), title = sh.querySelector('#rcText').value.trim(), note = sh.querySelector('#rcNote').value.trim();
+      var s2 = readSchedule();
+      if (!title){ err.textContent = 'Say what needs doing.'; return; }
+      if (st.mode === 'assigned' && !st.assignee){ err.textContent = 'Choose who it’s for — or Anyone at Home.'; return; }
+      if (s2.freq === 'weekdays' && !s2.days.length){ err.textContent = 'Choose at least one day.'; return; }
+      if (s2.endDate && s2.endDate < s2.startDate){ err.textContent = 'It ends before it starts.'; return; }
+      if (!rcNextDue(s2, todayStr())){ err.textContent = 'There’s no date in that range.'; return; }
+      if (!dbRef || !homeOn()){ err.textContent = 'You’re offline — try again when you’re connected.'; return; }
+      var now = new Date().toISOString(), btn = sh.querySelector('#rcSave');
+      var fields = { title: title.slice(0, 280), note: note ? note.slice(0, 500) : null, mode: st.mode, assigneeUid: st.mode === 'assigned' ? st.assignee : null,
+        visibility: st.mode === 'anyone' || st.shared ? 'home' : 'private', schedule: s2, timezone: rcTimezone(),
+        checklist: hbParse(sh.querySelector('#rcList').value).slice(0, 40).map(function(x){ return x.slice(0, 200); }), updatedAt: now, updatedByUid: me };
+      btn.disabled = true; err.textContent = '';
+      var write = editing
+        ? dbRef.collection(HOME_RECUR).doc(t.id).update(fields)
+        : dbRef.collection(HOME_RECUR).doc().set(Object.assign({ homeId: home.me.homeId, createdByUid: me, status: 'active', createdAt: now }, fields));
+      write.then(function(){
+        homeCloseAll();
+        var next = rcNextDue(s2, todayStr());
+        showPinToast(editing ? 'Saved — from the next one' : 'Set up · ' + (next === todayStr() ? 'the first is today' : 'first ' + rcDayWordCap(next)), false, CHECK_SVG);
+      }).catch(function(e){ console.error('recurring save failed', e); btn.disabled = false; err.textContent = 'Couldn’t save it — check your connection and try again.'; });
+    });
+    setTimeout(function(){ try { sh.querySelector('#rcText').focus(); } catch(e){} }, 60);
+  }
+
+  // "I'll do it": an unclaimed one becomes yours
+  function hrClaim(r){
+    var me = homeMe(), parts = (r.participants || []).slice(); if (parts.indexOf(me) === -1) parts.push(me);
+    var ref = homeRef(r.id);
+    return dbRef.runTransaction(function(tx){
+      return tx.get(ref).then(function(snap){
+        var cur = snap.exists ? snap.data() : null;
+        if (!cur || cur.deletedAt) throw { code: 'deleted' };
+        if (cur.assigneeUid) throw { code: 'taken', by: cur.assigneeUid };
+        tx.update(ref, Object.assign({ assigneeUid: me, participants: parts }, hrSummary('claimed')));
+        tx.set(ref.collection('updates').doc('claimed'), hrEntry('claimed', null, {}));
+      });
+    }).then(function(){ showPinToast('It’s yours', false, CHECK_SVG); })
+      .catch(function(e){
+        if (e && e.code === 'taken'){ showPinToast(homeNameOf(e.by) + ' is already doing it', true); return; }
+        if (e && e.code === 'deleted'){ showPinToast('That one was deleted.', true); return; }
+        hrFail('take it')(e);
+      });
+  }
   // the add control: one request, several at once
   function openHomeAddMenu(){
     var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Add to Home', '', '') +
       '<div class="act-rows" id="hamRows">' +
         '<button type="button" class="act-row" id="hamOne"><span class="act-ic">' + BK_PLUS_SVG + '</span><span class="act-label lc-row-x"><span class="lc-row-t">New request</span><span class="lc-row-m">One thing, for one person</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
         '<button type="button" class="act-row" id="hamList"><span class="act-ic">' + CHECK_SVG + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Shopping or checklist</span><span class="lc-row-m">One request with a list to tick off</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
+        '<button type="button" class="act-row" id="hamRecur"><span class="act-ic">' + RC_ICON + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Recurring responsibility</span><span class="lc-row-m">Set it up once — it comes round by itself</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
         '<button type="button" class="act-row" id="hamMany"><span class="act-ic">' + UI_ICON.list + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Add several tasks</span><span class="lc-row-m">Paste or type a list — each line becomes its own request</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
       '</div>');
     sh.querySelector('#hamOne').addEventListener('click', function(){ openHomeNew(); });
     sh.querySelector('#hamList').addEventListener('click', function(){ openHomeNew({ checklist: true }); });
     sh.querySelector('#hamMany').addEventListener('click', function(){ openHomeBulk(); });
+    sh.querySelector('#hamRecur').addEventListener('click', function(){ openHomeRecurring(null); });
   }
 
   // ---- several at once: a list in, one request per line out ----
@@ -14461,12 +14803,15 @@
   function hrEventText(e, r){
     var m = e.metadata || {}, who = homeWho(e.actorUid);
     if (e.type === 'created'){
+      if (m.recurring) return 'Due ' + rqDayWord(m.occurrence) + ' · a regular one from ' + (e.actorUid === homeMe() ? 'you' : homeNameOf(e.actorUid));
       if (r.createdByUid && r.createdByUid !== r.requesterUid && e.actorUid === r.createdByUid)
         return 'Created by ' + (e.actorUid === homeMe() ? 'you' : homeNameOf(e.actorUid)) + ' on ' + homeWhose(r.requesterUid) + ' behalf';
       if (m.renewedFrom) return who + ' moved it to upcoming, after withdrawing it';
       return who === 'You' ? 'You asked' : 'Asked by ' + who;
     }
     if (e.type === 'renewed') return who + ' moved it to upcoming, as a new request';
+    if (e.type === 'claimed') return who + (who === 'You' ? ' took it on' : ' took it on');
+    if (e.type === 'missed') return 'Missed — the next one is due';
     if (e.type === 'planned') return 'Planned for ' + rqDayWord(m.toDate);
     if (e.type === 'moved') return 'Moved to ' + rqDayWord(m.toDate);
     if (e.type === 'dismissed') return 'Set aside';
@@ -14668,7 +15013,11 @@
       var act = sh.querySelector('#hdAct'), html = '';
       var canPass = (mine || homeIsAdmin()) && ['requested', 'planned', 'in_progress', 'cant_do'].indexOf(r.status) > -1;
       var a = (home.surface === 'owner' && r.linkedActionId && r.linkedByUid === me) ? commitments.find(function(c){ return c.id === r.linkedActionId; }) : null;
-      if (mine && r.status === 'requested'){
+      if (!r.assigneeUid && r.status === 'requested'){
+        html = btn('hdClaim', 'I’ll do it', 'gold');
+      } else if (mine && r.status === 'missed'){
+        html = btn('hdDone', 'Done, late', 'gold');
+      } else if (mine && r.status === 'requested'){
         html = home.surface === 'owner'
           ? btn('hdToday', BK_PLUS_SVG + 'Today', 'gold') + btn('hdDay', UI_ICON.calendar + 'Choose day') + btn('hdDone', CHECK_SVG + 'Done', 'ib-done')
           : btn('hdStart', 'Start', 'gold') + btn('hdDone', 'Done');
@@ -14695,6 +15044,7 @@
       on('hdToday', function(){ hrAccept(cur(), todayStr()); });
       on('hdDay', function(){ var x = cur(); openRequestDaySheet(x, hrAccept, 'From ' + homeNameOf(x.requesterUid), function(){ openHomeDetail(rid); }); });
       on('hdStart', function(){ hrSetStatus(cur(), 'in_progress'); });
+      on('hdClaim', function(){ var b = sh.querySelector('#hdClaim'); if (b) b.disabled = true; hrClaim(cur()); });
       on('hdDone', function(){ var x = cur(); if (hrConfirmDone(x)) hrSetStatus(x, 'done'); });
       on('hdReopen', function(){ var x = cur(); if (x.status === 'cant_do') hrWrite(x, { status: 'requested', cantDoReason: null }, 'status', null, { status: 'requested' }).catch(hrFail('reopen it')); else hrSetStatus(x, 'in_progress'); });
       on('hdCant', function(){ openHomeCantDo(cur()); });

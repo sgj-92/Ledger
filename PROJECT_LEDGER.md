@@ -751,6 +751,21 @@ Built so far (Claude Code):
   ticks and adds never overwrite. Only the people a request is between edit it; an
   admin following Home reads only. Done is never automatic, and Done with items left
   asks first. No notifications for ticks.
+- **Recurring responsibilities (M4):** architecture first (`docs/HOME_RECURRENCE.md`),
+  then built.
+  - **Model:** a template (`ledger_home_recurring`). The server creates one ordinary
+    request per due date (id `<template>_<YYYYMMDD>`, create-if-absent).
+  - **Timing:** an hourly tick from 06:00 in the template's timezone, and at once when
+    a template is written.
+  - **Never stored ahead:** only today's is made; no future occurrences, no backfill
+    after an outage.
+  - **Missed:** the previous open one becomes `missed`, never done. Its person can
+    still finish it late.
+  - **Who:** a named person, or anyone at Home with "I'll do it" (claim rule).
+  - **Removed members:** a removed assignee or creator blocks generation, shown as
+    "Needs someone new".
+  - **Changes:** edit the series from the next one, pause/resume without backfill, End
+    (never deleted).
 - **Authorisation note:** this brief explicitly authorises recurring Home
   responsibilities with server-side generation (Milestone 4). That supersedes the
   "not authorised: recurring" handoff note for Home only. Ledger's own
@@ -1908,8 +1923,8 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Claude Code
-Status: Navigation Redesign & Home Expansion — M1, M2 and M3 built (2026-10-22); M4
-(recurring responsibilities) designed in `docs/HOME_RECURRENCE.md`, build in progress.
+Status: Navigation Redesign & Home Expansion — all four milestones built (2026-10-22);
+waiting on Shaun's deploy (rules, functions, Cloud Scheduler) and device checks (Next 1).
 Objective: Shaun's brief of 2026-10-22, in four milestones.
 Acceptance criteria: each milestone tested and reviewed for UX; deploy requirements
 recorded in Next 1; device checks listed for Shaun.
@@ -1990,8 +2005,8 @@ No active handoff.
 
 ### Claude Code
 
-**Active:** Navigation Redesign & Home Expansion, M4 (recurring responsibilities — the
-architecture is `docs/HOME_RECURRENCE.md`; then build). M1–M3 are done. **Not authorised:**
+No active handoff. Navigation Redesign & Home Expansion (M1–M4) is built (2026-10-22)
+and waits on Shaun's deploy and device checks. **Not authorised:**
 - giving Abi or the nanny access to private Actions or Ledger data;
 - more Homes per owner;
 - a separate task engine. **Not authorised:** a scheduled-reminder engine (timed reminders, "X
@@ -2001,6 +2016,26 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-22) — **Recurring responsibilities (M4):** `functions/recur.js`
+  (`onRecurringTick` hourly, `onRecurringWritten`), the template rules, the claim rule
+  and late done. In the app: the form, the Recurring section and sheet (Edit, Pause,
+  End), the repeat mark, "I'll do it" and Missed.
+
+  Tests:
+  - recurrence engine 35 (new);
+  - Home engine 43, push 49;
+  - rules 547 (33 new);
+  - Home e2e 152 (26 new);
+  - push e2e 76: real generation through the Functions emulator, one notification,
+    and no duplicate on pause/resume.
+
+  Also fixed, found while testing:
+  - **The Partner Sharing step H flake** (about 1 run in 3). It was a real race:
+    tapping "Waiting" focused "Waiting on" 30ms later even when a person had already
+    moved on, so a private update typed quickly landed in "Waiting on". The delayed
+    focus now never takes focus from another field. Five runs green since.
+  - **The functions now use the modular `FieldValue`.** In the Functions emulator,
+    `admin.firestore.FieldValue` was undefined, so occurrences failed to generate.
 - (2026-10-22) — **Checklists in Home requests (M3):**
   - "Shopping or checklist", live "3 of 8 items", tick, edit, paste a list, drag to
     reorder, "Ticked · N";
@@ -2295,8 +2330,17 @@ minutes before", recurring/accountability).
    1. From `~/Ledger` after `git pull`:
       `npx firebase-tools deploy --only firestore:rules,firestore:indexes,functions --project ledger-6aec3`
       If it asks to delete indexes that aren't in the file, answer **No**. (Since
-      2026-10-22 this also deploys `ledger_home_batches` and `onHomeBatchCreated`, the
-      one notification for a list.)
+      2026-10-22 this also deploys:
+      - `ledger_home_batches` and `onHomeBatchCreated`, the one notification for a list;
+      - checklist items;
+      - recurring responsibilities: `ledger_home_recurring`, `onRecurringWritten`, and
+        the hourly `onRecurringTick`. The first deploy of a scheduled function enables
+        Cloud Scheduler; if asked, answer yes.)
+
+      **Until it's deployed:**
+      - a request with a checklist, or a recurring responsibility, is refused by the
+        live rules;
+      - a list's requests save, but each sends its own notification.
    2. **The nanny's account:**
       - She opens `ledger.sgj.luxe` → "New here? Create an account". She sees her
         Account ID.
@@ -2313,6 +2357,12 @@ minutes before", recurring/accountability).
       - Abi: Home tab → Add → Add several tasks → paste a list for her → check it →
         Create → her phone shows ONE notification, "Abi sent you N requests";
       - she ticks one done on her Home screen → it shows done at once, with Undo;
+      - she adds "Shopping or checklist" for you → you tick items → she sees "2 of 5"
+        live; Done with items left asks first;
+      - Abi: Add → Recurring responsibility → "School uniform …", Maria, weekly on
+        Sunday → on Sunday from 06:00 Maria gets "Today: School uniform …" and it is in
+        her Today; an "Anyone at Home" one shows "I'll do it";
+      - the Me tab: Calendar / Progress / Focus switch; the Comms tab;
       - she taps Done → your phones: "<her name> completed your request";
       - she asks Abi something → only Abi is told; Abi says Can't do → she sees why →
         Abi passes it to you → your Inbox → Today makes one Action → complete it → she

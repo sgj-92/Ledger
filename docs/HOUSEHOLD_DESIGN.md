@@ -209,6 +209,17 @@ Updated 2026-10-22 (navigation redesign): Home is a place, not a sheet.
   request gains one by adding its first item.
 - **Notifications:** none for ticks or edits.
 
+### Recurring responsibilities (2026-10-22)
+
+Designed and built per `docs/HOME_RECURRENCE.md`:
+- **The model:** a template, plus one ordinary request per due date. The server makes
+  it hourly from 06:00 local, or at once when the responsibility is set up. Its id is
+  deterministic, so it is never duplicated.
+- **Who:** a named person, or "anyone at Home" ("I'll do it").
+- **Missed occurrences** are kept as missed, never auto-completed.
+- **Changes:** pause, resume, end and edit the series.
+- **Members removed** are never given more.
+
 ## 4. Moving Partner Sharing requests into Home
 
 - **Starting it:** Shaun taps "Bring in requests with Abi", which writes

@@ -18,7 +18,7 @@ const PORT = 8951;
 const APP = `http://127.0.0.1:${PORT}/index.html`;
 const SDK = path.dirname(require.resolve('firebase/package.json')) + '/';
 const ok = [], bad = [];
-const check = (c, m) => { (c ? ok : bad).push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
+const check = (c, m, why) => { (c ? ok : bad).push(m); console.log((c ? 'PASS ' : 'FAIL ') + m + (!c && why ? ' — ' + why : '')); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function ymd(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 const now = new Date(), TODAY = ymd(now);
@@ -449,6 +449,90 @@ async function oobLink(email){
   check((await reqByText('Weekly groceries')).status === 'done' && fin.find(i => i.text === 'Butter').done === false && fin.filter(i => i.done).length === 5, 'H14 …then done, leaving that item unticked; the rest keep who ticked them');
   await A.click('#ppSheet .sheet-close'); await M.click('#ppSheet .sheet-close');
 
+  // H15 — recurring responsibilities: set up once, they come round by themselves
+  await goHome(A); await A.click('#hsAdd'); await A.waitForSelector('#hamRecur'); await A.click('#hamRecur');
+  await A.waitForSelector('#rcText');
+  check(await A.evaluate(() => [...document.querySelectorAll('#rcMode .bk-filter-chip.sel')].map(b => b.textContent).join() === 'A named person'
+    && [...document.querySelectorAll('#rcFor .bk-filter-chip.sel')].map(b => b.textContent).join() === 'Maria'
+    && [...document.querySelectorAll('#rcFreq .bk-filter-chip.sel')].map(b => b.textContent).join() === 'Weekly'), 'H15 defaults: a named person (Maria), weekly');
+  await A.fill('#rcText', 'School uniform washed, ironed and ready');
+  check(await chip(A, '#rcDays', 'Sun'), 'H15 on Sundays');
+  await A.fill('#rcList', 'Wash\nIron\nHang up');
+  check(await until(A, () => /^Every Sunday · first /.test(document.getElementById('rcPreview').textContent)), 'H15 it says what it will do: "Every Sunday · first …"');
+  await A.screenshot({ path: `${shots}/${tag}-H15-recurring-form.png` });
+  await A.click('#rcSave');
+  check(await until(A, () => !document.getElementById('ppBackdrop').classList.contains('open') && /Set up/.test((document.querySelector('.pin-toast') || {}).textContent || '')), 'H15 "Set up · first …"');
+  await sleep(600);
+  const tpls = await all('ledger_home_recurring');
+  const uni = tpls.find(t => /School uniform/.test(t.title));
+  check(uni && uni.createdByUid === abi && uni.mode === 'assigned' && uni.assigneeUid === maria && uni.schedule.freq === 'weekly' && uni.schedule.days.join() === '0'
+    && uni.timezone === 'Europe/London' && uni.checklist.join('|') === 'Wash|Iron|Hang up' && uni.status === 'active' && uni.visibility === 'private', 'H15 stored once: weekly on Sunday, for Maria, with its checklist, in her timezone', JSON.stringify(uni));
+  check(await until(A, () => [...document.querySelectorAll('#ppHomeScreen .rc-row')].some(r => /School uniform/.test(r.innerText) && /Every Sunday · Maria · next/.test(r.innerText))), 'H15 Abi\'s Home → Recurring: "Every Sunday · Maria · next …"');
+  check(await until(M, () => [...document.querySelectorAll('#hpList .rc-row')].some(r => /School uniform/.test(r.innerText) && /Every Sunday · You/.test(r.innerText))), 'H15 Maria sees it too: "Every Sunday · You"');
+  check(await until(S, () => [...document.querySelectorAll('#view-home .rc-row')].some(r => /School uniform/.test(r.innerText))), 'H15 …and Shaun, who sees all of Home');
+  // pause, resume, edit the series
+  await A.evaluate(() => [...document.querySelectorAll('#ppHomeScreen .rc-row')].find(r => /School uniform/.test(r.innerText)).click());
+  await A.waitForSelector('#rcPause'); await A.click('#rcPause');
+  const pausedUi = await until(A, () => /Paused/.test(document.getElementById('rcState').textContent));
+  await sleep(400);
+  const pausedDb = (await all('ledger_home_recurring')).find(t => t.id === uni.id);
+  check(pausedUi && pausedDb.status === 'paused', 'H15 Pause: "Paused", and nothing new until resumed', JSON.stringify({ pausedUi, st: pausedDb.status, state: await txt(A, '#rcState'), toast: await toast(A) }));
+  await A.click('#rcPause');
+  check(await until(A, () => /^Next /.test(document.getElementById('rcState').textContent)), 'H15 Resume: "Next …"');
+  await A.click('#rcEdit'); await A.waitForSelector('#rcText');
+  await A.fill('#rcText', 'School uniform ready for Monday');
+  await A.click('#rcSave');
+  check(await until(A, () => /Saved — from the next one/.test((document.querySelector('.pin-toast') || {}).textContent || '')), 'H15 editing the series: "Saved — from the next one"');
+  await sleep(500);
+  check((await all('ledger_home_recurring')).find(t => t.id === uni.id).title === 'School uniform ready for Monday' && (await all('ledger_home_recurring')).length === 1, 'H15 …the same responsibility, changed (not a copy)');
+  // Maria can see it, not change it
+  await M.evaluate(() => [...document.querySelectorAll('#hpList .rc-row')].find(r => /School uniform/.test(r.innerText)).click());
+  await M.waitForSelector('#rcState');
+  check(await M.evaluate(() => !document.getElementById('rcEdit') && !document.getElementById('rcPause')), 'H15 Maria (assigned) sees it, but only Abi or an admin changes it');
+  await M.click('#ppSheet .sheet-close');
+  // anyone at Home
+  await A.click('#hsAdd'); await A.waitForSelector('#hamRecur'); await A.click('#hamRecur'); await A.waitForSelector('#rcText');
+  await A.fill('#rcText', 'Bins out');
+  check(await chip(A, '#rcMode', 'Anyone at Home') && await chip(A, '#rcFreq', 'Daily'), 'H15 "Bins out": anyone at Home, daily');
+  check(await A.evaluate(() => document.getElementById('rcShare').getAttribute('aria-checked') === 'true' && document.getElementById('rcShare').disabled), 'H15 anyone at Home is always shared');
+  await A.click('#rcSave'); await until(A, () => !document.getElementById('ppBackdrop').classList.contains('open'));
+  await sleep(500);
+  const bins = (await all('ledger_home_recurring')).find(t => t.title === 'Bins out');
+  check(bins && bins.mode === 'anyone' && bins.assigneeUid === null && bins.visibility === 'home', 'H15 stored: anyone, shared with Home, nobody named');
+  // the server makes today's (here, as the server would), unclaimed
+  const occId = bins.id + '_' + TODAY.replace(/-/g, '');
+  const nowIso = new Date().toISOString();
+  await put(`${HR}/${occId}`, { homeId: owner, text: 'Bins out', note: null, requestedTiming: 'date', requestedDate: TODAY, requestedTime: null, requesterUid: abi, assigneeUid: null, createdByUid: abi,
+    participants: [abi], visibility: 'home', status: 'requested', plannedDate: null, linkedActionId: null, recurringId: bins.id, occurrenceDate: TODAY,
+    createdAt: nowIso, updatedAt: nowIso, latestUpdateAt: nowIso, latestUpdateByUid: abi, latestUpdateType: 'created', readAt: {} });
+  check(await until(M, (id) => [...document.querySelectorAll('#hpList .hs-row')].some(r => /Bins out/.test(r.innerText) && r.querySelector('.hs-claim') && r.querySelector('.rc-inline')), occId), 'H15 Maria: "Bins out" today, with a repeat mark and "I’ll do it"');
+  await M.screenshot({ path: `${shots}/${tag}-H15-maria-claim.png` });
+  await M.evaluate(() => [...document.querySelectorAll('#hpList .hs-row')].find(r => /Bins out/.test(r.innerText)).querySelector('.hs-claim').click());
+  await sleep(1200);
+  const claimed = (await all(HR)).find(r => r.id === occId);
+  check(claimed.assigneeUid === maria && claimed.participants.includes(maria) && claimed.participants.includes(abi), 'H15 "I’ll do it": it is Maria\'s, and Abi stays in it');
+  check(await until(A, () => [...document.querySelectorAll('#ppHomeScreen .hs-row')].some(r => /Bins out/.test(r.innerText) && !r.querySelector('.hs-claim') && /Maria/.test(r.innerText))), 'H15 Abi sees Maria took it (no "I’ll do it" left)');
+  check(await until(M, () => [...document.querySelectorAll('#hpList .hs-row')].some(r => /Bins out/.test(r.innerText) && r.querySelector('.commitment-status-dot'))), 'H15 …and Maria can now tick it off');
+  // a missed one: history, and still finishable
+  const missId = uni.id + '_20261018';
+  await put(`${HR}/${missId}`, { homeId: owner, text: 'School uniform washed, ironed and ready', note: null, requestedTiming: 'date', requestedDate: '2026-10-18', requesterUid: abi, assigneeUid: maria, createdByUid: abi,
+    participants: [abi, maria], visibility: 'private', status: 'missed', plannedDate: null, linkedActionId: null, recurringId: uni.id, occurrenceDate: '2026-10-18',
+    createdAt: nowIso, updatedAt: nowIso, latestUpdateAt: nowIso, latestUpdateByUid: abi, latestUpdateType: 'missed', readAt: {} });
+  check(await until(M, () => [...document.querySelectorAll('#hpList .hs-row.st-missed')].some(r => /Missed/.test(r.innerText))), 'H15 a missed one sits in history: "Missed"');
+  await M.evaluate(() => [...document.querySelectorAll('#hpList .hs-row.st-missed')][0].querySelector('.hs-row-body').click());
+  await M.waitForSelector('#hdDone');
+  check(/Done, late/.test(await txt(M, '#hdDone')), 'H15 …and its person can still finish it: "Done, late"');
+  await M.click('#hdDone'); await sleep(1000);
+  check((await all(HR)).find(r => r.id === missId).status === 'done', 'H15 done, late');
+  await M.click('#ppSheet .sheet-close');
+  // ending one
+  await A.evaluate(() => [...document.querySelectorAll('#ppHomeScreen .rc-row')].find(r => /Bins out/.test(r.innerText)).click());
+  await A.waitForSelector('#rcEnd'); await A.click('#rcEnd');
+  check(await until(A, () => !document.getElementById('ppBackdrop').classList.contains('open')) && /End “Bins out”/.test(A.dialogs[A.dialogs.length - 1] || ''), 'H15 End asks first');
+  await sleep(500);
+  check((await all('ledger_home_recurring')).find(t => t.id === bins.id).status === 'ended' && !(await A.evaluate(() => [...document.querySelectorAll('#ppHomeScreen .rc-row')].some(r => /Bins out/.test(r.innerText)))), 'H15 ended: kept, and off the Recurring list');
+  await A.screenshot({ path: `${shots}/${tag}-H15-abi-home.png`, fullPage: true });
+
   // H9 — following Home: Abi chooses to hear what Shaun asks Maria; nobody else changes
   await A.click('#ppNotify'); await A.waitForSelector('#ntOversight');
   check(await A.evaluate(() => document.getElementById('ntOversight').getAttribute('aria-checked') === 'false'), 'H9 Abi: "Requests between others" is off by default');
@@ -469,7 +553,11 @@ async function oobLink(email){
   check(await M.evaluate(async id => { try { await firebase.firestore().collection('ledger_home_requests').doc(id).get(); return 'ALLOWED'; } catch (e){ return e.code; } }, bath.id) === 'permission-denied', 'H10 …and the rules refuse her own requests now');
   await S.waitForSelector('#hpeList'); await S.evaluate(() => [...document.querySelectorAll('#hpeList .act-row')].find(r => /Maria/.test(r.innerText)).click());
   await S.waitForSelector('#hmmBack'); await S.click('#hmmBack');
-  check(await until(M, () => !document.getElementById('partnerApp').hidden && [...document.querySelectorAll('#hpList .hs-row')].some(r => /Bath at six/.test(r.innerText)), null, 15000), 'H10 added back: her Home and its history return');
+  check(await until(M, () => !document.getElementById('partnerApp').hidden && [...document.querySelectorAll('#hpList .hs-row')].some(r => /Bins out/.test(r.innerText)), null, 15000), 'H10 added back: her Home returns');
+  await M.click('#hsFilterClear').catch(() => {});
+  await M.evaluate(() => { const h = [...document.querySelectorAll('#hpList .hs-sec-head')].find(x => /Recent updates/i.test(x.innerText)); if (h) h.click(); });
+  check(await until(M, () => [...document.querySelectorAll('#hpList .hs-row')].some(r => /Bath at six/.test(r.innerText))), 'H10 …with its history (All activity)');
+  await M.evaluate(() => { const x = document.getElementById('hsFilterClear'); if (x) x.click(); });
   await S.click('#sheetCloseBtn');
 
   // H12 — someone new creates an account from the sign-in screen (no link, no Console)
@@ -493,7 +581,8 @@ async function oobLink(email){
   await N2.goto(APP); await N2.waitForSelector('#authCreateGo', { timeout: 20000 });
   await N2.click('#authCreateGo'); await N2.waitForSelector('#authNewPassword');
   await N2.fill('#authEmail', ABI); await N2.fill('#authNewPassword', 'another-pass-9'); await N2.click('#authCreate');
-  check(await until(N2, () => /already an account for this email/.test(document.getElementById('authError').textContent)), 'H12 an email that already has an account: "Sign in instead"');
+  check(await until(N2, () => /already an account for this email/.test(document.getElementById('authError').textContent), null, 20000), 'H12 an email that already has an account: "Sign in instead"',
+    await N2.evaluate(() => JSON.stringify({ err: (document.getElementById('authError') || {}).textContent, state: document.getElementById('authCard').getAttribute('data-state'), email: (document.getElementById('authEmail') || {}).value, btn: (document.getElementById('authCreate') || {}).textContent })));
   await N2.context().close();
 
   // H11 — the partner portal still does what it did

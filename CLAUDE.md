@@ -201,9 +201,12 @@ These are observed facts about this repo, useful before making changes.
 - **Single-file app.** All product code — HTML, CSS and JavaScript — lives in
   `index.html` (~10,500 lines). There is no build step, no bundler, no framework
   and no package manager for the app itself.
-- `functions/` is the only separate codebase: the push sender. `push.js` is
-  the one notification engine (`sendPushToUser`); `index.js` wires the
-  Firestore triggers for Current Focus, Partner request Updates and Pin now.
+- `functions/` is the only separate codebase: the push sender and Home's server
+  jobs. `push.js` is the one notification engine (`sendPushToUser`); `index.js`
+  wires the Firestore triggers (Current Focus, Partner request Updates, Pin now,
+  Home request updates and lists, the Home migration) and the hourly
+  `onRecurringTick`. `recur.js` generates recurring Home responsibilities
+  (`docs/HOME_RECURRENCE.md`); `migrate.js` moves Partner Sharing into Home.
   It has its own `package.json`. Tests are in `tests/functions/` (the engine,
   on the Firestore emulator) and `tests/e2e/execution.run.js`, which starts
   the Auth, Firestore and Functions emulators.
@@ -226,6 +229,10 @@ These are observed facts about this repo, useful before making changes.
   than once. Treat it as a bug pattern.
 - User-supplied text is written with `textContent` or as an input `value`,
   never interpolated into an HTML string.
+- **Navigation:** five tabs, Plan · Today · Me · Comms · Home. `goView(view)` is the
+  one way to change view; `currentView` is always the real view (`calendar`,
+  `stats` and `focus` sit under the Me tab's switch). Use `goCalendarOn(date)` for a
+  dated link. Tabs add no browser history.
 - **One responsive app.** Wider screens are CSS over the same DOM (breakpoints
   768 / 1024 / 1200 / 1600px, in the "Wider screens" block at the end of the
   stylesheet). Today's `.today-top/-main/-side/-extra` and Focus's

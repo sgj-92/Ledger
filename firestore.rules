@@ -316,7 +316,7 @@ service cloud.firestore {
                       // the assignee: where it stands. Only the owner links a private Action,
                       // and only its id ever lands here.
                       || (request.auth.uid == resource.data.assigneeUid
-                          && resource.data.status in ['requested', 'planned', 'in_progress', 'done', 'cant_do']
+                          && resource.data.status in ['requested', 'planned', 'in_progress', 'done', 'cant_do', 'missed']
                           && request.resource.data.status in ['requested', 'planned', 'in_progress', 'done', 'cant_do']
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'plannedDate', 'linkedActionId',
                                'linkedByUid', 'processedAt', 'cantDoReason'].concat(summaryKeys()))
@@ -340,6 +340,14 @@ service cloud.firestore {
                           && request.resource.data.status == 'requested'
                           && request.resource.data.get('plannedDate', null) == null
                           && request.resource.data.get('linkedActionId', null) == null
+                          && homeSummary(resource.data, request.resource.data))
+                      // "I'll do it": anyone at Home takes an unclaimed recurring one, as themselves
+                      || (resource.data.get('recurringId', null) != null && resource.data.get('assigneeUid', null) == null
+                          && resource.data.status == 'requested'
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['assigneeUid', 'participants'].concat(summaryKeys()))
+                          && request.resource.data.assigneeUid == request.auth.uid
+                          && request.resource.data.participants.hasAll(resource.data.participants)
+                          && request.resource.data.participants.hasOnly(resource.data.participants.concat([request.auth.uid]))
                           && homeSummary(resource.data, request.resource.data))
                       // who can see it: its creator or an admin
                       || ((request.auth.uid == resource.data.createdByUid || homeAdmin(resource.data.homeId))
@@ -408,6 +416,71 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+    // ---- Recurring responsibilities at Home (docs/HOME_RECURRENCE.md) ----
+    // A template, set up once; the server makes one ordinary request from it on each due
+    // date. Read like a request (admins, the people in it, or everyone when shared);
+    // written by its creator or an admin; never deleted (End is a status). What the
+    // server keeps (lastDate, lastRunAt, blocked) is never the client's to write.
+    function recurDate(s) {
+      return s is string && s.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+    function recurSchedule(sc) {
+      return sc is map
+          && sc.keys().hasOnly(['freq', 'days', 'monthDay', 'every', 'startDate', 'endDate', 'time'])
+          && sc.freq in ['daily', 'weekdays', 'weekly', 'monthly', 'interval']
+          && recurDate(sc.startDate)
+          && (sc.get('endDate', null) == null || (recurDate(sc.endDate) && sc.endDate >= sc.startDate))
+          && (sc.get('time', null) == null || (sc.time is string && sc.time.matches('^[0-2][0-9]:[0-5][0-9]$')))
+          && sc.get('days', []) is list && sc.get('days', []).size() <= 7 && sc.get('days', []).hasOnly([0, 1, 2, 3, 4, 5, 6])
+          && (sc.freq != 'weekdays' || sc.days.size() > 0)
+          && (sc.freq != 'weekly' || sc.days.size() == 1)
+          && (sc.get('monthDay', 1) is int && sc.get('monthDay', 1) >= 1 && sc.get('monthDay', 1) <= 31)
+          && (sc.get('every', 2) is int && sc.get('every', 2) >= 2 && sc.get('every', 2) <= 365);
+    }
+    function recurShape(d) {
+      return d.keys().hasOnly(['homeId', 'title', 'note', 'createdByUid', 'mode', 'assigneeUid', 'visibility', 'schedule', 'timezone',
+                               'checklist', 'status', 'createdAt', 'updatedAt', 'updatedByUid', 'endedAt', 'lastDate', 'lastRunAt', 'blocked'])
+          && d.title is string && d.title.size() > 0 && d.title.size() <= 280
+          && (d.get('note', null) == null || (d.note is string && d.note.size() <= 500))
+          && d.mode in ['assigned', 'anyone']
+          && (d.mode == 'anyone'
+              ? (d.get('assigneeUid', null) == null && d.visibility == 'home')
+              : (d.assigneeUid is string && d.assigneeUid != d.createdByUid && d.visibility in ['private', 'home']))
+          && recurSchedule(d.schedule)
+          && d.timezone is string && d.timezone.size() <= 64
+          && d.get('checklist', []) is list && d.get('checklist', []).size() <= 40
+          && d.status in ['active', 'paused', 'ended']
+          && d.updatedByUid == request.auth.uid;
+    }
+    function recurServerKeys() {
+      return ['lastDate', 'lastRunAt', 'blocked'];
+    }
+    match /ledger_home_recurring/{tid} {
+      allow read: if inHome(resource.data.homeId)
+                  && (me().role == 'admin' || request.auth.uid == resource.data.createdByUid
+                      || request.auth.uid == resource.data.get('assigneeUid', null) || resource.data.visibility == 'home');
+      allow create: if tid.matches('^[A-Za-z0-9]{1,40}$')
+                    && inHome(request.resource.data.homeId)
+                    && request.resource.data.createdByUid == request.auth.uid
+                    && recurShape(request.resource.data)
+                    && request.resource.data.status == 'active'
+                    && (request.resource.data.mode == 'anyone' || activeIn(request.resource.data.assigneeUid, request.resource.data.homeId))
+                    && !request.resource.data.keys().hasAny(recurServerKeys().concat(['endedAt']));
+      allow update: if inHome(resource.data.homeId)
+                    && (request.auth.uid == resource.data.createdByUid || me().role == 'admin')
+                    && resource.data.status != 'ended'
+                    && request.resource.data.homeId == resource.data.homeId
+                    && request.resource.data.createdByUid == resource.data.createdByUid
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(recurServerKeys())
+                    && recurShape(request.resource.data)
+                    // a new person must be at Home; an existing one may have left (then End or reassign)
+                    && (request.resource.data.mode == 'anyone'
+                        || request.resource.data.assigneeUid == resource.data.get('assigneeUid', null)
+                        || activeIn(request.resource.data.assigneeUid, resource.data.homeId));
+      allow delete: if false;
+    }
+
     // A list sent in one go: a note to the server that these requests went out together, so
     // each person hears ONE notification for all they were sent. Written once by whoever
     // sent them; nobody reads it back. The server checks every id against the requests
@@ -449,6 +522,8 @@ service cloud.firestore {
                 || (d.type == 'reassigned' && d.metadata.toUid == p.assigneeUid && d.metadata.fromUid != p.assigneeUid
                     && get(/databases/$(database)/documents/ledger_home_requests/$(rid)).data.assigneeUid == d.metadata.fromUid
                     && (request.auth.uid == d.metadata.fromUid || homeAdmin(p.homeId)))
+                || (d.type == 'claimed' && updateId == 'claimed' && p.assigneeUid == request.auth.uid
+                    && get(/databases/$(database)/documents/ledger_home_requests/$(rid)).data.get('assigneeUid', null) == null)
                 || (d.type == 'visibility' && d.metadata.visibility == p.visibility
                     && (request.auth.uid == p.createdByUid || homeAdmin(p.homeId)))))
           || (d.type == 'deleted' && updateId == 'deleted' && p.get('deletedAt', null) != null

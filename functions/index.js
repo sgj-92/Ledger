@@ -10,8 +10,9 @@
 //   ledger_home_requests/{id}/updates/{u} (created) → the people the request involves
 //   ledger_home_batches/{id} (created)            → each person a list was for, once
 //
-// And one that is not a push: ledger_meta/homeMigration, written by the owner, moves his
-// Partner Sharing requests into Home (migrate.js).
+// And three that are not pushes: ledger_meta/homeMigration, written by the owner, moves his
+// Partner Sharing requests into Home (migrate.js); and recurring responsibilities at Home
+// (recur.js) are generated hourly, and at once when one is set up or changed.
 //
 // Recipients come from those trusted records, checked again here (the Admin SDK is not
 // subject to the security rules). Push is best effort: Firestore is already the truth.
@@ -27,13 +28,18 @@
 // Deploy with: firebase deploy --only functions
 
 const { onDocumentCreated, onDocumentWritten } = require('firebase-functions/v2/firestore');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const { defineSecret, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
+// the modular FieldValue: the same in production and in the emulator, where the namespaced
+// admin.firestore.FieldValue is not always there
+const { FieldValue } = require('firebase-admin/firestore');
 const webpush = require('web-push');
 const { createEngine } = require('./push');
 const { createMigrator } = require('./migrate');
+const { createRecurrer } = require('./recur');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -55,7 +61,7 @@ function engine() {
   return createEngine({
     db,
     send: (sub, body, opts) => webpush.sendNotification(sub, body, opts),
-    deleteField: () => admin.firestore.FieldValue.delete(),
+    deleteField: () => FieldValue.delete(),
     log: (...a) => logger.warn(...a)
   });
 }
@@ -141,3 +147,31 @@ exports.onHomeMigrationRequested = onDocumentWritten(
   }
 );
 
+// Recurring responsibilities at Home (docs/HOME_RECURRENCE.md): each due date makes ONE
+// ordinary request, create-if-absent under a deterministic id. Hourly, so they appear on
+// the morning they are due (06:00 in the template's own timezone) whether or not anyone
+// opens Ledger; and at once when a template is set up or changed. Bookkeeping the
+// generator writes back (lastDate, lastRunAt, blocked) never re-runs it.
+function recurrer() {
+  return createRecurrer({ db, serverTime: () => FieldValue.serverTimestamp(), log: (...a) => logger.warn(...a) });
+}
+const RECUR_BOOKKEEPING = ['lastDate', 'lastRunAt', 'blocked'];
+function sameApartFrom(a, b, keys) {
+  const strip = (o) => { const c = Object.assign({}, o || {}); keys.forEach((k) => delete c[k]); return JSON.stringify(Object.keys(c).sort().map((k) => [k, c[k]])); };
+  return strip(a) === strip(b);
+}
+exports.onRecurringTick = onSchedule({ schedule: 'every 60 minutes', timeZone: 'Etc/UTC' }, async () => {
+  const out = await recurrer().runAll();
+  if (out.errors.length) logger.warn('recurring tick', out); else logger.info('recurring tick', out);
+});
+exports.onRecurringWritten = onDocumentWritten(
+  { document: 'ledger_home_recurring/{templateId}' },
+  async (event) => {
+    const before = event.data && event.data.before && event.data.before.exists ? event.data.before.data() : null;
+    const after = event.data && event.data.after && event.data.after.exists ? event.data.after.data() : null;
+    if (!after) return;
+    if (before && sameApartFrom(before, after, RECUR_BOOKKEEPING)) return;
+    const out = await recurrer().runTemplate(event.data.after.ref, { anyHour: true });
+    logger.info('recurring written', out);
+  }
+);

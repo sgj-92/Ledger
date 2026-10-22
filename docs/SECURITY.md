@@ -67,6 +67,7 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | `ledger_home_requests` | requests between the people at Home | admins read all at their Home; members read those they are in, or shared with everyone at Home; writes per role, see "Home" below |
 | `ledger_home_requests/{id}/updates` | each request's history | append-only; readable with the request; facts only when the request says so |
 | `ledger_home_requests/{id}/items` | a request's checklist, one item per document | read with the request; written only by its requester, creator or current assignee (an admin following it reads only); item creator / ticker are the signed-in user; frozen when the request is deleted |
+| `ledger_home_recurring` | recurring responsibilities (templates) at Home | read like a request (admins; creator; assignee; everyone when shared); created by an active member as themselves; changed by its creator or an admin; never deleted (ended); the server's bookkeeping (`lastDate`, `lastRunAt`, `blocked`) is never client-writable. Occurrences are ordinary requests created only by the server (`functions/recur.js`), which re-checks membership itself. See `docs/HOME_RECURRENCE.md` |
 | `ledger_home_batches` | "these requests went out as one list" — for one summary notification | created once by an active member as themselves (≤ 40 ids); never read, changed or deleted by a client. The server trusts none of it: each id must be a live request at that Home, created by that member, whose "created" entry names this list |
 | anything else | — | denied |
 
@@ -320,6 +321,11 @@ A shared namespace for Shaun, Abi and the people who help at home. Full model:
     entry is accepted, except the single `deleted` entry.
   - **Never changeable by anyone:** `homeId`, `requesterUid`, `createdByUid`,
     `createdAt`.
+- **Recurring occurrences** (`recurringId` set) are created by the server only. Two
+  client rules concern them:
+  - **"I'll do it":** any active member may claim an unclaimed one for themselves.
+    They join `participants`, and the `claimed` entry is accepted only in that write.
+  - **Late done:** its assignee may move `missed` to `done`.
 - **A list sent at once** is ordinary requests, written five to a batch with ids fixed
   in advance (a retry of a written chunk is refused as an update, so nothing is made
   twice). `ledger_home_batches/{id}` then names them, so the server sends each person one

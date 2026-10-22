@@ -710,6 +710,57 @@ async function check(name, fn){
   await check('checklist: the asker gives an existing request one', () => assertSucceeds(partner.doc(HR + '/hr2').update({ hasChecklist: true, updatedAt: 'now' })));
   await check('checklist: not someone outside it', () => assertFails(partner.doc(HR + '/hr1').update({ hasChecklist: true, updatedAt: 'now' })));
 
+  // recurring responsibilities: templates (written by people), occurrences (by the server)
+  const RT = 'ledger_home_recurring';
+  const tpl = (by, o) => Object.assign({ homeId: 'owner1', title: 'Uniform ready', note: null, createdByUid: by, mode: 'assigned', assigneeUid: 'nanny1', visibility: 'private',
+    schedule: { freq: 'weekly', days: [0], monthDay: 1, every: 2, startDate: '2026-10-25', endDate: null, time: null }, timezone: 'Europe/London', checklist: ['Wash', 'Iron'],
+    status: 'active', createdAt: 'now', updatedAt: 'now', updatedByUid: by }, o || {});
+  await check('recurring: Abi sets one up for the nanny', () => assertSucceeds(partner.doc(RT + '/t1').set(tpl('partner1'))));
+  await check('recurring: anyone at Home, shared with everyone', () => assertSucceeds(partner.doc(RT + '/t2').set(tpl('partner1', { mode: 'anyone', assigneeUid: null, visibility: 'home' }))));
+  await check('recurring: anyone at Home is never private', () => assertFails(partner.doc(RT + '/t3').set(tpl('partner1', { mode: 'anyone', assigneeUid: null, visibility: 'private' }))));
+  await check('recurring: never as someone else', () => assertFails(nanny.doc(RT + '/t4').set(tpl('partner1', { updatedByUid: 'nanny1' }))));
+  await check('recurring: never for someone not at Home', () => assertFails(partner.doc(RT + '/t5').set(tpl('partner1', { assigneeUid: 'exnanny' }))));
+  await check('recurring: never for yourself', () => assertFails(partner.doc(RT + '/t6').set(tpl('partner1', { assigneeUid: 'partner1' }))));
+  await check('recurring: a schedule that makes sense', () => assertFails(partner.doc(RT + '/t7').set(tpl('partner1', { schedule: { freq: 'hourly', startDate: '2026-10-25' } }))));
+  await check('recurring: …weekly means one day', () => assertFails(partner.doc(RT + '/t8').set(tpl('partner1', { schedule: { freq: 'weekly', days: [0, 1], startDate: '2026-10-25' } }))));
+  await check('recurring: …ending before it starts is refused', () => assertFails(partner.doc(RT + '/t9').set(tpl('partner1', { schedule: { freq: 'daily', startDate: '2026-10-25', endDate: '2026-10-01' } }))));
+  await check('recurring: …every 1 day is "daily", not an interval', () => assertFails(partner.doc(RT + '/t10').set(tpl('partner1', { schedule: { freq: 'interval', every: 1, startDate: '2026-10-25' } }))));
+  await check('recurring: never with the server\'s bookkeeping', () => assertFails(partner.doc(RT + '/t11').set(tpl('partner1', { lastDate: '2026-10-25' }))));
+  await check('recurring: never set up already ended', () => assertFails(partner.doc(RT + '/t12').set(tpl('partner1', { status: 'ended' }))));
+  await check('recurring: the nanny reads one she is assigned', () => assertSucceeds(nanny.doc(RT + '/t1').get()));
+  await check('recurring: …and lists hers', () => assertSucceeds(nanny.collection(RT).where('homeId', '==', 'owner1').where('assigneeUid', '==', 'nanny1').get()));
+  await check('recurring: …and the shared ones', () => assertSucceeds(nanny.collection(RT).where('homeId', '==', 'owner1').where('visibility', '==', 'home').get()));
+  await check('recurring: …but cannot list them all', () => assertFails(nanny.collection(RT).where('homeId', '==', 'owner1').get()));
+  await check('recurring: Shaun (admin) lists them all', () => assertSucceeds(owner.collection(RT).where('homeId', '==', 'owner1').get()));
+  await check('recurring: Abi pauses hers', () => assertSucceeds(partner.doc(RT + '/t1').update({ status: 'paused', updatedAt: 'now', updatedByUid: 'partner1' })));
+  await check('recurring: Shaun (admin) edits the series', () => assertSucceeds(owner.doc(RT + '/t1').update({ title: 'Uniform washed, ironed, ready', status: 'active', updatedAt: 'now', updatedByUid: 'owner1' })));
+  await check('recurring: the nanny (assigned, not its author) cannot change it', () => assertFails(nanny.doc(RT + '/t1').update({ status: 'paused', updatedAt: 'now', updatedByUid: 'nanny1' })));
+  await check('recurring: nobody writes the server\'s bookkeeping', () => assertFails(partner.doc(RT + '/t1').update({ blocked: null, updatedAt: 'now', updatedByUid: 'partner1' })));
+  await check('recurring: who set it up never changes', () => assertFails(owner.doc(RT + '/t1').update({ createdByUid: 'owner1', updatedAt: 'now', updatedByUid: 'owner1' })));
+  await check('recurring: never deleted — it ends', () => assertFails(partner.doc(RT + '/t1').delete()));
+  await check('recurring: ending it', () => assertSucceeds(partner.doc(RT + '/t2').update({ status: 'ended', endedAt: 'now', updatedAt: 'now', updatedByUid: 'partner1' })));
+  await check('recurring: once ended, it stays ended', () => assertFails(partner.doc(RT + '/t2').update({ status: 'active', updatedAt: 'now', updatedByUid: 'partner1' })));
+  await check('recurring: someone not at Home reads nothing', () => assertFails(nanny2.doc(RT + '/t1').get()));
+  // occurrences: made by the server (Admin SDK); here, what people may do with them
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    const occ = (o) => Object.assign({ homeId: 'owner1', text: 'Bins out', note: null, requestedTiming: 'date', requestedDate: '2026-10-26', requesterUid: 'partner1', createdByUid: 'partner1',
+      assigneeUid: null, participants: ['partner1'], visibility: 'home', status: 'requested', plannedDate: null, linkedActionId: null, recurringId: 't2', occurrenceDate: '2026-10-26', createdAt: 'x', updatedAt: 'x' }, o || {});
+    await db.doc(HR + '/t2_20261026').set(occ());
+    await db.doc(HR + '/t2_20261027').set(occ({ occurrenceDate: '2026-10-27', requestedDate: '2026-10-27' }));
+    await db.doc(HR + '/hrNo').set(occ({ recurringId: null }));
+    await db.doc(HR + '/t1_20261025').set(occ({ text: 'Uniform', recurringId: 't1', assigneeUid: 'nanny1', participants: ['partner1', 'nanny1'], visibility: 'private', status: 'missed' }));
+  });
+  const claim = (db, id, by, parts) => { const b = db.batch(); b.update(db.doc(HR + '/' + id), { assigneeUid: by, participants: parts, latestUpdateAt: 'now', latestUpdateByUid: by, latestUpdateType: 'claimed', updatedAt: 'now' });
+    b.set(db.doc(HR + '/' + id + '/updates/claimed'), entry(by, 'claimed')); return b.commit(); };
+  await check('claim: the nanny takes an unclaimed one ("I\'ll do it")', () => assertSucceeds(claim(nanny, 't2_20261026', 'nanny1', ['partner1', 'nanny1'])));
+  await check('claim: once taken, nobody else can take it', () => assertFails(claim(owner, 't2_20261026', 'owner1', ['partner1', 'nanny1', 'owner1'])));
+  await check('claim: never in someone else\'s name', () => assertFails(claim(nanny, 't2_20261027', 'owner1', ['partner1', 'owner1'])));
+  await check('claim: never a request that isn\'t a recurring one', () => assertFails(claim(nanny, 'hrNo', 'nanny1', ['partner1', 'nanny1'])));
+  await check('claim: never dropping anyone from it', () => assertFails(claim(nanny, 't2_20261027', 'nanny1', ['nanny1'])));
+  await check('missed: its person can still finish it, late', () => assertSucceeds(act(nanny, 't1_20261025', { status: 'done' }, entry('nanny1', 'status', { status: 'done' }))));
+  await check('missed: nobody marks one missed themselves', () => assertFails(nanny.doc(HR + '/t2_20261026').update({ status: 'missed', updatedAt: 'now' })));
+
   // deleting (soft, as in Phase A)
   const hdel = (by) => ({ deletedAt: 'now', deletedByUid: by, updatedAt: 'now' });
   await check('delete: not by an assignee who neither asked nor wrote it', () => assertFails(nanny.doc(HR + '/a1').update(hdel('nanny1'))));
