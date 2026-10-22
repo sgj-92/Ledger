@@ -8,6 +8,7 @@
 //   ledger_shared_request_updates/{id} (created)  → the other side of the request
 //   ledger_pins/{id} (created)                    → the owner's devices (Pin now)
 //   ledger_home_requests/{id}/updates/{u} (created) → the people the request involves
+//   ledger_home_batches/{id} (created)            → each person a list was for, once
 //
 // And one that is not a push: ledger_meta/homeMigration, written by the owner, moves his
 // Partner Sharing requests into Home (migrate.js).
@@ -109,6 +110,17 @@ exports.onHomeUpdateCreated = onDocumentCreated(
   }
 );
 
+exports.onHomeBatchCreated = onDocumentCreated(
+  { document: 'ledger_home_batches/{batchId}', secrets: [VAPID_PRIVATE_KEY] },
+  async (event) => {
+    if (!event.data) return;
+    const result = await engine().handleHomeBatch(Object.assign({
+      batch: event.data.data() || {}, batchDocId: event.params.batchId
+    }, common()));
+    report('home list push', result);
+  }
+);
+
 // Shaun moves his Partner Sharing requests into Home. Only a write that asks for it, by the
 // owner it names, runs it; the function's own writes back (running, done) never do.
 exports.onHomeMigrationRequested = onDocumentWritten(
@@ -128,3 +140,4 @@ exports.onHomeMigrationRequested = onDocumentWritten(
     }
   }
 );
+

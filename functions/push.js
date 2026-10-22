@@ -231,6 +231,8 @@ function createEngine(deps) {
     if (!rid || typeof rid !== 'string') return { skipped: 'no request' };
     // history copied in by the move from Partner Sharing (migrate.js) is not news
     if (u.metadata && Object.prototype.hasOwnProperty.call(u.metadata, 'legacyRole')) return { skipped: 'migrated' };
+    // one of a list sent together: announced once, for the whole list (handleHomeBatch)
+    if (u.type === 'created' && u.metadata && typeof u.metadata.batchId === 'string' && u.metadata.batchId) return { skipped: 'in a list' };
     const reqSnap = await db.collection('ledger_home_requests').doc(rid).get();
     if (!reqSnap.exists) return { skipped: 'no request' };
     const r = reqSnap.data() || {};
@@ -296,6 +298,78 @@ function createEngine(deps) {
     return Object.assign(sum, { results });
   }
 
+  // ---- Home: a list sent in one go ----
+  // ledger_home_batches/{id} names the requests that went out together. Nothing in it is
+  // trusted on its own: each id must be a live request at the same Home, created by the
+  // batch's writer, whose "created" entry carries this list's id. Each assignee then hears
+  // ONE notification for everything they were sent ("Abi sent you 6 requests").
+  async function handleHomeBatch(ev) {
+    const bt = ev.batch || {};
+    const bid = ev.batchDocId;
+    if (!bid || typeof bt.batchId !== 'string' || !Array.isArray(bt.requestIds) || !bt.requestIds.length) return { skipped: 'empty' };
+    const by = bt.createdByUid;
+    const meSnap = by ? await db.collection('ledger_home_members').doc(by).get() : null;
+    const writer = meSnap && meSnap.exists ? meSnap.data() || {} : null;
+    if (!writer || writer.homeId !== bt.homeId || writer.status !== 'active') return { skipped: 'not at Home' };
+    const ids = bt.requestIds.filter((x) => typeof x === 'string' && /^[A-Za-z0-9]{1,40}$/.test(x)).slice(0, 40);
+    const reqs = [];
+    for (const id of ids) {
+      const ref = db.collection('ledger_home_requests').doc(id);
+      const [rs, cs] = await Promise.all([ref.get(), ref.collection('updates').doc('created').get()]);
+      if (!rs.exists || !cs.exists) continue;
+      const r = rs.data() || {}, c = cs.data() || {};
+      if (r.homeId !== bt.homeId || r.createdByUid !== by || r.deletedAt || r.status === 'withdrawn') continue;
+      if (!c.metadata || c.metadata.batchId !== bt.batchId || c.actorUid !== by) continue;
+      reqs.push(Object.assign({ id }, r));
+    }
+    if (!reqs.length) return { skipped: 'nothing to announce' };
+    const eventId = 'homebatch_' + bid;
+    if (!(await claimEvent(eventId, { kind: 'home_batch', count: reqs.length }))) return { skipped: 'duplicate' };
+    const memberCache = {};
+    async function member(uid) {
+      if (!uid || typeof uid !== 'string') return null;
+      if (!(uid in memberCache)) {
+        const d = await db.collection('ledger_home_members').doc(uid).get();
+        const m = d.exists ? (d.data() || {}) : null;
+        memberCache[uid] = m && m.homeId === bt.homeId && m.status === 'active' ? m : null;
+      }
+      return memberCache[uid];
+    }
+    const from = clip(writer.displayName || 'Someone', 40);
+    const byAssignee = {};
+    reqs.forEach((r) => { if (r.assigneeUid && r.assigneeUid !== by) (byAssignee[r.assigneeUid] = byAssignee[r.assigneeUid] || []).push(r); });
+    const list = (rs) => {
+      const names = rs.slice(0, 3).map((r) => clip(r.text, 40));
+      return clip(names.join(', ') + (rs.length > 3 ? ' and ' + (rs.length - 3) + ' more' : ''), 160);
+    };
+    const results = [];
+    const told = {};
+    for (const to of Object.keys(byAssignee)) {
+      const rs = byAssignee[to];
+      if (!(await member(to)) || !(await userRole(to))) continue;
+      if (!(await wants(to, 'partner', false))) continue;
+      told[to] = true;
+      const one = rs.length === 1;
+      const payload = { title: one ? from + ' sent a request' : from + ' sent you ' + rs.length + ' requests', body: one ? clip(rs[0].text, 120) : list(rs),
+        url: appLink(ev.appUrl, { home: one ? rs[0].id : 'all' }), tag: 'ledger-home-batch-' + bid, renotify: true, kind: 'home' };
+      results.push(await sendPushToUser(to, payload, { urgency: 'normal', ttl: 24 * 3600, vapidPublicKey: ev.vapidPublicKey }));
+    }
+    // admins who follow Home hear it once too, if it wasn't for them
+    const admins = await db.collection('ledger_home_members').where('homeId', '==', bt.homeId).where('role', '==', 'admin').get();
+    for (const d of admins.docs) {
+      const uid = d.id, m = d.data() || {};
+      if (m.status !== 'active' || uid === by || told[uid]) continue;
+      if (!(await userRole(uid)) || !(await wants(uid, 'homeOversight', true))) continue;
+      const who = Object.keys(byAssignee).map((u) => (memberCache[u] && memberCache[u].displayName) || 'someone');
+      results.push(await sendPushToUser(uid, { title: from + ' asked ' + clip(who.join(' and '), 60) + ' for ' + reqs.length + (reqs.length === 1 ? ' thing' : ' things'),
+        body: list(reqs), url: appLink(ev.appUrl, { home: 'all' }), tag: 'ledger-home-batch-' + bid, renotify: true, kind: 'home' },
+        { urgency: 'normal', ttl: 24 * 3600, vapidPublicKey: ev.vapidPublicKey }));
+    }
+    const sum = { requests: reqs.length, recipients: results.map((x) => x.recipientUid), sent: results.reduce((n, x) => n + x.sent, 0), failed: results.reduce((n, x) => n + x.failed, 0) };
+    await recordEvent(eventId, Object.assign({ status: 'done' }, sum));
+    return Object.assign(sum, { results });
+  }
+
   // ---- Pin now ----
   // The owner asks for a push to their own devices, all of them.
   async function handlePinCreated(ev) {
@@ -317,7 +391,7 @@ function createEngine(deps) {
     return result;
   }
 
-  return { sendPushToUser, handleFocusWrite, handleRequestUpdate, handleHomeUpdate, handlePinCreated, claimEvent };
+  return { sendPushToUser, handleFocusWrite, handleRequestUpdate, handleHomeUpdate, handleHomeBatch, handlePinCreated, claimEvent };
 }
 
 module.exports = { createEngine, appLink, clip, FOCUS_TAG };

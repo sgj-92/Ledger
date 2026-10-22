@@ -111,6 +111,7 @@ the server from the request and the people currently at Home.
 | comment | everyone in it except its author |
 | planned, done, can't do | the requester, and its writer if different; never the person who did it |
 | reassigned | the new assignee, "Abi passed you a request" |
+| a list sent at once | each person it was for, once: "Abi sent you 6 requests" (the first three, "and 3 more"); admins following Home, once |
 | started, moved, withdrawn, shared, deleted | nobody |
 
 - **Following Home (admins only):** opt-in, off by default (Settings → Notifications →
@@ -137,20 +138,76 @@ the server from the request and the people currently at Home.
 
 ## 3. Where it lives in the app
 
-- **Shaun:**
-  - Today has a quiet **Home** row among the utilities ("1 for you", "2 updates",
-    "Nothing open"). It opens the Home sheet:
-    - New request: for, asked by, when, note, "Everyone at Home can see it";
-    - For you, You asked, Shared at Home, Between others, Done lately.
-  - Requests that are his to decide also land in Today's **Inbox**, with Today, Choose
-    day and Can't do.
-  - Settings → **Home**: Set up Home, Requests, People, and "Bring in requests with Abi"
-    while earlier ones exist.
-- **Abi:** her portal keeps Today / This week. Below it is **Home** (For you, You asked,
-  Shared, Between others, + New request, Open Home). Her earlier requests show as
-  "Earlier requests" until they move.
-- **The nanny:** a small Home app: "Hi, <her name>", + New request, For you, You asked, Shared
-  at Home, Done lately, and each request's detail with its history. Nothing else.
+Updated 2026-10-22 (navigation redesign): Home is a place, not a sheet.
+
+- **One Home screen, three surfaces.** Shaun's **Home** tab (the fifth), Abi's **Home**
+  tab in her portal (beside Today and This week, with a "Home" row leading to it), and
+  the nanny's app are the same screen:
+  1. who is at Home, and a compact **Add** (one request, or several at once);
+  2. a summary that doubles as filters: **For me**, **Assigned to others**, **Overdue**;
+  3. **Today** (due today or earlier, or in progress), then **Upcoming**;
+  4. **Recent updates** (the last two weeks, newest first; › opens All activity);
+  5. **People** (Shaun adds and removes; everyone else sees who is there) and, for
+     admins, Notifications.
+- **When a request is due:** its planned day, its chosen date, "today" on the day it
+  was asked, "this week" by that week's Sunday; "no preference" has no date.
+- **Done in one tap:** the assignee ticks a row; it shows done at once and is written
+  after a 5-second Undo (as Partner Sharing's Done). Shaun's requests linked to an
+  Action follow the Action instead.
+- **Attention:** a dot on the Home tab (and on Abi's Home tab) when something is new for
+  you, or someone has added an update to a request you're in. Following other people's
+  requests stays the opt-in notification, never a dot.
+- **Shaun** also keeps requests that are his to decide in Today's **Inbox** (Today,
+  Choose day, Done, Can't do), and Settings → **Home** (Set up Home, Open Home, People,
+  "Bring in requests with Abi"). Today's old Home row is gone: the tab replaces it.
+- **The nanny** sees only her Home app; Shaun's tabs stay locked (inert) behind it.
+
+### Several at once (2026-10-22)
+
+- **Add → Add several tasks:** one text box, one line per task; **For** (an admin's
+  default is the one person who helps at home), **When** (Today by default; Tomorrow,
+  a date, or no date), an optional note for all of them. The draft is kept on the
+  device until it is sent.
+- **Parsing is plain:** each non-empty line is one task; leading bullets, numbers and
+  checkboxes are removed; spacing is tidied; nothing is merged or reworded.
+- **Check the list:** every line is editable, removable, and can have its own person or
+  day; "Add another" adds a line. The button says how many will be created.
+- **Creating them:** separate requests (each with its own history, status and
+  completion), written five to a batch with ids fixed at preview time. A double tap or
+  a retry can never make a second copy, and if some fail it says exactly how many were
+  created and keeps the rest to try again.
+- **One notification each:** see §1, Notifications.
+
+### Checklists (2026-10-22)
+
+- **Shape:** a request may carry a checklist: `ledger_home_requests/{id}/items/{itemId}`,
+  one document per item. Each item has:
+  - `text` (≤ 200), `done`, and `order`;
+  - `createdByUid` and `createdAt`;
+  - `doneByUid` and `doneAt` while ticked;
+  - `updatedByUid` and `updatedAt`.
+
+  The request says `hasChecklist: true`.
+- **Who:** items are read by whoever can read the request, and changed by the people
+  it is between: who asked, who wrote it, whose it is now. An admin following Home
+  sees them but cannot tick, add or reorder. Who added or ticked an item is always the
+  signed-in user.
+- **Sync without overwrites:** one document per item means two people ticking or
+  adding at once never overwrite each other. A reorder writes only the moved item's
+  `order`, set between its new neighbours.
+- **On screen:**
+  - **Rows:** "3 of 8 items" on the request's row, live.
+  - **The sheet:** a Checklist section with tick, text (tap to edit; empty removes
+    it), and a handle to drag.
+  - **Adding:** "Add an item — or paste a list" adds one per line.
+  - **Ticked items** fold into "Ticked · N", showing who ticked each and when.
+- **Done is never automatic.** Ticking everything says "all ticked" and leaves the
+  request open. Done with items left asks first ("2 items aren't ticked. Mark it done
+  anyway?") and leaves them as they are. History is kept.
+- **Creating one:** Add → **Shopping or checklist** (or "With a checklist" on any new
+  request): items one per line, created with the request in one write. An existing
+  request gains one by adding its first item.
+- **Notifications:** none for ticks or edits.
 
 ## 4. Moving Partner Sharing requests into Home
 

@@ -284,7 +284,8 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(['homeId', 'text', 'note', 'requestedTiming', 'requestedDate',
                          'requesterUid', 'assigneeUid', 'createdByUid', 'participants', 'visibility', 'status',
                          'plannedDate', 'linkedActionId', 'createdAt', 'updatedAt', 'latestUpdateAt', 'latestUpdateByUid',
-                         'latestUpdateType', 'readAt'])
+                         'latestUpdateType', 'readAt', 'hasChecklist'])
+                    && request.resource.data.get('hasChecklist', true) == true
                     && request.resource.data.createdByUid == request.auth.uid
                     && request.resource.data.requesterUid != request.resource.data.assigneeUid
                     && activeIn(request.resource.data.requesterUid, request.resource.data.homeId)
@@ -345,6 +346,10 @@ service cloud.firestore {
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visibility'].concat(summaryKeys()))
                           && request.resource.data.visibility in ['private', 'home']
                           && homeSummary(resource.data, request.resource.data))
+                      // the people a checklist belongs to may give a request one
+                      || (listEditor(resource.data)
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hasChecklist', 'updatedAt'])
+                          && request.resource.data.hasChecklist == true)
                       // anyone who can see it: an update's summary, and their own read mark
                       || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(summaryKeys())
                           && homeSummary(resource.data, request.resource.data))
@@ -361,6 +366,34 @@ service cloud.firestore {
       function homeReqPath() {
         return /databases/$(database)/documents/ledger_home_requests/$(rid);
       }
+      // A checklist: one document per item, so two people ticking or adding at once never
+      // overwrite each other. It is part of its request: read by whoever can read the
+      // request, changed by the people the request is between (who asked, who wrote it,
+      // whose it is now), frozen once the request is deleted. Who added and who ticked
+      // an item are the signed-in user, never a client's claim.
+      match /items/{itemId} {
+        allow read: if canSee(get(homeReqPath()).data);
+        allow create: if itemId.matches('^[A-Za-z0-9]{1,40}$')
+                      && existsAfter(homeReqPath())
+                      && listEditor(getAfter(homeReqPath()).data) && notDeleted(getAfter(homeReqPath()).data)
+                      && itemShape(request.resource.data)
+                      && request.resource.data.createdByUid == request.auth.uid
+                      && request.resource.data.updatedByUid == request.auth.uid
+                      && ((request.resource.data.done == false && request.resource.data.get('doneByUid', null) == null)
+                          || (request.resource.data.done == true && request.resource.data.doneByUid == request.auth.uid));
+        allow update: if listEditor(get(homeReqPath()).data) && notDeleted(get(homeReqPath()).data)
+                      && itemShape(request.resource.data)
+                      && request.resource.data.createdByUid == resource.data.createdByUid
+                      && request.resource.data.createdAt == resource.data.createdAt
+                      && request.resource.data.updatedByUid == request.auth.uid
+                      && (request.resource.data.done == resource.data.done
+                          ? (request.resource.data.get('doneByUid', null) == resource.data.get('doneByUid', null)
+                             && request.resource.data.get('doneAt', null) == resource.data.get('doneAt', null))
+                          : (request.resource.data.done == true
+                             ? (request.resource.data.doneByUid == request.auth.uid && request.resource.data.doneAt is string)
+                             : (request.resource.data.get('doneByUid', null) == null && request.resource.data.get('doneAt', null) == null)));
+        allow delete: if listEditor(get(homeReqPath()).data) && notDeleted(get(homeReqPath()).data);
+      }
       match /updates/{updateId} {
         allow read: if canSee(get(homeReqPath()).data);
         allow create: if request.resource.data.keys().hasOnly(['type', 'actorUid', 'text', 'createdAt', 'metadata'])
@@ -374,6 +407,32 @@ service cloud.firestore {
                       && homeEntry(request.resource.data, getAfter(homeReqPath()).data, updateId, rid);
         allow update, delete: if false;
       }
+    }
+    // A list sent in one go: a note to the server that these requests went out together, so
+    // each person hears ONE notification for all they were sent. Written once by whoever
+    // sent them; nobody reads it back. The server checks every id against the requests
+    // themselves (created by this person, in this list) before telling anyone anything.
+    match /ledger_home_batches/{batchId} {
+      allow read, update, delete: if false;
+      allow create: if batchId.matches('^[A-Za-z0-9_]{1,48}$')
+                    && inHome(request.resource.data.homeId)
+                    && request.resource.data.keys().hasOnly(['homeId', 'createdByUid', 'batchId', 'requestIds', 'count', 'createdAt'])
+                    && request.resource.data.createdByUid == request.auth.uid
+                    && request.resource.data.batchId is string && batchId.matches('^' + request.resource.data.batchId + '(_[0-9]{1,3})?$')
+                    && request.resource.data.requestIds is list
+                    && request.resource.data.requestIds.size() > 0 && request.resource.data.requestIds.size() <= 40
+                    && request.resource.data.count == request.resource.data.requestIds.size()
+                    && request.resource.data.createdAt is string;
+    }
+    function listEditor(p) {
+      return inHome(p.homeId)
+          && (request.auth.uid == p.requesterUid || request.auth.uid == p.createdByUid || request.auth.uid == p.assigneeUid);
+    }
+    function itemShape(d) {
+      return d.keys().hasOnly(['text', 'done', 'order', 'createdByUid', 'createdAt', 'doneByUid', 'doneAt', 'updatedByUid', 'updatedAt'])
+          && d.text is string && d.text.size() > 0 && d.text.size() <= 200
+          && d.done is bool && d.order is number
+          && d.createdAt is string && d.updatedAt is string;
     }
     function homeEntry(d, p, updateId, rid) {
       return (notDeleted(p) && (

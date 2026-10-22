@@ -98,17 +98,20 @@ Carried from `PROJECT_LEDGER.md`. These are the durable ones.
 
 ## Current primary surfaces
 
-Five tabs. The order is itself a product decision and should not be changed
-casually.
+Five tabs: **Plan · Today · Me · Comms · Home** (since 2026-10-22). The order is
+itself a product decision and should not be changed casually. **Me** holds Calendar,
+Progress and Focus behind one switch (it remembers the last one per device; a link to
+a date always opens Calendar on that date).
 
 | Surface | Purpose |
 | --- | --- |
 | **Plan** | What I intend over the coming days. Whole-day week summaries; each day opens as a Day Plan (Direction, Actions, Health & fitness, Constraints, Day Notes) over the same records as Today. Meal ideas library. |
 | **Today** | The execution surface, in two modes: **Overview** (the editable day) and **Flow** (the day's timeline: actions and training in the order they will be worked; untimed items are a sequence, timed items sit at their time). Morning Prime (Plan, Move), Actions, Health & fitness, Day Notes, Quick Log, Evening Wind-down, Recorded Activity, Backlog, Catch-up, Daily Handoff. |
-| **Calendar** | What actually happened. Month view with an activity filter, day detail (Planned, Recorded, Outcome), day status. |
-| **Progress** | Am I moving there? Towards your focus, weekly chart, health and training stats, stat detail. |
-| **Focus** | Where am I going? Player card, priorities (optionally linked to evidence), active focus, target weight, Settings. |
-| **Communications** | Who has the ball? Matters and the conversations inside them, by attention state. Reached from Today on a phone (not a tab); a sidebar entry on wider screens. |
+| **Me → Calendar** | What actually happened. Month view with an activity filter, day detail (Planned, Recorded, Outcome), day status. |
+| **Me → Progress** | Am I moving there? Towards your focus, weekly chart, health and training stats, stat detail. |
+| **Me → Focus** | Where am I going? Player card, priorities (optionally linked to evidence), active focus, target weight, Settings. |
+| **Comms** | Who has the ball? Matters and the conversations inside them, by attention state. Its own tab (headed Communications); Today keeps its Communications section and links. |
+| **Home** | What needs doing at home, shared with Abi and the people who help: a summary (for me, assigned to others, overdue), today, upcoming, recent updates, People. Add one request or a whole list at once. Never Shaun's private Ledger. |
 
 Today is the centre of the product. Everything else supports it.
 

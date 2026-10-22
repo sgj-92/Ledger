@@ -209,7 +209,7 @@ async function swChecks(){
   const txt = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); return e ? e.innerText : ''; }, sel);
   const nowOn = (p, re) => until(p, r => { const e = document.querySelector('#nowCue .now-title'); return !!e && new RegExp(r).test(e.textContent); }, re);
   async function openSettings(p){
-    await p.click('.tab-btn[data-view="focus"]');
+    await p.click('.tab-btn[data-view="me"]'); await p.click('[data-me-sub="focus"]');
     await p.locator('#openSettingsBtn').scrollIntoViewIfNeeded(); await p.click('#openSettingsBtn');
     await p.waitForSelector('#setNotifications');
   }
@@ -330,7 +330,8 @@ async function swChecks(){
   await mac.click('#spStart');
   check(await until(iphone, () => /Tidy desk/.test((document.querySelector('#sprintSection .sp-next-title') || {}).textContent || '')), 'iPhone: the sprint appears live, Next: Tidy desk');
   const sp = (await all('ledger_sprints'))[0];
-  f = await focusDoc();
+  // the focus is a write of its own, just after the sprint's: wait for it rather than race it
+  for (let i = 0; i < 20; i++){ f = await focusDoc(); if (f && f.type === 'sprint_item') break; await sleep(250); }
   check(sp && sp.items.length === 3 && f.type === 'sprint_item' && f.sourceId === sp.id && f.childId === sp.items[0].id, 'the first sprint item is the Current Focus');
   got = await waitPushes(mark, 2);
   check(got.length === 2 && got.every(g => g.payload.body === 'Tidy desk' && g.payload.url === APP_URL + '?sprint=' + sp.id), 'push: the sprint item, opening its sprint');
@@ -453,6 +454,24 @@ async function swChecks(){
   await sleep(2000); got = since(mark);
   check(got.length === 3 && got.map(g => g.device).sort().join('|') === 'iphone|mac|samsung' && got.every(g => g.payload.title === 'Abi completed your request'),
     'Home: Abi completes it → Shaun\'s devices, "Abi completed your request"; nothing back to Abi');
+  // a list sent in one go: ONE notification for all of it, never one per line
+  mark = inbox.length;
+  await mac.evaluate(async (ids) => {
+    const db = firebase.firestore(), now = new Date().toISOString(), b = db.batch(), bid = db.collection('ledger_home_batches').doc().id, rids = [];
+    ['Empty the dishwasher', 'Wash the school uniform', 'Tidy the toy box'].forEach((t) => {
+      const ref = db.collection('ledger_home_requests').doc(); rids.push(ref.id);
+      b.set(ref, { homeId: ids.owner, text: t, note: null, requestedTiming: 'today', requestedDate: null, requesterUid: ids.owner, assigneeUid: ids.abi,
+        createdByUid: ids.owner, participants: [ids.owner, ids.abi], visibility: 'private', status: 'requested', plannedDate: null, linkedActionId: null,
+        createdAt: now, updatedAt: now, latestUpdateAt: now, latestUpdateByUid: ids.owner, latestUpdateType: 'created', readAt: { [ids.owner]: now } });
+      b.set(ref.collection('updates').doc('created'), { type: 'created', actorUid: ids.owner, text: null, createdAt: firebase.firestore.FieldValue.serverTimestamp(), metadata: { batchId: bid } });
+    });
+    await b.commit();
+    await db.collection('ledger_home_batches').doc(bid).set({ homeId: ids.owner, createdByUid: ids.owner, batchId: bid, requestIds: rids, count: rids.length, createdAt: now });
+  }, { owner, abi });
+  got = await waitPushes(mark, 1);
+  await sleep(3000); got = since(mark);
+  check(got.length === 1 && got[0].device === 'abi' && got[0].payload.title === 'Shaun sent you 3 requests' && got[0].payload.body === 'Empty the dishwasher, Wash the school uniform, Tidy the toy box' && got[0].payload.url === APP_URL + '?home=all',
+    'Home list: three requests → Abi\'s phone ONCE, "Shaun sent you 3 requests", opening Home (' + got.map(g => g.device + ':' + g.payload.title).join(' | ') + ')');
   // moving Partner Sharing requests into Home: run by the function, announcing nothing
   mark = inbox.length;
   await mac.evaluate(o => firebase.firestore().collection('ledger_meta').doc('homeMigration').set({ status: 'requested', requestedBy: o, requestedAt: new Date().toISOString() }), owner);
@@ -493,7 +512,7 @@ async function swChecks(){
   check(await until(iphone, () => !!document.getElementById('authEmail'), null, 20000), 'iPhone: signed out');
   check(!(await all('ledger_push_subscriptions')).some(s => s.deviceId === iphoneId), 'signing out removes this device\'s record');
   const events = await all('ledger_push_events');
-  check(events.length === 14 && events.every(e => e.status === 'done'), 'every push event logged once, done (' + events.length + ')');
+  check(events.length === 15 && events.every(e => e.status === 'done'), 'every push event logged once, done (' + events.length + ')');
 
   for (const p of [mac, iphone, samsung, abiPhone]){
     const errs = p.errs.filter(e => !/permission|offline|network/i.test(e));

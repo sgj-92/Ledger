@@ -124,7 +124,7 @@ async function oobLink(email){
   const until = async (p, fn, arg, t) => { try { await p.waitForFunction(fn, arg, { timeout: t || 12000 }); return true; } catch (e){ return false; } };
   const txt = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); return e ? e.innerText : ''; }, sel);
   async function openSettings(p){
-    await p.click('.tab-btn[data-view="focus"]');
+    await p.click('.tab-btn[data-view="me"]'); await p.click('[data-me-sub="focus"]');
     await p.locator('#openSettingsBtn').scrollIntoViewIfNeeded(); await p.click('#openSettingsBtn');
   }
   async function backToToday(p){ await p.click('.tab-btn[data-view="log"]'); await sleep(200); }
@@ -140,8 +140,18 @@ async function oobLink(email){
 
   const HR = 'ledger_home_requests';
   const reqByText = async t => (await all(HR)).find(r => r.text === t);
-  const titles = (p, scope) => p.evaluate(s => [...document.querySelectorAll(s + ' .hm-li .rq-li-t')].map(e => e.textContent), scope);
-  const openRow = (p, scope, t) => p.evaluate(([s, t]) => { const e = [...document.querySelectorAll(s + ' .hm-li .rq-li-t')].find(x => x.textContent === t); if (!e) return false; e.closest('button').click(); return true; }, [scope, t]);
+  // the Home screen: Shaun's Home tab, Abi's Home tab, Maria's app
+  const SH = '#view-home', AH = '#ppHomeScreen', MH = '#hpList';
+  const titles = (p, scope) => p.evaluate(s => [...document.querySelectorAll(s + ' .hs-row .commitment-title')].map(e => e.textContent), scope);
+  const openRow = (p, scope, t) => p.evaluate(([s, t]) => { const e = [...document.querySelectorAll(s + ' .hs-row .commitment-title')].find(x => x.textContent === t); if (!e) return false; e.closest('.hs-row-body').click(); return true; }, [scope, t]);
+  const rowHas = (p, scope, t, re) => until(p, ([s, t, re]) => [...document.querySelectorAll(s + ' .hs-row')].some(r => r.innerText.indexOf(t) > -1 && new RegExp(re, 'i').test(r.innerText)), [scope, t, re || '.']);
+  const rowDone = (p, scope, t) => until(p, ([s, t]) => [...document.querySelectorAll(s + ' .hs-row.st-done')].some(r => r.innerText.indexOf(t) > -1), [scope, t], 15000);
+  async function goHome(p){
+    if (p === S) await p.click('.tab-btn[data-view="home"]');
+    else if (p === A) await p.click('[data-pp-tab="home"]');
+    await sleep(200);
+  }
+  async function addOne(p){ await goHome(p); await p.waitForSelector('#hsAdd'); await p.click('#hsAdd'); await p.waitForSelector('#hamOne'); await p.click('#hamOne'); }
   const chip = (p, group, label) => p.evaluate(([g, l]) => { const b = [...document.querySelectorAll(g + ' .bk-filter-chip')].find(x => x.textContent === l); if (!b) return false; b.click(); return true; }, [group, label]);
   const toast = p => p.evaluate(() => (document.querySelector('.pin-toast') || {}).textContent || '');
   async function newRequest(p, o){
@@ -152,16 +162,20 @@ async function oobLink(email){
     if (o.timing) await p.click('[data-hn-timing="' + o.timing + '"]');
     if (o.shared) await p.click('#hnShare');
     await p.click('#hnSave');
-    await until(p, t => !!document.querySelector('#hmList, #hpList, #ppHomeList') && !document.getElementById('hnText'), null, 8000);
+    await until(p, () => { const t = document.getElementById('hnText'); return !t || !t.closest('.sheet-backdrop.open'); }, null, 8000);
     await sleep(500);
   }
   const sx = p => p.evaluate(() => { const el = document.getElementById('partnerApp'); return Math.max(document.documentElement.scrollWidth, el && !el.hidden ? el.scrollWidth : 0) <= innerWidth + 1; });
 
   // H1 — Shaun sets up Home: Abi joins as an admin with it
-  const S = await session('shaun');
+  let S, A, M;
+  S = await session('shaun');
   await signIn(S, SHAUN);
   check(await until(S, () => /Finish the quarterly plan/.test(document.querySelector('main').innerText), null, 20000), 'H1 Shaun\'s Ledger opens');
-  check(await S.evaluate(() => !document.getElementById('homeRowBtn')), 'H1 no Home row before Home exists');
+  await goHome(S);
+  check(await until(S, () => !!document.getElementById('hsSetup'), null, 15000), 'H1 the Home tab, one tap away, offers "Set up Home" before Home exists');
+  await S.screenshot({ path: `${shots}/${tag}-H1-home-setup.png` });
+  await backToToday(S);
   await openSettings(S);
   await S.waitForSelector('#setHomeCreate', { timeout: 15000 });
   await S.screenshot({ path: `${shots}/${tag}-H1-settings-setup.png` });
@@ -188,10 +202,11 @@ async function oobLink(email){
   await S.click('#sheetCloseBtn'); await backToToday(S);
 
   // H3 — Maria signs in: Home, and nothing of Ledger
-  const M = await session('maria');
+  M = await session('maria');
   await signIn(M, MARIA);
   check(await until(M, () => !document.getElementById('partnerApp').hidden && /Hi, Maria/.test(document.getElementById('partnerApp').innerText), null, 20000), 'H3 Maria\'s app: "Hi, Maria"');
   check(await until(M, () => /Nothing at Home yet/.test(document.getElementById('hpList').innerText)), 'H3 nothing at Home yet');
+  check(await M.evaluate(() => { const n = document.querySelector('nav.tabbar'); return n.inert && n.getAttribute('aria-hidden') === 'true'; }), 'H3 Shaun\'s tabs stay locked away (inert) behind her app');
   const probe = await M.evaluate(async (ids) => {
     const db = firebase.firestore(), out = {};
     const tryIt = async (k, f) => { try { await f(); out[k] = 'ALLOWED'; } catch (e){ out[k] = e.code; } };
@@ -210,15 +225,15 @@ async function oobLink(email){
   await M.screenshot({ path: `${shots}/${tag}-H3-maria-empty.png` });
 
   // H4 — Shaun asks Maria; she starts and finishes it; Shaun sees it done
-  check(await until(S, () => !!document.getElementById('homeRowBtn')), 'H4 Today has a quiet Home row');
-  await S.click('#homeRowBtn'); await S.waitForSelector('#hmNew'); await S.click('#hmNew');
+  await addOne(S);
   await newRequest(S, { for: 'Maria', text: 'Bath at six', timing: 'today' });
   check(/Sent to Maria/.test(await toast(S)), 'H4 "Sent to Maria"');
   const bath = await reqByText('Bath at six');
   check(bath && bath.requesterUid === owner && bath.assigneeUid === maria && bath.createdByUid === owner && bath.visibility === 'private', 'H4 stored: from Shaun, for Maria, written by Shaun, private');
-  check(await until(M, () => [...document.querySelectorAll('#hpList .hm-li')].some(r => /Bath at six/.test(r.innerText))), 'H4 Maria sees it (For you)');
+  check(await rowHas(M, MH, 'Bath at six'), 'H4 Maria sees it, today');
+  check(await until(M, () => document.querySelector('[data-hs-filter="mine"] .hs-stat-n').textContent === '1'), 'H4 her summary: 1 for her');
   await M.screenshot({ path: `${shots}/${tag}-H4-maria-for-you.png` });
-  await openRow(M, '#hpList', 'Bath at six');
+  await openRow(M, MH, 'Bath at six');
   check(await until(M, () => /From Shaun/.test(document.getElementById('hdKicker').textContent) && !!document.getElementById('hdStart')), 'H4 her detail: "From Shaun", Start / Done / Can\'t do');
   await M.screenshot({ path: `${shots}/${tag}-H4-maria-detail.png` });
   await M.click('#hdStart');
@@ -228,65 +243,86 @@ async function oobLink(email){
   await M.fill('#rqText', 'All asleep by seven'); await M.click('#rqSend');
   check(await until(M, () => /All asleep by seven/.test(document.getElementById('hdTimeline').innerText)), 'H4 Maria adds an update');
   await M.click('#ppSheet .sheet-close');
-  check(await until(S, () => /1 update/.test((document.getElementById('homeRowValue') || {}).textContent || '')), 'H4 Shaun\'s Home row: "1 update"');
-  check(await until(S, () => [...document.querySelectorAll('#hmList .hm-li')].some(r => /Bath at six/.test(r.innerText) && /Done/.test(r.innerText))), 'H4 Shaun\'s Home sheet shows it done');
-  await openRow(S, '#hmList', 'Bath at six');
+  await backToToday(S);
+  check(await until(S, () => !document.getElementById('homeTabDot').hidden), 'H4 Shaun\'s Home tab carries a dot: Maria\'s update');
+  await goHome(S);
+  check(await rowDone(S, SH, 'Bath at six'), 'H4 Shaun\'s Home shows it done, under Recent updates');
+  check(await S.evaluate(() => [...document.querySelectorAll('#view-home .hs-sec')].some(s => /Recent updates/i.test(s.innerText) && /Bath at six/.test(s.innerText)) && ![...document.querySelectorAll('#view-home .hs-sec')].some(s => /^Today/i.test(s.innerText.trim()) && /Bath at six/.test(s.innerText))), 'H4 …as history, not in Today');
+  await openRow(S, SH, 'Bath at six');
   check(await until(S, () => /All asleep by seven/.test(document.getElementById('hdTimeline').innerText) && /Started/.test(document.getElementById('hdTimeline').innerText)), 'H4 Shaun reads its history: Started, Done ✓, her update');
   await S.click('#sheetCloseBtn');
-  check(await until(S, () => /Nothing open|open/.test((document.getElementById('homeRowValue') || {}).textContent || '') && !/update/.test(document.getElementById('homeRowValue').textContent)), 'H4 …and the update is read');
+  check(await until(S, () => document.getElementById('homeTabDot').hidden), 'H4 …and once read, the dot goes');
+  // H4b — done straight from the row, with Undo
+  await addOne(S);
+  await newRequest(S, { for: 'Maria', text: 'Fold the laundry', timing: 'today' });
+  check(await rowHas(M, MH, 'Fold the laundry'), 'H4b Maria sees "Fold the laundry"');
+  const tick = () => M.evaluate(() => { const r = [...document.querySelectorAll('#hpList .hs-row')].find(x => /Fold the laundry/.test(x.innerText)); r.querySelector('.commitment-status-dot').click(); });
+  await tick();
+  check(await until(M, () => [...document.querySelectorAll('#hpList .hs-row')].some(r => /Fold the laundry/.test(r.innerText) && r.querySelector('.commitment-status-dot.completed')) && /Undo/.test((document.querySelector('.pin-toast') || {}).textContent || '')), 'H4b one tap: it shows done at once, with Undo');
+  await M.screenshot({ path: `${shots}/${tag}-H4b-maria-ticked.png` });
+  await M.click('.pin-toast-act'); await sleep(5800);
+  check((await reqByText('Fold the laundry')).status === 'requested', 'H4b Undo: nothing was written');
+  await tick(); await sleep(6000);
+  check((await reqByText('Fold the laundry')).status === 'done', 'H4b otherwise it is done once Undo has passed');
+  check(await rowDone(S, SH, 'Fold the laundry') && await rowHas(S, SH, 'Fold the laundry', 'Maria completed it'), 'H4b …and Shaun sees it done: "Maria completed it"');
 
   // H5 — Maria asks Abi; Abi can't, and passes it to Shaun; Shaun takes it on as one Action
-  const A = await session('abi');
+  A = await session('abi');
   await signIn(A, ABI);
-  check(await until(A, () => !document.getElementById('partnerApp').hidden && !!document.getElementById('ppHomeList'), null, 20000), 'H5 Abi\'s portal has Home');
+  check(await until(A, () => !document.getElementById('partnerApp').hidden && !!document.querySelector('[data-pp-tab="home"]') && !!document.getElementById('ppHomeAll'), null, 20000), 'H5 Abi\'s portal: a Home tab, and a way into it from Today');
   check(await until(A, () => /Earlier requests/i.test(document.getElementById('partnerApp').innerText) && /Old request from before Home/.test(document.getElementById('partnerApp').innerText)), 'H5 …and her earlier requests, until they move into Home');
-  await M.click('#hpNew');
+  await A.click('#ppHomeAll');
+  check(await until(A, () => !!document.getElementById('ppHomeScreen') && document.querySelector('[data-pp-tab="home"]').classList.contains('sel') && /Hi, Abi/.test(document.getElementById('ppTitle').textContent)), 'H5 …which opens her Home tab');
+  await A.screenshot({ path: `${shots}/${tag}-H5-abi-home.png` });
+  await addOne(M);
   check(await until(M, () => !document.getElementById('hnFrom') && [...document.querySelectorAll('#hnFor .bk-filter-chip')].map(b => b.textContent).join('|') === 'Abi|Shaun'), 'H5 Maria asks for herself only, of Abi or Shaun');
   await newRequest(M, { for: 'Abi', text: 'Nappies running low' });
-  check(await until(A, () => [...document.querySelectorAll('#ppHomeList .hm-li')].some(r => /Nappies running low/.test(r.innerText))), 'H5 Abi sees it, for her');
-  await openRow(A, '#ppHomeList', 'Nappies running low');
+  check(await rowHas(A, AH, 'Nappies running low'), 'H5 Abi sees it, for her');
+  await openRow(A, AH, 'Nappies running low');
   await A.waitForSelector('#hdCant'); await A.click('#hdCant');
   await A.waitForSelector('#hcReason'); await A.fill('#hcReason', 'Out until Friday'); await A.click('#hcSave');
   check(await until(A, () => /Can’t do — “Out until Friday”/.test((document.getElementById('hdState') || {}).textContent || '')), 'H5 Abi: Can\'t do, with a reason');
-  check(await until(M, () => [...document.querySelectorAll('#hpList .hm-li')].some(r => /Nappies running low/.test(r.innerText) && /Can’t do/.test(r.innerText))), 'H5 Maria sees "Can\'t do"');
-  await A.click('#hdPass'); await A.waitForSelector('#hpList .act-row');
-  check(await A.evaluate(() => [...document.querySelectorAll('#hpList .act-row')].map(r => r.innerText.trim()).join('|') === 'Shaun'), 'H5 Pass on: to Shaun (never back to Maria, who asked)');
-  await A.evaluate(() => document.querySelector('#hpList .act-row').click());
+  check(await rowHas(M, MH, 'Nappies running low', 'Can’t do'), 'H5 Maria sees "Can\'t do"');
+  await A.click('#hdPass'); await A.waitForSelector('#hpPassList .act-row');
+  check(await A.evaluate(() => [...document.querySelectorAll('#hpPassList .act-row')].map(r => r.innerText.trim()).join('|') === 'Shaun'), 'H5 Pass on: to Shaun (never back to Maria, who asked)');
+  await A.evaluate(() => document.querySelector('#hpPassList .act-row').click());
   check(await until(A, () => /Abi passed it to Shaun|You passed it to Shaun/.test((document.getElementById('hdTimeline') || {}).innerText || '')), 'H5 history: "You passed it to Shaun"');
   await A.click('#ppSheet .sheet-close');
   const nap = await reqByText('Nappies running low');
   check(nap.assigneeUid === owner && nap.requesterUid === maria && nap.status === 'requested' && nap.participants.sort().join() === [maria, abi, owner].sort().join(), 'H5 now Shaun\'s; Maria still asked it; Abi stays in it');
   check(await until(S, () => [...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Nappies running low/.test(r.innerText) && /From Maria/i.test(r.innerText))), 'H5 Shaun\'s Inbox: "From Maria"');
   await S.screenshot({ path: `${shots}/${tag}-H5-owner-inbox.png` });
+  await backToToday(S);
   await S.evaluate(t => { const r = [...document.querySelectorAll('#inboxSection .ib-row')].find(x => x.innerText.indexOf(t) > -1); const b = r.querySelector('[data-hb-today]'); b.click(); b.click(); }, 'Nappies running low');
   await sleep(1500);
   const napActs = (await all('ledger_commitments')).filter(c => c.sourceRequestId === nap.id);
   check(napActs.length === 1 && napActs[0].sourceType === 'home_request' && napActs[0].title === 'Nappies running low' && napActs[0].sourceLabel === 'Maria', 'H5 Today: exactly one Action (two taps), marked from Maria');
-  check(await until(M, () => [...document.querySelectorAll('#hpList .hm-li')].some(r => /Nappies running low/.test(r.innerText) && /Planned today/.test(r.innerText))), 'H5 Maria sees "Planned today"');
+  check(await rowHas(M, MH, 'Nappies running low', 'Planned today'), 'H5 Maria sees "Planned today"');
   check(!/Finish the quarterly plan/.test(await M.evaluate(() => document.documentElement.innerHTML)) && (await reqByText('Nappies running low')).linkedActionId === napActs[0].id, 'H5 only the Action\'s id is shared; nothing else of Shaun\'s Ledger');
   // Shaun completes the Action → the request is done
   await S.evaluate(id => firebase.firestore().collection('ledger_commitments').doc(id).update({ status: 'completed' }), napActs[0].id);
-  check(await until(M, () => [...document.querySelectorAll('#hpList .hm-li')].some(r => /Nappies running low/.test(r.innerText) && /Done/.test(r.innerText)), null, 15000), 'H5 Shaun completes his Action → Maria sees it done');
+  check(await rowDone(M, MH, 'Nappies running low'), 'H5 Shaun completes his Action → Maria sees it done');
 
   // H6 — what Maria can't see, and what is shared with the whole Home
-  await A.click('#ppHomeNew'); await newRequest(A, { for: 'Shaun', text: 'Private between us' });
-  await A.click('#ppHomeNew'); await newRequest(A, { for: 'Shaun', text: 'Tidy the playroom together', shared: true });
+  await addOne(A); await newRequest(A, { for: 'Shaun', text: 'Private between us' });
+  await addOne(A); await newRequest(A, { for: 'Shaun', text: 'Tidy the playroom together', shared: true });
   check(await until(S, () => [...document.querySelectorAll('#inboxSection .ib-row')].filter(r => /Private between us|Tidy the playroom together/.test(r.innerText)).length === 2), 'H6 both reach Shaun');
-  check(await until(M, () => [...document.querySelectorAll('#hpList .hm-li')].some(r => /Tidy the playroom together/.test(r.innerText))), 'H6 Maria sees the one shared with everyone at Home');
-  check(!(await titles(M, '#hpList')).includes('Private between us'), 'H6 …but never the private one between Shaun and Abi');
+  check(await rowHas(M, MH, 'Tidy the playroom together'), 'H6 Maria sees the one shared with everyone at Home');
+  check(!(await titles(M, MH)).includes('Private between us'), 'H6 …but never the private one between Shaun and Abi');
+  check(await until(M, () => document.querySelector('[data-hs-filter="others"] .hs-stat-n').textContent === '1'), 'H6 her "Assigned to others" counts only what she can see (1)');
+  check(await until(S, () => Number(document.querySelector('#view-home [data-hs-filter="others"] .hs-stat-n').textContent) >= 0), 'H6 Shaun\'s summary renders');
   const priv = await reqByText('Private between us');
   check(await M.evaluate(async id => { try { await firebase.firestore().collection('ledger_home_requests').doc(id).get(); return 'ALLOWED'; } catch (e){ return e.code; } }, priv.id) === 'permission-denied', 'H6 a direct read of it is refused');
   await M.screenshot({ path: `${shots}/${tag}-H6-maria-shared.png` });
 
   // H7 — on someone's behalf: Shaun records Maria asking Abi
-  await S.click('#homeRowBtn'); await S.waitForSelector('#hmNew'); await S.click('#hmNew');
+  await addOne(S);
   await newRequest(S, { from: 'Maria', for: 'Abi', text: 'Spare key for Saturday' });
   const key = await reqByText('Spare key for Saturday');
   check(key && key.requesterUid === maria && key.assigneeUid === abi && key.createdByUid === owner && key.participants.sort().join() === [maria, abi, owner].sort().join(), 'H7 stored: asked by Maria, for Abi, written by Shaun');
-  await S.click('#sheetCloseBtn');
-  check(await until(A, () => [...document.querySelectorAll('#ppHomeList .hm-li')].some(r => /Spare key for Saturday/.test(r.innerText) && /From Maria · added by Shaun/i.test(r.innerText))), 'H7 Abi: "From Maria · added by Shaun"');
-  check(await until(M, () => [...document.querySelectorAll('#hpList .hm-li')].some(r => /Spare key for Saturday/.test(r.innerText))), 'H7 Maria sees it under what she asked');
-  await openRow(M, '#hpList', 'Spare key for Saturday');
+  check(await rowHas(A, AH, 'Spare key for Saturday', 'From Maria · added by Shaun'), 'H7 Abi: "From Maria · added by Shaun"');
+  check(await rowHas(M, MH, 'Spare key for Saturday'), 'H7 Maria sees it, asked by her');
+  await openRow(M, MH, 'Spare key for Saturday');
   check(await until(M, () => /Created by Shaun on your behalf/.test(document.getElementById('hdTimeline').innerText)), 'H7 her history: "Created by Shaun on your behalf"');
   await M.click('#ppSheet .sheet-close');
   const forged = await M.evaluate(async (ids) => {
@@ -301,16 +337,117 @@ async function oobLink(email){
   check(Object.values(forged).every(v => v === 'permission-denied'), 'H7 Maria cannot write as Shaun, ask on someone\'s behalf, or rewrite who asked: ' + JSON.stringify(forged));
 
   // H8 — deleting, as in Phase A: gone for everyone
-  await M.click('#hpNew'); await newRequest(M, { for: 'Shaun', text: 'Typo reqest' });
+  await addOne(M); await newRequest(M, { for: 'Shaun', text: 'Typo reqest' });
   check(await until(S, () => [...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Typo reqest/.test(r.innerText))), 'H8 it reaches Shaun');
-  await openRow(M, '#hpList', 'Typo reqest');
+  await openRow(M, MH, 'Typo reqest');
   await M.waitForSelector('#hdDelBtn'); await M.click('#hdDelBtn'); await M.waitForSelector('#rqDelGo');
   check(/Delete this request\?/.test(await txt(M, '#ppSheet')) && /both people.s request lists/.test(await txt(M, '#ppSheet')), 'H8 the same confirmation as Phase A');
   await M.click('#rqDelGo');
-  check(await until(M, () => /Request deleted/.test((document.querySelector('.pin-toast') || {}).textContent || '') && ![...document.querySelectorAll('#hpList .rq-li-t')].some(x => x.textContent === 'Typo reqest')), 'H8 deleted: gone from Maria\'s list');
+  check(await until(M, () => /Request deleted/.test((document.querySelector('.pin-toast') || {}).textContent || '') && ![...document.querySelectorAll('#hpList .hs-row .commitment-title')].some(x => x.textContent === 'Typo reqest')), 'H8 deleted: gone from Maria\'s list');
   check(await until(S, () => ![...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Typo reqest/.test(r.innerText))), 'H8 …and from Shaun\'s Inbox');
   const typo = await reqByText('Typo reqest');
   check(typo.deletedAt && typo.deletedByUid === maria, 'H8 soft-deleted, by Maria');
+
+  // H13 — several at once: Abi pastes the day's list for Maria
+  await goHome(A); await A.click('#hsAdd'); await A.waitForSelector('#hamMany'); await A.click('#hamMany');
+  await A.waitForSelector('#hbText');
+  check(await A.evaluate(() => [...document.querySelectorAll('#hbFor .bk-filter-chip.sel')].map(b => b.textContent).join() === 'Maria'), 'H13 for: Maria, by default (the one person who helps at home)');
+  check(await A.evaluate(() => [...document.querySelectorAll('#hbWhen .bk-filter-chip.sel')].map(b => b.textContent).join() === 'Today'), 'H13 when: Today, by default');
+  await A.fill('#hbText', '- Empty the dishwasher\n2. Wash the school uniform\n\n• Tidy the toy box\n[ ] Collect the parcel\n   Water the plants   \n');
+  check(await A.evaluate(() => document.getElementById('hbPreview').textContent) === 'Preview 5 tasks', 'H13 five lines, blank ones ignored: "Preview 5 tasks"');
+  await A.screenshot({ path: `${shots}/${tag}-H13-list.png` });
+  await A.click('#hbPreview'); await A.waitForSelector('#hbpRows .hb-input');
+  const rowVals = () => A.evaluate(() => [...document.querySelectorAll('#hbpRows .hb-input')].map(i => i.value));
+  check((await rowVals()).join('|') === 'Empty the dishwasher|Wash the school uniform|Tidy the toy box|Collect the parcel|Water the plants', 'H13 preview: bullets, numbers and boxes gone, wording kept — ' + (await rowVals()).join('|'));
+  await A.fill('#hbpRows .hb-row:nth-child(2) .hb-input', 'Wash and iron the school uniform');
+  await A.click('#hbpRows .hb-row:nth-child(5) .hb-x');
+  await A.click('#hbpAdd'); await A.keyboard.type('Book the plumber');
+  await A.click('#hbpRows .hb-row:nth-child(5) .hb-who');
+  check(await chip(A, '#hbpRows .hb-row:nth-child(5) .hb-own', 'Shaun'), 'H13 one row for Shaun instead');
+  check(await A.evaluate(() => /Shaun · Today/.test(document.querySelector('#hbpRows .hb-row:nth-child(5) .hb-who').textContent) && document.getElementById('hbpSave').textContent === 'Create 5 requests'), 'H13 "Shaun · Today" on that row; "Create 5 requests"');
+  await A.screenshot({ path: `${shots}/${tag}-H13-preview.png` });
+  await A.evaluate(() => { const b = document.getElementById('hbpSave'); b.click(); b.click(); });   // a double tap
+  check(await until(A, () => !document.getElementById('ppBackdrop').classList.contains('open'), null, 15000), 'H13 created: the sheet closes');
+  check(/5 requests sent to Maria and Shaun/.test(await toast(A)), 'H13 "5 requests sent to Maria and Shaun"');
+  await sleep(800);
+  const listed = (await all(HR)).filter(r => ['Empty the dishwasher', 'Wash and iron the school uniform', 'Tidy the toy box', 'Collect the parcel', 'Book the plumber', 'Water the plants', 'Wash the school uniform'].includes(r.text));
+  check(listed.length === 5 && new Set(listed.map(r => r.text)).size === 5, 'H13 exactly five requests, one each, despite the double tap');
+  check(listed.filter(r => r.assigneeUid === maria).length === 4 && listed.find(r => r.text === 'Book the plumber').assigneeUid === owner
+    && listed.every(r => r.requesterUid === abi && r.createdByUid === abi && r.requestedTiming === 'today' && r.status === 'requested' && r.visibility === 'private'),
+    'H13 each its own request: four for Maria, one for Shaun, asked by Abi, today, private');
+  const batches = await all('ledger_home_batches');
+  check(batches.length === 1 && batches[0].requestIds.length === 5 && batches[0].createdByUid === abi, 'H13 one summary record for the list (one notification each)');
+  check(await until(M, () => ['Empty the dishwasher', 'Wash and iron the school uniform', 'Tidy the toy box', 'Collect the parcel'].every(t => [...document.querySelectorAll('#hpList .hs-row .commitment-title')].some(x => x.textContent === t))), 'H13 Maria sees all four at once, today');
+  check(!(await titles(M, MH)).includes('Book the plumber'), 'H13 …and not Shaun\'s');
+  check(await A.evaluate(() => localStorage.getItem('ledger_home_bulk_draft') === null), 'H13 the draft is cleared once sent');
+  await M.screenshot({ path: `${shots}/${tag}-H13-maria-list.png` });
+
+  // H14 — a checklist: Maria's weekly groceries, for Abi
+  await M.click('#hsAdd'); await M.waitForSelector('#hamList'); await M.click('#hamList');
+  await M.waitForSelector('#hnList');
+  check(await M.evaluate(() => !document.getElementById('hnListField').hidden && document.getElementById('hnListOn').getAttribute('aria-checked') === 'true'), 'H14 "Shopping or checklist" opens a request with its list ready');
+  check(await chip(M, '#hnFor', 'Abi'), 'chose For Abi');
+  await M.fill('#hnText', 'Weekly groceries'); await M.fill('#hnList', 'Milk\nEggs\nRice\nChicken');
+  await M.screenshot({ path: `${shots}/${tag}-H14-new-list.png` });
+  await M.click('#hnSave');
+  await until(M, () => !document.getElementById('ppBackdrop').classList.contains('open'), null, 8000);
+  const gro = await reqByText('Weekly groceries');
+  const items = async () => (await (await fetch(`${FS}/${HR}/${gro.id}/items?pageSize=100`, { headers: ADMIN })).json()).documents.map(d => Object.assign({ id: d.name.split('/').pop() }, dec({ mapValue: { fields: d.fields } })));
+  check(gro && gro.hasChecklist === true && gro.requesterUid === maria && gro.assigneeUid === abi && (await items()).length === 4 && (await items()).every(i => i.createdByUid === maria && i.done === false), 'H14 one request, four items, each added by Maria');
+  check(await rowHas(M, MH, 'Weekly groceries', '0 of 4 items'), 'H14 her row: "0 of 4 items"');
+  await goHome(A); await openRow(A, AH, 'Weekly groceries');
+  await A.waitForSelector('#hlList .hl-row');
+  const hlTexts = (p, sel) => p.evaluate(s => [...document.querySelectorAll(s + ' .hl-text')].map(x => x.textContent), sel || '#hlList');
+  check((await hlTexts(A)).join('|') === 'Milk|Eggs|Rice|Chicken', 'H14 Abi sees the list, in order');
+  const tickItem = (p, t) => p.evaluate(t => { const r = [...document.querySelectorAll('.hl-row')].find(x => x.querySelector('.hl-text') && x.querySelector('.hl-text').textContent === t); r.querySelector('.commitment-status-dot').click(); }, t);
+  await tickItem(A, 'Milk'); await tickItem(A, 'Eggs');
+  check(await rowHas(M, MH, 'Weekly groceries', '2 of 4 items'), 'H14 Abi ticks two → Maria\'s row says "2 of 4 items", live');
+  check(await until(A, () => /Ticked · 2/.test((document.getElementById('hlDoneToggle') || {}).textContent || '') && document.querySelectorAll('#hlList .hl-row').length === 2), 'H14 ticked ones fold away: "Ticked · 2"');
+  // Maria adds two more from her side (a pasted pair), and rewords one
+  await openRow(M, MH, 'Weekly groceries'); await M.waitForSelector('#hlAdd');
+  await M.fill('#hlAdd', 'Bread\nButter'); await M.click('#hlAddBtn');
+  check(await until(A, () => document.querySelectorAll('#hlList .hl-row').length === 4 && /2 of 6/.test(document.querySelector('.hl-head').textContent)), 'H14 a pasted pair becomes two items; Abi sees "2 of 6" at once');
+  await M.evaluate(() => [...document.querySelectorAll('.hl-text')].find(x => x.textContent === 'Rice').click());
+  await M.waitForSelector('.hl-edit'); await M.fill('.hl-edit', 'Basmati rice'); await M.keyboard.press('Enter');
+  check(await until(A, () => [...document.querySelectorAll('.hl-text')].some(x => x.textContent === 'Basmati rice')), 'H14 Maria rewords "Rice" → Abi sees "Basmati rice"');
+  // both tick at the same moment: neither overwrites the other
+  await Promise.all([tickItem(M, 'Bread'), tickItem(A, 'Chicken')]);
+  await sleep(1500);
+  const its = await items();
+  check(its.find(i => i.text === 'Bread').done && its.find(i => i.text === 'Bread').doneByUid === maria && its.find(i => i.text === 'Chicken').done && its.find(i => i.text === 'Chicken').doneByUid === abi, 'H14 two ticks at once, by two people: both kept, each signed by its own person');
+  await A.evaluate(() => { const t = document.getElementById('hlDoneToggle'); if (t && t.getAttribute('aria-expanded') === 'false') t.click(); });
+  await tickItem(A, 'Chicken'); await sleep(600);
+  check(await until(A, () => [...document.querySelectorAll('#hlList .hl-text')].some(x => x.textContent === 'Chicken')), 'H14 unticking puts it back on the list');
+  await A.evaluate(() => { const t = document.getElementById('hlDoneToggle'); if (t && t.getAttribute('aria-expanded') === 'true') t.click(); });
+  // Abi drags "Chicken" to the top
+  await A.waitForSelector('#hlList .hl-grip');
+  const grip = async t => A.evaluate(t => { const r = [...document.querySelectorAll('#hlList .hl-row')].find(x => x.querySelector('.hl-text').textContent === t); const b = r.querySelector('.hl-grip').getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; }, t);
+  const g1 = await grip('Chicken'), g0 = await grip('Basmati rice');
+  await A.mouse.move(g1.x, g1.y); await A.mouse.down();
+  for (let i = 1; i <= 10; i++){ await A.mouse.move(g1.x, g1.y + (g0.y - g1.y - 20) * i / 10); await sleep(25); }
+  await A.mouse.up(); await sleep(1200);
+  check((await hlTexts(A)).join('|') === 'Chicken|Basmati rice|Butter', 'H14 drag: "Chicken" first — ' + (await hlTexts(A)).join('|'));
+  check(await until(M, () => [...document.querySelectorAll('#hlList .hl-text')].map(x => x.textContent).join('|') === 'Chicken|Basmati rice|Butter'), 'H14 …and on Maria\'s phone too');
+  await A.screenshot({ path: `${shots}/${tag}-H14-abi-list.png` });
+  // Shaun (admin, not in it) can look but not touch
+  await goHome(S);
+  await S.click('[data-hs-filter="others"]'); await sleep(300);
+  await openRow(S, SH, 'Weekly groceries'); await S.waitForSelector('#hlList .hl-row');
+  check(await S.evaluate(() => !document.getElementById('hlAdd') && [...document.querySelectorAll('#hlList .commitment-status-dot')].every(b => b.disabled) && !document.querySelector('.hl-grip')), 'H14 Shaun (following, not in it) sees the list, but cannot tick, add or reorder');
+  await S.click('#sheetCloseBtn'); await S.click('[data-hs-filter="others"]');
+  // all ticked never completes the request; Done with some left asks first
+  for (const t of ['Chicken', 'Basmati rice', 'Butter']) { await tickItem(A, t); await sleep(250); }
+  await sleep(1000);
+  check((await reqByText('Weekly groceries')).status === 'requested' && await A.evaluate(() => /all ticked/.test(document.querySelector('.hl-head').textContent)), 'H14 every item ticked: "all ticked", but the request is still open');
+  await A.evaluate(() => { const t = document.getElementById('hlDoneToggle'); if (t && t.getAttribute('aria-expanded') === 'false') t.click(); }); await A.waitForSelector('.hl-done-list');
+  await tickItem(A, 'Butter'); await sleep(600);
+  const dlg = A.dialogs.length;
+  await A.click('#hdDone');
+  check(await until(A, () => /Done/.test(document.getElementById('hdState').textContent)) && /1 item isn.t ticked/.test(A.dialogs[dlg] || ''), 'H14 Done with one left: it asks first ("1 item isn’t ticked")');
+  await sleep(800);
+  const fin = await items();
+  check((await reqByText('Weekly groceries')).status === 'done' && fin.find(i => i.text === 'Butter').done === false && fin.filter(i => i.done).length === 5, 'H14 …then done, leaving that item unticked; the rest keep who ticked them');
+  await A.click('#ppSheet .sheet-close'); await M.click('#ppSheet .sheet-close');
 
   // H9 — following Home: Abi chooses to hear what Shaun asks Maria; nobody else changes
   await A.click('#ppNotify'); await A.waitForSelector('#ntOversight');
@@ -332,7 +469,7 @@ async function oobLink(email){
   check(await M.evaluate(async id => { try { await firebase.firestore().collection('ledger_home_requests').doc(id).get(); return 'ALLOWED'; } catch (e){ return e.code; } }, bath.id) === 'permission-denied', 'H10 …and the rules refuse her own requests now');
   await S.waitForSelector('#hpeList'); await S.evaluate(() => [...document.querySelectorAll('#hpeList .act-row')].find(r => /Maria/.test(r.innerText)).click());
   await S.waitForSelector('#hmmBack'); await S.click('#hmmBack');
-  check(await until(M, () => !document.getElementById('partnerApp').hidden && [...document.querySelectorAll('#hpList .hm-li')].some(r => /Bath at six/.test(r.innerText)), null, 15000), 'H10 added back: her Home and its history return');
+  check(await until(M, () => !document.getElementById('partnerApp').hidden && [...document.querySelectorAll('#hpList .hs-row')].some(r => /Bath at six/.test(r.innerText)), null, 15000), 'H10 added back: her Home and its history return');
   await S.click('#sheetCloseBtn');
 
   // H12 — someone new creates an account from the sign-in screen (no link, no Console)
@@ -360,15 +497,24 @@ async function oobLink(email){
   await N2.context().close();
 
   // H11 — the partner portal still does what it did
+  await A.click('[data-pp-tab="today"]'); await sleep(300);
   check(await A.evaluate(() => /Nothing shared for today yet/.test(document.getElementById('partnerApp').innerText)), 'H11 Abi\'s shared day is untouched');
   // layout and errors
   check(await sx(M) && await sx(A), 'no horizontal scroll (Maria, Abi)');
   await A.screenshot({ path: `${shots}/${tag}-H11-abi-portal.png`, fullPage: true });
   await M.screenshot({ path: `${shots}/${tag}-H11-maria-home.png`, fullPage: true });
   await backToToday(S);
-  await S.click('#homeRowBtn'); await S.waitForSelector('#hmList');
-  await S.screenshot({ path: `${shots}/${tag}-H11-owner-home.png` });
+  // Settings keeps Home's administration, and "Open Home" goes to the tab
+  await openSettings(S); await S.waitForSelector('#setHomeOpen'); await S.click('#setHomeOpen');
+  check(await until(S, () => document.querySelector('.view.active').id === 'view-home' && !document.getElementById('sheetBackdrop').classList.contains('open')), 'H11 Settings → Open Home lands on the Home tab');
+  await S.screenshot({ path: `${shots}/${tag}-H11-owner-home.png`, fullPage: true });
+  check(await S.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'no horizontal scroll (Shaun\'s Home)');
+  await S.click('#hsPeople'); await S.waitForSelector('#hpeAdd');
+  check(true, 'H11 People is on the Home screen, with Add someone for Shaun');
   await S.click('#sheetCloseBtn');
+  await goHome(A); await A.click('#hsPeople'); await A.waitForSelector('#hpeList');
+  check(await A.evaluate(() => !document.getElementById('hpeAdd') && [...document.querySelectorAll('#hpeList .act-row')].every(r => r.disabled)), 'H11 Abi sees who is at Home, but cannot add or remove');
+  await A.click('#ppSheet .sheet-close');
   for (const p of [S, A, M]) check(!p.errs.length, p.name + ': no page errors ' + p.errs.slice(0, 3).join(' | ').slice(0, 500));
   await b.close(); server.close();
   console.log(`\n${ok.length} passed, ${bad.length} failed`);

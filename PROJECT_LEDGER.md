@@ -13,9 +13,11 @@ Supporting files: `sw.js`, `manifest.json`, `fonts/` (self-hosted Playfair
 Display + Inter woff2 subsets), `hero-mountain.webp`, icons, `avatars/`,
 and `functions/` (one Firebase Cloud Function).
 
-**Five tabs:** Plan · Today · Calendar · Progress · Focus. **Communications** is a
-sixth view reached from Today on phones (no bottom tab) and a sidebar entry on
-wider screens.
+**Five tabs (since 2026-10-22):** Plan · Today · **Me** · **Comms** · **Home**. Me holds
+Calendar, Progress and Focus behind one switch (remembered per device; a dated link
+always opens Calendar on that date). Comms is the Communications Centre as its own tab.
+Home is the shared household screen (summary, today, upcoming, recent updates,
+People), also Abi's third portal tab and the whole of the nanny's app.
 
 ### Responsive layout (one app, one URL)
 The same page adapts by viewport width; there is no desktop build, route or flag.
@@ -720,6 +722,39 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-22 — Navigation redesign and Home expansion (Shaun's brief; four milestones)
+**Decision (Shaun):** the tabs are Plan · Today · Me · Comms · Home. Home becomes a
+household coordination centre with lists, checklists and recurring responsibilities.
+Built so far (Claude Code):
+- **Me** is a switch over the existing Calendar, Progress and Focus views (nothing
+  rebuilt). `currentView` stays the real view, so every render guard still works. The
+  last one is remembered in `ledger_me_sub`; Calendar on first use; a link to a date
+  opens Calendar on it (`goCalendarOn`). Tab switches add no browser history, as with
+  native tab bars; deep links are unchanged. One function, `goView`, does all of it.
+- **Comms** is a real tab, so Today no longer lights up for it and its header has no
+  "back to Today" arrow. Today's Communications section and links stay.
+- **Home screen**, one renderer for Shaun, Abi and the nanny: who and Add, then the
+  summary-as-filters (For me / Assigned to others / Overdue), Today, Upcoming, Recent
+  updates (14 days), People.
+  - Due dates come from what the request says (§3 of `docs/HOUSEHOLD_DESIGN.md`).
+  - The assignee ticks a row done, with Undo.
+  - **Today's Home row is gone:** the tab and its dot replace it, and the Inbox keeps
+    Shaun's decisions.
+  - **The dot and gold "updated" text are only for requests you are in.** Admin
+    oversight stays the opt-in notification.
+- **Several at once:** deterministic line parsing, an editable preview, separate
+  requests written five to a batch with ids fixed in advance. A summary record,
+  `ledger_home_batches`, makes the server send one push per person. Individual
+  "created" pushes skip any entry carrying a `batchId`.
+- **Checklists (M3):** items are a subcollection, one document per item, so concurrent
+  ticks and adds never overwrite. Only the people a request is between edit it; an
+  admin following Home reads only. Done is never automatic, and Done with items left
+  asks first. No notifications for ticks.
+- **Authorisation note:** this brief explicitly authorises recurring Home
+  responsibilities with server-side generation (Milestone 4). That supersedes the
+  "not authorised: recurring" handoff note for Home only. Ledger's own
+  reminder/scheduling ideas stay unauthorised and separate.
 
 ### 2026-10-22 — Anyone can create a sign-in; a role is still granted by hand
 **Decision:** the sign-in screen offers "New here? Create an account", using email and
@@ -1872,11 +1907,12 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun
-Status: Deploy + verify (2026-10-18)
-Objective: deploy Home (rules, index, functions), set up the nanny's account, and check
-Home on the three people's phones (Next 1); completed Actions on the phone.
-Acceptance criteria: Next 1 confirmed on devices.
+Owner: Claude Code
+Status: Navigation Redesign & Home Expansion — M1, M2 and M3 built (2026-10-22); M4
+(recurring responsibilities) designed in `docs/HOME_RECURRENCE.md`, build in progress.
+Objective: Shaun's brief of 2026-10-22, in four milestones.
+Acceptance criteria: each milestone tested and reviewed for UX; deploy requirements
+recorded in Next 1; device checks listed for Shaun.
 
 The backlog exists as GitHub Issues (#5–#19). None of it is authorised for
 implementation — see the workflow rules in `CLAUDE.md`.
@@ -1954,8 +1990,8 @@ No active handoff.
 
 ### Claude Code
 
-No active handoff. Home (Phase B) and completed Actions are built (2026-10-18), and wait
-on Shaun's deploy and device checks. **Not authorised:**
+**Active:** Navigation Redesign & Home Expansion, M4 (recurring responsibilities — the
+architecture is `docs/HOME_RECURRENCE.md`; then build). M1–M3 are done. **Not authorised:**
 - giving Abi or the nanny access to private Actions or Ledger data;
 - more Homes per owner;
 - a separate task engine. **Not authorised:** a scheduled-reminder engine (timed reminders, "X
@@ -1964,6 +2000,25 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-22) — **Checklists in Home requests (M3):**
+  - "Shopping or checklist", live "3 of 8 items", tick, edit, paste a list, drag to
+    reorder, "Ticked · N";
+  - Done with items left asks first.
+
+  Tests: rules 514 (26 new); Home e2e 126 (17 new). That includes two people ticking
+  at once and Shaun's read-only view.
+- (2026-10-22) — **Navigation redesign (M1) and Home screen + Add several tasks (M2):**
+  - five tabs, the Me switch, a Comms tab, and a Home tab for Shaun, Abi and the nanny;
+  - bulk entry, with one summary push per person.
+
+  Tests:
+  - rules 488 (15 new);
+  - engine 39 (8 new);
+  - Home e2e: 109, at 390 dark and 1440 light;
+  - navigation QA: 27 checks at 320, 390, 900 and 1440;
+  - Partner Sharing 209;
+  - push 73, including one push for a three-request list.
 
 - (2026-10-22) — **Create an account from the sign-in screen,** plus clearer wording:
   - a failed sign-in now says "New here? Create an account";
@@ -2239,7 +2294,9 @@ minutes before", recurring/accountability).
 1. **Shaun: deploy Home and set it up.**
    1. From `~/Ledger` after `git pull`:
       `npx firebase-tools deploy --only firestore:rules,firestore:indexes,functions --project ledger-6aec3`
-      If it asks to delete indexes that aren't in the file, answer **No**.
+      If it asks to delete indexes that aren't in the file, answer **No**. (Since
+      2026-10-22 this also deploys `ledger_home_batches` and `onHomeBatchCreated`, the
+      one notification for a list.)
    2. **The nanny's account:**
       - She opens `ledger.sgj.luxe` → "New here? Create an account". She sees her
         Account ID.
@@ -2251,8 +2308,11 @@ minutes before", recurring/accountability).
    4. Then **"Bring in requests with Abi"**: your earlier requests move into Home and
       stay private to the two of you.
    5. **Phones:**
-      - you ask her something from Today's Home row → her phone: "Shaun sent a
-        request";
+      - you ask her something from the **Home** tab → Add → New request → her phone:
+        "Shaun sent a request";
+      - Abi: Home tab → Add → Add several tasks → paste a list for her → check it →
+        Create → her phone shows ONE notification, "Abi sent you N requests";
+      - she ticks one done on her Home screen → it shows done at once, with Undo;
       - she taps Done → your phones: "<her name> completed your request";
       - she asks Abi something → only Abi is told; Abi says Can't do → she sees why →
         Abi passes it to you → your Inbox → Today makes one Action → complete it → she

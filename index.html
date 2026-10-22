@@ -1721,6 +1721,15 @@
   nav.tabbar button.active { color: var(--gold); font-weight: 500; }
   nav.tabbar button.active .tab-icon { opacity: 1; }
   nav.tabbar button:active .tab-icon { transform: scale(0.9); }
+  nav.tabbar button .tab-icon { position: relative; }
+  /* something at Home is waiting for you: one quiet dot, never a number */
+  .tab-dot { position: absolute; top: -2px; right: -4px; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--gold); box-shadow: 0 0 0 2px var(--bg); }
+  .tab-dot[hidden] { display: none; }
+
+  /* Me: Calendar · Progress · Focus — one switch above the three views */
+  .me-switch { margin: var(--sp-2) 0 var(--sp-4); }
+  .me-switch[hidden] { display: none; }
 
   .global-fab {
     position: fixed; right: 20px; bottom: calc(84px + env(safe-area-inset-bottom));
@@ -3582,10 +3591,7 @@
   .st-follow_up_later { --att: var(--yoga); }
   .st-no_action, .st-closed { --att: var(--text-3); }
 
-  /* reached from Today on a phone: no tab of its own, and Today stays lit */
-  nav.tabbar .tab-comms, .tab-label-long { display: none; }
-  body.in-comms nav.tabbar .tab-btn[data-view="log"] { color: var(--gold); font-weight: 500; }
-  body.in-comms nav.tabbar .tab-btn[data-view="log"] .tab-icon { opacity: 1; }
+  .tab-label-long { display: none; }
 
   /* Today's Communications: attention in the header — what needs you leads */
   .cs-needs { color: var(--gold); }
@@ -4193,6 +4199,7 @@
     .day-nav-sub:empty { display: none; }
 
     main { grid-column: 2; grid-row: 2; min-width: 0; padding: 18px var(--gutter) 64px; }
+    .me-switch { width: 420px; max-width: 100%; margin-top: 0; }
     body.has-update-bar main { padding-bottom: 96px; }
     /* Quick add sits in the sidebar, above Settings, instead of over the content */
     .global-fab {
@@ -4202,10 +4209,6 @@
     .update-bar { bottom: 28px; }
     .pin-toast { bottom: 32px; }
 
-    /* Communications has its own place in the rail; Today is no longer its stand-in */
-    nav.tabbar .tab-comms { display: flex; }
-    body.in-comms nav.tabbar .tab-btn[data-view="log"]:not(.active) { color: var(--text-3); font-weight: 400; }
-    body.in-comms nav.tabbar .tab-btn[data-view="log"]:not(.active) .tab-icon { opacity: 0.65; }
 
     /* Calendar filter: wider screens keep the chips, wrapped — never scrolling sideways */
     .cal-filter { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 var(--sp-4); padding: 0; overflow: visible; }
@@ -4585,6 +4588,135 @@
   .act-row.hm-removed .lc-row-t { color: var(--text-3); }
   .act-row.on { color: var(--gold); }
   .hp-list .rq-empty { margin: var(--sp-3) 0; }
+  /* ---- Home, the screen: a summary that filters, then what needs doing ---- */
+  .hs { padding-bottom: var(--sp-6); }
+  .hs-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: var(--sp-2) 0 var(--sp-4); }
+  .hs-who { margin: 0; min-width: 0; font-size: 12.5px; color: var(--text-3); overflow-wrap: anywhere; }
+  .hs-add {
+    flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 16px;
+    border-radius: 100px; border: 1px solid rgba(var(--gold-rgb),0.36); background: rgba(var(--gold-rgb),0.08);
+    color: var(--gold); font-family: var(--sans); font-size: 13.5px; font-weight: 500; cursor: pointer;
+    transition: transform 0.12s ease, background 0.14s ease;
+  }
+  .hs-add svg { width: 14px; height: 14px; display: block; }
+  .hs-add:active { transform: scale(0.97); background: rgba(var(--gold-rgb),0.14); }
+  html[data-theme="light"] .hs-add { color: var(--gold-2); }
+  .hs-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: var(--sp-5); }
+  .hs-stat {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; min-height: 64px;
+    padding: 10px 12px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface);
+    font-family: var(--sans); text-align: left; cursor: pointer; color: var(--text);
+    transition: border-color 0.14s ease, background 0.14s ease;
+  }
+  .hs-stat:active { background: var(--surface-2); }
+  .hs-stat-n { font-size: 22px; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .hs-stat-l { font-size: 11.5px; color: var(--text-3); line-height: 1.25; overflow-wrap: anywhere; }
+  .hs-stat.zero .hs-stat-n { color: var(--text-3); }
+  .hs-stat.warn .hs-stat-n { color: var(--danger); }
+  .hs-stat.sel { border-color: rgba(var(--gold-rgb),0.55); background: rgba(var(--gold-rgb),0.06); }
+  .hs-stat.sel .hs-stat-l { color: var(--text-2); }
+  .hs-filter-bar { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: calc(-1 * var(--sp-2)) 0 var(--sp-2); }
+  .hs-filter-t { font-family: var(--serif); font-size: 19px; color: var(--text); }
+  .hs-filter-x { padding: 6px 0; font-size: 12.5px; color: var(--text-2); }
+  .hs-sec { margin-bottom: var(--sp-5); }
+  .hs-sec-head {
+    display: flex; align-items: center; gap: 10px; width: 100%; min-height: 34px; padding: 0 2px;
+    background: none; border: none; text-align: left; font-family: var(--sans); color: var(--text-3);
+  }
+  button.hs-sec-head { cursor: pointer; }
+  .hs-sec-head .cz-sec-title { flex: 1; }
+  .hs-sec-head .chev { display: flex; color: var(--text-3); }
+  .hs-sec-head .chev svg { width: 14px; height: 14px; }
+  .hs-list { border-top: 1px solid var(--line); }
+  .hs-row { padding-left: 2px; padding-right: 2px; }
+  .hs-row .hs-row-body { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 0; padding: 2px 0; background: none; border: none;
+    text-align: left; font-family: var(--sans); color: inherit; cursor: pointer; }
+  .hs-row-body .commitment-title { overflow-wrap: anywhere; }
+  .hs-row-body .commitment-meta { overflow-wrap: anywhere; }
+  .hs-row-body .commitment-meta.unread { color: var(--gold); }
+  .hs-row.overdue .commitment-meta { color: rgba(var(--danger-rgb),0.9); }
+  .hs-mark { flex-shrink: 0; width: 21px; height: 21px; border-radius: 50%; border: 1.5px dashed var(--line-2);
+    display: flex; align-items: center; justify-content: center; color: var(--text-2); }
+  .hs-mark svg { width: 11px; height: 11px; display: block; }
+  .hs-row.st-done .hs-mark { border-style: solid; border-color: var(--surface-3); background: var(--surface-3); }
+  .hs-row.st-in_progress .hs-mark, .hs-row.st-planned .hs-mark { border-style: solid; border-color: rgba(var(--gold-rgb),0.45); }
+  .hs-row.done .commitment-title { color: var(--text-3); }
+  .hs-row .commitment-status-dot.completed { animation: hsTick 0.24s ease; }
+  @keyframes hsTick { 0% { transform: scale(0.8); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+  .hs-pill { flex-shrink: 0; max-width: 40%; font-size: 11.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hs-row.st-in_progress .hs-pill, .hs-row.st-planned .hs-pill { color: var(--gold); }
+  html[data-theme="light"] .hs-row.st-in_progress .hs-pill, html[data-theme="light"] .hs-row.st-planned .hs-pill { color: var(--gold-2); }
+  .hs-more { display: block; margin: 8px 2px 0; padding: 6px 0; font-size: 12.5px; color: var(--text-2); }
+  .hs-empty { margin: 12px 2px; font-size: 13px; color: var(--text-3); }
+  .hs-empty-state { padding: var(--sp-6) var(--sp-2); text-align: center; }
+  .hs-empty-title { margin: 0 0 6px; font-family: var(--serif); font-size: 20px; color: var(--text); }
+  .hs-empty-sub { margin: 0 auto; max-width: 340px; font-size: 13.5px; line-height: 1.5; color: var(--text-2); }
+  .hs-setup { margin-top: var(--sp-5); max-width: 280px; }
+  .hs-people { margin-top: var(--sp-6); }
+  .hs-loading { display: flex; flex-direction: column; gap: 10px; padding-top: var(--sp-4); }
+  .hs-loading span { display: block; height: 46px; border-radius: var(--r-lg); background: var(--surface); animation: hsPulse 1.2s ease-in-out infinite; }
+  .hs-loading span:first-child { height: 64px; }
+  @keyframes hsPulse { 50% { opacity: 0.55; } }
+  @media (prefers-reduced-motion: reduce) {
+    .hs-loading span, .hs-row .commitment-status-dot.completed { animation: none; }
+  }
+  .pp-home-link { margin: var(--sp-5) 0; }
+  /* a checklist inside a request: tick, text, a handle to reorder; ticked ones fold away */
+  .hl-wrap { margin: var(--sp-4) 0 var(--sp-2); }
+  .hl-wrap:empty { display: none; }
+  .hl-head { padding: 0; }
+  .hl-list { border-top: 1px solid var(--line); }
+  .hl-row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 2px; border-bottom: 1px solid var(--line);
+    background: var(--surface); }
+  .hl-row.dragging { position: relative; z-index: 2; border-radius: 12px; border-bottom-color: transparent;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.28); transition: box-shadow 0.15s ease; }
+  .hl-row .commitment-status-dot:disabled { cursor: default; opacity: 0.7; }
+  .hl-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .hl-text { font-size: 15px; line-height: 1.35; color: var(--text); overflow-wrap: anywhere; cursor: text; }
+  .hl-row.done .hl-text { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--line-2); }
+  .hl-meta { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+  .hl-edit { width: 100%; min-width: 0; padding: 5px 8px; margin-left: -8px; border: 1px solid var(--line-2); border-radius: 10px;
+    background: var(--surface); color: var(--text); font-family: var(--sans); font-size: 15px; }
+  .hl-grip { flex-shrink: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    color: var(--text-3); cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; }
+  .hl-grip svg { width: 16px; height: 16px; display: block; }
+  .hl-add { display: flex; align-items: flex-end; gap: 8px; margin-top: 10px; }
+  .hl-add textarea { flex: 1; min-width: 0; resize: none; min-height: 40px; padding: 9px 12px; border-radius: 12px;
+    border: 1px solid var(--line-2); background: var(--surface); color: var(--text); font-family: var(--sans); font-size: 14.5px; line-height: 1.4; }
+  .hl-done-toggle { display: flex; align-items: center; gap: 6px; margin: 12px 0 0; padding: 8px 2px; border: none; background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12.5px; color: var(--text-2); }
+  .hl-done-toggle svg { width: 14px; height: 14px; transition: transform 0.18s ease; }
+  .hl-done-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+  .hl-done-list { border-top: none; }
+  .hn-list textarea { min-height: 110px; }
+  @media (prefers-reduced-motion: reduce) { .hl-done-toggle svg, .hl-row.dragging { transition: none; } }
+  /* several at once: the list, checked row by row before it's sent */
+  .hb-rows { margin: var(--sp-2) 0 var(--sp-1); border-top: 1px solid var(--line); }
+  .hb-row { border-bottom: 1px solid var(--line); }
+  .hb-line { display: flex; align-items: center; gap: 6px; padding: 8px 0; }
+  .hb-line-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .hb-input {
+    width: 100%; min-width: 0; padding: 6px 8px; margin-left: -8px; border: 1px solid transparent; border-radius: 10px;
+    background: none; color: var(--text); font-family: var(--sans); font-size: 15px;
+  }
+  .hb-input:focus { outline: none; border-color: var(--line-2); background: var(--surface); }
+  .hb-who { align-self: flex-start; padding: 2px 0; border: none; background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12px; color: var(--text-3); text-align: left; }
+  .hb-who.own { color: var(--gold); }
+  html[data-theme="light"] .hb-who.own { color: var(--gold-2); }
+  .hb-x { flex-shrink: 0; width: 36px; height: 36px; border: none; background: none; color: var(--text-3); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .hb-x svg { width: 14px; height: 14px; display: block; }
+  .hb-x:active { background: var(--surface-2); }
+  .hb-own { display: flex; flex-direction: column; gap: 8px; padding: 0 0 12px; }
+  .hb-own .bk-filter-pop { margin: 0; }
+  .hb-date { min-width: 0; max-width: 220px; }
+  .hb-reset { align-self: flex-start; padding: 4px 0; font-size: 12.5px; color: var(--text-2); }
+  .hb-add-row { display: inline-flex; align-items: center; gap: 7px; margin: 6px 0 var(--sp-4); padding: 8px 0; font-size: 13px; color: var(--text-2); }
+  .hb-add-row svg { width: 13px; height: 13px; display: block; }
+  .pp-tabs button { position: relative; }
+  .pp-tab-dot { display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: var(--gold); vertical-align: middle; }
+  #view-home .hs { max-width: 760px; }
   .rq-own:empty { display: none; }
   .rq-own .btn-link { padding: 4px 0; font-size: 12.5px; color: var(--text-2); }
   .rq-own .rq-withdraw { color: var(--danger); }
@@ -4854,6 +4986,14 @@
 
 <main>
 
+  <!-- Me: Calendar, Progress and Focus under one tab. The three views are the same
+       sections as before; this switch only chooses between them. -->
+  <div class="freq-period detail-period me-switch" id="meSwitch" role="tablist" aria-label="Me" hidden>
+    <button type="button" role="tab" data-me-sub="calendar">Calendar</button>
+    <button type="button" role="tab" data-me-sub="stats">Progress</button>
+    <button type="button" role="tab" data-me-sub="focus">Focus</button>
+  </div>
+
   <section class="view active" id="view-log">
     <!-- The four wrappers below only arrange Today into columns on wider screens.
          On a phone they are display: contents, so the day reads exactly as before. -->
@@ -4926,7 +5066,6 @@
 
     <div class="today-extra">
     <!-- Home: requests between the people at home — one quiet row -->
-    <div id="homeRowSection"></div>
     <div id="dayNotesSection"></div>
 
     <button type="button" class="section-toggle" id="quickLogToggle" aria-expanded="false" aria-controls="quickLogGrid">
@@ -5128,6 +5267,8 @@
     <aside class="plan-day-pane" id="planDayPane" aria-label="Selected day"></aside>
   </section>
 
+  <section class="view" id="view-home" aria-label="Home"></section>
+
 </main>
 
 <nav class="tabbar" aria-label="Sections">
@@ -5140,21 +5281,17 @@
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.3" y1="5.3" x2="7.1" y2="7.1"/><line x1="16.9" y1="16.9" x2="18.7" y2="18.7"/><line x1="5.3" y1="18.7" x2="7.1" y2="16.9"/><line x1="16.9" y1="7.1" x2="18.7" y2="5.3"/></svg></span>
     Today
   </button>
-  <button class="tab-btn" data-view="calendar">
-    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/></svg></span>
-    Calendar
-  </button>
-  <button class="tab-btn" data-view="stats">
-    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="13"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="19" y1="20" x2="19" y2="15.5"/></svg></span>
-    Progress
-  </button>
-  <button class="tab-btn" data-view="focus">
-    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/></svg></span>
-    Focus
+  <button class="tab-btn" data-view="me">
+    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.6 7-5.6s6.2 2 7 5.6"/></svg></span>
+    Me
   </button>
   <button class="tab-btn tab-comms" data-view="comms">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10H9.5L5 19.5v-4H4z"/><line x1="8" y1="9.5" x2="16" y2="9.5"/><line x1="8" y1="12.5" x2="13" y2="12.5"/></svg></span>
     <span class="tab-label-long">Communications</span><span class="tab-label-short">Comms</span>
+  </button>
+  <button class="tab-btn tab-home" data-view="home">
+    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 11.2 12 4.5l8.2 6.7"/><path d="M6.3 9.4v10.1h11.4V9.4"/><path d="M10.2 19.5v-5h3.6v5"/></svg><i class="tab-dot" id="homeTabDot" hidden></i></span>
+    Home
   </button>
   <button type="button" class="side-settings" id="sideSettingsBtn">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.3" fill="var(--bg)"/><circle cx="15" cy="17" r="2.3" fill="var(--bg)"/></svg></span>
@@ -7360,34 +7497,70 @@
   }
 
   // ---------- tab switching ----------
+  // Five destinations: Plan · Today · Me · Comms · Home. Me holds three views — Calendar,
+  // Progress and Focus — chosen by the switch at its top; the views themselves are unchanged,
+  // and currentView is always the real one ('calendar', 'stats', 'focus'), never 'me'.
+  // Tabs don't add browser history: like a native tab bar, Back leaves Ledger, and deep
+  // links still land on their record (see "deep links").
+  var ME_VIEWS = ['calendar', 'stats', 'focus'];
+  var ME_SUB_KEY = 'ledger_me_sub';
+  function meSub(){ var v = lsGet(ME_SUB_KEY, 'calendar'); return ME_VIEWS.indexOf(v) > -1 ? v : 'calendar'; }
+  function tabFor(view){ return ME_VIEWS.indexOf(view) > -1 ? 'me' : view; }
+  function goView(view){
+    if (view === 'me') view = meSub();
+    if (!document.getElementById('view-' + view)) view = 'log';
+    currentView = view;
+    var tab = tabFor(view);
+    if (tab === 'me') lsSet(ME_SUB_KEY, view);
+    document.querySelectorAll('.tab-btn').forEach(function(b){
+      var on = b.dataset.view === tab;
+      b.classList.toggle('active', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    document.body.classList.toggle('in-me', tab === 'me');
+    var sw = document.getElementById('meSwitch');
+    sw.hidden = tab !== 'me';
+    sw.querySelectorAll('[data-me-sub]').forEach(function(b){
+      var on = b.dataset.meSub === view;
+      b.classList.toggle('sel', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+    document.getElementById('view-' + currentView).classList.add('active');
+    syncGlobalFab();
+    if (currentView === 'log') renderLogView();
+    if (currentView === 'calendar'){
+      // a filter chosen from Progress holds for that visit; any other way in shows everything
+      if (!calFilterKeep) calFilter = 'all';
+      calFilterKeep = false;
+      renderCalendar();
+    }
+    if (currentView === 'stats') renderStats();
+    if (currentView === 'focus') renderFocus();
+    if (currentView === 'plan') renderPlan();
+    if (currentView === 'comms') renderComms();
+    if (currentView === 'home') renderHomeView();
+    renderHeader();
+  }
   document.querySelectorAll('.tab-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
-      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-      btn.classList.add('active');
-      currentView = btn.dataset.view;
-      // on a phone Communications lives inside Today, so Today stays lit
-      document.body.classList.toggle('in-comms', currentView === 'comms');
-      document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
-      document.getElementById('view-' + currentView).classList.add('active');
-      syncGlobalFab();
-      if (currentView === 'log') renderLogView();
-      if (currentView === 'calendar'){
-        // a filter chosen from Progress holds for that visit; any other way in shows everything
-        if (!calFilterKeep) calFilter = 'all';
-        calFilterKeep = false;
-        renderCalendar();
-      }
-      if (currentView === 'stats') renderStats();
-      if (currentView === 'focus') renderFocus();
-      if (currentView === 'plan') renderPlan();
-      if (currentView === 'comms') renderComms();
-      renderHeader();
+      var was = currentView;
+      goView(btn.dataset.view);
+      if (was !== currentView) window.scrollTo(0, 0);
     });
+  });
+  document.querySelectorAll('[data-me-sub]').forEach(function(b){
+    b.addEventListener('click', function(){ if (currentView !== b.dataset.meSub){ goView(b.dataset.meSub); window.scrollTo(0, 0); } });
   });
 
   function jumpToToday(dateStr){
     viewedDate = dateStr;
-    document.querySelector('.tab-btn[data-view="log"]').click();
+    goView('log');
+  }
+  // a shortcut to a day opens Me → Calendar on that day, whatever Me last showed
+  function goCalendarOn(dateStr){
+    selectedDay = dateStr;
+    calMonth = new Date(dateStr + 'T00:00:00'); calMonth.setDate(1);
+    goView('calendar');
   }
 
   // ---------- header ----------
@@ -7396,7 +7569,8 @@
     plan: { kicker: 'Plan', title: 'This week' },
     stats: { kicker: 'Progress', title: 'Over time' },
     focus: { kicker: 'Focus', title: 'Direction' },
-    comms: { kicker: 'Communications', title: 'In motion' }
+    comms: { kicker: 'Communications', title: 'In motion' },
+    home: { kicker: 'Home', title: 'Together' }
   };
 
   function relativeDayLabel(dateStr){
@@ -7506,9 +7680,8 @@
       rangeEl.textContent = calMonth.getFullYear();
       rangeEl.hidden = false;
     } else {
-      // Communications is reached from Today on a phone, so the way back is always there
-      prevBtn.hidden = !(currentView === 'comms' && !window.matchMedia('(min-width: 768px) and (min-height: 520px)').matches);
-      prevBtn.setAttribute('aria-label', currentView === 'comms' ? 'Back to Today' : 'Previous');
+      prevBtn.hidden = true;
+      prevBtn.setAttribute('aria-label', 'Previous');
       nextBtn.hidden = true;
       sub.innerHTML = '';
       var info = TAB_INFO[currentView] || { kicker: 'Ledger', title: '' };
@@ -7518,7 +7691,6 @@
   }
 
   function headerNavStep(dir){
-    if (currentView === 'comms'){ document.querySelector('.tab-btn[data-view="log"]').click(); return; }
     if (currentView === 'plan'){ goPlanWeek(addDays(planWeekStart, dir * 7)); return; }
     if (currentView === 'calendar'){
       calMonth.setMonth(calMonth.getMonth() + dir);
@@ -7534,7 +7706,7 @@
   document.getElementById('dayPrevBtn').addEventListener('click', function(){ headerNavStep(-1); });
   document.getElementById('dayNextBtn').addEventListener('click', function(){
     if (currentView !== 'log'){ headerNavStep(1); return; }
-    if (this.dataset.mode === 'calendar'){ document.querySelector('.tab-btn[data-view="calendar"]').click(); return; }
+    if (this.dataset.mode === 'calendar'){ goView('calendar'); return; }
     var d = new Date(viewedDate + 'T00:00:00'); d.setDate(d.getDate() + 1);
     var nd = fmtDate(d), t = todayStr();
     setViewedDate(nd > t ? t : nd);
@@ -9144,7 +9316,7 @@
   // Today has its own Add action control; a floating duplicate would only cover content
   function syncGlobalFab(){
     var fab = document.getElementById('globalFabBtn');
-    if (fab) fab.hidden = currentView === 'log' || currentView === 'comms';
+    if (fab) fab.hidden = currentView === 'log' || currentView === 'comms' || currentView === 'home';
   }
   syncGlobalFab();
 
@@ -9532,7 +9704,7 @@
 
   function openComms(filter){
     if (filter){ commsFilter = filter; lsSet(COMMS_FILTER_KEY, filter); }
-    document.querySelector('.tab-btn[data-view="comms"]').click();
+    goView('comms');
     window.scrollTo(0, 0);
   }
   function commsSelKey(sel){ return sel ? sel.kind + ':' + sel.id : ''; }
@@ -13071,7 +13243,7 @@
     wrap.querySelectorAll('[data-hb-open]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbOpen)]; if (it) openHomeDetail(it.r.id); }); });
     wrap.querySelectorAll('[data-hb-today]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbToday)]; if (it) hrAccept(it.r, todayStr()); }); });
     wrap.querySelectorAll('[data-hb-day]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbDay)]; if (it) openRequestDaySheet(it.r, hrAccept, 'From ' + homeNameOf(it.r.requesterUid)); }); });
-    wrap.querySelectorAll('[data-hb-done]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbDone)]; if (it) hrSetStatus(it.r, 'done'); }); });
+    wrap.querySelectorAll('[data-hb-done]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbDone)]; if (it && hrConfirmDone(it.r)) hrSetStatus(it.r, 'done'); }); });
     wrap.querySelectorAll('[data-hb-cant]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbCant)]; if (it) openHomeCantDo(it.r); }); });
     // ids are the partner's to choose, so rows are found by position, never by id in markup
     items.forEach(function(it, i){
@@ -13325,13 +13497,15 @@
     // judged against the saved record, never this device's unsent copy
     home.meStop = dbRef.collection(HOME_MEMBERS).doc(me).onSnapshot({ includeMetadataChanges: true }, function(doc){
       if (doc.metadata && doc.metadata.hasPendingWrites) return;
+      if (doc.metadata && doc.metadata.fromCache && !doc.exists) return;   // not an answer yet
+      home.meSeen = true;
       var m = doc.exists ? Object.assign({ uid: doc.id }, doc.data()) : null;
       var was = homeOn() ? home.me.homeId + '|' + home.me.role : '';
       home.me = m;
       var now = homeOn() ? m.homeId + '|' + m.role : '';
       if (now !== was){ stopHomeData(); if (homeOn()) startHomeData(); }
       homeChanged();
-    }, function(err){ console.warn('home membership unavailable', err && err.code); home.me = null; stopHomeData(); homeChanged(); });
+    }, function(err){ console.warn('home membership unavailable', err && err.code); home.meSeen = true; home.me = null; stopHomeData(); homeChanged(); });
   }
   function startHomeData(){
     var me = homeMe(), H = home.me.homeId;
@@ -13357,6 +13531,7 @@
       home.requests = Object.keys(byId).map(function(k){ return byId[k]; }).filter(function(r){ return !r.deletedAt; });
       home.reqLoaded = true;
       if (home.surface === 'owner') reconcileHome();
+      homeSyncItems();
       homeChanged();
       homeHandleDeepLink();
     }
@@ -13375,13 +13550,16 @@
     }
   }
   function stopHomeData(){
+    Object.keys(home.itemStops || {}).forEach(function(k){ try { home.itemStops[k](); } catch(e){} });
+    home.itemStops = {}; home.items = {};
     home.stops.forEach(function(f){ try { f(); } catch(e){} });
     home.stops = []; home.members = []; home.requests = []; home.reqLoaded = false; home.membersLoaded = false;
   }
   function homeChanged(){
     if (home.detailRefresh) home.detailRefresh();
     if (home.listRefresh) home.listRefresh();
-    if (home.surface === 'owner'){ renderInboxSection(); renderHomeRow(); renderHomeSettings(); }
+    renderHomeTabDot();
+    if (home.surface === 'owner'){ renderInboxSection(); renderHomeView(); renderHomeSettings(); }
     else if (home.surface === 'partner'){ renderPortal(); }
     else if (home.surface === 'household'){ renderHomePortal(); }
   }
@@ -13398,9 +13576,10 @@
     return r.requestedTiming === 'later' ? 'Upcoming' : 'Requested';
   }
   function hrStatusClass(r){ return r.status === 'cant_do' ? 'dismissed' : (['requested', 'planned', 'in_progress', 'done', 'dismissed', 'withdrawn'].indexOf(r.status) > -1 ? r.status : 'requested'); }
+  // news is for the people in a request; following Home is the opt-in notification, not a dot
   function hrUnread(r){
     var me = homeMe();
-    return !!r.latestCommentByUid && r.latestCommentByUid !== me && (r.latestCommentAt || '') > ((r.readAt || {})[me] || '');
+    return (r.participants || []).indexOf(me) > -1 && !!r.latestCommentByUid && r.latestCommentByUid !== me && (r.latestCommentAt || '') > ((r.readAt || {})[me] || '');
   }
   function hrMarkRead(r){
     if (!r || !hrUnread(r)) return;
@@ -13424,48 +13603,739 @@
     if (r.visibility === 'home') bits.push('Everyone at Home');
     return bits.join(' · ');
   }
-  // the viewer's groups: what is theirs to do, what they asked, what the Home shares, the rest
-  function homeGroups(){
-    var me = homeMe(), seen = {}, out = [];
-    function take(title, list, max){
-      list = list.filter(function(r){ return !seen[r.id]; });
-      list.forEach(function(r){ seen[r.id] = true; });
-      if (list.length) out.push({ title: title, items: max ? list.slice(0, max) : list, more: max && list.length > max ? list.length - max : 0 });
-    }
-    function newest(a, b){ var ka = a.latestUpdateAt || a.updatedAt || a.createdAt || '', kb = b.latestUpdateAt || b.updatedAt || b.createdAt || ''; return ka < kb ? 1 : -1; }
-    var reqs = home.requests.filter(function(r){ return !(r.hiddenFor && r.hiddenFor[me]); }).slice().sort(newest);
-    take('For you', reqs.filter(function(r){ return r.assigneeUid === me && hrOpen(r); }));
-    take('You asked', reqs.filter(function(r){ return (r.requesterUid === me || r.createdByUid === me) && (hrOpen(r) || r.status === 'cant_do'); }));
-    take('Shared at Home', reqs.filter(function(r){ return r.visibility === 'home' && hrOpen(r); }));
-    if (homeIsAdmin()) take('Between others', reqs.filter(function(r){ return hrOpen(r) || r.status === 'cant_do'; }));
-    take('Done lately', reqs.filter(function(r){ return !hrOpen(r); }), 6);
-    return out;
+  // ---- checklists: items inside a request, one document each ----
+  // Watched live for the requests that have one and are still open (and for any open in
+  // its sheet), so progress shows on the rows and every tick arrives everywhere at once.
+  var HL_MAX_WATCH = 30;
+  function hrItemsRef(rid){ return homeRef(rid).collection('items'); }
+  function hrItems(rid){
+    return (home.items[rid] || []).slice().sort(function(a, b){ return (a.order - b.order) || ((a.createdAt || '') < (b.createdAt || '') ? -1 : 1); });
   }
-  // one list renderer for every surface; rows are found by position, and every word is text
-  function homeListInto(el, opts){
-    opts = opts || {};
-    el.innerHTML = '';
-    var groups = homeGroups();
-    if (!groups.length){
-      var p = document.createElement('p'); p.className = 'rq-empty'; p.textContent = home.reqLoaded ? 'Nothing at Home yet.' : 'Opening…';
-      el.appendChild(p);
-    }
-    groups.forEach(function(g){
-      if (opts.only && opts.only.indexOf(g.title) === -1) return;
-      var h = document.createElement('h3'); h.className = 'cz-sec-title hm-sec-title'; h.textContent = g.title;
-      el.appendChild(h);
-      var list = document.createElement('div'); list.className = 'rq-list hm-list';
-      g.items.forEach(function(r){
-        var b = document.createElement('button'); b.type = 'button'; b.className = 'rq-li hm-li st-' + hrStatusClass(r);
-        b.innerHTML = '<span class="rq-li-body"><span class="rq-li-t"></span><span class="rq-li-m"></span></span><span class="hm-pill"></span><span class="rq-li-chev">' + UI_ICON.chevronRight + '</span>';
-        b.querySelector('.rq-li-t').textContent = r.text;
-        var m = b.querySelector('.rq-li-m'); m.textContent = hrMeta(r); if (hrUnread(r)) m.classList.add('unread');
-        b.querySelector('.hm-pill').textContent = hrStatusLabel(r);
-        b.addEventListener('click', function(){ openHomeDetail(r.id); });
-        list.appendChild(b);
-      });
-      el.appendChild(list);
+  function hrProgress(r){
+    if (!r.hasChecklist || !home.items[r.id]) return null;
+    var all = home.items[r.id];
+    return { done: all.filter(function(i){ return i.done; }).length, total: all.length };
+  }
+  function hrOutstanding(r){ var p = hrProgress(r); return p ? p.total - p.done : 0; }
+  function hrIsListEditor(r){ var me = homeMe(); return !!r && (r.requesterUid === me || r.createdByUid === me || r.assigneeUid === me); }
+  function homeSyncItems(extraId){
+    if (extraId) home.itemExtra = extraId;
+    var want = {};
+    hrVisible().filter(function(r){ return r.hasChecklist && (hrOpen(r) || r.id === home.itemExtra); })
+      .sort(hrNewest).slice(0, HL_MAX_WATCH).forEach(function(r){ want[r.id] = true; });
+    if (home.itemExtra && homeReq(home.itemExtra) && homeReq(home.itemExtra).hasChecklist) want[home.itemExtra] = true;
+    Object.keys(home.itemStops).forEach(function(rid){
+      if (!want[rid]){ try { home.itemStops[rid](); } catch(e){} delete home.itemStops[rid]; delete home.items[rid]; }
     });
+    Object.keys(want).forEach(function(rid){
+      if (home.itemStops[rid]) return;
+      home.itemStops[rid] = hrItemsRef(rid).onSnapshot(function(snap){
+        home.items[rid] = snap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
+        homeChanged();
+      }, function(err){
+        // refused while the request itself is still on its way to the server (just made on
+        // this device), or rules not yet published: let go, and try again shortly
+        console.warn('home checklist unavailable', err && err.code);
+        delete home.itemStops[rid];
+        clearTimeout(home.itemRetry);
+        home.itemRetry = setTimeout(function(){ if (homeOn()) homeSyncItems(); }, 2500);
+      });
+    });
+  }
+  function hrItemDoc(text, order, done){
+    var now = new Date().toISOString(), me = homeMe();
+    return { text: String(text).slice(0, 200), done: !!done, order: order, createdByUid: me, createdAt: now,
+      doneByUid: done ? me : null, doneAt: done ? now : null, updatedByUid: me, updatedAt: now };
+  }
+  // add several items at once (a pasted list is split by line, like Add several tasks)
+  function hrAddItems(r, lines){
+    lines = lines.map(function(t){ return t.slice(0, 200); }).filter(Boolean).slice(0, 60);
+    if (!lines.length || !hrIsListEditor(r)) return Promise.resolve();
+    var list = hrItems(r.id), top = list.length ? list[list.length - 1].order : 0, b = dbRef.batch();
+    lines.forEach(function(t, i){ b.set(hrItemsRef(r.id).doc(), hrItemDoc(t, top + i + 1)); });
+    if (!r.hasChecklist) b.update(homeRef(r.id), { hasChecklist: true, updatedAt: new Date().toISOString() });
+    return b.commit().catch(hrFail('add that'));
+  }
+  function hrTickItem(r, it){
+    var now = new Date().toISOString(), me = homeMe(), done = !it.done;
+    return hrItemsRef(r.id).doc(it.id).update({ done: done, doneByUid: done ? me : null, doneAt: done ? now : null, updatedByUid: me, updatedAt: now })
+      .catch(hrFail('tick it'));
+  }
+  function hrRenameItem(r, it, text){
+    text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    if (!text) return hrItemsRef(r.id).doc(it.id).delete().catch(hrFail('remove it'));
+    if (text === it.text) return Promise.resolve();
+    return hrItemsRef(r.id).doc(it.id).update({ text: text, updatedByUid: homeMe(), updatedAt: new Date().toISOString() }).catch(hrFail('change it'));
+  }
+  function hrMoveItem(r, it, before, after){
+    // only the moved item is written: its order falls between its new neighbours
+    var a = before ? before.order : (after ? after.order - 1 : 0), z = after ? after.order : a + 2;
+    return hrItemsRef(r.id).doc(it.id).update({ order: (a + z) / 2, updatedByUid: homeMe(), updatedAt: new Date().toISOString() }).catch(hrFail('move it'));
+  }
+  // Done never ticks the items for you: with some left, it asks first
+  function hrConfirmDone(r){
+    var left = hrOutstanding(r);
+    if (!left) return true;
+    return confirm(left + (left === 1 ? ' item isn’t' : ' items aren’t') + ' ticked. Mark it done anyway? They’ll stay as they are.');
+  }
+  // the checklist inside a request's sheet
+  function hrChecklistInto(wrap, rid){
+    var r = homeReq(rid);
+    if (!r) return;
+    var editor = hrIsListEditor(r) && !r.deletedAt;
+    var active = document.activeElement;
+    if (active && wrap.contains(active) && active.classList.contains('hl-edit')) return;   // never under someone typing
+    var keepDraft = wrap.querySelector('#hlAdd') ? wrap.querySelector('#hlAdd').value : '';
+    var hadFocus = active && active.id === 'hlAdd';
+    var items = hrItems(rid), open = items.filter(function(i){ return !i.done; }), done = items.filter(function(i){ return i.done; });
+    if (!r.hasChecklist && !editor){ wrap.innerHTML = ''; return; }
+    wrap.innerHTML = '';
+    var head = document.createElement('div'); head.className = 'hs-sec-head hl-head';
+    head.innerHTML = '<h3 class="cz-sec-title">Checklist</h3><span class="cz-sec-count"></span>';
+    head.querySelector('.cz-sec-count').textContent = items.length ? done.length + ' of ' + items.length + (items.length && !open.length ? ' · all ticked' : '') : '';
+    if (r.hasChecklist || items.length) wrap.appendChild(head);
+    var list = document.createElement('div'); list.className = 'hl-list'; list.id = 'hlList';
+    open.forEach(function(it, idx){ list.appendChild(hlRow(r, it, editor, open, idx)); });
+    if (r.hasChecklist && !items.length && home.items[rid]){ var em = document.createElement('p'); em.className = 'hs-empty'; em.textContent = 'Nothing on it yet.'; list.appendChild(em); }
+    if (r.hasChecklist || items.length) wrap.appendChild(list);
+    if (editor){
+      var add = document.createElement('div'); add.className = 'hl-add';
+      add.innerHTML = '<textarea id="hlAdd" rows="1" maxlength="4000" aria-label="Add to the checklist"></textarea><button type="button" class="rq-send" id="hlAddBtn" disabled>Add</button>';
+      var ta = add.querySelector('#hlAdd'), btn = add.querySelector('#hlAddBtn');
+      ta.placeholder = r.hasChecklist ? 'Add an item — or paste a list' : 'Add a checklist — one item per line';
+      ta.value = keepDraft;
+      function size(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; btn.disabled = !ta.value.trim(); }
+      function go(){
+        var lines = hbParse(ta.value);
+        if (!lines.length) return;
+        ta.value = ''; size();
+        hrAddItems(homeReq(rid) || r, lines);
+      }
+      ta.addEventListener('input', size);
+      ta.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); go(); } });
+      btn.addEventListener('click', function(){ go(); ta.focus(); });
+      wrap.appendChild(add);
+      size();
+      if (hadFocus) setTimeout(function(){ try { ta.focus(); } catch(e){} }, 0);
+    }
+    if (done.length){
+      var tog = document.createElement('button'); tog.type = 'button'; tog.className = 'hl-done-toggle'; tog.id = 'hlDoneToggle';
+      var shown = !!home.listDoneOpen;
+      tog.setAttribute('aria-expanded', shown ? 'true' : 'false');
+      tog.innerHTML = '<span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+      tog.querySelector('span').textContent = 'Ticked · ' + done.length;
+      tog.addEventListener('click', function(){ home.listDoneOpen = !home.listDoneOpen; hrChecklistInto(wrap, rid); });
+      wrap.appendChild(tog);
+      if (shown){
+        var dl = document.createElement('div'); dl.className = 'hl-list hl-done-list';
+        done.forEach(function(it){ dl.appendChild(hlRow(r, it, editor)); });
+        wrap.appendChild(dl);
+      }
+    }
+  }
+  function hlRow(r, it, editor, open, idx){
+    var row = document.createElement('div'); row.className = 'hl-row' + (it.done ? ' done' : ''); row.dataset.item = it.id;
+    var tick = document.createElement('button'); tick.type = 'button'; tick.className = 'commitment-status-dot' + (it.done ? ' completed' : '');
+    tick.setAttribute('aria-label', it.done ? 'Untick ' + it.text : 'Tick ' + it.text);
+    tick.disabled = !editor;
+    tick.addEventListener('click', function(){ if (editor) hrTickItem(homeReq(r.id) || r, it); });
+    var body = document.createElement('div'); body.className = 'hl-body';
+    var t = document.createElement('span'); t.className = 'hl-text'; t.textContent = it.text;
+    body.appendChild(t);
+    if (it.done && it.doneByUid){ var m = document.createElement('span'); m.className = 'hl-meta'; m.textContent = homeWho(it.doneByUid) + ' · ' + rqAgo(it.doneAt); body.appendChild(m); }
+    if (editor){
+      t.setAttribute('role', 'button'); t.tabIndex = 0;
+      function edit(){
+        var inp = document.createElement('input'); inp.type = 'text'; inp.className = 'hl-edit'; inp.maxLength = 200; inp.value = it.text;
+        inp.setAttribute('aria-label', 'Edit item');
+        body.replaceChild(inp, t); inp.focus();
+        var doneEdit = false;
+        function commit(){ if (doneEdit) return; doneEdit = true; hrRenameItem(homeReq(r.id) || r, it, inp.value).then(function(){ homeChanged(); }); }
+        inp.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); inp.blur(); } if (e.key === 'Escape'){ inp.value = it.text; inp.blur(); } });
+        inp.addEventListener('blur', commit);
+      }
+      t.addEventListener('click', edit);
+      t.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); edit(); } });
+    }
+    row.appendChild(tick); row.appendChild(body);
+    if (editor && !it.done && open && open.length > 1){
+      var h = document.createElement('span'); h.className = 'hl-grip'; h.setAttribute('aria-hidden', 'true'); h.innerHTML = UI_ICON.grip;
+      hlDrag(h, row, r, it);
+      row.appendChild(h);
+    }
+    return row;
+  }
+  // hold the handle and drag: the row lifts and follows the finger; one write on drop
+  function hlDrag(handle, row, r, it){
+    handle.addEventListener('pointerdown', function(e){
+      if (e.button != null && e.button !== 0) return;
+      e.preventDefault();
+      var list = row.parentNode, grab = e.clientY - row.getBoundingClientRect().top, moved = false;
+      var before = [].slice.call(list.querySelectorAll('.hl-row')).map(function(x){ return x.dataset.item; }).join();
+      row.classList.add('dragging');
+      try { handle.setPointerCapture(e.pointerId); } catch(x){}
+      function onMove(ev){
+        var y = ev.clientY, target = null;
+        var sibs = [].slice.call(list.querySelectorAll('.hl-row')).filter(function(x){ return x !== row; });
+        for (var i = 0; i < sibs.length; i++){
+          var sr = sibs[i].getBoundingClientRect();
+          if (y < sr.top + sr.height / 2){ target = sibs[i]; break; }
+        }
+        var next = row.nextElementSibling;
+        while (next && !next.classList.contains('hl-row')) next = next.nextElementSibling;
+        if (target !== next){ if (target) list.insertBefore(row, target); else list.appendChild(row); }
+        row.style.transform = '';
+        var natural = row.getBoundingClientRect().top;
+        row.style.transform = 'translateY(' + (y - grab - natural) + 'px)';
+        moved = true;
+      }
+      function onUp(){
+        handle.removeEventListener('pointermove', onMove); handle.removeEventListener('pointerup', onUp); handle.removeEventListener('pointercancel', onUp);
+        row.classList.remove('dragging'); row.style.transform = '';
+        var ids = [].slice.call(list.querySelectorAll('.hl-row')).map(function(x){ return x.dataset.item; });
+        if (!moved || ids.join() === before) return;
+        var at = ids.indexOf(it.id), byId = {};
+        hrItems(r.id).forEach(function(x){ byId[x.id] = x; });
+        hrMoveItem(homeReq(r.id) || r, it, at > 0 ? byId[ids[at - 1]] : null, at < ids.length - 1 ? byId[ids[at + 1]] : null);
+      }
+      handle.addEventListener('pointermove', onMove); handle.addEventListener('pointerup', onUp); handle.addEventListener('pointercancel', onUp);
+    });
+  }
+
+  // ---- Home: the screen (Shaun's Home tab, Abi's Home tab, the household app) ----
+  // What needs doing first: a small summary that doubles as filters, today's tasks, then
+  // what is coming, then a short run of recent updates. Done requests are history — they
+  // live in "All activity", never in the way. One renderer for all three surfaces.
+  var HS_FILTERS = { mine: 'For me', others: 'Assigned to others', overdue: 'Overdue', recurring: 'Recurring', all: 'All activity' };
+  home.filter = null;
+  home.pendingDone = {};
+  home.items = {}; home.itemStops = {};
+  home.allShown = 30;
+  // when a request is due, from what it says: a planned day, a chosen date, "today" on the
+  // day it was asked, "this week" by that week's Sunday; "no preference" has no date
+  function hrDue(r){
+    if (r.plannedDate) return r.plannedDate;
+    if (r.requestedTiming === 'date' && r.requestedDate) return r.requestedDate;
+    var made = r.createdAt ? fmtDate(new Date(r.createdAt)) : null;
+    if (!made) return null;
+    if (r.requestedTiming === 'today') return made;
+    if (r.requestedTiming === 'week') return fmtDate(weekEndFor(made));
+    return null;
+  }
+  function hrOverdue(r){ var d = hrDue(r); return hrOpen(r) && !!d && d < todayStr(); }
+  function hrForToday(r){ var d = hrDue(r); return hrOpen(r) && (r.status === 'in_progress' || (!!d && d <= todayStr() && r.requestedTiming !== 'week') || (!!d && d < todayStr())); }
+  function hrDueLabel(r){
+    var d = hrDue(r);
+    if (!hrOpen(r) || !d) return '';
+    if (d < todayStr()) return 'Overdue · ' + shortDayLabel(d);
+    if (r.requestedTiming === 'week' && !r.plannedDate) return 'This week';
+    return rqDayWord(d) === 'today' ? 'Today' : (rqDayWord(d).charAt(0).toUpperCase() + rqDayWord(d).slice(1));
+  }
+  function hrVisible(){ var me = homeMe(); return home.requests.filter(function(r){ return !(r.hiddenFor && r.hiddenFor[me]); }); }
+  function hrNewest(a, b){ var ka = a.latestUpdateAt || a.updatedAt || a.createdAt || '', kb = b.latestUpdateAt || b.updatedAt || b.createdAt || ''; return ka < kb ? 1 : (ka > kb ? -1 : 0); }
+  function hrByDue(a, b){ var da = hrDue(a) || '9999', db = hrDue(b) || '9999'; return da < db ? -1 : (da > db ? 1 : ((a.createdAt || '') < (b.createdAt || '') ? -1 : 1)); }
+  function homeCounts(){
+    var me = homeMe(), open = hrVisible().filter(function(r){ return hrOpen(r) && !home.pendingDone[r.id]; });
+    return {
+      mine: open.filter(function(r){ return r.assigneeUid === me; }).length,
+      others: open.filter(function(r){ return r.assigneeUid && r.assigneeUid !== me; }).length,
+      overdue: open.filter(hrOverdue).length
+    };
+  }
+  function homeFiltered(f){
+    var me = homeMe(), all = hrVisible();
+    if (f === 'mine') return all.filter(function(r){ return hrOpen(r) && r.assigneeUid === me; }).sort(hrByDue);
+    if (f === 'others') return all.filter(function(r){ return hrOpen(r) && r.assigneeUid && r.assigneeUid !== me; }).sort(hrByDue);
+    if (f === 'overdue') return all.filter(hrOverdue).sort(hrByDue);
+    if (f === 'all') return all.slice().sort(hrNewest);
+    return [];
+  }
+  // waiting on the viewer: theirs and new, or a word from someone else they haven't read
+  function homeAttention(){
+    if (!homeOn()) return 0;
+    var me = homeMe();
+    return hrVisible().filter(function(r){ return (r.assigneeUid === me && r.status === 'requested') || hrUnread(r); }).length;
+  }
+  function hrCanTick(r){
+    var me = homeMe();
+    return r.assigneeUid === me && hrOpen(r) && !(r.linkedActionId && r.linkedByUid === me && home.surface === 'owner');
+  }
+  // Done from the row: it shows done at once, and is only written once Undo has passed
+  function hrTickDone(r){
+    if (home.pendingDone[r.id] || !hrConfirmDone(r)) return;
+    home.pendingDone[r.id] = setTimeout(function(){
+      delete home.pendingDone[r.id];
+      var cur = homeReq(r.id);
+      if (cur && hrOpen(cur)) hrSetStatus(cur, 'done', true).then(homeChanged);
+      else homeChanged();
+    }, 5200);
+    homeChanged();
+    showActionToast('Done — ' + (r.requesterUid === homeMe() ? 'ticked off' : homeNameOf(r.requesterUid) + ' will see it'), 'Undo', function(){
+      clearTimeout(home.pendingDone[r.id]); delete home.pendingDone[r.id]; homeChanged();
+    });
+  }
+  function hrRowEl(r, opts){
+    opts = opts || {};
+    var pending = !!home.pendingDone[r.id], done = pending || r.status === 'done';
+    var row = document.createElement('div');
+    row.className = 'commitment-item hs-row st-' + hrStatusClass(r) + (done ? ' done' : '') + (hrOverdue(r) && !pending ? ' overdue' : '');
+    var tick = null;
+    if (hrCanTick(r) || pending){
+      tick = document.createElement('button'); tick.type = 'button';
+      tick.className = 'commitment-status-dot' + (pending ? ' completed' : '');
+      tick.setAttribute('aria-label', pending ? 'Done' : 'Mark done');
+      tick.addEventListener('click', function(e){ e.stopPropagation(); if (!pending) hrTickDone(r); });
+      row.appendChild(tick);
+    } else {
+      var dot = document.createElement('span'); dot.className = 'hs-mark'; dot.setAttribute('aria-hidden', 'true');
+      if (r.status === 'done') dot.innerHTML = CHECK_SVG;
+      row.appendChild(dot);
+    }
+    var body = document.createElement('button'); body.type = 'button'; body.className = 'commitment-body hs-row-body';
+    var t = document.createElement('span'); t.className = 'commitment-title'; t.textContent = r.text;
+    var m = document.createElement('span'); m.className = 'commitment-meta';
+    if (opts.activity){
+      m.textContent = hrActivityLine(r);
+    } else {
+      var bits = [];
+      if (hrUnread(r)) bits.push(homeNameOf(r.latestCommentByUid) + ' updated');
+      var due = hrDueLabel(r); if (due) bits.push(due);
+      var pg = hrProgress(r); if (pg && pg.total) bits.push(pg.done + ' of ' + pg.total + (pg.total === 1 ? ' item' : ' items'));
+      bits.push(hrKicker(r));
+      m.textContent = bits.join(' · ');
+    }
+    if (hrUnread(r)) m.classList.add('unread');
+    body.appendChild(t); body.appendChild(m);
+    body.addEventListener('click', function(){ openHomeDetail(r.id); });
+    row.appendChild(body);
+    var pill = document.createElement('span'); pill.className = 'hs-pill';
+    // the mark already says done; the pill speaks only where it adds something
+    pill.textContent = pending || r.status === 'done' || (r.status === 'requested' && !opts.activity) ? '' : hrStatusLabel(r);
+    if (pill.textContent) row.appendChild(pill);
+    return row;
+  }
+  // "Maria completed it · 2h", from the request's own summary of its latest entry
+  function hrActivityLine(r){
+    var who = homeWho(r.latestUpdateByUid || r.createdByUid), t = r.latestUpdateType || 'created', verb;
+    if (t === 'created') verb = who === 'You' ? 'asked' : 'asked';
+    else if (t === 'comment') verb = 'added an update';
+    else if (t === 'status') verb = r.status === 'done' ? 'completed it' : (r.status === 'in_progress' ? 'started it' : 'reopened it');
+    else if (t === 'planned') verb = 'planned it';
+    else if (t === 'moved') verb = 'moved it';
+    else if (t === 'cant_do') verb = 'can’t do it';
+    else if (t === 'reassigned') verb = 'passed it to ' + homeWho(r.assigneeUid).replace('You', 'you');
+    else if (t === 'withdrawn') verb = 'withdrew it';
+    else if (t === 'visibility') verb = r.visibility === 'home' ? 'shared it with Home' : 'made it private';
+    else verb = 'updated it';
+    return who + ' ' + verb + ' · ' + rqAgo(r.latestUpdateAt || r.createdAt);
+  }
+  function hsSection(el, title, list, opts){
+    opts = opts || {};
+    if (!list.length && !opts.keep) return;
+    var sec = document.createElement('section'); sec.className = 'hs-sec' + (opts.cls ? ' ' + opts.cls : '');
+    var head = document.createElement(opts.onMore ? 'button' : 'div');
+    head.className = 'hs-sec-head';
+    if (opts.onMore){ head.type = 'button'; head.addEventListener('click', opts.onMore); }
+    head.innerHTML = '<h3 class="cz-sec-title"></h3><span class="cz-sec-count"></span>' + (opts.onMore ? '<span class="chev">' + UI_ICON.chevronRight + '</span>' : '');
+    head.querySelector('h3').textContent = title;
+    head.querySelector('.cz-sec-count').textContent = opts.count != null ? opts.count : (list.length ? String(list.length) : '');
+    sec.appendChild(head);
+    var box = document.createElement('div'); box.className = 'hs-list';
+    var max = opts.max || list.length;
+    list.slice(0, max).forEach(function(r){ box.appendChild(hrRowEl(r, opts)); });
+    if (!list.length && opts.empty){ var p = document.createElement('p'); p.className = 'hs-empty'; p.textContent = opts.empty; box.appendChild(p); }
+    sec.appendChild(box);
+    if (list.length > max && opts.moreLabel){
+      var more = document.createElement('button'); more.type = 'button'; more.className = 'btn-link hs-more';
+      more.textContent = opts.moreLabel(list.length - max);
+      more.addEventListener('click', opts.onShowMore);
+      sec.appendChild(more);
+    }
+    el.appendChild(sec);
+  }
+  function homeScreenInto(el, opts){
+    opts = opts || {};
+    var scrollY = window.scrollY;
+    el.innerHTML = '';
+    var wrap = document.createElement('div'); wrap.className = 'hs';
+    el.appendChild(wrap);
+    if (!home.reqLoaded){
+      var sk = document.createElement('div'); sk.className = 'hs-loading'; sk.innerHTML = '<span></span><span></span><span></span>';
+      wrap.appendChild(sk);
+      return;
+    }
+    // the add control, and who is at Home
+    var top = document.createElement('div'); top.className = 'hs-top';
+    var who = document.createElement('p'); who.className = 'hs-who';
+    var names = homeActiveMembers().map(function(m){ return m.uid === homeMe() ? null : m.displayName; }).filter(Boolean);
+    who.textContent = names.length ? 'You, ' + names.join(', ') : 'Just you so far';
+    var add = document.createElement('button'); add.type = 'button'; add.className = 'hs-add'; add.id = 'hsAdd';
+    add.innerHTML = BK_PLUS_SVG + '<span>Add</span>';
+    add.setAttribute('aria-haspopup', 'dialog');
+    add.addEventListener('click', openHomeAddMenu);
+    top.appendChild(who); top.appendChild(add);
+    wrap.appendChild(top);
+    // the summary: three counts, each a way in
+    var c = homeCounts();
+    var sum = document.createElement('div'); sum.className = 'hs-sum'; sum.setAttribute('role', 'group'); sum.setAttribute('aria-label', 'Summary');
+    [['mine', c.mine, 'For me'], ['others', c.others, 'Assigned to others'], ['overdue', c.overdue, 'Overdue']].forEach(function(x){
+      var b = document.createElement('button'); b.type = 'button';
+      b.className = 'hs-stat' + (home.filter === x[0] ? ' sel' : '') + (x[0] === 'overdue' && x[1] ? ' warn' : '') + (x[1] ? '' : ' zero');
+      b.dataset.hsFilter = x[0];
+      b.setAttribute('aria-pressed', home.filter === x[0] ? 'true' : 'false');
+      b.innerHTML = '<span class="hs-stat-n"></span><span class="hs-stat-l"></span>';
+      b.querySelector('.hs-stat-n').textContent = String(x[1]);
+      b.querySelector('.hs-stat-l').textContent = x[2];
+      b.addEventListener('click', function(){ home.filter = home.filter === x[0] ? null : x[0]; home.allShown = 30; homeChanged(); });
+      sum.appendChild(b);
+    });
+    wrap.appendChild(sum);
+    var me = homeMe();
+    if (home.filter){
+      var bar = document.createElement('div'); bar.className = 'hs-filter-bar';
+      bar.innerHTML = '<span class="hs-filter-t"></span><button type="button" class="btn-link hs-filter-x" id="hsFilterClear">Overview</button>';
+      bar.querySelector('.hs-filter-t').textContent = HS_FILTERS[home.filter];
+      bar.querySelector('#hsFilterClear').addEventListener('click', function(){ home.filter = null; homeChanged(); });
+      wrap.appendChild(bar);
+      var list = home.filter === 'recurring' ? [] : homeFiltered(home.filter);
+      if (home.filter === 'recurring') homeRecurringInto(wrap, true);
+      else hsSection(wrap, HS_FILTERS[home.filter], list, { keep: true, max: home.filter === 'all' ? home.allShown : 0,
+        activity: home.filter === 'all', count: '',
+        empty: home.filter === 'mine' ? 'Nothing for you right now.' : (home.filter === 'others' ? 'Nothing waiting on anyone else.' : (home.filter === 'overdue' ? 'Nothing overdue.' : 'Nothing at Home yet.')),
+        moreLabel: function(n){ return 'Show ' + Math.min(n, 30) + ' more'; },
+        onShowMore: function(){ home.allShown += 30; homeChanged(); } });
+    } else {
+      var vis = hrVisible();
+      var todayList = vis.filter(hrForToday).sort(hrByDue);
+      var upcoming = vis.filter(function(r){ return hrOpen(r) && !hrForToday(r); }).sort(hrByDue);
+      if (!vis.length){
+        var empty = document.createElement('div'); empty.className = 'hs-empty-state';
+        empty.innerHTML = '<p class="hs-empty-title">Nothing at Home yet</p><p class="hs-empty-sub">Requests between the people at Home appear here — what’s for you, what you’ve asked, and what’s coming up.</p>';
+        wrap.appendChild(empty);
+      }
+      hsSection(wrap, 'Today', todayList, { keep: vis.some(hrOpen), empty: 'Nothing due today.' });
+      hsSection(wrap, 'Upcoming', upcoming, { max: 8, moreLabel: function(n){ return n + ' more'; }, onShowMore: function(){ home.filter = 'all'; homeChanged(); } });
+      homeRecurringInto(wrap, false);
+      var recent = vis.filter(function(r){ return !hrOpen(r) || r.latestUpdateType === 'comment'; }).sort(hrNewest)
+        .filter(function(r){ return (r.latestUpdateAt || r.updatedAt || '') >= fmtDate(addDays(todayStr(), -14)); });
+      hsSection(wrap, 'Recent updates', recent, { max: 4, activity: true, count: '', onMore: function(){ home.filter = 'all'; home.allShown = 30; homeChanged(); window.scrollTo(0, 0); } });
+    }
+    // the people, and (for Shaun) where Home is looked after
+    var card = document.createElement('div'); card.className = 'set-card hs-people';
+    card.innerHTML = settingsRow('hsPeople', 'People', String(homeActiveMembers().length)) +
+      (homeIsAdmin() ? settingsRow('hsNotify', 'Notifications', '') : '');
+    wrap.appendChild(card);
+    card.querySelector('#hsPeople').addEventListener('click', openHomePeople);
+    var nb = card.querySelector('#hsNotify');
+    if (nb) nb.addEventListener('click', function(){
+      if (home.surface === 'owner') openNotificationsSheet(); else wireNotificationsSheet(ppSheetOpen(notificationsSheetHtml()));
+    });
+    if (opts.keepScroll !== false && home.surface === 'owner') window.scrollTo(0, scrollY);
+  }
+  // recurring responsibilities: added with Milestone 4
+  function homeRecurringInto(){}
+  // the add control: one request, several at once
+  function openHomeAddMenu(){
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Add to Home', '', '') +
+      '<div class="act-rows" id="hamRows">' +
+        '<button type="button" class="act-row" id="hamOne"><span class="act-ic">' + BK_PLUS_SVG + '</span><span class="act-label lc-row-x"><span class="lc-row-t">New request</span><span class="lc-row-m">One thing, for one person</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
+        '<button type="button" class="act-row" id="hamList"><span class="act-ic">' + CHECK_SVG + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Shopping or checklist</span><span class="lc-row-m">One request with a list to tick off</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
+        '<button type="button" class="act-row" id="hamMany"><span class="act-ic">' + UI_ICON.list + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Add several tasks</span><span class="lc-row-m">Paste or type a list — each line becomes its own request</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
+      '</div>');
+    sh.querySelector('#hamOne').addEventListener('click', function(){ openHomeNew(); });
+    sh.querySelector('#hamList').addEventListener('click', function(){ openHomeNew({ checklist: true }); });
+    sh.querySelector('#hamMany').addEventListener('click', function(){ openHomeBulk(); });
+  }
+
+  // ---- several at once: a list in, one request per line out ----
+  // Parsing is plain and predictable: every non-empty line is one task; bullets, numbers and
+  // checkboxes are taken off; nothing is merged or reworded. The preview is the place to fix
+  // anything before one tap creates them all.
+  var HB_MAX = 40, HB_CHUNK = 5, HB_DRAFT_KEY = 'ledger_home_bulk_draft';
+  function hbParse(text){
+    return String(text || '').split(/\r?\n/).map(function(line){
+      return line.replace(/^\s*(?:[-*\u2022\u00b7\u2023\u25aa\u25e6\u2013\u2014+>]+\s*)?(?:\[[ xX\u2713]?\]\s*)?(?:\(?\d{1,3}[.)\]:]\s+)?/, '')
+        .replace(/\s+/g, ' ').trim();
+    }).filter(Boolean);
+  }
+  function hbDefaultFor(people){
+    // an admin writing a list for the one person who helps at home: that's who it's for
+    var me = homeMe(), others = people.filter(function(m){ return m.uid !== me; });
+    var helpers = others.filter(function(m){ return m.role === 'member'; });
+    if (homeIsAdmin() && helpers.length === 1) return helpers[0].uid;
+    return others.length === 1 ? others[0].uid : null;
+  }
+  function hbWhenLabel(w){
+    if (!w || w.kind === 'none') return 'No date';
+    if (w.kind === 'today') return 'Today';
+    return rqDayWord(w.date).charAt(0).toUpperCase() + rqDayWord(w.date).slice(1);
+  }
+  function hbTiming(w){
+    if (w.kind === 'today') return { requestedTiming: 'today', requestedDate: null };
+    if (w.kind === 'none') return { requestedTiming: 'none', requestedDate: null };
+    return { requestedTiming: 'date', requestedDate: w.date };
+  }
+  function openHomeBulk(draft){
+    var me = homeMe();
+    var people = homeActiveMembers().filter(function(m){ return m.uid !== me; }).sort(function(a, b){ return (a.displayName || '').localeCompare(b.displayName || ''); });
+    var st = draft || { text: lsGet(HB_DRAFT_KEY, ''), forUid: hbDefaultFor(homeActiveMembers()), when: { kind: 'today' }, note: '' };
+    if (typeof st.text !== 'string') st.text = '';
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Add several tasks', 'One per line — type them or paste a list.', '') +
+      '<div class="field"><label for="hbText">Tasks</label><textarea id="hbText" rows="7" maxlength="6000" placeholder="Empty the dishwasher&#10;Wash the school uniform&#10;Pick up the dry cleaning"></textarea></div>' +
+      '<div class="field"><label>For</label><div class="bk-filter-pop" id="hbFor" role="radiogroup" aria-label="For"></div></div>' +
+      '<div class="field"><label>When</label><div class="bk-filter-pop" id="hbWhen" role="radiogroup" aria-label="When"></div></div>' +
+      '<div id="hbDateField" hidden>' + fieldDate('hbDate', 'Date', nextDateStr(todayStr())) + '</div>' +
+      '<div class="field"><label for="hbNote">Note for all of them <span class="pp-opt">optional</span></label><input type="text" id="hbNote" maxlength="200" autocomplete="off" placeholder="e.g. before school pickup"></div>' +
+      '<p class="auth-error" id="hbErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="hbPreview" disabled>Preview tasks</button>');
+    var ta = sh.querySelector('#hbText'), btn = sh.querySelector('#hbPreview'), err = sh.querySelector('#hbErr');
+    ta.value = st.text; sh.querySelector('#hbNote').value = st.note || '';
+    if (st.when.kind === 'date') sh.querySelector('#hbDate').value = st.when.date;
+    function count(){
+      var n = hbParse(ta.value).length;
+      btn.disabled = !n;
+      btn.textContent = n ? 'Preview ' + n + (n === 1 ? ' task' : ' tasks') : 'Preview tasks';
+    }
+    hbChips(sh.querySelector('#hbFor'), people, function(){ return st.forUid; }, function(uid){ st.forUid = uid; });
+    hbWhenChips(sh.querySelector('#hbWhen'), sh.querySelector('#hbDateField'), sh.querySelector('#hbDate'), function(){ return st.when; }, function(w){ st.when = w; });
+    ta.addEventListener('input', function(){ count(); lsSet(HB_DRAFT_KEY, ta.value); });
+    count();
+    btn.addEventListener('click', function(){
+      var lines = hbParse(ta.value);
+      if (!lines.length){ err.textContent = 'Add at least one task.'; return; }
+      if (lines.length > HB_MAX){ err.textContent = 'That’s ' + lines.length + ' lines — up to ' + HB_MAX + ' at a time.'; return; }
+      if (st.when.kind === 'date') st.when.date = sh.querySelector('#hbDate').value || st.when.date;
+      if (st.when.kind === 'date' && !st.when.date){ err.textContent = 'Choose a date.'; return; }
+      st.text = ta.value; st.note = sh.querySelector('#hbNote').value.trim();
+      // each row gets its id now, so a retry can never make a second copy
+      st.rows = lines.map(function(t){ return { id: dbRef.collection(HOME_REQ).doc().id, text: t.slice(0, 280), forUid: null, when: null, saved: false }; });
+      st.batchId = dbRef.collection('ledger_home_batches').doc().id;
+      openHomeBulkPreview(st);
+    });
+    setTimeout(function(){ try { ta.focus(); } catch(e){} }, 60);
+  }
+  // chips for who it's for; the same control at the top of the form and on each row
+  function hbChips(el, people, get, set, onChange){
+    function paint(){
+      el.innerHTML = '';
+      people.forEach(function(m){
+        var b = document.createElement('button'); b.type = 'button';
+        var on = get() === m.uid;
+        b.className = 'bk-filter-chip' + (on ? ' sel' : ''); b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', on ? 'true' : 'false');
+        b.textContent = m.displayName;
+        b.addEventListener('click', function(){ set(m.uid); paint(); if (onChange) onChange(); });
+        el.appendChild(b);
+      });
+    }
+    paint();
+  }
+  function hbWhenChips(el, dateField, dateInput, get, set, onChange){
+    var opts = [['today', 'Today'], ['tomorrow', 'Tomorrow'], ['date', 'Choose date'], ['none', 'No date']];
+    function kindOf(w){ return w.kind === 'date' && w.date === fmtDate(addDays(todayStr(), 1)) && !w.chosen ? 'tomorrow' : w.kind; }
+    function paint(){
+      el.innerHTML = '';
+      var k = kindOf(get());
+      opts.forEach(function(o){
+        var b = document.createElement('button'); b.type = 'button';
+        b.className = 'bk-filter-chip' + (k === o[0] ? ' sel' : ''); b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', k === o[0] ? 'true' : 'false');
+        b.textContent = o[1];
+        b.addEventListener('click', function(){
+          if (o[0] === 'tomorrow') set({ kind: 'date', date: fmtDate(addDays(todayStr(), 1)) });
+          else if (o[0] === 'date') set({ kind: 'date', date: (dateInput && dateInput.value) || nextDateStr(todayStr()), chosen: true });
+          else set({ kind: o[0] });
+          paint(); if (onChange) onChange();
+        });
+        el.appendChild(b);
+      });
+      if (dateField) dateField.hidden = k !== 'date';
+    }
+    if (dateInput) dateInput.addEventListener('change', function(){ var w = get(); if (w.kind === 'date'){ set({ kind: 'date', date: dateInput.value, chosen: true }); if (onChange) onChange(); } });
+    paint();
+  }
+  function openHomeBulkPreview(st){
+    var me = homeMe();
+    var people = homeActiveMembers().filter(function(m){ return m.uid !== me; }).sort(function(a, b){ return (a.displayName || '').localeCompare(b.displayName || ''); });
+    var busy = false, opened = null;
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Check the list', '<span id="hbpSub"></span>', '') +
+      '<div class="field"><label>For</label><div class="bk-filter-pop" id="hbpFor" role="radiogroup" aria-label="For all"></div></div>' +
+      '<div class="field"><label>When</label><div class="bk-filter-pop" id="hbpWhen" role="radiogroup" aria-label="When for all"></div></div>' +
+      '<div id="hbpDateField" hidden>' + fieldDate('hbpDate', 'Date', st.when.kind === 'date' ? st.when.date : nextDateStr(todayStr())) + '</div>' +
+      '<div class="hb-rows" id="hbpRows"></div>' +
+      '<button type="button" class="btn-link hb-add-row" id="hbpAdd">' + BK_PLUS_SVG + 'Add another</button>' +
+      '<p class="auth-error" id="hbpErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="hbpSave"></button>' +
+      '<button type="button" class="btn-quiet" id="hbpBack">Back to the list</button>');
+    var rowsEl = sh.querySelector('#hbpRows'), err = sh.querySelector('#hbpErr'), save = sh.querySelector('#hbpSave');
+    function nameOf(uid){ return uid ? homeNameOf(uid) : 'Choose who'; }
+    function live(){ return st.rows.filter(function(r){ return !r.saved; }); }
+    function summary(){
+      var n = live().filter(function(r){ return r.text.trim(); }).length;
+      sh.querySelector('#hbpSub').textContent = n + (n === 1 ? ' request' : ' requests') + (st.note ? ' · “' + st.note + '”' : '');
+      if (!busy) save.textContent = n ? 'Create ' + n + (n === 1 ? ' request' : ' requests') : 'Nothing to create';
+      save.disabled = busy || !n;
+    }
+    function paintRows(){
+      rowsEl.innerHTML = '';
+      live().forEach(function(r){
+        var row = document.createElement('div'); row.className = 'hb-row' + (opened === r.id ? ' open' : '');
+        var line = document.createElement('div'); line.className = 'hb-line';
+        var inp = document.createElement('input'); inp.type = 'text'; inp.className = 'hb-input'; inp.maxLength = 280; inp.value = r.text;
+        inp.setAttribute('aria-label', 'Task');
+        inp.addEventListener('input', function(){ r.text = inp.value; summary(); });
+        var who = document.createElement('button'); who.type = 'button'; who.className = 'hb-who' + (r.forUid || r.when ? ' own' : '');
+        who.textContent = nameOf(r.forUid || st.forUid) + ' · ' + hbWhenLabel(r.when || st.when);
+        who.setAttribute('aria-expanded', opened === r.id ? 'true' : 'false');
+        who.addEventListener('click', function(){ opened = opened === r.id ? null : r.id; paintRows(); });
+        var x = document.createElement('button'); x.type = 'button'; x.className = 'hb-x'; x.setAttribute('aria-label', 'Remove'); x.innerHTML = CLOSE_SVG;
+        x.addEventListener('click', function(){ st.rows = st.rows.filter(function(y){ return y !== r; }); if (opened === r.id) opened = null; paintRows(); summary(); });
+        var body = document.createElement('div'); body.className = 'hb-line-body';
+        body.appendChild(inp); body.appendChild(who);
+        line.appendChild(body); line.appendChild(x);
+        row.appendChild(line);
+        if (opened === r.id){
+          // this one only: its own person or day
+          var ed = document.createElement('div'); ed.className = 'hb-own';
+          var f = document.createElement('div'); f.className = 'bk-filter-pop'; f.setAttribute('role', 'radiogroup'); f.setAttribute('aria-label', 'For this one');
+          var wv = document.createElement('div'); wv.className = 'bk-filter-pop'; wv.setAttribute('role', 'radiogroup'); wv.setAttribute('aria-label', 'When for this one');
+          var dWrap = document.createElement('div'); dWrap.hidden = true;
+          var dIn = document.createElement('input'); dIn.type = 'date'; dIn.className = 'hb-date'; dIn.value = (r.when && r.when.date) || nextDateStr(todayStr());
+          dWrap.appendChild(dIn);
+          ed.appendChild(f); ed.appendChild(wv); ed.appendChild(dWrap);
+          var reset = document.createElement('button'); reset.type = 'button'; reset.className = 'btn-link hb-reset'; reset.textContent = 'Same as the rest';
+          reset.addEventListener('click', function(){ r.forUid = null; r.when = null; opened = null; paintRows(); });
+          ed.appendChild(reset);
+          row.appendChild(ed);
+          hbChips(f, people, function(){ return r.forUid || st.forUid; }, function(uid){ r.forUid = uid === st.forUid ? null : uid; }, function(){ who.textContent = nameOf(r.forUid || st.forUid) + ' · ' + hbWhenLabel(r.when || st.when); who.classList.toggle('own', !!(r.forUid || r.when)); });
+          hbWhenChips(wv, dWrap, dIn, function(){ return r.when || st.when; }, function(w){ r.when = w; }, function(){ who.textContent = nameOf(r.forUid || st.forUid) + ' · ' + hbWhenLabel(r.when || st.when); who.classList.add('own'); });
+        }
+        rowsEl.appendChild(row);
+      });
+    }
+    hbChips(sh.querySelector('#hbpFor'), people, function(){ return st.forUid; }, function(uid){ st.forUid = uid; }, paintRows);
+    hbWhenChips(sh.querySelector('#hbpWhen'), sh.querySelector('#hbpDateField'), sh.querySelector('#hbpDate'), function(){ return st.when; }, function(w){ st.when = w; }, paintRows);
+    paintRows(); summary();
+    sh.querySelector('#hbpAdd').addEventListener('click', function(){
+      if (st.rows.length >= HB_MAX){ err.textContent = 'Up to ' + HB_MAX + ' at a time.'; return; }
+      var r = { id: dbRef.collection(HOME_REQ).doc().id, text: '', forUid: null, when: null, saved: false };
+      st.rows.push(r); paintRows(); summary();
+      var ins = rowsEl.querySelectorAll('.hb-input'); if (ins.length) ins[ins.length - 1].focus();
+    });
+    sh.querySelector('#hbpBack').addEventListener('click', function(){
+      if (busy) return;
+      st.text = live().map(function(r){ return r.text; }).filter(function(t){ return t.trim(); }).join('\n');
+      openHomeBulk(st);
+    });
+    save.addEventListener('click', function(){
+      if (busy) return;
+      var todo = live().filter(function(r){ return r.text.trim(); });
+      if (!todo.length) return;
+      if (todo.some(function(r){ return !(r.forUid || st.forUid); })){ err.textContent = 'Choose who they’re for.'; return; }
+      if (todo.some(function(r){ var w = r.when || st.when; return w.kind === 'date' && !w.date; })){ err.textContent = 'Choose a date.'; return; }
+      if (!dbRef || !homeOn()){ err.textContent = 'You’re offline — try again when you’re connected.'; return; }
+      busy = true; err.textContent = ''; summary();
+      st.rows = st.rows.filter(function(r){ return r.saved || r.text.trim(); });
+      hbSubmit(st, todo, function(done, total){ save.textContent = 'Creating ' + done + ' of ' + total + '…'; })
+        .then(function(res){
+          busy = false;
+          if (!res.failed.length){
+            try { localStorage.removeItem(HB_DRAFT_KEY); } catch(e){}
+            homeCloseAll();
+            var whoSet = {}; res.saved.forEach(function(r){ whoSet[homeNameOf(r.forUid || st.forUid)] = true; });
+            showPinToast(res.saved.length + (res.saved.length === 1 ? ' request' : ' requests') + ' sent to ' + Object.keys(whoSet).join(' and '), false, CHECK_SVG);
+            return;
+          }
+          // say exactly what happened; what failed stays here to try again, and what was
+          // created is announced now rather than waiting on the rest
+          hbAnnounce(st);
+          paintRows(); summary();
+          err.textContent = (res.saved.length ? res.saved.length + ' of ' + (res.saved.length + res.failed.length) + ' were created. ' : 'Nothing was created. ') +
+            res.failed.length + ' couldn’t be — check your connection and try again.';
+          save.textContent = 'Try the ' + res.failed.length + ' again';
+        });
+    });
+  }
+  // In chunks (each a batch: the requests and their "created" entries), with ids fixed in
+  // advance. A chunk whose result is unknown is checked before it is tried again, so nothing
+  // is ever created twice. One summary record per list lets the server send each person ONE
+  // notification for everything they were sent.
+  function hbSubmit(st, todo, progress){
+    var me = homeMe(), H = home.me.homeId, saved = [], failed = [];
+    var chunks = [];
+    for (var i = 0; i < todo.length; i += HB_CHUNK) chunks.push(todo.slice(i, i + HB_CHUNK));
+    var total = st.rows.filter(function(r){ return r.saved; }).length + todo.length, doneN = total - todo.length;
+    function write(chunk){
+      var now = new Date().toISOString(), b = dbRef.batch();
+      chunk.forEach(function(r){
+        var to = r.forUid || st.forUid, w = r.when || st.when, tm = hbTiming(w), readAt = {}; readAt[me] = now;
+        var ref = dbRef.collection(HOME_REQ).doc(r.id);
+        b.set(ref, { homeId: H, text: r.text.trim().slice(0, 280), note: st.note ? st.note.slice(0, 500) : null,
+          requestedTiming: tm.requestedTiming, requestedDate: tm.requestedDate,
+          requesterUid: me, assigneeUid: to, createdByUid: me, participants: [me, to], visibility: 'private',
+          status: 'requested', plannedDate: null, linkedActionId: null, createdAt: now, updatedAt: now,
+          latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created', readAt: readAt });
+        b.set(ref.collection('updates').doc('created'), hrEntry('created', null, { timing: tm.requestedTiming, date: tm.requestedDate, batchId: st.batchId }));
+      });
+      return b.commit();
+    }
+    function settle(chunk){
+      // the write failed, or we can't tell: whichever of these exist were created
+      return Promise.all(chunk.map(function(r){
+        return dbRef.collection(HOME_REQ).doc(r.id).get().then(function(d){ return d.exists; }, function(){ return false; });
+      })).then(function(exists){
+        chunk.forEach(function(r, k){ if (exists[k]){ r.saved = true; saved.push(r); } else failed.push(r); });
+      });
+    }
+    var p = Promise.resolve();
+    chunks.forEach(function(chunk){
+      p = p.then(function(){
+        return write(chunk).then(function(){ chunk.forEach(function(r){ r.saved = true; saved.push(r); }); }, function(e){
+          console.warn('home list chunk failed', e && e.code);
+          return settle(chunk);
+        }).then(function(){ doneN = st.rows.filter(function(r){ return r.saved; }).length; progress(doneN, total); });
+      });
+    });
+    return p.then(function(){
+      if (!failed.length) return hbAnnounce(st).then(function(){ return { saved: saved, failed: failed }; });
+      return { saved: saved, failed: failed };
+    });
+  }
+  // each created request is announced once: a later retry announces only the new ones
+  function hbAnnounce(st){
+    st.announced = st.announced || {};
+    var ids = (st.rows || []).filter(function(r){ return r.saved && !st.announced[r.id]; }).map(function(r){ return r.id; });
+    if (!ids.length) return Promise.resolve();
+    ids.forEach(function(id){ st.announced[id] = true; });
+    var part = st.part || 0; st.part = part + 1;
+    return dbRef.collection('ledger_home_batches').doc(st.batchId + (part ? '_' + part : '')).set({
+      homeId: home.me.homeId, createdByUid: homeMe(), batchId: st.batchId, requestIds: ids, count: ids.length, createdAt: new Date().toISOString()
+    }).catch(function(e){ console.warn('home list summary failed', e && e.code); });
+  }
+
+  // Shaun's Home tab
+  function renderHomeView(){
+    var el = document.getElementById('view-home');
+    if (!el || currentView !== 'home') return;
+    if (LOCAL_ONLY || home.surface !== 'owner'){
+      el.innerHTML = '<div class="hs"><div class="hs-empty-state"><p class="hs-empty-title">Home needs your account</p>' +
+        '<p class="hs-empty-sub">Home is shared between people, so it works once you’re signed in.</p></div></div>';
+      return;
+    }
+    if (!homeOn()){
+      if (home.me === undefined || (home.started && !home.meSeen)){
+        el.innerHTML = '<div class="hs"><div class="hs-loading"><span></span><span></span><span></span></div></div>';
+        return;
+      }
+      el.innerHTML = '<div class="hs"><div class="hs-empty-state"><p class="hs-empty-title">Set up Home</p>' +
+        '<p class="hs-empty-sub">One shared place for requests between you, Abi and the people who help at home. Never your Ledger.</p>' +
+        '<button type="button" class="btn-primary hs-setup" id="hsSetup">Set up Home</button></div></div>';
+      el.querySelector('#hsSetup').addEventListener('click', createHome);
+      return;
+    }
+    homeScreenInto(el);
+  }
+  function renderHomeTabDot(){
+    var d = document.getElementById('homeTabDot');
+    if (d) d.hidden = !homeAttention();
   }
 
   // ---- hosts: Shaun's sheet, or the portal's ----
@@ -13503,9 +14373,9 @@
     return b.commit();
   }
   function hrFail(what){ return function(e){ console.error('home ' + what + ' failed', e); showPinToast('Couldn’t ' + what + ' — check your connection and try again.', true); }; }
-  function hrSetStatus(r, st){
+  function hrSetStatus(r, st, quiet){
     return hrWrite(r, { status: st }, 'status', null, { status: st }).then(function(){
-      showPinToast(st === 'done' ? 'Done — ' + homeNameOf(r.requesterUid) + ' will see it' : (st === 'in_progress' ? 'Started' : 'Reopened'), false, CHECK_SVG);
+      if (!quiet) showPinToast(st === 'done' ? 'Done — ' + homeNameOf(r.requesterUid) + ' will see it' : (st === 'in_progress' ? 'Started' : 'Reopened'), false, CHECK_SVG);
     }).catch(hrFail('update it'));
   }
   function hrCantDo(r, reason){
@@ -13651,29 +14521,17 @@
     rqTimelineStop = stop;
   }
 
-  // ---- Home: the list ----
+  // Home is a place, not a sheet: Shaun's tab, or Abi's Home tab in her portal
   function openHomeSheet(){
-    if (!homeOn()) return;
-    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Home', '<span id="hmWho"></span>', '') +
-      '<div class="act-rows rq-add-rows"><button type="button" class="act-row" id="hmNew"><span class="act-ic">' + BK_PLUS_SVG + '</span>' +
-        '<span class="act-label">New request</span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button></div>' +
-      '<div id="hmList"></div>');
-    var mark = sh.querySelector('#hmList');
-    function paint(){
-      if (!document.body.contains(mark)){ home.listRefresh = null; return; }
-      var names = homeActiveMembers().map(function(m){ return m.uid === homeMe() ? null : m.displayName; }).filter(Boolean);
-      sh.querySelector('#hmWho').textContent = names.length ? 'You, ' + names.join(', ') : '';
-      homeListInto(mark);
-    }
-    home.detailRefresh = null;
-    home.listRefresh = paint;
-    paint();
-    sh.querySelector('#hmNew').addEventListener('click', function(){ openHomeNew(); });
+    if (home.surface === 'owner'){ closeSheet(); goView('home'); window.scrollTo(0, 0); }
+    else if (home.surface === 'partner'){ ppSheetClose(); pp.tab = 'home'; renderPortal(); }
+    else ppSheetClose();
   }
 
   // ---- a new request: who it's for, (for an admin) who asked, what, when, who sees it ----
-  function openHomeNew(){
-    var me = homeMe(), admin = homeIsAdmin();
+  function openHomeNew(opts){
+    opts = opts || {};
+    var me = homeMe(), admin = homeIsAdmin(), withList = !!opts.checklist;
     var people = homeActiveMembers().slice().sort(function(a, b){ return (a.displayName || '').localeCompare(b.displayName || ''); });
     var requester = me, assignee = null, timing = 'today', shared = false;
     var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'New request', '', '') +
@@ -13681,6 +14539,12 @@
         '<p class="hn-note" id="hnFromNote" hidden></p></div>' : '') +
       '<div class="field"><label>For</label><div class="bk-filter-pop" id="hnFor" role="radiogroup" aria-label="For"></div></div>' +
       '<div class="field"><label for="hnText" id="hnTextLabel">What’s needed?</label><textarea id="hnText" rows="2" maxlength="280"></textarea></div>' +
+      '<button type="button" class="cz-opt' + (withList ? ' on' : '') + '" id="hnListOn" role="switch" aria-checked="' + withList + '">' +
+        '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+        '<span class="cz-opt-text"><span class="cz-opt-title">With a checklist</span>' +
+        '<span class="cz-opt-sub">Things to tick off — the shopping, say.</span></span></button>' +
+      '<div class="field hn-list" id="hnListField"' + (withList ? '' : ' hidden') + '><label for="hnList">Items <span class="pp-opt">one per line</span></label>' +
+        '<textarea id="hnList" rows="5" maxlength="4000" placeholder="Milk&#10;Eggs&#10;Rice"></textarea></div>' +
       '<div class="field"><label>When</label><div class="bk-filter-pop" id="hnTiming" role="radiogroup" aria-label="When">' +
         [['today', 'Today'], ['week', 'This week'], ['date', 'Choose date'], ['none', 'No preference']].map(function(t){
           return '<button type="button" class="bk-filter-chip' + (timing === t[0] ? ' sel' : '') + '" role="radio" aria-checked="' + (timing === t[0]) + '" data-hn-timing="' + t[0] + '">' + t[1] + '</button>';
@@ -13730,6 +14594,13 @@
     });
     var share = sh.querySelector('#hnShare');
     share.addEventListener('click', function(){ shared = !shared; share.classList.toggle('on', shared); share.setAttribute('aria-checked', shared ? 'true' : 'false'); });
+    var listOn = sh.querySelector('#hnListOn');
+    listOn.addEventListener('click', function(){
+      withList = !withList; listOn.classList.toggle('on', withList); listOn.setAttribute('aria-checked', withList ? 'true' : 'false');
+      sh.querySelector('#hnListField').hidden = !withList;
+      if (withList) setTimeout(function(){ try { sh.querySelector('#hnList').focus(); } catch(e){} }, 30);
+    });
+    if (withList){ sh.querySelector('#hnText').placeholder = 'e.g. Weekly groceries'; }
     var text = sh.querySelector('#hnText'), noteEl = sh.querySelector('#hnNote'), err = sh.querySelector('#hnErr'), save = sh.querySelector('#hnSave');
     save.addEventListener('click', function(){
       var t = text.value.trim(), n = noteEl.value.trim();
@@ -13742,14 +14613,20 @@
       var now = new Date().toISOString(), ref = dbRef.collection(HOME_REQ).doc(), b = dbRef.batch();
       var parts = [requester, assignee]; if (parts.indexOf(me) === -1) parts.push(me);
       var readAt = {}; readAt[me] = now;
-      b.set(ref, { homeId: home.me.homeId, text: t.slice(0, 280), note: n ? n.slice(0, 500) : null, requestedTiming: timing, requestedDate: d || null,
+      var items = withList ? hbParse(sh.querySelector('#hnList').value).slice(0, 40) : [];
+      var doc = { homeId: home.me.homeId, text: t.slice(0, 280), note: n ? n.slice(0, 500) : null, requestedTiming: timing, requestedDate: d || null,
         requesterUid: requester, assigneeUid: assignee, createdByUid: me, participants: parts, visibility: shared ? 'home' : 'private',
         status: 'requested', plannedDate: null, linkedActionId: null, createdAt: now, updatedAt: now,
-        latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created', readAt: readAt });
+        latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created', readAt: readAt };
+      if (items.length) doc.hasChecklist = true;
+      b.set(ref, doc);
       b.set(ref.collection('updates').doc('created'), hrEntry('created', null, { timing: timing, date: d || null, onBehalf: requester !== me }));
+      if (items.length){
+        items.forEach(function(t, i){ b.set(ref.collection('items').doc(), hrItemDoc(t, i + 1)); });
+      }
       b.commit().then(function(){
-        // Shaun returns to the Home list; in the portal, the page itself is that list
-        if (home.surface === 'owner') openHomeSheet(); else homeCloseAll();
+        // the Home screen is the list, wherever it was sent from
+        homeCloseAll();
         showPinToast('Sent to ' + homeNameOf(assignee), false, CHECK_SVG);
       }).catch(function(e){ console.error('home request failed', e); save.disabled = false; err.textContent = 'Couldn’t send — check your connection and try again.'; });
     });
@@ -13768,6 +14645,7 @@
       '<p class="rq-meta" id="hdMeta"></p>' +
       '<div class="rq-act" id="hdAct"></div>' +
       '<div class="rq-own" id="hdOwn"></div>' +
+      '<div class="hl-wrap" id="hdList"></div>' +
       '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
       '<div class="rq-tl" id="hdTimeline"><p class="rq-empty">Loading…</p></div>' +
       rqComposerHtml() +
@@ -13817,7 +14695,7 @@
       on('hdToday', function(){ hrAccept(cur(), todayStr()); });
       on('hdDay', function(){ var x = cur(); openRequestDaySheet(x, hrAccept, 'From ' + homeNameOf(x.requesterUid), function(){ openHomeDetail(rid); }); });
       on('hdStart', function(){ hrSetStatus(cur(), 'in_progress'); });
-      on('hdDone', function(){ hrSetStatus(cur(), 'done'); });
+      on('hdDone', function(){ var x = cur(); if (hrConfirmDone(x)) hrSetStatus(x, 'done'); });
       on('hdReopen', function(){ var x = cur(); if (x.status === 'cant_do') hrWrite(x, { status: 'requested', cantDoReason: null }, 'status', null, { status: 'requested' }).catch(hrFail('reopen it')); else hrSetStatus(x, 'in_progress'); });
       on('hdCant', function(){ openHomeCantDo(cur()); });
       on('hdPass', function(){ openHomePass(cur()); });
@@ -13845,8 +14723,11 @@
           dw.querySelector('#hdDelBtn').addEventListener('click', function(){ openHomeDelete(cur()); });
         }
       } else dw.innerHTML = '';
+      hrChecklistInto(sh.querySelector('#hdList'), rid);
       return true;
     }
+    home.listDoneOpen = false;
+    homeSyncItems(rid);
     paint();
     home.listRefresh = null;
     home.detailRefresh = function(){ if (!paint()){ home.detailRefresh = null; return; } hrMarkRead(cur()); };
@@ -13909,10 +14790,10 @@
   function openHomePass(r){
     var people = homeActiveMembers().filter(function(m){ return m.uid !== r.assigneeUid && m.uid !== r.requesterUid; });
     var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Pass it on', '<span id="hpWhat"></span>', '') +
-      (people.length ? '<div class="act-rows" id="hpList"></div>' : '<p class="rq-empty">There’s nobody else to pass it to.</p>') +
+      (people.length ? '<div class="act-rows" id="hpPassList"></div>' : '<p class="rq-empty">There’s nobody else to pass it to.</p>') +
       '<button type="button" class="btn-quiet" id="hpBack">Back</button>');
     sh.querySelector('#hpWhat').textContent = r.text;
-    var list = sh.querySelector('#hpList');
+    var list = sh.querySelector('#hpPassList');
     people.forEach(function(m){
       var b = document.createElement('button'); b.type = 'button'; b.className = 'act-row';
       b.innerHTML = '<span class="act-label"></span><span class="act-chev">' + UI_ICON.chevronRight + '</span>';
@@ -13930,21 +14811,6 @@
       function(){ homeCloseAll(); showPinToast('Request deleted', false, CHECK_SVG); }, hrDelete);
   }
 
-  // ---- Shaun's Today: one quiet row among the utilities ----
-  function renderHomeRow(){
-    var wrap = document.getElementById('homeRowSection');
-    if (!wrap) return;
-    if (!homeOn() || viewedDate !== todayStr()){ wrap.innerHTML = ''; return; }
-    var me = homeMe();
-    var mineN = home.requests.filter(function(r){ return r.assigneeUid === me && hrOpen(r); }).length;
-    var unread = home.requests.filter(hrUnread).length;
-    var open = home.requests.filter(hrOpen).length;
-    wrap.innerHTML = '<button type="button" class="dn-row hm-row" id="homeRowBtn"><span class="dn-label">Home</span><span class="dn-rule"></span>' +
-      '<span class="dn-value" id="homeRowValue"></span><span class="chev">' + UI_ICON.chevronRight + '</span></button>';
-    document.getElementById('homeRowValue').textContent = unread ? unread + (unread === 1 ? ' update' : ' updates')
-      : (mineN ? mineN + ' for you' : (open ? open + ' open' : 'Nothing open'));
-    document.getElementById('homeRowBtn').addEventListener('click', openHomeSheet);
-  }
   // Inbox: what is Shaun's to decide at Home — new, and processed with news
   function homeInboxItems(){
     if (!homeOn()) return [];
@@ -13967,7 +14833,7 @@
       var legacy = sharedRequests.filter(function(r){ return !r.migratedTo; }).length;
       var mig = home.migration;
       html += '<div class="set-card">' +
-        settingsRow('setHomeOpen', 'Requests', String(home.requests.filter(hrOpen).length || '')) +
+        settingsRow('setHomeOpen', 'Open Home', String(home.requests.filter(hrOpen).length || '')) +
         settingsRow('setHomePeople', 'People', String(homeActiveMembers().length)) +
         (legacy ? settingsRow('setHomeMigrate', 'Bring in requests with ' + escHome(partnerName()), legacy + (mig && mig.status === 'running' ? ' · moving…' : '')) : '') +
       '</div>' +
@@ -14010,23 +14876,27 @@
   // the people at Home: only Shaun adds and removes them; removing is a state, so their
   // history stays and their access ends at once
   function openHomePeople(){
-    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead(UI_ICON.people, 'People at Home', 'Only you add or remove people.', '') +
+    // only Shaun adds and removes people; everyone else sees who is at Home
+    var owner = home.surface === 'owner';
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead(UI_ICON.people, 'People at Home', owner ? 'Only you add or remove people.' : '', '') +
       '<div class="act-rows" id="hpeList"></div>' +
-      '<div class="act-rows rq-add-rows"><button type="button" class="act-row" id="hpeAdd"><span class="act-ic">' + BK_PLUS_SVG + '</span><span class="act-label">Add someone</span>' +
-        '<span class="act-chev">' + UI_ICON.chevronRight + '</span></button></div>');
+      (owner ? '<div class="act-rows rq-add-rows"><button type="button" class="act-row" id="hpeAdd"><span class="act-ic">' + BK_PLUS_SVG + '</span><span class="act-label">Add someone</span>' +
+        '<span class="act-chev">' + UI_ICON.chevronRight + '</span></button></div>' : ''));
     var list = sh.querySelector('#hpeList');
     home.detailRefresh = null;
     home.listRefresh = function(){ if (!document.body.contains(list)){ home.listRefresh = null; return; } paintPeople(); };
     paintPeople();
-    sh.querySelector('#hpeAdd').addEventListener('click', openHomeAdd);
+    if (owner) sh.querySelector('#hpeAdd').addEventListener('click', openHomeAdd);
     function paintPeople(){
     list.innerHTML = '';
-    home.members.slice().sort(function(a, b){ return (a.status === b.status ? 0 : (a.status === 'active' ? -1 : 1)) || (a.role === b.role ? 0 : (a.role === 'admin' ? -1 : 1)); }).forEach(function(m){
+    home.members.filter(function(m){ return owner || m.status === 'active'; }).slice().sort(function(a, b){ return (a.status === b.status ? 0 : (a.status === 'active' ? -1 : 1)) || (a.role === b.role ? 0 : (a.role === 'admin' ? -1 : 1)); }).forEach(function(m){
       var b = document.createElement('button'); b.type = 'button'; b.className = 'act-row' + (m.status === 'removed' ? ' hm-removed' : '');
-      b.innerHTML = '<span class="act-label lc-row-x"><span class="lc-row-t"></span><span class="lc-row-m"></span></span>' + (m.uid === homeMe() ? '' : '<span class="act-chev">' + UI_ICON.chevronRight + '</span>');
+      var manage = owner && m.uid !== homeMe();
+      b.innerHTML = '<span class="act-label lc-row-x"><span class="lc-row-t"></span><span class="lc-row-m"></span></span>' + (manage ? '<span class="act-chev">' + UI_ICON.chevronRight + '</span>' : '');
+      if (!manage) b.disabled = true;
       b.querySelector('.lc-row-t').textContent = m.displayName + (m.uid === homeMe() ? ' (you)' : '');
       b.querySelector('.lc-row-m').textContent = [m.label, m.role === 'admin' ? 'Admin — sees every request' : 'Sees the requests they’re in', m.status === 'removed' ? 'Removed' : ''].filter(Boolean).join(' · ');
-      if (m.uid !== homeMe()) b.addEventListener('click', function(){ openHomeMemberSheet(m); });
+      if (manage) b.addEventListener('click', function(){ openHomeMemberSheet(m); });
       list.appendChild(b);
     });
     }
@@ -14119,7 +14989,6 @@
     el.innerHTML = '<div class="pp-wrap">' +
       '<header class="pp-head"><img class="pp-mark" src="icon-192.png" alt="" width="34" height="34">' +
         '<p class="pp-kicker">Home</p><h1 class="pp-title" id="hpTitle"></h1><p class="pp-date" id="hpDate"></p></header>' +
-      '<button type="button" class="pp-add" id="hpNew"><span aria-hidden="true">+</span> New request</button>' +
       '<div id="hpList" class="hp-list"></div>' +
       '<footer class="pp-foot">' +
         '<div class="theme-switch" id="themeSwitch" aria-label="Theme">' +
@@ -14130,8 +14999,7 @@
       '<div class="sheet-backdrop pp-backdrop" id="ppBackdrop"><div class="sheet" id="ppSheet" role="dialog" aria-modal="true"></div></div>';
     document.getElementById('hpTitle').textContent = 'Hi, ' + (home.me.displayName || '').split(' ')[0];
     document.getElementById('hpDate').textContent = toLocalDate(todayStr()).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
-    homeListInto(document.getElementById('hpList'));
-    document.getElementById('hpNew').addEventListener('click', openHomeNew);
+    homeScreenInto(document.getElementById('hpList'));
     var who = document.getElementById('ppWho'); if (who) who.textContent = (authUser && authUser.email) || '';
     document.getElementById('ppSignOut').addEventListener('click', function(){ if (confirm('Sign out on this device?')) signOutLedger(); });
     document.getElementById('ppNotify').addEventListener('click', function(){ wireNotificationsSheet(ppSheetOpen(notificationsSheetHtml())); });
@@ -14145,22 +15013,21 @@
   }
   // Abi's portal: Home beneath what Shaun shares with her
   function homePortalSectionHtml(){
-    return '<section class="pp-sec pp-home"><div class="pp-sec-row"><h2 class="pp-sec-title">Home</h2>' +
-      '<button type="button" class="btn-link pp-all" id="ppHomeAll">Open Home</button></div>' +
-      '<div id="ppHomeList" class="hp-list"></div>' +
-      '<button type="button" class="pp-add" id="ppHomeNew"><span aria-hidden="true">+</span> New request</button></section>';
+    return '<div class="set-card pp-home-link"><button type="button" class="set-row" id="ppHomeAll"><span class="set-row-label">Home</span>' +
+      '<span class="set-row-val" id="ppHomeVal"></span><span class="chev">' + UI_ICON.chevronRight + '</span></button></div>';
   }
   function wireHomePortalSection(el){
-    var list = el.querySelector('#ppHomeList');
-    if (!list) return;
-    homeListInto(list, { only: ['For you', 'You asked', 'Shared at Home', 'Between others'] });
-    el.querySelector('#ppHomeAll').addEventListener('click', openHomeSheet);
-    el.querySelector('#ppHomeNew').addEventListener('click', openHomeNew);
+    var b = el.querySelector('#ppHomeAll');
+    if (!b) return;
+    var c = homeCounts();
+    el.querySelector('#ppHomeVal').textContent = c.mine ? c.mine + ' for you' : (c.overdue ? c.overdue + ' overdue' : (c.others ? c.others + ' open' : ''));
+    b.addEventListener('click', function(){ pp.tab = 'home'; renderPortal(); window.scrollTo(0, 0); var pe = portalEl(); if (pe) pe.scrollTop = 0; });
   }
   function homeHandleDeepLink(){
     if (deepLinkHandled || !DEEP.home || !home.reqLoaded) return;
     var id = DEEP.home; DEEP.home = null;
-    if (homeReq(id)) openHomeDetail(id);
+    if (id === 'all') openHomeSheet();          // several at once: the Home screen itself
+    else if (homeReq(id)) openHomeDetail(id);
     deepLinkDone();
   }
 
@@ -14297,6 +15164,8 @@
     var el = portalEl();
     if (!el || !pp.member) return;
     var m = pp.member, owner = m.ownerName || 'Your partner';
+    if (pp.tab === 'home' && !homeOn()) pp.tab = 'today';
+    var atHome = pp.tab === 'home';
     var day = ppDaySnap(), week = ppWeekSnap();
     var shown = pp.tab === 'week' ? week : day;
     var reqs = ppActiveRequests(), past = ppPastRequests(), pastShown = past.slice(0, PP_PAST_MAX);
@@ -14305,15 +15174,19 @@
     var html = '<div class="pp-wrap">' +
       '<header class="pp-head">' +
         '<img class="pp-mark" src="icon-192.png" alt="" width="34" height="34">' +
-        '<p class="pp-kicker">Shared with you</p>' +
+        '<p class="pp-kicker">' + (atHome ? 'Home' : 'Shared with you') + '</p>' +
         '<h1 class="pp-title" id="ppTitle"></h1>' +
         '<p class="pp-date" id="ppDate"></p>' +
       '</header>' +
       '<div class="freq-period detail-period pp-tabs" role="tablist" aria-label="View">' +
         '<button type="button" role="tab" data-pp-tab="today" class="' + (pp.tab === 'today' ? 'sel' : '') + '" aria-selected="' + (pp.tab === 'today') + '">Today</button>' +
         '<button type="button" role="tab" data-pp-tab="week" class="' + (pp.tab === 'week' ? 'sel' : '') + '" aria-selected="' + (pp.tab === 'week') + '">This week</button>' +
+        (homeOn() ? '<button type="button" role="tab" data-pp-tab="home" class="' + (atHome ? 'sel' : '') + '" aria-selected="' + atHome + '">Home' +
+          (homeAttention() ? '<i class="pp-tab-dot" aria-label="something new"></i>' : '') + '</button>' : '') +
       '</div>';
-    if (pp.denied){
+    if (atHome){
+      html += '<div id="ppHomeScreen"></div>';
+    } else if (pp.denied){
       html += '<div class="pp-empty"><p class="pp-empty-title">Sharing is paused</p><p class="pp-empty-sub">Nothing is shown while it’s paused.</p></div>';
     } else if (!pp.snapsLoaded){
       html += '<div class="pp-empty"><p class="pp-empty-sub">Opening…</p></div>';
@@ -14334,9 +15207,9 @@
           }).join('') + '</div></section>';
       }).join('');
     }
-    if (!pp.denied && homeOn()) html += homePortalSectionHtml();
+    if (!atHome && !pp.denied && homeOn()) html += homePortalSectionHtml();
     // earlier requests to Shaun: here until they move into Home
-    if (!pp.denied && (!homeOn() || pp.requests.length)){
+    if (!atHome && !pp.denied && (!homeOn() || pp.requests.length)){
       html += '<section class="pp-sec pp-requests"><div class="pp-sec-row"><h2 class="pp-sec-title">' + (homeOn() ? 'Earlier requests' : 'From you') + '</h2></div>' +
         (reqs.length ? '<div class="pp-list">' + reqs.map(function(r, i){ return ppReqRowHtml(r, 'data-pp-req="' + i + '"'); }).join('') + '</div>' : '') +
         (homeOn() ? '' : '<button type="button" class="pp-add" id="ppAddReq"><span aria-hidden="true">+</span> Request something</button>') +
@@ -14345,12 +15218,12 @@
           '<div class="pp-list pp-past-list">' + pastShown.map(function(r, i){ return ppReqRowHtml(r, 'data-pp-past="' + i + '"'); }).join('') + '</div>' : '') +
       '</section>';
     }
-    if (!pp.denied){
+    if (!atHome && !pp.denied){
       if (cp) html += '<div class="pp-check"><span class="pp-check-ic">' + UI_ICON.calendar + '</span>' +
         '<span><span class="pp-check-title">' + cp.title + '</span>' + (cp.sub ? '<span class="pp-check-sub">' + cp.sub + '</span>' : '') + '</span></div>';
     }
     html += '<footer class="pp-foot">' +
-        (shown && shown.updatedAt ? '<p class="pp-updated">Updated ' + shareTimeLabel(shown.updatedAt) + '</p>' : '') +
+        (!atHome && shown && shown.updatedAt ? '<p class="pp-updated">Updated ' + shareTimeLabel(shown.updatedAt) + '</p>' : '') +
         '<div class="theme-switch" id="themeSwitch" aria-label="Theme">' +
           '<button type="button" data-theme-set="dark">Dark</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="system">System</button>' +
         '</div>' +
@@ -14362,7 +15235,7 @@
     if (sheetOpen) return;   // never redraw under an open request sheet
     el.innerHTML = html;
     // everything below is user content — written as text
-    document.getElementById('ppTitle').textContent = owner + (pp.tab === 'week' ? '’s week' : '’s day');
+    document.getElementById('ppTitle').textContent = atHome ? 'Hi, ' + ((home.me && home.me.displayName) || '').split(' ')[0] : owner + (pp.tab === 'week' ? '’s week' : '’s day');
     document.getElementById('ppDate').textContent = pp.tab === 'week'
       ? (week ? week.title : 'Week of ' + shortDayLabel(fmtDate(weekStartFor(ppToday()))))
       : toLocalDate(ppToday()).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
@@ -14380,6 +15253,7 @@
     ppWireReqRows(el, 'data-pp-req', reqs, owner, ppReqMetaText);
     ppWireReqRows(el, 'data-pp-past', pastShown, owner, ppReqMetaText);
     wireHomePortalSection(el);
+    if (atHome) homeScreenInto(document.getElementById('ppHomeScreen'));
 
     var who = document.getElementById('ppWho'); if (who) who.textContent = (authUser && authUser.email) || '';
     el.querySelectorAll('[data-pp-tab]').forEach(function(b){
@@ -18156,7 +19030,6 @@
     renderCommsSummary();
     renderMorningPrime();
     renderDayNotes();
-    renderHomeRow();
     renderWindDown();
     renderCommitments();
     renderInboxSection();
@@ -18184,10 +19057,7 @@
           '<button type="button" class="recorded-empty-link" id="recordedEmptyLink">View history in Calendar' + UI_ICON.arrowRight + '</button>' +
         '</div>';
       todayList.appendChild(e);
-      document.getElementById('recordedEmptyLink').addEventListener('click', function(){
-        selectedDay = viewedDate;
-        document.querySelector('.tab-btn[data-view="calendar"]').click();
-      });
+      document.getElementById('recordedEmptyLink').addEventListener('click', function(){ goCalendarOn(viewedDate); });
       if (historyBtn) historyBtn.hidden = true;
     } else {
       daysSessions.forEach(function(s){ todayList.appendChild(renderSessionItem(s)); });
@@ -18213,10 +19083,7 @@
     openSnapshotSheet(viewedDate, null, { mode: 'partner', period: this.dataset.period === 'week' ? 'week' : 'day' });
   });
 
-  document.getElementById('viewHistoryBtn').addEventListener('click', function(){
-    selectedDay = viewedDate;
-    document.querySelector('.tab-btn[data-view="calendar"]').click();
-  });
+  document.getElementById('viewHistoryBtn').addEventListener('click', function(){ goCalendarOn(viewedDate); });
 
   document.querySelectorAll('.quicklog-card').forEach(function(card){
     card.addEventListener('click', function(){
@@ -20068,7 +20935,7 @@
         calFilter = type;
         calFilterKeep = true;
         calMonth = new Date(); calMonth.setDate(1);
-        document.querySelector('.tab-btn[data-view="calendar"]').click();
+        goView('calendar');
       });
       wrap.appendChild(btn);
     }
@@ -20426,9 +21293,8 @@
         var ds = b.dataset.date, kind = b.dataset.l7;
         if (kind === 'context'){ openLifeContextDaySheet(ds); return; }
         if (kind === 'training'){
-          selectedDay = ds; calFilter = 'all'; calFilterKeep = true;
-          calMonth = new Date(ds + 'T00:00:00'); calMonth.setDate(1);
-          document.querySelector('.tab-btn[data-view="calendar"]').click();
+          calFilter = 'all'; calFilterKeep = true;
+          goCalendarOn(ds);
         } else if (kind === 'weight'){
           var w = weights[ds];
           openSheet(w ? w.session.type : 'weight', w ? w.session : null, ds);
@@ -22290,7 +23156,7 @@
 
   function openProgressFor(key){
     closeSheet();
-    document.querySelector('.tab-btn[data-view="stats"]').click();
+    goView('stats');
     openStatDetailSheet(key);
   }
 
@@ -23555,6 +24421,7 @@
   //   ?sprint=<id>       a Reset Sprint (owner)          — Current Focus on a sprint item
   //   ?request=<id>      a Partner Request and its Updates (owner or partner)
   //   ?view=today|week   the partner's shared view
+  //   ?home=<id>|all     a Home request, or the Home screen (a list sent in one go)
   // Query strings on the root page, so a link opened cold, refreshed, or followed from a
   // notification is always the same static file on every host — there is no route to
   // 404. Each waits for sign-in and its data, then opens once and leaves the address bar
@@ -23579,9 +24446,7 @@
       if (!commitment) return; // data may not have loaded yet — retried from the commitments snapshot
       DEEP.action = null;
       viewedDate = commitment.date;
-      currentView = 'log';
-      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.view === 'log'); });
-      document.querySelectorAll('.view').forEach(function(v){ v.classList.toggle('active', v.id === 'view-log'); });
+      goView('log');
       renderAll();
       openCommitmentSheet(commitment);
     } else if (DEEP.sprint){
@@ -23590,9 +24455,7 @@
       DEEP.sprint = null;
       if (sprintById(sid)){
         viewedDate = todayStr();
-        currentView = 'log';
-        document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.view === 'log'); });
-        document.querySelectorAll('.view').forEach(function(v){ v.classList.toggle('active', v.id === 'view-log'); });
+        goView('log');
         renderAll();
         openSprintSheet(sid);
       }

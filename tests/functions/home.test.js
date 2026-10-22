@@ -104,6 +104,37 @@ const fire = (rid, u) => engine.handleHomeUpdate({ update: u, requestId: rid, up
   check(sent.length === 0, 'Shaun turned requests off: nothing');
   await db.doc('ledger_notification_prefs/shaun').delete();
 
+  // ---- a list sent in one go: one notification each, never one per line ----
+  const LB = (id, o) => Promise.all([
+    db.doc('ledger_home_requests/' + id).set(R(Object.assign({ requesterUid: 'abi', assigneeUid: 'maria', createdByUid: 'abi', participants: ['abi', 'maria'] }, o))),
+    db.doc('ledger_home_requests/' + id + '/updates/created').set({ type: 'created', actorUid: (o && o.createdByUid) || 'abi', metadata: { batchId: (o && o.bid) || 'B1' } })]);
+  await LB('L1', { text: 'Empty the dishwasher' }); await LB('L2', { text: 'Wash the school uniform' }); await LB('L3', { text: 'Tidy the toy box' });
+  await LB('L4', { text: 'Collect the parcel' }); await LB('L5', { text: 'Ring Shaun about pickup', assigneeUid: 'shaun', participants: ['abi', 'shaun'] });
+  await LB('L6', { text: 'Not in this list', bid: 'OTHER' });
+  await LB('L7', { text: 'Written by someone else', createdByUid: 'maria', requesterUid: 'maria', assigneeUid: 'abi' });
+  await LB('L8', { text: 'Deleted before it went', deletedAt: 'x' });
+  reset(); r = await fire('L1', { type: 'created', actorUid: 'abi', metadata: { batchId: 'B1' } });
+  check(sent.length === 0 && r.skipped === 'in a list', 'a line of a list does not notify on its own');
+  const batch = (id, o) => engine.handleHomeBatch({ batch: Object.assign({ homeId: 'shaun', createdByUid: 'abi', batchId: 'B1', requestIds: ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'nope'] }, o), batchDocId: id, appUrl: APP, vapidPublicKey: KEY });
+  reset(); r = await batch('B1');
+  check(to('maria').length === 1 && to('maria')[0].payload.title === 'Abi sent you 4 requests'
+    && to('maria')[0].payload.body === 'Empty the dishwasher, Wash the school uniform, Tidy the toy box and 1 more' && to('maria')[0].payload.url === APP + '?home=all',
+    'Maria: ONE notification, "Abi sent you 4 requests", the first three and "1 more", opening Home', to('maria').map((x) => x.payload));
+  check(to('shaun').length === 2 && to('shaun')[0].payload.title === 'Abi sent a request' && to('shaun')[0].payload.body === 'Ring Shaun about pickup' && to('shaun')[0].payload.url === APP + '?home=L5',
+    'Shaun, sent one line of it: "Abi sent a request", opening that request (both his devices)');
+  check(r.requests === 5, 'only lines that are really this list count: not another list, not someone else\'s, not deleted, not a missing id', r.requests);
+  reset(); r = await batch('B1');
+  check(sent.length === 0 && r.skipped === 'duplicate', 'the same summary twice notifies once');
+  reset(); r = await batch('B1x', { createdByUid: 'maria', requestIds: ['L1', 'L2', 'L3'] });
+  check(sent.length === 0 && r.skipped === 'nothing to announce', 'a summary claiming someone else\'s requests announces nothing');
+  reset(); r = await batch('B1y', { createdByUid: 'ex' });
+  check(sent.length === 0 && r.skipped === 'not at Home', 'a summary by someone removed announces nothing');
+  await db.doc('ledger_notification_prefs/shaun').set({ homeOversight: true });
+  await LB('L9', { text: 'Fold the towels', bid: 'B2' }); await LB('L10', { text: 'Water the plants', bid: 'B2' });
+  reset(); r = await engine.handleHomeBatch({ batch: { homeId: 'shaun', createdByUid: 'abi', batchId: 'B2', requestIds: ['L9', 'L10'] }, batchDocId: 'B2', appUrl: APP });
+  check(to('maria').length === 1 && to('shaun').length === 2 && to('shaun')[0].payload.title === 'Abi asked Maria for 2 things', 'Shaun following Home hears it once: "Abi asked Maria for 2 things"', to('shaun').map((x) => x.payload.title));
+  await db.doc('ledger_notification_prefs/shaun').delete();
+
   // ---- the migration ----
   const H = (id, o) => db.doc('ledger_shared_requests/' + id).set(Object.assign({ ownerUid: 'shaun', partnerUid: 'abi', note: null, requestedTiming: 'today', requestedDate: null,
     createdAt: '2026-10-01T09:00:00Z', updatedAt: '2026-10-01T09:00:00Z' }, o));

@@ -66,6 +66,8 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | `ledger_home_members` | who is at Home, their role and status | owner adds/removes (accounts that already hold an app role); members read their Home's |
 | `ledger_home_requests` | requests between the people at Home | admins read all at their Home; members read those they are in, or shared with everyone at Home; writes per role, see "Home" below |
 | `ledger_home_requests/{id}/updates` | each request's history | append-only; readable with the request; facts only when the request says so |
+| `ledger_home_requests/{id}/items` | a request's checklist, one item per document | read with the request; written only by its requester, creator or current assignee (an admin following it reads only); item creator / ticker are the signed-in user; frozen when the request is deleted |
+| `ledger_home_batches` | "these requests went out as one list" — for one summary notification | created once by an active member as themselves (≤ 40 ids); never read, changed or deleted by a client. The server trusts none of it: each id must be a live request at that Home, created by that member, whose "created" entry names this list |
 | anything else | — | denied |
 
 ## The app's side
@@ -318,6 +320,11 @@ A shared namespace for Shaun, Abi and the people who help at home. Full model:
     entry is accepted, except the single `deleted` entry.
   - **Never changeable by anyone:** `homeId`, `requesterUid`, `createdByUid`,
     `createdAt`.
+- **A list sent at once** is ordinary requests, written five to a batch with ids fixed
+  in advance (a retry of a written chunk is refused as an update, so nothing is made
+  twice). `ledger_home_batches/{id}` then names them, so the server sends each person one
+  notification; their single "created" pushes are skipped because the entry carries the
+  list's id. A client can only ever quieten its own announcements this way.
 - **History entries** carry `actorUid` = the signed-in user and `createdAt` = the server
   time. A fact is accepted only when the request says so:
   - "done" only when it is done;

@@ -660,6 +660,56 @@ async function check(name, fn){
   await check('comment: not on a request she cannot see', () => assertFails(nanny.collection(HR + '/hr2/updates').add(entry('nanny1', 'comment', {}, 'hi'))));
   await check('read: her own read mark', () => assertSucceeds(nanny.doc(HR + '/hr1').update({ 'readAt.nanny1': 'now' })));
   await check('read: never someone else\'s', () => assertFails(nanny.doc(HR + '/hr1').update({ 'readAt.owner1': 'now' })));
+  // several at once: a list goes in chunks of five (one batch each), then one summary record
+  const listBatch = async (db, by, to, ids, bid) => { const b = db.batch(); ids.forEach(id => { b.set(db.doc(HR + '/' + id), ask({ text: 'Task ' + id, requesterUid: by, assigneeUid: to, createdByUid: by, participants: [by, to] }));
+    b.set(db.doc(HR + '/' + id + '/updates/created'), Object.assign(created(by), { metadata: { batchId: bid, timing: 'today' } })); }); return b.commit(); };
+  await check('list: Abi sends the nanny five in one batch', () => assertSucceeds(listBatch(partner, 'partner1', 'nanny1', ['L1', 'L2', 'L3', 'L4', 'L5'], 'B1')));
+  await check('list: …and the next five', () => assertSucceeds(listBatch(partner, 'partner1', 'nanny1', ['L6', 'L7', 'L8', 'L9', 'L10'], 'B1')));
+  await check('list: a retry of a chunk already written is refused (never a second copy)', () => assertFails(listBatch(partner, 'partner1', 'nanny1', ['L1', 'L2'], 'B1')));
+  const HB = 'ledger_home_batches';
+  const summary = (o) => Object.assign({ homeId: 'owner1', createdByUid: 'partner1', batchId: 'B1', requestIds: ['L1', 'L2'], count: 2, createdAt: 'now' }, o || {});
+  await check('list summary: written once by whoever sent the list', () => assertSucceeds(partner.doc(HB + '/B1').set(summary())));
+  await check('list summary: a later part of the same list', () => assertSucceeds(partner.doc(HB + '/B1_1').set(summary({ requestIds: ['L3'], count: 1 }))));
+  await check('list summary: never as someone else', () => assertFails(nanny.doc(HB + '/B2').set(summary({ batchId: 'B2', createdByUid: 'partner1' }))));
+  await check('list summary: never by someone not at Home', () => assertFails(nanny2.doc(HB + '/B3').set(summary({ batchId: 'B3', createdByUid: 'nanny2' }))));
+  await check('list summary: never into another Home', () => assertFails(partner.doc(HB + '/B4').set(summary({ batchId: 'B4', homeId: 'owner2' }))));
+  await check('list summary: its id is its list', () => assertFails(partner.doc(HB + '/Bx').set(summary({ batchId: 'B5' }))));
+  await check('list summary: the count is the list', () => assertFails(partner.doc(HB + '/B6').set(summary({ batchId: 'B6', count: 9 }))));
+  await check('list summary: at most forty', () => assertFails(partner.doc(HB + '/B7').set(summary({ batchId: 'B7', requestIds: Array.from({ length: 41 }, (_, i) => 'x' + i), count: 41 }))));
+  await check('list summary: nothing else in it', () => assertFails(partner.doc(HB + '/B8').set(summary({ batchId: 'B8', recipientUid: 'owner1' }))));
+  await check('list summary: nobody reads it back', () => assertFails(partner.doc(HB + '/B1').get()));
+  await check('list summary: or changes it', () => assertFails(partner.doc(HB + '/B1').update({ count: 2 })));
+  await check('list summary: or removes it', () => assertFails(partner.doc(HB + '/B1').delete()));
+  // checklists: one document per item, inside its request
+  const item = (by, o) => Object.assign({ text: 'Milk', done: false, order: 1, createdByUid: by, createdAt: 'now', doneByUid: null, doneAt: null, updatedByUid: by, updatedAt: 'now' }, o || {});
+  async function askWithList(db, id, doc, by, n){ const b = db.batch(); b.set(db.doc(HR + '/' + id), Object.assign({ hasChecklist: true }, doc)); b.set(db.doc(HR + '/' + id + '/updates/created'), created(by));
+    for (let i = 0; i < n; i++) b.set(db.doc(HR + '/' + id + '/items/i' + i), item(by, { text: 'Item ' + i, order: i })); return b.commit(); }
+  await check('checklist: the nanny asks Abi for groceries, with three items, in one write', () => assertSucceeds(askWithList(nanny, 'G1', ask({ text: 'Weekly groceries', requesterUid: 'nanny1', assigneeUid: 'partner1', createdByUid: 'nanny1', participants: ['nanny1', 'partner1'] }), 'nanny1', 3)));
+  await check('checklist: …or forty', () => assertSucceeds(askWithList(nanny, 'G2', ask({ text: 'Big shop', requesterUid: 'nanny1', assigneeUid: 'partner1', createdByUid: 'nanny1', participants: ['nanny1', 'partner1'] }), 'nanny1', 40)));
+  await check('checklist: a request never says it has none', () => assertFails(asks(nanny, 'G3', ask({ hasChecklist: false, requesterUid: 'nanny1', assigneeUid: 'owner1', createdByUid: 'nanny1', participants: ['nanny1', 'owner1'] }), 'nanny1')));
+  await check('checklist: Abi (assignee) ticks one, as herself', () => assertSucceeds(partner.doc(HR + '/G1/items/i0').update({ done: true, doneByUid: 'partner1', doneAt: 'now', updatedByUid: 'partner1', updatedAt: 'now' })));
+  await check('checklist: never ticked in someone else\'s name', () => assertFails(partner.doc(HR + '/G1/items/i1').update({ done: true, doneByUid: 'nanny1', doneAt: 'now', updatedByUid: 'partner1', updatedAt: 'now' })));
+  await check('checklist: never edited in someone else\'s name', () => assertFails(partner.doc(HR + '/G1/items/i1').update({ text: 'Oat milk', updatedByUid: 'nanny1', updatedAt: 'now' })));
+  await check('checklist: the nanny (who asked) adds an item', () => assertSucceeds(nanny.doc(HR + '/G1/items/n1').set(item('nanny1', { text: 'Rice', order: 5 }))));
+  await check('checklist: …but not as someone else', () => assertFails(nanny.doc(HR + '/G1/items/n2').set(item('partner1', { updatedByUid: 'nanny1' }))));
+  await check('checklist: or already ticked by someone else', () => assertFails(nanny.doc(HR + '/G1/items/n3').set(item('nanny1', { done: true, doneByUid: 'partner1', doneAt: 'now' }))));
+  await check('checklist: rewording and reordering', () => assertSucceeds(nanny.doc(HR + '/G1/items/n1').update({ text: 'Basmati rice', order: 0.5, updatedByUid: 'nanny1', updatedAt: 'now' })));
+  await check('checklist: who added it never changes', () => assertFails(partner.doc(HR + '/G1/items/n1').update({ createdByUid: 'partner1', updatedByUid: 'partner1', updatedAt: 'now' })));
+  await check('checklist: who ticked it never changes without unticking', () => assertFails(nanny.doc(HR + '/G1/items/i0').update({ doneByUid: 'nanny1', updatedByUid: 'nanny1', updatedAt: 'now' })));
+  await check('checklist: unticking clears who ticked it', () => assertSucceeds(nanny.doc(HR + '/G1/items/i0').update({ done: false, doneByUid: null, doneAt: null, updatedByUid: 'nanny1', updatedAt: 'now' })));
+  await check('checklist: unticking must clear it', () => assertFails(nanny.doc(HR + '/G1/items/i0').update({ done: true, doneByUid: 'nanny1', doneAt: 'now', updatedByUid: 'nanny1', updatedAt: 'now' }).then(() => nanny.doc(HR + '/G1/items/i0').update({ done: false, updatedByUid: 'nanny1', updatedAt: 'now' }))));
+  await check('checklist: at most 200 characters', () => assertFails(nanny.doc(HR + '/G1/items/n4').set(item('nanny1', { text: 'x'.repeat(201) }))));
+  await check('checklist: nothing else on an item', () => assertFails(nanny.doc(HR + '/G1/items/n5').set(item('nanny1', { price: 3 }))));
+  await check('checklist: an item is removed by the people in it', () => assertSucceeds(nanny.doc(HR + '/G1/items/n1').delete()));
+  await check('checklist: Shaun (admin, not in it) reads it — oversight', () => assertSucceeds(owner.collection(HR + '/G1/items').get()));
+  await check('checklist: …but cannot tick, add or remove', () => assertFails(owner.doc(HR + '/G1/items/i1').update({ done: true, doneByUid: 'owner1', doneAt: 'now', updatedByUid: 'owner1', updatedAt: 'now' })));
+  await check('checklist: …or add', () => assertFails(owner.doc(HR + '/G1/items/o1').set(item('owner1'))));
+  await check('checklist: …or remove', () => assertFails(owner.doc(HR + '/G1/items/i1').delete()));
+  await check('checklist: the nanny cannot read a private one between Shaun and Abi', () => assertFails(nanny.collection(HR + '/hr2/items').get()));
+  await check('checklist: someone not at Home reads nothing', () => assertFails(nanny2.collection(HR + '/G1/items').get()));
+  await check('checklist: the asker gives an existing request one', () => assertSucceeds(partner.doc(HR + '/hr2').update({ hasChecklist: true, updatedAt: 'now' })));
+  await check('checklist: not someone outside it', () => assertFails(partner.doc(HR + '/hr1').update({ hasChecklist: true, updatedAt: 'now' })));
+
   // deleting (soft, as in Phase A)
   const hdel = (by) => ({ deletedAt: 'now', deletedByUid: by, updatedAt: 'now' });
   await check('delete: not by an assignee who neither asked nor wrote it', () => assertFails(nanny.doc(HR + '/a1').update(hdel('nanny1'))));
@@ -667,6 +717,7 @@ async function check(name, fn){
   await check('delete: then it is frozen', () => assertFails(nanny.doc(HR + '/a1').update({ status: 'done', updatedAt: 'now' })));
   await check('delete: no more history', () => assertFails(partner.collection(HR + '/a1/updates').add(entry('partner1', 'comment', {}, 'hello?'))));
   await check('delete: never removed outright', () => assertFails(owner.doc(HR + '/hr1').delete()));
+  await check('checklist: a deleted request\'s list is frozen', () => assertFails(partner.doc(HR + '/a1/items/x1').set(item('partner1'))));
   // the boundary: the nanny reaches nothing private, nothing of Partner Sharing
   for (const c of ['ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_life_context', 'ledger_meta', 'ledger_action_updates', 'ledger_day_status'])
     await check('nanny: cannot read ' + c, () => assertFails(nanny.collection(c).get()));

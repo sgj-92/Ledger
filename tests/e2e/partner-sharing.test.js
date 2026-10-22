@@ -135,7 +135,7 @@ async function oobLink(email){
   const until = async (p, fn, arg, t) => { try { await p.waitForFunction(fn, arg, { timeout: t || 12000 }); return true; } catch (e){ return false; } };
   const txt = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); return e ? e.innerText : ''; }, sel);
   async function openSettings(p){
-    await p.click('.tab-btn[data-view="focus"]');
+    await p.click('.tab-btn[data-view="me"]'); await p.click('[data-me-sub="focus"]');
     await p.locator('#openSettingsBtn').scrollIntoViewIfNeeded(); await p.click('#openSettingsBtn');
   }
   async function backToToday(p){ await p.click('.tab-btn[data-view="log"]'); await sleep(200); }
@@ -501,7 +501,7 @@ async function oobLink(email){
   check((await evOf('moved')).length === 1, 'U15 one "moved" entry (two owner devices open)');
   check(!/Pick up prescription/.test(await txt(S, '#inboxSection')), 'U13 the Inbox row has cleared');
   // U16 — complete it from its editor
-  await S.click('.tab-btn[data-view="focus"]'); await openSettings(S); await S.waitForSelector('#setShareReq');
+  await openSettings(S); await S.waitForSelector('#setShareReq');
   await S.click('#setShareReq'); await S.waitForSelector('.rq-li');
   await S.click('.rq-li:has-text("Pick up prescription")'); await S.waitForSelector('#rqTimeline');
   check(await until(S, () => /Moved to tomorrow/.test(document.getElementById('rqTimeline').innerText)), 'U15 the timeline shows a quiet "Moved to tomorrow"');
@@ -549,7 +549,7 @@ async function oobLink(email){
   await sleep(2500);
   check((await evOf('status')).filter(u => (u.metadata || {}).status === 'done').length === 1, 'U17 one "done" entry');
   await backToToday(S);
-  await S.click('.tab-btn[data-view="focus"]'); await openSettings(S); await S.waitForSelector('#setShareReq');
+  await openSettings(S); await S.waitForSelector('#setShareReq');
   await S.click('#setShareReq'); await S.waitForSelector('.rq-li');
   await S.click('.rq-li:has-text("Pick up prescription")'); await S.waitForSelector('#rqTimeline');
   check(await until(S, () => /Done ✓/.test(document.getElementById('rqTimeline').innerText) && /Done ✓/.test(document.getElementById('rqState').innerText)), 'U17 the timeline and state say Done ✓');
