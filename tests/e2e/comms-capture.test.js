@@ -135,9 +135,12 @@ async function oobLink(email){
     proto.set = function(data){ if (window.__failOn && data && data.title === window.__failOn && /ledger_conversations/.test(this.path)) return Promise.reject(Object.assign(new Error('simulated'), { code: 'unavailable' })); return orig.apply(this, arguments); };
   });
   await S.click('#commsCapture'); await S.waitForSelector('#cqText');
+  await S.evaluate(() => [...document.querySelectorAll('[data-chips="cqcat"] .cd-chip')].find(c => c.textContent === 'Business').click());
   await S.fill('#cqText', '• James — reply about accounts\n1. Fail me — this one fails first\n\nDaniel — WhatsApp about meeting\n');
   await S.click('#cqPreview'); await S.waitForSelector('#cqpRows .cq-row');
   check(await S.evaluate(() => /Updates James/.test(document.querySelector('#cqpRows .cq-row .cq-meta').textContent)), 'James is recognised: "Updates James"');
+  check(await S.evaluate(() => /No category/.test(document.querySelector('#cqpRows .cq-row .cq-meta').textContent) && document.querySelector('#cqpCat .cd-chip.sel').textContent === 'Business'),
+    'the list is Business; James, matched, keeps his (none): "No category"');
   await S.click('#cqpSave');
   check(await until(S, () => /2 saved\. 1 couldn’t be/.test(document.getElementById('cqpErr').textContent) && /Try the 1 again/.test(document.getElementById('cqpSave').textContent)), 'a partial failure says so: "2 saved. 1 couldn’t be…", "Try the 1 again"');
   check(await S.evaluate(() => [...document.querySelectorAll('#cqpRows .cq-name')].map(i => i.value).join() === 'Fail me'), '…and only the one that failed stays in the list');
@@ -153,12 +156,28 @@ async function oobLink(email){
   check(jm.attentionState === 'needs_me' && jm.summary === 'reply about accounts' && jm.matterId === 'm1' && jm.log.filter(e => e.kind === 'received').length === 1
     && jm.log.some(e => e.text === 'Was: Sent draft') && jm.log[0].text === 'Started · Waiting on James', 'James updated once: Needs me, still in Accounts, his history intact with "Was: Sent draft"');
   check((await all('ledger_commitments')).length === 1, 'no Action was made');
+  check(!('category' in jm) && ['Daniel', 'Fail me'].every(n => { const c = cs.find(x => x.title === n); return c.category === 'business' && Array.isArray(c.tags) && c.tags.length === 0; }),
+    'categories: the new two are Business with an empty tags list; James, an existing record, is not reclassified');
   // the Mac, live
   check(await until(S2, (n) => { const b = document.querySelector('[data-comms-filter="needs"] .cf-n'); return Number((b && b.textContent) || 0) === n; }, needs0 + 3, 15000), 'the Mac\'s Needs me count follows at once: ' + needs0 + ' → ' + (needs0 + 3));
   check(await until(S2, () => ['James', 'Daniel', 'Fail me'].every(n => document.getElementById('commsRows').innerText.indexOf(n) > -1)), '…with all three under Needs me');
   await S2.click('nav.tabbar .tab-btn[data-view="log"]');
   check(await until(S2, () => /3 need you/.test(document.querySelector('main').innerText)), 'and Today on the Mac: "3 need you"');
   await S2.screenshot({ path: `${shots}/${tag}-CQ2-mac-today.png` });
+  // categories across devices: the Mac filters to Business, and gives James a category; the phone follows
+  await S2.click('nav.tabbar .tab-btn[data-view="comms"]'); await S2.click('[data-comms-cat="business"]');
+  check(await until(S2, () => { const t = document.getElementById('commsRows').innerText; return /Daniel/.test(t) && /Fail me/.test(t) && !/James/.test(t); })
+    && await needsN(S2) === 2, 'the Mac, Business: Daniel and Fail me, not James — Needs me 2');
+  await S2.click('[data-comms-cat="all"]');
+  await S2.evaluate(() => [...document.querySelectorAll('#commsRows .cv-row')].find(x => /James/.test(x.innerText)).click());
+  await S2.waitForSelector('[data-chips="category"]');
+  await S2.evaluate(() => [...document.querySelectorAll('[data-chips="category"] .cd-chip')].find(c => c.textContent === 'Personal').click());
+  await S.click('[data-comms-cat="personal"]');
+  check(await until(S, () => /James/.test(document.getElementById('commsRows').innerText), null, 15000), 'James set to Personal on the Mac shows under Personal on the phone');
+  const j3 = (await convs()).find(c => c.id === 'c1');
+  check(j3.category === 'personal' && j3.summary === 'reply about accounts' && j3.matterId === 'm1' && j3.log.some(e => e.text === 'Category: Personal'), '…stored on his record, noted in his history, nothing else changed');
+  check(await S.evaluate(() => localStorage.getItem('ledger_comms_category')) === 'personal' && await S2.evaluate(() => localStorage.getItem('ledger_comms_category')) === 'all', 'the filter is per device (phone Personal, Mac All)');
+  await S.screenshot({ path: `${shots}/${tag}-CQ3-personal.png` });
   // owner-private: a partner can't read any of it
   const A = await session('abi');
   await signIn(A, ABI);

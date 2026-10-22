@@ -3648,6 +3648,10 @@
     font-size: 10.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
   .cq-mini input, .cq-mini select, .cq-mini .lp-trigger { text-transform: none; letter-spacing: 0; font-weight: 400; min-width: 0; }
   .cq-keeps { margin: 0; font-size: 12.5px; color: var(--text-2); }
+  .cq-heads { display: flex; flex-wrap: wrap; column-gap: 20px; }
+  .cq-heads .field { min-width: 0; }
+  .comms-cat { margin: 0 0 var(--sp-3); }
+  .cd-label-note { margin-left: 6px; text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--text-3); }
   .comms-pane:empty { display: none; }
   .comms-empty { font-size: 13px; line-height: 1.5; color: var(--text-3); padding: 14px 2px; }
 
@@ -5279,6 +5283,11 @@
   <section class="view" id="view-comms">
     <div class="comms-list-col">
       <label class="comms-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><line x1="16" y1="16" x2="20.5" y2="20.5"/></svg><input type="search" id="commsSearch" placeholder="Search matters and people" aria-label="Search communications" autocomplete="off"></label>
+      <div class="freq-period comms-cat" id="commsCat" role="tablist" aria-label="Category">
+        <button type="button" role="tab" data-comms-cat="all">All</button>
+        <button type="button" role="tab" data-comms-cat="personal">Personal</button>
+        <button type="button" role="tab" data-comms-cat="business">Business</button>
+      </div>
       <div class="comms-filter" id="commsFilter" role="tablist" aria-label="Show">
         <button type="button" role="tab" data-comms-filter="needs">Needs me<span class="cf-n"></span></button>
         <button type="button" role="tab" data-comms-filter="waiting">Waiting<span class="cf-n"></span></button>
@@ -9549,6 +9558,20 @@
   var MATTER_STATUS_LABEL = { active: 'Active', on_hold: 'On hold', closed: 'Closed' };
   var MATTER_AREA_LABEL = { business: 'Business', family: 'Family', personal: 'Personal', friends: 'Friends', other: 'Other' };
   var CHANNEL_LABEL = { email: 'Email', whatsapp: 'WhatsApp', phone: 'Phone', in_person: 'In person', other: 'Other' };
+  // Every conversation is Personal or Business (`category`). Older ones have none until
+  // Shaun sets it — nothing is guessed from a name, a note or a Matter. Tags are separate:
+  // `tags`, an array of stable tag ids (a future ledger_tags list names them), so one
+  // conversation can be Business and also Client and Tax. New records start with [].
+  var CONV_CATEGORY_LABEL = { personal: 'Personal', business: 'Business' };
+  var COMMS_CAT_KEY = 'ledger_comms_category', CONV_LAST_CAT_KEY = 'ledger_comms_last_category';
+  var commsCat = (function(){ var c = lsGet(COMMS_CAT_KEY, 'all'); return ['all', 'personal', 'business'].indexOf(c) > -1 ? c : 'all'; })();
+  function convInCat(v){ return commsCat === 'all' || (v && v.category === commsCat); }
+  // a new conversation's category: the one being looked at, or the last one chosen
+  function defaultConvCategory(){
+    if (commsCat !== 'all') return commsCat;
+    var c = lsGet(CONV_LAST_CAT_KEY, 'personal');
+    return CONV_CATEGORY_LABEL[c] ? c : 'personal';
+  }
   var LOG_KIND_LABEL = { received: 'Received', sent: 'Sent', call: 'Call', meeting: 'Meeting', note: 'Note', state: 'Status', done: 'Done', created: 'Action' };
 
   function localSaveComms(){
@@ -9670,8 +9693,8 @@
   function convIsWaiting(v){ return v.attentionState === 'waiting_on_person' || v.attentionState === 'waiting_on_third_party'; }
   function convFollowUpDue(v){ return convIsActive(v) && !!v.nextFollowUpAt && v.nextFollowUpAt <= todayStr(); }
   // The Today counts, each traceable to one rule.
-  function commsCounts(){
-    var active = conversations.filter(convIsActive);
+  function commsCounts(only){
+    var active = conversations.filter(function(v){ return convIsActive(v) && (!only || only(v)); });
     return {
       needs: active.filter(function(v){ return v.attentionState === 'needs_me'; }).length,
       waiting: active.filter(convIsWaiting).length,
@@ -9836,8 +9859,9 @@
 
   // the rows, in the order that answers the filter's question
   function commsVisible(){
-    var active = conversations.filter(convIsActive);
-    if (commsQuery.trim()) return { convs: conversations.filter(convMatches).sort(byTimeDesc), matters: matters.filter(matterMatches) };
+    var active = conversations.filter(function(v){ return convIsActive(v) && convInCat(v); });
+    if (commsQuery.trim()) return { convs: conversations.filter(function(v){ return convMatches(v) && convInCat(v); }).sort(byTimeDesc),
+      matters: matters.filter(function(m){ return matterMatches(m) && matterInCat(m); }) };
     if (commsFilter === 'needs') return { convs: active.filter(function(v){ return v.attentionState === 'needs_me'; }).sort(byTimeDesc) };
     if (commsFilter === 'waiting') return { convs: active.filter(convIsWaiting).sort(byTimeAsc) };   // longest wait first
     if (commsFilter === 'follow') return { convs: active.filter(function(v){ return !!v.nextFollowUpAt; })
@@ -9845,10 +9869,17 @@
     return null;   // All: grouped by matter
   }
 
+  // a Matter shows under a category when one of its conversations is in it (Matters have no
+  // category of their own: one can hold both kinds)
+  function matterInCat(m){ return commsCat === 'all' || conversations.some(function(v){ return v.matterId === m.id && v.category === commsCat; }); }
   function renderComms(){
     var rowsEl = document.getElementById('commsRows');
     if (!rowsEl) return;
-    var n = commsCounts();
+    document.querySelectorAll('[data-comms-cat]').forEach(function(b){
+      var on = b.dataset.commsCat === commsCat;
+      b.classList.toggle('sel', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    var n = commsCounts(convInCat);
     document.querySelectorAll('[data-comms-filter]').forEach(function(b){
       var on = b.dataset.commsFilter === commsFilter && !commsQuery.trim();
       b.classList.toggle('sel', on);
@@ -9876,8 +9907,8 @@
       // All: every active matter with its conversations, then loose conversations, then what's closed
       var openMatters = matters.filter(function(m){ return m.status !== 'closed'; })
         .sort(function(a, b){ return (b.updatedAt || '') < (a.updatedAt || '') ? -1 : 1; });
-      openMatters.forEach(function(m){
-        var cs = conversations.filter(function(v){ return v.matterId === m.id && v.attentionState !== 'closed'; }).sort(byTimeDesc);
+      openMatters.filter(matterInCat).forEach(function(m){
+        var cs = conversations.filter(function(v){ return v.matterId === m.id && v.attentionState !== 'closed' && convInCat(v); }).sort(byTimeDesc);
         var g = document.createElement('div');
         g.className = 'mt-group';
         g.appendChild(matterRowEl(m, cs.length));
@@ -9887,15 +9918,15 @@
       });
       var loose = conversations.filter(function(v){
         var m = matterById(v.matterId);
-        return v.attentionState !== 'closed' && !(m && m.status !== 'closed') && !(m && m.status === 'closed');
+        return v.attentionState !== 'closed' && !(m && m.status !== 'closed') && !(m && m.status === 'closed') && convInCat(v);
       }).sort(byTimeDesc);
       if (loose.length){
         var lh = document.createElement('div'); lh.className = 'mt-group-label'; lh.textContent = 'Not part of a matter';
         rowsEl.appendChild(lh);
         loose.forEach(function(v){ rowsEl.appendChild(convRowEl(v)); if (!firstSel) firstSel = { kind: 'conv', id: v.id }; });
       }
-      var closedConvs = conversations.filter(function(v){ return !convIsActive(v); });
-      var closedMatters = matters.filter(function(m){ return m.status === 'closed'; });
+      var closedConvs = conversations.filter(function(v){ return !convIsActive(v) && convInCat(v); });
+      var closedMatters = matters.filter(function(m){ return m.status === 'closed' && matterInCat(m); });
       if (closedConvs.length || closedMatters.length){
         var t = document.createElement('button');
         t.type = 'button';
@@ -9908,6 +9939,9 @@
           closedMatters.forEach(function(m){ rowsEl.appendChild(matterRowEl(m, conversations.filter(function(v){ return v.matterId === m.id; }).length)); });
           closedConvs.forEach(function(v){ rowsEl.appendChild(convRowEl(v)); });
         }
+      }
+      if (!rowsEl.children.length && commsCat !== 'all' && (matters.length || conversations.length)){
+        rowsEl.appendChild(commsEmpty('No ' + CONV_CATEGORY_LABEL[commsCat].toLowerCase() + ' conversations yet. Give a conversation a category in its details, or add one here.'));
       }
       if (!matters.length && !conversations.length){
         rowsEl.appendChild(commsEmpty('Nothing tracked yet. Start with a matter — a sale, a nursery place, a house repair — or simply the conversation you’re waiting on.'));
@@ -9924,6 +9958,13 @@
     }
   }
   document.getElementById('commsSearch').addEventListener('input', function(){ commsQuery = this.value; renderComms(); });
+  document.querySelectorAll('[data-comms-cat]').forEach(function(b){
+    b.addEventListener('click', function(){
+      commsCat = b.dataset.commsCat; lsSet(COMMS_CAT_KEY, commsCat);
+      commsSel = null;
+      renderComms();
+    });
+  });
   document.querySelectorAll('[data-comms-filter]').forEach(function(b){
     b.addEventListener('click', function(){
       commsFilter = b.dataset.commsFilter;
@@ -10080,6 +10121,8 @@
       .map(function(x){ return { value: x.id, label: '' }; }));
     wrap.innerHTML = detailHead(ctx, 'Conversation' + (m ? ' · <button type="button" class="cd-matter-link" data-role="open-matter"></button>' : '')) +
       '<input class="cd-title" data-role="title" placeholder="Who is this with? e.g. Yusuf" aria-label="Conversation">' +
+      '<div class="cd-label">Category' + (v.category ? '' : ' <span class="cd-label-note">not set</span>') + '</div>' +
+      commsChipsHtml('category', [{ value: 'personal', label: 'Personal' }, { value: 'business', label: 'Business' }], v.category || '') +
       '<div class="cd-label">Who has the ball</div>' +
       commsChipsHtml('state', ATTENTION_ORDER.filter(function(k){ return k !== 'closed'; }).map(function(k){
         return { value: k, label: ATTENTION_LABEL[k], cls: 'a-' + k };
@@ -10134,6 +10177,15 @@
     ch.value = v.channel || 'other';
     ch.addEventListener('change', function(){ patchConv(v.id, { channel: ch.value }); });
 
+    // its category: Personal or Business, changed only here (or by a capture that says so)
+    wrap.querySelectorAll('[data-chips="category"] .cd-chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var next = chip.dataset.v, cur = convById(v.id);
+        if (!cur || cur.category === next) return;
+        lsSet(CONV_LAST_CAT_KEY, next);
+        saveCommsRecord('ledger_conversations', Object.assign({}, cur, { category: next, log: withLog(cur, 'note', 'Category: ' + CONV_CATEGORY_LABEL[next]) }));
+      });
+    });
     // who has the ball: one tap, saved at once, recorded as movement
     wrap.querySelectorAll('[data-chips="state"] .cd-chip').forEach(function(chip){
       chip.addEventListener('click', function(){
@@ -10254,22 +10306,30 @@
         ? '<div class="field"><label>Part of</label><select id="f_newCommsMatter" data-picker-new="matter"><option value="">No matter</option>' +
             matters.filter(function(m){ return m.status !== 'closed'; }).map(function(m){ return '<option value="' + m.id + '"></option>'; }).join('') +
           '</select></div>' +
+          '<div class="field"><label>Category</label>' +
+            commsChipsHtml('newcat', [{ value: 'personal', label: 'Personal' }, { value: 'business', label: 'Business' }], defaultConvCategory()) + '</div>' +
           '<div class="field"><label>Who has the ball</label>' +
             commsChipsHtml('newstate', ['needs_me', 'waiting_on_person', 'waiting_on_third_party'].map(function(k){ return { value: k, label: ATTENTION_LABEL[k] }; }), 'needs_me') + '</div>'
         : '<div class="field"><label>Area</label>' +
             commsChipsHtml('newarea', Object.keys(MATTER_AREA_LABEL).map(function(k){ return { value: k, label: MATTER_AREA_LABEL[k] }; }), 'business') + '</div>') +
       '<div class="sheet-actionbar"><button type="button" class="btn-primary" id="newCommsSave">' + (isConv ? 'Add conversation' : 'Add matter') + '</button></div>';
     backdrop.classList.add('open');
-    var chosen = isConv ? 'needs_me' : 'business';
+    var chosen = isConv ? 'needs_me' : 'business', newCat = defaultConvCategory();
     if (isConv){
       var ms = document.getElementById('f_newCommsMatter');
       matters.filter(function(m){ return m.status !== 'closed'; }).forEach(function(m, i){ ms.options[i + 1].textContent = m.title || 'Untitled matter'; });
       ms.value = preset.matterId || '';
     }
-    sheetEl.querySelectorAll('.cd-chips .cd-chip').forEach(function(chip){
+    sheetEl.querySelectorAll('.cd-chips:not([data-chips="newcat"]) .cd-chip').forEach(function(chip){
       chip.addEventListener('click', function(){
         chosen = chip.dataset.v;
-        sheetEl.querySelectorAll('.cd-chips .cd-chip').forEach(function(x){ x.classList.toggle('sel', x === chip); });
+        sheetEl.querySelectorAll('.cd-chips:not([data-chips="newcat"]) .cd-chip').forEach(function(x){ x.classList.toggle('sel', x === chip); });
+      });
+    });
+    sheetEl.querySelectorAll('[data-chips="newcat"] .cd-chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        newCat = chip.dataset.v;
+        sheetEl.querySelectorAll('[data-chips="newcat"] .cd-chip').forEach(function(x){ x.classList.toggle('sel', x === chip); x.setAttribute('aria-pressed', x === chip ? 'true' : 'false'); });
       });
     });
     var input = document.getElementById('f_newComms');
@@ -10282,7 +10342,8 @@
       var rec;
       if (isConv){
         var matterId = document.getElementById('f_newCommsMatter').value || null;
-        rec = { id: uid(), title: name, matterId: matterId, participants: [{ name: name, role: '' }],
+        lsSet(CONV_LAST_CAT_KEY, newCat);
+        rec = { id: uid(), title: name, matterId: matterId, participants: [{ name: name, role: '' }], category: newCat, tags: [],
           channel: 'other', externalRef: null, attentionState: chosen, waitingOn: chosen === 'waiting_on_person' ? name : '',
           lastActivityAt: now, nextFollowUpAt: null, summary: '', notes: '', log: [{ at: now, kind: 'state', text: 'Started · ' + ATTENTION_LABEL[chosen] }] };
         saveCommsRecord('ledger_conversations', rec);
@@ -10347,11 +10408,12 @@
   }
   function openCommsCapture(draft){
     editingId = null; activeSheetRefresh = null;
-    var st = draft || { text: lsGet(CQ_DRAFT_KEY, ''), source: lsGet(CQ_SOURCE_KEY, 'whatsapp') };
+    var st = draft || { text: lsGet(CQ_DRAFT_KEY, ''), source: lsGet(CQ_SOURCE_KEY, 'whatsapp'), category: defaultConvCategory() };
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
       sheetHead('', 'Quick capture', 'Who needs a reply? One per line — a name, then what’s needed.', '') +
       '<div class="field"><label for="cqText">People</label><textarea id="cqText" class="cq-text" rows="7" maxlength="6000" placeholder="James — reply about accounts&#10;Abi — confirm weekend plans&#10;Michael — send proposal&#10;Daniel"></textarea></div>' +
       '<div class="field"><label>From</label>' + commsChipsHtml('cqsource', CQ_SOURCES.map(function(s){ return { value: s[0], label: s[1] }; }), st.source) + '</div>' +
+      '<div class="field"><label>Category</label>' + commsChipsHtml('cqcat', [{ value: 'personal', label: 'Personal' }, { value: 'business', label: 'Business' }], st.category) + '</div>' +
       '<p class="auth-error" id="cqErr" role="alert"></p>' +
       '<div class="sheet-actionbar"><button type="button" class="btn-primary" id="cqPreview" disabled>Preview</button></div>';
     backdrop.classList.add('open');
@@ -10370,23 +10432,40 @@
         sheetEl.querySelectorAll('[data-chips="cqsource"] .cd-chip').forEach(function(x){ x.classList.toggle('sel', x === chip); x.setAttribute('aria-pressed', x === chip ? 'true' : 'false'); });
       });
     });
+    sheetEl.querySelectorAll('[data-chips="cqcat"] .cd-chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        st.category = chip.dataset.v; lsSet(CONV_LAST_CAT_KEY, st.category);
+        sheetEl.querySelectorAll('[data-chips="cqcat"] .cd-chip').forEach(function(x){ x.classList.toggle('sel', x === chip); x.setAttribute('aria-pressed', x === chip ? 'true' : 'false'); });
+      });
+    });
     count();
     btn.addEventListener('click', function(){
       var lines = cqParse(ta.value);
       if (!lines.length) return;
       if (lines.length > CQ_MAX){ document.getElementById('cqErr').textContent = 'That’s ' + lines.length + ' lines — up to ' + CQ_MAX + ' at a time.'; return; }
       st.text = ta.value;
-      st.rows = lines.map(function(l){ return { id: uid(), convId: uid(), name: l.name.slice(0, 120), note: l.note.slice(0, 500), source: null, followUp: null, matterId: null, target: 'new', userTarget: false }; });
+      st.rows = lines.map(function(l){ return { id: uid(), convId: uid(), name: l.name.slice(0, 120), note: l.note.slice(0, 500), source: null, category: null, followUp: null, matterId: null, target: 'new', userTarget: false }; });
       st.rows.forEach(function(r){ cqAutoTarget(st, r); });
       openCommsCapturePreview(st);
     });
     setTimeout(function(){ try { ta.focus(); } catch(e){} }, 60);
   }
+  // the category a line will end with: what it was given here; else, for someone already
+  // here, their own (kept, never reclassified by a capture); else the list's
+  function cqRowCat(st, r){
+    if (r.category) return r.category;
+    var into = r.target.indexOf('conv:') === 0 ? convById(r.target.slice(5)) : null;
+    if (into) return into.category || null;
+    if (r.target.indexOf('row:') === 0){ var e = st.rows.find(function(x){ return 'row:' + x.id === r.target; }); return e ? cqRowCat(st, e) : st.category; }
+    return st.category;
+  }
+  function cqCatText(st, r){ var c = cqRowCat(st, r); return c ? CONV_CATEGORY_LABEL[c] : 'No category'; }
   function openCommsCapturePreview(st){
     editingId = null; activeSheetRefresh = null;
     var busy = false, opened = null;
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' + sheetHead('', 'Check the list', '<span id="cqpSub"></span>', '') +
-      '<div class="field"><label>From</label><div id="cqpSource"></div></div>' +
+      '<div class="cq-heads"><div class="field"><label>From</label><div id="cqpSource"></div></div>' +
+      '<div class="field"><label>Category</label><div id="cqpCat"></div></div></div>' +
       '<div class="cq-rows" id="cqpRows"></div>' +
       '<button type="button" class="btn-link hb-add-row" id="cqpAdd">' + BK_PLUS_SVG + 'Add another</button>' +
       '<p class="auth-error" id="cqpErr" role="alert"></p>' +
@@ -10427,7 +10506,7 @@
         var nm = document.createElement('input'); nm.type = 'text'; nm.className = 'hb-input cq-name'; nm.maxLength = 120; nm.value = r.name; nm.setAttribute('aria-label', 'Name, line ' + (i + 1));
         var nt = document.createElement('input'); nt.type = 'text'; nt.className = 'hb-input cq-note'; nt.maxLength = 500; nt.value = r.note; nt.placeholder = 'What’s needed (optional)'; nt.setAttribute('aria-label', 'What’s needed, line ' + (i + 1));
         var meta = document.createElement('button'); meta.type = 'button'; meta.className = 'hb-who cq-meta' + (r.target !== 'new' ? ' own' : '');
-        meta.textContent = cqSourceLabel(r.source || st.source) + ' · ' + targetText(r) + (r.followUp ? ' · follow up ' + friendlyDay(r.followUp) : '');
+        meta.textContent = cqSourceLabel(r.source || st.source) + ' · ' + cqCatText(st, r) + ' · ' + targetText(r) + (r.followUp ? ' · follow up ' + friendlyDay(r.followUp) : '');
         meta.setAttribute('aria-expanded', opened === r.id ? 'true' : 'false');
         nm.addEventListener('input', function(){ r.name = nm.value; summary(); });
         nm.addEventListener('change', function(){ st.rows.forEach(function(x){ cqAutoTarget(st, x); }); paintRows(); summary(); });
@@ -10445,10 +10524,15 @@
         rowsEl.appendChild(row);
       });
     }
-    paintSource(); paintRows(); summary();
+    function paintCat(){
+      var w = document.getElementById('cqpCat');
+      w.innerHTML = commsChipsHtml('cqpcat', [{ value: 'personal', label: 'Personal' }, { value: 'business', label: 'Business' }], st.category);
+      w.querySelectorAll('.cd-chip').forEach(function(chip){ chip.addEventListener('click', function(){ st.category = chip.dataset.v; lsSet(CONV_LAST_CAT_KEY, st.category); paintCat(); paintRows(); }); });
+    }
+    paintSource(); paintCat(); paintRows(); summary();
     document.getElementById('cqpAdd').addEventListener('click', function(){
       if (st.rows.length >= CQ_MAX){ err.textContent = 'Up to ' + CQ_MAX + ' at a time.'; return; }
-      var r = { id: uid(), convId: uid(), name: '', note: '', source: null, followUp: null, matterId: null, target: 'new', userTarget: false };
+      var r = { id: uid(), convId: uid(), name: '', note: '', source: null, category: null, followUp: null, matterId: null, target: 'new', userTarget: false };
       st.rows.push(r); paintRows(); summary();
       var ins = rowsEl.querySelectorAll('.cq-name'); if (ins.length) ins[ins.length - 1].focus();
     });
@@ -10492,6 +10576,11 @@
     var sl = document.createElement('div');
     sl.innerHTML = commsChipsHtml('cqrowsource', CQ_SOURCES.map(function(s){ return { value: s[0], label: s[1] }; }), r.source || st.source);
     ed.appendChild(sl);
+    // its category: a new one takes the list's unless changed here; an existing one keeps
+    // its own unless changed here
+    var cl = document.createElement('div');
+    cl.innerHTML = commsChipsHtml('cqrowcat', [{ value: 'personal', label: 'Personal' }, { value: 'business', label: 'Business' }], cqRowCat(st, r) || '');
+    ed.appendChild(cl);
     var two = document.createElement('div'); two.className = 'cq-two';
     var fu = document.createElement('label'); fu.className = 'field cq-mini'; fu.innerHTML = '<span>Follow up</span><input type="date" class="cq-date" aria-label="Follow up">';
     var fin = fu.querySelector('input'); fin.value = r.followUp || '';
@@ -10513,6 +10602,7 @@
     ed.appendChild(two);
     tl.querySelectorAll('.cd-chip').forEach(function(chip){ chip.addEventListener('click', function(){ r.target = chip.dataset.v; r.userTarget = true; done(); }); });
     sl.querySelectorAll('.cd-chip').forEach(function(chip){ chip.addEventListener('click', function(){ r.source = chip.dataset.v === st.source ? null : chip.dataset.v; done(); }); });
+    cl.querySelectorAll('.cd-chip').forEach(function(chip){ chip.addEventListener('click', function(){ r.category = chip.dataset.v; done(); }); });
     fin.addEventListener('change', function(){ r.followUp = fin.value || null; done(); });
     return ed;
   }
@@ -10531,6 +10621,7 @@
         firstNew[r.id] = key;
         if (st.computed[key]){ plan[key] = st.computed[key]; added[key] = true; return; }
         rec = { id: key, title: name, matterId: r.matterId || null, participants: [{ name: name, role: '' }],
+          category: r.category || st.category, tags: [],
           channel: src, externalRef: null, attentionState: 'needs_me', waitingOn: '', capturedAt: now,
           lastActivityAt: now, nextFollowUpAt: r.followUp || null, summary: note, notes: '',
           log: [{ at: now, kind: 'state', text: 'Started · Needs me' }, { at: now, kind: 'received', text: said }] };
@@ -10556,6 +10647,8 @@
       if ((base.attentionState || 'needs_me') !== 'needs_me') log.push({ at: now, kind: 'state', text: 'Needs me' });
       if (r.followUp) patch.nextFollowUpAt = r.followUp;
       if (!base.matterId && r.matterId) patch.matterId = r.matterId;
+      // only an explicit choice changes a category; a match never reclassifies anyone
+      if (r.category && r.category !== base.category){ patch.category = r.category; log.push({ at: now, kind: 'note', text: 'Category: ' + CONV_CATEGORY_LABEL[r.category] }); }
       patch.log = log.slice(-COMMS_LOG_MAX);
       rec = Object.assign({}, base, patch);
       plan[into] = rec; st.computed[into + '|' + r.id] = rec;
@@ -14699,7 +14792,8 @@
         showPinToast(editing ? 'Saved — from the next one' : 'Set up · ' + (next === todayStr() ? 'the first is today' : 'first ' + rcDayWordCap(next)), false, CHECK_SVG);
       }).catch(function(e){ console.error('recurring save failed', e); btn.disabled = false; err.textContent = 'Couldn’t save it — check your connection and try again.'; });
     });
-    setTimeout(function(){ try { sh.querySelector('#rcText').focus(); } catch(e){} }, 60);
+    // never pull focus from a field already being typed in
+    setTimeout(function(){ var at = document.activeElement; if (at && /^(INPUT|TEXTAREA|SELECT)$/.test(at.tagName)) return; try { sh.querySelector('#rcText').focus(); } catch(e){} }, 60);
   }
 
   // "I'll do it": an unclaimed one becomes yours

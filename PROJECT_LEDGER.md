@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-18 (Home — Household Requests for Shaun, Abi and the nanny — built; completed Actions collapse)
+Last updated: 2026-10-22 (Communications categories, Personal / Business)
 
 ---
 
@@ -299,6 +299,10 @@ two Morning Prime routines, the Wind-down routine and its prominence hour.
   sheet. Desktop (≥1024): list left, record right, edited in place.
 - **Handoff** gains COMMUNICATIONS ATTENTION (Needs me / Waiting / Follow-up due)
   for today, and an instruction that waiting items are never tasks.
+- **Categories (since 2026-10-22):** each conversation is Personal or Business
+  (`category`; older records stay unset until chosen). An All | Personal | Business
+  switch above the filters narrows the list, its counts and search (per device,
+  `ledger_comms_category`). Today's summary counts every category.
 
 ### Other tabs
 - **Plan** — Ledger's whole-life forward-planning surface (Plan = intent, Today =
@@ -722,6 +726,33 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-22 — Communications: Personal or Business; tags later (Shaun's addendum)
+- **One primary category per conversation:** `category` on the conversation record is
+  `personal` or `business`.
+  - New conversations always get one. It defaults to the category being viewed, else
+    the last one chosen on this device.
+  - It can be changed in the conversation's details; each change is noted in its
+    history.
+- **Existing records are not classified for him.** A conversation without a
+  `category` stays unset ("not set") until Shaun picks one. It shows under All, and
+  under neither Personal nor Business. Nothing is inferred from names or notes.
+- **The switch:** All | Personal | Business sits above the attention filters. It is
+  remembered per device (`ledger_comms_category`), and it narrows:
+  - the list;
+  - the filter counts;
+  - search;
+  - the Matter grouping (a Matter shows only with a conversation in the category).
+
+  Today's Communications summary is unaffected and counts everything.
+- **Quick capture:** the list has a Category, and each line can override it. A line
+  that updates an existing conversation keeps that conversation's category ("No
+  category" if it has none) unless the line's own category is changed.
+- **Tags, a future enhancement:** new conversations carry `tags: []`, for stable tag
+  ids, independent of category. There is no tag UI, no tag management and no
+  automatic (AI) tagging. Nothing reads tags yet.
+- **No new tab, no rules change:** conversations stay owner-only. Nothing about
+  categories reaches Home, Abi or notifications.
 
 ### 2026-10-22 — One header for the five tabs; Communications quick capture (Shaun's brief)
 **Headers:**
@@ -1959,6 +1990,8 @@ Status: device checks (Next 1).
   by Shaun (2026-10-22: rules, indexes, all eight functions, Cloud Scheduler enabled).
 - **Unified headers and Communications quick capture:** built 2026-10-22; Vercel
   only, nothing to deploy.
+- **Communications categories (Personal / Business) and tag-ready records:** built
+  2026-10-22; Vercel only, nothing to deploy.
 Objective: Shaun's brief of 2026-10-22, in four milestones.
 Acceptance criteria: each milestone tested and reviewed for UX; deploy requirements
 recorded in Next 1; device checks listed for Shaun.
@@ -2049,6 +2082,27 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-22) — **Communications categories, and records ready for tags.**
+  - Every new conversation is Personal or Business; existing ones stay unset until
+    chosen.
+  - The All | Personal | Business switch works with the filters, counts, search and
+    Matter grouping, and is remembered per device.
+  - Quick capture has a list category and a per-line override.
+  - New records carry `tags: []`.
+
+  Tests:
+  - local QA: 42 checks at 320, 390, 900 and 1440, in both themes;
+  - `tests/e2e/comms-capture.test.js` now 24 checks (a Business batch, the
+    Mac's filter, a category set on the Mac shown on the phone, an existing record not
+    reclassified, Abi refused);
+  - Home 152, Partner Sharing 209, push 76, navigation 27.
+
+  No rules, indexes or functions change; Vercel only.
+
+  **Also fixed:** the recurring-responsibility form's delayed focus no longer takes
+  the cursor from a field already being typed in. It caused an intermittent H15
+  failure, where the checklist text ended up in the title.
 
 - (2026-10-22) — **Unified tab headers, and Communications quick capture.**
 
@@ -2426,6 +2480,9 @@ minutes before", recurring/accountability).
       - Comms → Quick capture → paste a sweep ("James — reply about accounts", one per
         line) → check the list (an existing James says "Updates James") → Save → all
         under Needs me, and Today says "N need you";
+      - Comms → Business → only Business conversations, with matching counts; open an
+        older one ("Category not set") → choose Personal → it moves; the phone and
+        the Mac each remember their own switch;
       - she taps Done → your phones: "<her name> completed your request";
       - she asks Abi something → only Abi is told; Abi says Can't do → she sees why →
         Abi passes it to you → your Inbox → Today makes one Action → complete it → she
