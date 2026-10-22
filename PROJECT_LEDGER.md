@@ -723,6 +723,37 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-22 — One header for the five tabs; Communications quick capture (Shaun's brief)
+**Headers:**
+- **One shape for every tab:** Plan, Today, Me, Comms and Home share the arrows, the
+  kicker and title, and one meta line that is always there (`--hdr-meta-h`, 26px).
+  The line holds Plan's week, Calendar's year or Today's line. Today's Today / Review
+  day pills replace that line rather than adding one.
+- **Phone:** the motto and the two-line quote are now wider-screen only. Today's line
+  stays, as its meta line.
+- **Spacing:** content starts `--hdr-gap` below (12px on a phone, 18px wide).
+- **Measured:** the header is identical on every tab, at 320, 390, 768, 900, 1100,
+  1440 and 1700px, in both themes.
+
+**Quick capture** (Comms → Quick capture):
+- **Parsing:** one person per line. The name is what comes before the first em dash,
+  en dash or spaced hyphen; the rest is the current position. Bullets and numbers
+  are removed; a hyphenated name stays whole.
+- **Defaults:** every line becomes Needs me. The source is set once per list
+  (WhatsApp, Email, Call, Other) and stored in the existing `channel`. Each line can
+  change its source, follow-up and Matter.
+- **Matching:**
+  - The same name (case- and punctuation-insensitive) defaults to updating that
+    conversation.
+  - A name that only begins another ("Michael" / "Michael Brown") is a suggestion,
+    never a merge.
+  - A second line about someone new joins the first.
+- **Updating keeps history:** the old position is logged ("Was: …"), the message is
+  logged, the state becomes Needs me, and the Matter and channel are kept.
+- **No Actions** are ever made by it.
+- **Saving:** records are worked out once, so a retry writes the same thing. A failed
+  write is rolled back locally and stays in the list to try again.
+
 ### 2026-10-22 — Navigation redesign and Home expansion (Shaun's brief; four milestones)
 **Decision (Shaun):** the tabs are Plan · Today · Me · Comms · Home. Home becomes a
 household coordination centre with lists, checklists and recurring responsibilities.
@@ -1923,9 +1954,11 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Claude Code
-Status: Navigation Redesign & Home Expansion — all four milestones built, and deployed by
-Shaun (2026-10-22: rules, indexes, all eight functions, Cloud Scheduler enabled). Waiting
-on device checks (Next 1).
+Status: device checks (Next 1).
+- **Navigation Redesign & Home Expansion:** all four milestones are built and deployed
+  by Shaun (2026-10-22: rules, indexes, all eight functions, Cloud Scheduler enabled).
+- **Unified headers and Communications quick capture:** built 2026-10-22; Vercel
+  only, nothing to deploy.
 Objective: Shaun's brief of 2026-10-22, in four milestones.
 Acceptance criteria: each milestone tested and reviewed for UX; deploy requirements
 recorded in Next 1; device checks listed for Shaun.
@@ -2016,6 +2049,21 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-22) — **Unified tab headers, and Communications quick capture.**
+
+  Tests:
+  - header measurement: 5 tabs × 7 widths × 2 themes;
+  - quick capture locally: 30 checks, at 320, 390, 900 and 1440;
+  - `tests/e2e/comms-capture.test.js`: 18, covering two of Shaun's devices, a partial
+    failure and retry, and Abi refused;
+  - regression suites green.
+
+  No rules, indexes or functions change; Vercel only.
+
+  **Also fixed:** the sign-in screens' delayed first-field focus no longer moves the
+  cursor while someone is typing. It had once put a password into the email field, and
+  it caused the intermittent H12 failure.
 
 - (2026-10-22) — **Fix: Home flashing (and its tab dot).**
   - **Cause:** any refused Home read restarted all of Home's data 4 seconds later.
@@ -2373,6 +2421,11 @@ minutes before", recurring/accountability).
         Sunday → on Sunday from 06:00 Maria gets "Today: School uniform …" and it is in
         her Today; an "Anyone at Home" one shows "I'll do it";
       - the Me tab: Calendar / Progress / Focus switch; the Comms tab;
+      - switch between all five tabs: the heading and the first content don't move;
+        Today on yesterday shows its "Today" pill where the line was;
+      - Comms → Quick capture → paste a sweep ("James — reply about accounts", one per
+        line) → check the list (an existing James says "Updates James") → Save → all
+        under Needs me, and Today says "N need you";
       - she taps Done → your phones: "<her name> completed your request";
       - she asks Abi something → only Abi is told; Abi says Can't do → she sees why →
         Abi passes it to you → your Inbox → Today makes one Action → complete it → she

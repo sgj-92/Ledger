@@ -595,3 +595,18 @@ token layer changes materially.*
 > and a Settings sheet (`.set-*`) with a routine editor (`.re-*`) took over the
 > Appearance card from Focus. The measurements in §2, §7, §9 and §14 predate
 > all of this.
+
+> **Since then (2026-10-22): one header for the five tabs.**
+> - **Phone:** Plan, Today, Me, Comms and Home share one header shape. It has the
+>   arrows (`.circ-btn`), the kicker, and the title at `clamp(26px, 7.8vw, 33px)`.
+>   Under them is **one meta line**, `--hdr-meta-h` 26px, always present:
+>   - Plan's week, Calendar's year, Today's line (Playfair italic, one line), or
+>     empty;
+>   - Today's "Today" and "Review day" pills sit in it, never below it.
+>   - The motto and the two-line quote (`.hdr-foot`) show on wide screens only.
+> - **Wide screens:** the motto row has a fixed 12px height.
+> - **Content gap:** content starts `--hdr-gap` below the header (12px on a phone,
+>   18px from 768px).
+> - **Measured:** the header is the same height on every tab — 90px at 320, 95px at
+>   390, 121px from 768 up — with the title at the same position. The Me switch is
+>   the first thing below it, like any other tab's first section.

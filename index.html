@@ -116,6 +116,8 @@
     --radius-sm: 10px; --radius-md: 14px; --radius-lg: 20px;
 
     /* ---- spacing scale ---- */
+    --hdr-meta-h: 26px;   /* the header's one meta line, the same on every tab */
+    --hdr-gap: 12px;      /* header → the first thing on every tab */
     --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px;
     --sp-6: 24px; --sp-7: 32px; --sp-8: 40px;
 
@@ -293,11 +295,20 @@
     font-size: clamp(26px, 7.8vw, 33px); line-height: 1.0;
     letter-spacing: -0.015em; color: var(--text);
   }
-  .hdr-range { margin: 7px 0 0; font-size: 12.5px; color: var(--text-2); letter-spacing: 0.01em; }
-  .hdr-foot {
-    position: relative; display: flex; align-items: flex-end;
-    justify-content: space-between; gap: 12px; margin-top: 7px; min-height: 14px;
+  /* One header for all five tabs (2026-10-22). Phone: the arrows, the kicker and title,
+     then ONE meta line that is always there — Plan's week, Calendar's year, Today's line
+     (or its Today / Review day pills), empty elsewhere — so the header is the same height
+     on every tab and nothing under it moves when you switch. The motto and the two-line
+     quote are wider-screen furniture. */
+  .hdr-range {
+    display: flex; align-items: center; justify-content: center;
+    height: var(--hdr-meta-h); margin: 5px 0 0; overflow: hidden; white-space: nowrap;
+    font-size: 12.5px; color: var(--text-2); letter-spacing: 0.01em;
   }
+  .hdr-range[hidden] { display: flex; visibility: hidden; }
+  .hdr-range.q { font-family: var(--serif); font-style: italic; font-size: 13px; letter-spacing: 0; text-overflow: ellipsis; display: block; line-height: var(--hdr-meta-h); }
+  header.top.has-sub .hdr-range { visibility: hidden; }
+  .hdr-foot { display: none; }
   .hdr-motto {
     font-size: 9px; font-weight: 500; text-transform: uppercase;
     letter-spacing: 0.2em; color: var(--text-3); padding-bottom: 1px;
@@ -314,11 +325,12 @@
     display: block; width: 22px; height: 1px; background: rgba(var(--gold-rgb),0.55);
     margin: 5px 0 0 auto;
   }
+  /* Today's pills take the meta line's place, never a line of their own */
   .day-nav-sub {
-    position: relative; display: flex; align-items: center; justify-content: center;
-    gap: 8px; margin-top: 12px; min-height: 0;
+    position: absolute; left: 22px; right: 22px; bottom: 10px; height: var(--hdr-meta-h);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
   }
-  .day-nav-sub:empty { margin-top: 0; }
+  .day-nav-sub:empty { display: none; }
   .day-status-note { font-size: 12px; color: var(--text-2); }
   .day-today-btn, .day-review-btn, .day-view-btn {
     font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0.04em;
@@ -327,7 +339,7 @@
   .day-today-btn { color: var(--gold); background: rgba(var(--gold-rgb),0.08); border: 1px solid rgba(var(--gold-rgb),0.3); }
   .day-review-btn { color: var(--text-2); background: none; border: 1px solid var(--line-2); }
 
-  main { padding: 2px 22px calc(104px + env(safe-area-inset-bottom)); flex: 1 0 auto; }
+  main { padding: var(--hdr-gap) 22px calc(104px + env(safe-area-inset-bottom)); flex: 1 0 auto; }
   section.view { display: none; animation: fadein 0.2s ease; }
   section.view.active { display: block; }
   @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
@@ -1728,7 +1740,7 @@
   .tab-dot[hidden] { display: none; }
 
   /* Me: Calendar · Progress · Focus — one switch above the three views */
-  .me-switch { margin: var(--sp-2) 0 var(--sp-4); }
+  .me-switch { margin: 0 0 var(--sp-4); }
   .me-switch[hidden] { display: none; }
 
   .global-fab {
@@ -3623,6 +3635,19 @@
   .cf-n { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; opacity: 0.75; }
   .cf-n:empty { display: none; }
   .comms-new { display: flex; flex-wrap: wrap; gap: 8px; margin: var(--sp-5) 0 var(--sp-2); }
+  /* Quick capture: the morning sweep — a list in, people out; one compact editable row each */
+  .cq-text { min-height: 168px; font-size: 16px; line-height: 1.5; }
+  .cq-rows { margin: var(--sp-2) 0 var(--sp-1); border-top: 1px solid var(--line); }
+  .cq-row { border-bottom: 1px solid var(--line); }
+  .cq-name { font-weight: 500; }
+  .cq-note { font-size: 14px; color: var(--text-2); }
+  .cq-own .cd-chips { margin: 0; }
+  .cq-two { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+  .cq-mini input[type="date"] { min-height: 46px; padding: 11px 12px; }
+  .cq-mini { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 140px; margin: 0;
+    font-size: 10.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+  .cq-mini input, .cq-mini select, .cq-mini .lp-trigger { text-transform: none; letter-spacing: 0; font-weight: 400; min-width: 0; }
+  .cq-keeps { margin: 0; font-size: 12.5px; color: var(--text-2); }
   .comms-pane:empty { display: none; }
   .comms-empty { font-size: 13px; line-height: 1.5; color: var(--text-3); padding: 14px 2px; }
 
@@ -4190,16 +4215,18 @@
     .hdr-center { grid-area: center; text-align: left; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 16px; }
     .hdr-kicker { margin-bottom: 6px; flex-basis: 100%; }
     .hdr-date { font-size: 36px; }
-    .hdr-range { margin: 0; font-size: 13px; }
-    .hdr-range[hidden] { display: none; }
-    .hdr-motto { grid-area: motto; align-self: start; margin-top: 13px; }
+    .hdr-range { margin: 0; font-size: 13px; height: auto; display: inline; }
+    .hdr-range[hidden], .hdr-range.q { display: none; }
+    /* the motto's row is always there, so Today's header is no taller than the rest */
+    .hdr-motto { grid-area: motto; align-self: start; margin-top: 9px; display: block; height: 12px; line-height: 12px; overflow: hidden; }
     .hdr-quote { grid-area: quote; max-width: 280px; align-self: center; padding-right: 8px; }
     .hdr-quote-text { font-size: 13px; }
-    .day-nav-sub { grid-area: sub; margin-top: 0; }
+    .day-nav-sub { grid-area: sub; margin-top: 0; position: relative; left: auto; right: auto; bottom: auto; height: auto; }
     .day-nav-sub:empty { display: none; }
 
-    main { grid-column: 2; grid-row: 2; min-width: 0; padding: 18px var(--gutter) 64px; }
-    .me-switch { width: 420px; max-width: 100%; margin-top: 0; }
+    :root { --hdr-gap: 18px; }
+    main { grid-column: 2; grid-row: 2; min-width: 0; padding: var(--hdr-gap) var(--gutter) 64px; }
+    .me-switch { width: 420px; max-width: 100%; }
     body.has-update-bar main { padding-bottom: 96px; }
     /* Quick add sits in the sidebar, above Settings, instead of over the content */
     .global-fab {
@@ -5261,6 +5288,7 @@
       <div id="commsRows"></div>
       <div class="comms-new">
         <button type="button" class="dpa-add-btn" id="commsNewConv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>Conversation</button>
+        <button type="button" class="dpa-add-btn" id="commsCapture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="7" x2="19" y2="7"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="17" x2="13" y2="17"/></svg>Quick capture</button>
         <button type="button" class="dpa-add-btn quiet" id="commsNewMatter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>Matter</button>
       </div>
     </div>
@@ -6493,6 +6521,13 @@
   }
 
   // The sign-in screen and the states around it. User text (emails) is set as text.
+  // A form's first field is focused a moment after it appears — unless someone is already
+  // typing in one: never move the cursor away from text being entered (it once put a
+  // password into the email field).
+  function gateTyping(){
+    var a = document.activeElement;
+    return !!(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && authGateEl().contains(a));
+  }
   function renderGate(state, info){
     info = info || {};
     var card = document.getElementById('authCard');
@@ -6671,7 +6706,7 @@
     if (createF){
       var cEmail = document.getElementById('authEmail'), cPass = document.getElementById('authNewPassword');
       try { cEmail.value = localStorage.getItem(AUTH_EMAIL_KEY) || ''; } catch(e){}
-      setTimeout(function(){ try { (cEmail.value ? cPass : cEmail).focus(); } catch(e){} }, 60);
+      setTimeout(function(){ if (gateTyping()) return; try { (cEmail.value ? cPass : cEmail).focus(); } catch(e){} }, 60);
       createF.addEventListener('submit', function(ev){
         ev.preventDefault();
         var email = cEmail.value.trim();
@@ -6716,7 +6751,7 @@
       copyTextToClipboard(authUser ? authUser.uid : '').then(function(){ copy.textContent = 'Copied'; }).catch(function(){});
     });
     var focusEl = document.querySelector('#authCard input');
-    if (focusEl && state !== 'splash') setTimeout(function(){ try { focusEl.focus({ preventScroll: true }); } catch(e){} }, 50);
+    if (focusEl && state !== 'splash' && state !== 'create') setTimeout(function(){ if (gateTyping()) return; try { focusEl.focus({ preventScroll: true }); } catch(e){} }, 50);
   }
 
   async function initDb(){
@@ -7649,6 +7684,7 @@
     var today = todayStr();
 
     rangeEl.hidden = true;
+    rangeEl.classList.remove('q');
     mottoEl.textContent = '';
     quoteWrap.hidden = true;
 
@@ -7665,6 +7701,10 @@
       mottoEl.textContent = 'A more intentional you';
       quoteEl.innerHTML = editorialLine(viewedDate, HEADER_LINES);
       quoteWrap.hidden = false;
+      // on a phone the day's line is the header's one meta line
+      rangeEl.textContent = editorialLine(viewedDate, HEADER_LINES).replace(/<br>/g, ' ');
+      rangeEl.classList.add('q');
+      rangeEl.hidden = false;
 
       var parts = [];
       if (viewedDate !== today){
@@ -7713,6 +7753,7 @@
       labelEl.textContent = info.kicker;
       titleEl.textContent = info.title;
     }
+    document.querySelector('header.top').classList.toggle('has-sub', !!sub.innerHTML);
   }
 
   function headerNavStep(dir){
@@ -9895,6 +9936,7 @@
   });
   document.getElementById('commsNewConv').addEventListener('click', function(){ openNewCommsSheet('conv', {}); });
   document.getElementById('commsNewMatter').addEventListener('click', function(){ openNewCommsSheet('matter', {}); });
+  document.getElementById('commsCapture').addEventListener('click', function(){ openCommsCapture(null); });
 
   // desktop shows the record beside the list; a phone opens it as a sheet
   function selectComms(sel){
@@ -10259,6 +10301,301 @@
     }
     document.getElementById('newCommsSave').addEventListener('click', create);
     input.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); create(); } });
+  }
+
+  // ---- Quick capture: the morning sweep — several people at once ----
+  // One box, one person per line: "James — reply about accounts", or just "James". The name
+  // is what comes before the first dash (em, en, or a spaced hyphen); what comes after is
+  // where things stand. Every line becomes "Needs me". Before anything is saved, each line
+  // shows whether it is someone new or someone already here — matched only on the same
+  // name, never a similar one, and always changeable. Saving never makes an Action.
+  var CQ_DRAFT_KEY = 'ledger_comms_capture_draft', CQ_SOURCE_KEY = 'ledger_comms_capture_source', CQ_MAX = 40;
+  var CQ_SOURCES = [['whatsapp', 'WhatsApp'], ['email', 'Email'], ['phone', 'Call'], ['other', 'Other']];
+  function cqSourceLabel(k){ var x = CQ_SOURCES.find(function(s){ return s[0] === k; }); return x ? x[1] : 'Other'; }
+  function cqSplit(line){
+    var m = /\s*[—–]\s*|\s+-\s+/.exec(line);
+    if (m && m.index > 0) return { name: line.slice(0, m.index).trim(), note: line.slice(m.index + m[0].length).trim() };
+    return { name: line.trim(), note: '' };
+  }
+  function cqParse(text){
+    return hbParse(text).map(cqSplit).filter(function(x){ return x.name; });
+  }
+  function cqNorm(t){ return String(t || '').toLowerCase().replace(/[.,'’"()]/g, '').replace(/\s+/g, ' ').trim(); }
+  // the same name is a match; a name that begins the other ("James" / "James Carter") is
+  // only ever a suggestion
+  function cqCandidates(name){
+    var n = cqNorm(name), exact = [], near = [];
+    if (!n) return { exact: exact, near: near };
+    conversations.forEach(function(v){
+      var names = [v.title].concat(participantNames(v)).map(cqNorm).filter(Boolean);
+      if (names.indexOf(n) > -1) exact.push(v);
+      else if (names.some(function(x){ return (x + ' ').indexOf(n + ' ') === 0 || (n + ' ').indexOf(x + ' ') === 0; })) near.push(v);
+    });
+    function recent(a, b){ var oa = convIsActive(a) ? 1 : 0, ob = convIsActive(b) ? 1 : 0; return (ob - oa) || ((b.lastActivityAt || '') < (a.lastActivityAt || '') ? -1 : 1); }
+    return { exact: exact.sort(recent), near: near.sort(recent).slice(0, 3) };
+  }
+  function cqConvLabel(v){ var m = matterById(v.matterId); return convName(v) + (m ? ' · ' + (m.title || 'Matter') : '') + (v.attentionState === 'closed' ? ' · closed' : ''); }
+  // where a line goes, unless the person has chosen: the one existing conversation with
+  // that name; or, for a second line about someone new in this list, that same new one
+  function cqAutoTarget(st, row){
+    if (row.userTarget) return;
+    var c = cqCandidates(row.name);
+    row.cands = c;
+    if (c.exact.length){ row.target = 'conv:' + c.exact[0].id; return; }
+    var earlier = st.rows.find(function(x){ return x !== row && st.rows.indexOf(x) < st.rows.indexOf(row) && x.target === 'new' && cqNorm(x.name) === cqNorm(row.name); });
+    row.target = earlier ? 'row:' + earlier.id : 'new';
+  }
+  function openCommsCapture(draft){
+    editingId = null; activeSheetRefresh = null;
+    var st = draft || { text: lsGet(CQ_DRAFT_KEY, ''), source: lsGet(CQ_SOURCE_KEY, 'whatsapp') };
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead('', 'Quick capture', 'Who needs a reply? One per line — a name, then what’s needed.', '') +
+      '<div class="field"><label for="cqText">People</label><textarea id="cqText" class="cq-text" rows="7" maxlength="6000" placeholder="James — reply about accounts&#10;Abi — confirm weekend plans&#10;Michael — send proposal&#10;Daniel"></textarea></div>' +
+      '<div class="field"><label>From</label>' + commsChipsHtml('cqsource', CQ_SOURCES.map(function(s){ return { value: s[0], label: s[1] }; }), st.source) + '</div>' +
+      '<p class="auth-error" id="cqErr" role="alert"></p>' +
+      '<div class="sheet-actionbar"><button type="button" class="btn-primary" id="cqPreview" disabled>Preview</button></div>';
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    var ta = document.getElementById('cqText'), btn = document.getElementById('cqPreview');
+    ta.value = st.text || '';
+    function count(){
+      var n = cqParse(ta.value).length;
+      btn.disabled = !n;
+      btn.textContent = n ? 'Preview ' + n + (n === 1 ? ' person' : ' people') : 'Preview';
+    }
+    ta.addEventListener('input', function(){ count(); lsSet(CQ_DRAFT_KEY, ta.value); });
+    sheetEl.querySelectorAll('[data-chips="cqsource"] .cd-chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        st.source = chip.dataset.v; lsSet(CQ_SOURCE_KEY, st.source);
+        sheetEl.querySelectorAll('[data-chips="cqsource"] .cd-chip').forEach(function(x){ x.classList.toggle('sel', x === chip); x.setAttribute('aria-pressed', x === chip ? 'true' : 'false'); });
+      });
+    });
+    count();
+    btn.addEventListener('click', function(){
+      var lines = cqParse(ta.value);
+      if (!lines.length) return;
+      if (lines.length > CQ_MAX){ document.getElementById('cqErr').textContent = 'That’s ' + lines.length + ' lines — up to ' + CQ_MAX + ' at a time.'; return; }
+      st.text = ta.value;
+      st.rows = lines.map(function(l){ return { id: uid(), convId: uid(), name: l.name.slice(0, 120), note: l.note.slice(0, 500), source: null, followUp: null, matterId: null, target: 'new', userTarget: false }; });
+      st.rows.forEach(function(r){ cqAutoTarget(st, r); });
+      openCommsCapturePreview(st);
+    });
+    setTimeout(function(){ try { ta.focus(); } catch(e){} }, 60);
+  }
+  function openCommsCapturePreview(st){
+    editingId = null; activeSheetRefresh = null;
+    var busy = false, opened = null;
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' + sheetHead('', 'Check the list', '<span id="cqpSub"></span>', '') +
+      '<div class="field"><label>From</label><div id="cqpSource"></div></div>' +
+      '<div class="cq-rows" id="cqpRows"></div>' +
+      '<button type="button" class="btn-link hb-add-row" id="cqpAdd">' + BK_PLUS_SVG + 'Add another</button>' +
+      '<p class="auth-error" id="cqpErr" role="alert"></p>' +
+      '<div class="sheet-actionbar"><button type="button" class="btn-primary" id="cqpSave"></button></div>' +
+      '<button type="button" class="btn-quiet" id="cqpBack">Back to the list</button>';
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    var rowsEl = document.getElementById('cqpRows'), err = document.getElementById('cqpErr'), save = document.getElementById('cqpSave');
+    function rowById(id){ return st.rows.find(function(r){ return r.id === id; }); }
+    function targetText(r){
+      if (r.target === 'new') return 'New' + (r.cands && r.cands.near.length ? ' — or ' + convName(r.cands.near[0]) + '?' : '');
+      if (r.target.indexOf('row:') === 0){ var e = rowById(r.target.slice(4)); return 'With line ' + (st.rows.indexOf(e) + 1) + (e ? ' (' + e.name + ')' : ''); }
+      var v = convById(r.target.slice(5));
+      return v ? 'Updates ' + cqConvLabel(v) : 'New';
+    }
+    function counts(){
+      var add = 0, upd = {};
+      st.rows.forEach(function(r){ if (!r.name.trim()) return; if (r.target === 'new') add++; else if (r.target.indexOf('conv:') === 0) upd[r.target] = true; });
+      return { add: add, upd: Object.keys(upd).length, n: st.rows.filter(function(r){ return r.name.trim(); }).length };
+    }
+    function summary(){
+      var c = counts();
+      document.getElementById('cqpSub').textContent = [c.add ? c.add + ' new' : '', c.upd ? c.upd + ' to update' : ''].filter(Boolean).join(' · ') || 'Nothing yet';
+      if (!busy) save.textContent = c.n ? 'Save ' + c.n + (c.n === 1 ? ' person' : ' people') : 'Nothing to save';
+      save.disabled = busy || !c.n;
+    }
+    function paintSource(){
+      var w = document.getElementById('cqpSource');
+      w.innerHTML = commsChipsHtml('cqpsource', CQ_SOURCES.map(function(s){ return { value: s[0], label: s[1] }; }), st.source);
+      w.querySelectorAll('.cd-chip').forEach(function(chip){ chip.addEventListener('click', function(){ st.source = chip.dataset.v; lsSet(CQ_SOURCE_KEY, st.source); paintSource(); paintRows(); }); });
+    }
+    function paintRows(){
+      rowsEl.innerHTML = '';
+      st.rows.forEach(function(r, i){
+        var row = document.createElement('div'); row.className = 'cq-row' + (opened === r.id ? ' open' : '');
+        var line = document.createElement('div'); line.className = 'hb-line';
+        var body = document.createElement('div'); body.className = 'hb-line-body';
+        var nm = document.createElement('input'); nm.type = 'text'; nm.className = 'hb-input cq-name'; nm.maxLength = 120; nm.value = r.name; nm.setAttribute('aria-label', 'Name, line ' + (i + 1));
+        var nt = document.createElement('input'); nt.type = 'text'; nt.className = 'hb-input cq-note'; nt.maxLength = 500; nt.value = r.note; nt.placeholder = 'What’s needed (optional)'; nt.setAttribute('aria-label', 'What’s needed, line ' + (i + 1));
+        var meta = document.createElement('button'); meta.type = 'button'; meta.className = 'hb-who cq-meta' + (r.target !== 'new' ? ' own' : '');
+        meta.textContent = cqSourceLabel(r.source || st.source) + ' · ' + targetText(r) + (r.followUp ? ' · follow up ' + friendlyDay(r.followUp) : '');
+        meta.setAttribute('aria-expanded', opened === r.id ? 'true' : 'false');
+        nm.addEventListener('input', function(){ r.name = nm.value; summary(); });
+        nm.addEventListener('change', function(){ st.rows.forEach(function(x){ cqAutoTarget(st, x); }); paintRows(); summary(); });
+        nt.addEventListener('input', function(){ r.note = nt.value; });
+        meta.addEventListener('click', function(){ opened = opened === r.id ? null : r.id; paintRows(); });
+        body.appendChild(nm); body.appendChild(nt); body.appendChild(meta);
+        var x = document.createElement('button'); x.type = 'button'; x.className = 'hb-x'; x.setAttribute('aria-label', 'Remove ' + (r.name || 'this line')); x.innerHTML = CLOSE_SVG;
+        x.addEventListener('click', function(){
+          st.rows = st.rows.filter(function(y){ return y !== r; });
+          st.rows.forEach(function(y){ if (y.target === 'row:' + r.id){ y.target = 'new'; y.userTarget = false; cqAutoTarget(st, y); } });
+          if (opened === r.id) opened = null; paintRows(); summary();
+        });
+        line.appendChild(body); line.appendChild(x); row.appendChild(line);
+        if (opened === r.id) row.appendChild(cqRowEditor(st, r, function(){ paintRows(); summary(); }));
+        rowsEl.appendChild(row);
+      });
+    }
+    paintSource(); paintRows(); summary();
+    document.getElementById('cqpAdd').addEventListener('click', function(){
+      if (st.rows.length >= CQ_MAX){ err.textContent = 'Up to ' + CQ_MAX + ' at a time.'; return; }
+      var r = { id: uid(), convId: uid(), name: '', note: '', source: null, followUp: null, matterId: null, target: 'new', userTarget: false };
+      st.rows.push(r); paintRows(); summary();
+      var ins = rowsEl.querySelectorAll('.cq-name'); if (ins.length) ins[ins.length - 1].focus();
+    });
+    document.getElementById('cqpBack').addEventListener('click', function(){
+      if (busy) return;
+      st.text = st.rows.filter(function(r){ return r.name.trim(); }).map(function(r){ return r.name.trim() + (r.note.trim() ? ' — ' + r.note.trim() : ''); }).join('\n');
+      openCommsCapture(st);
+    });
+    save.addEventListener('click', function(){
+      if (busy) return;
+      st.rows = st.rows.filter(function(r){ return r.name.trim(); });
+      if (!st.rows.length) return;
+      busy = true; err.textContent = ''; summary(); save.textContent = 'Saving…';
+      cqSave(st).then(function(res){
+        busy = false;
+        if (!res.failed){
+          try { localStorage.removeItem(CQ_DRAFT_KEY); } catch(e){}
+          closeSheet();
+          commsFilter = 'needs'; lsSet(COMMS_FILTER_KEY, 'needs');
+          if (currentView !== 'comms') openComms('needs'); else renderComms();
+          showPinToast([res.added ? res.added + (res.added === 1 ? ' person added' : ' people added') : '', res.updated ? res.updated + (res.updated === 1 ? ' conversation updated' : ' conversations updated') : ''].filter(Boolean).join(' · '), false, CHECK_SVG);
+          return;
+        }
+        // what was saved is out of the list; what wasn't stays, to try again
+        paintRows(); summary();
+        err.textContent = (res.added + res.updated ? (res.added + res.updated) + ' saved. ' : 'Nothing was saved. ') + res.failed + ' couldn’t be — check your connection and try again.';
+        save.textContent = 'Try the ' + res.failed + ' again';
+      });
+    });
+  }
+  // one line's own choices: where it goes, its source, a follow-up, a Matter
+  function cqRowEditor(st, r, done){
+    var ed = document.createElement('div'); ed.className = 'hb-own cq-own';
+    var opts = [{ value: 'new', label: 'New conversation' }];
+    var c = r.cands || cqCandidates(r.name);
+    c.exact.concat(c.near).forEach(function(v){ opts.push({ value: 'conv:' + v.id, label: 'Update ' + cqConvLabel(v) }); });
+    st.rows.forEach(function(x){ if (x !== r && st.rows.indexOf(x) < st.rows.indexOf(r) && x.target === 'new' && cqNorm(x.name) === cqNorm(r.name)) opts.push({ value: 'row:' + x.id, label: 'With line ' + (st.rows.indexOf(x) + 1) }); });
+    var tl = document.createElement('div'); tl.className = 'cq-targets';
+    tl.innerHTML = commsChipsHtml('cqtarget', opts, r.target);
+    ed.appendChild(tl);
+    var sl = document.createElement('div');
+    sl.innerHTML = commsChipsHtml('cqrowsource', CQ_SOURCES.map(function(s){ return { value: s[0], label: s[1] }; }), r.source || st.source);
+    ed.appendChild(sl);
+    var two = document.createElement('div'); two.className = 'cq-two';
+    var fu = document.createElement('label'); fu.className = 'field cq-mini'; fu.innerHTML = '<span>Follow up</span><input type="date" class="cq-date" aria-label="Follow up">';
+    var fin = fu.querySelector('input'); fin.value = r.followUp || '';
+    two.appendChild(fu);
+    var target = r.target.indexOf('conv:') === 0 ? convById(r.target.slice(5)) : null;
+    var keepsMatter = target && target.matterId;
+    if (!keepsMatter && r.target.indexOf('row:') !== 0){
+      var ml = document.createElement('label'); ml.className = 'field cq-mini'; ml.innerHTML = '<span>Matter</span>';
+      var sel = document.createElement('select'); sel.className = 'cq-matter';
+      var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'No matter'; sel.appendChild(o0);
+      matters.filter(function(m){ return m.status !== 'closed'; }).forEach(function(m){ var o = document.createElement('option'); o.value = m.id; o.textContent = m.title || 'Untitled matter'; sel.appendChild(o); });
+      sel.value = r.matterId || '';
+      sel.addEventListener('change', function(){ r.matterId = sel.value || null; });
+      ml.appendChild(sel); two.appendChild(ml);
+    } else if (keepsMatter){
+      var kp = document.createElement('p'); kp.className = 'cq-keeps'; kp.textContent = 'Stays part of ' + ((matterById(target.matterId) || {}).title || 'its matter');
+      two.appendChild(kp);
+    }
+    ed.appendChild(two);
+    tl.querySelectorAll('.cd-chip').forEach(function(chip){ chip.addEventListener('click', function(){ r.target = chip.dataset.v; r.userTarget = true; done(); }); });
+    sl.querySelectorAll('.cd-chip').forEach(function(chip){ chip.addEventListener('click', function(){ r.source = chip.dataset.v === st.source ? null : chip.dataset.v; done(); }); });
+    fin.addEventListener('change', function(){ r.followUp = fin.value || null; done(); });
+    return ed;
+  }
+  // Works out every record once (so a retry writes exactly the same thing, never a second
+  // log line), applies them here at once, then writes each; reports what was and wasn't.
+  function cqSave(st){
+    var now = new Date().toISOString();
+    st.computed = st.computed || {};
+    var plan = {}, added = {}, updated = {}, firstNew = {};
+    st.rows.forEach(function(r){
+      var src = r.source || st.source, name = r.name.trim().slice(0, 120), note = r.note.trim().slice(0, 500);
+      var said = cqSourceLabel(src) + (note ? ': ' + note : '');
+      var key, rec;
+      if (r.target === 'new'){
+        key = r.convId;
+        firstNew[r.id] = key;
+        if (st.computed[key]){ plan[key] = st.computed[key]; added[key] = true; return; }
+        rec = { id: key, title: name, matterId: r.matterId || null, participants: [{ name: name, role: '' }],
+          channel: src, externalRef: null, attentionState: 'needs_me', waitingOn: '', capturedAt: now,
+          lastActivityAt: now, nextFollowUpAt: r.followUp || null, summary: note, notes: '',
+          log: [{ at: now, kind: 'state', text: 'Started · Needs me' }, { at: now, kind: 'received', text: said }] };
+        plan[key] = rec; added[key] = true;
+        return;
+      }
+      var into = r.target.indexOf('row:') === 0 ? (firstNew[r.target.slice(4)] || null) : r.target.slice(5);
+      if (!into) return;
+      if (st.computed[into + '|' + r.id]){ plan[into] = st.computed[into + '|' + r.id]; if (!added[into]) updated[into] = true; return; }
+      var base = plan[into] || convById(into);
+      if (!base) return;
+      var touched = !!plan[into], log = (base.log || []).slice();
+      var patch = { lastActivityAt: now, attentionState: 'needs_me' };
+      // where it stood stays in its history; the new line is the current position
+      if (note){
+        if (touched) patch.summary = base.summary ? base.summary + ' · ' + note : note;
+        else {
+          if (base.summary && base.summary !== note) log.push({ at: now, kind: 'note', text: 'Was: ' + base.summary.split('\n')[0] });
+          patch.summary = note;
+        }
+      }
+      log.push({ at: now, kind: 'received', text: said });
+      if ((base.attentionState || 'needs_me') !== 'needs_me') log.push({ at: now, kind: 'state', text: 'Needs me' });
+      if (r.followUp) patch.nextFollowUpAt = r.followUp;
+      if (!base.matterId && r.matterId) patch.matterId = r.matterId;
+      patch.log = log.slice(-COMMS_LOG_MAX);
+      rec = Object.assign({}, base, patch);
+      plan[into] = rec; st.computed[into + '|' + r.id] = rec;
+      if (!added[into]) updated[into] = true;
+    });
+    Object.keys(plan).forEach(function(k){ if (added[k]) st.computed[k] = plan[k]; });
+    var ids = Object.keys(plan), ok = {}, failed = {}, prior = {};
+    ids.forEach(function(id){ prior[id] = convById(id); setCommsLocal('ledger_conversations', Object.assign({}, plan[id], { updatedAt: now })); });
+    commsChanged();
+    function write(id){
+      var item = Object.assign({}, plan[id], { updatedAt: now });
+      if (!(dbReady && dbRef)){ ok[id] = true; return Promise.resolve(); }
+      var w = commsPending.ledger_conversations[id] || (commsPending.ledger_conversations[id] = { n: 0, data: null });
+      w.n += 1; w.data = item;
+      var copy = Object.assign({}, item); delete copy.id;
+      return dbRef.collection('ledger_conversations').doc(id).set(copy)
+        .then(function(){ ok[id] = true; }, function(e){ console.error('quick capture save failed', e); failed[id] = true; })
+        .then(function(){ w.n -= 1; if (w.n <= 0) delete commsPending.ledger_conversations[id]; });
+    }
+    return Promise.all(ids.map(write)).then(function(){
+      // a write that failed is taken back here too: the list shows only what was saved
+      Object.keys(failed).forEach(function(id){
+        if (prior[id]) setCommsLocal('ledger_conversations', prior[id]);
+        else conversations = conversations.filter(function(v){ return v.id !== id; });
+      });
+      if (Object.keys(failed).length) commsChanged();
+      localSaveComms();
+      // a new conversation that is part of a Matter shows in the Matter's movement
+      ids.forEach(function(id){ if (ok[id] && added[id] && plan[id].matterId){ logMatter(plan[id].matterId, 'note', 'Conversation added: ' + plan[id].title); } });
+      // what saved leaves the list; a line whose record failed stays to try again
+      st.rows = st.rows.filter(function(r){
+        var key = r.target === 'new' ? r.convId : (r.target.indexOf('row:') === 0 ? (firstNew[r.target.slice(4)] || null) : r.target.slice(5));
+        return key && failed[key];
+      });
+      return {
+        added: Object.keys(added).filter(function(k){ return ok[k]; }).length,
+        updated: Object.keys(updated).filter(function(k){ return ok[k]; }).length,
+        failed: st.rows.length
+      };
+    });
   }
 
   // ---- after a linked action is done: what happens next? One tap, nothing assumed ----
