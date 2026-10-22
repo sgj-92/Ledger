@@ -278,7 +278,10 @@ service cloud.firestore {
     match /ledger_home_requests/{rid} {
       allow read: if canSee(resource.data);
       // anyone at Home asks for themselves; an admin may also ask on someone's behalf.
-      // The creator is always the signed-in user; requester and assignee are active members.
+      // Anyone may also add a task for themselves: their own idea (requester = assignee =
+      // them), or something another member asked of them in person (requester = that
+      // member). The creator is always the signed-in user, so it always shows who wrote it;
+      // requester and assignee are active members.
       allow create: if rid.matches('^[A-Za-z0-9]{1,40}$')
                     && inHome(request.resource.data.homeId)
                     && request.resource.data.keys().hasOnly(['homeId', 'text', 'note', 'requestedTiming', 'requestedDate',
@@ -287,10 +290,12 @@ service cloud.firestore {
                          'latestUpdateType', 'readAt', 'hasChecklist'])
                     && request.resource.data.get('hasChecklist', true) == true
                     && request.resource.data.createdByUid == request.auth.uid
-                    && request.resource.data.requesterUid != request.resource.data.assigneeUid
+                    && (request.resource.data.requesterUid != request.resource.data.assigneeUid
+                        || request.resource.data.assigneeUid == request.auth.uid)
                     && activeIn(request.resource.data.requesterUid, request.resource.data.homeId)
                     && activeIn(request.resource.data.assigneeUid, request.resource.data.homeId)
-                    && (request.resource.data.requesterUid == request.auth.uid || me().role == 'admin')
+                    && (request.resource.data.requesterUid == request.auth.uid || me().role == 'admin'
+                        || request.resource.data.assigneeUid == request.auth.uid)
                     && request.resource.data.participants.hasAll([request.resource.data.requesterUid, request.resource.data.assigneeUid, request.auth.uid])
                     && request.resource.data.participants.hasOnly([request.resource.data.requesterUid, request.resource.data.assigneeUid, request.auth.uid])
                     && request.resource.data.visibility in ['private', 'home']
@@ -445,7 +450,7 @@ service cloud.firestore {
           && d.mode in ['assigned', 'anyone']
           && (d.mode == 'anyone'
               ? (d.get('assigneeUid', null) == null && d.visibility == 'home')
-              : (d.assigneeUid is string && d.assigneeUid != d.createdByUid && d.visibility in ['private', 'home']))
+              : (d.assigneeUid is string && d.visibility in ['private', 'home']))
           && recurSchedule(d.schedule)
           && d.timezone is string && d.timezone.size() <= 64
           && d.get('checklist', []) is list && d.get('checklist', []).size() <= 40

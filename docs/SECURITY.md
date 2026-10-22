@@ -301,9 +301,12 @@ A shared namespace for Shaun, Abi and the people who help at home. Full model:
   subcollection follows its request. The nanny's queries must filter by her
   `participants` or by `visibility == 'home'`; listing the whole Home is refused.
 - **Creating a request:**
-  - `createdByUid` must be the signed-in user. Requester and assignee are distinct
-    active members of that Home.
-  - On someone's behalf (requester ≠ creator) is allowed for admins only.
+  - `createdByUid` must be the signed-in user. Requester and assignee are active
+    members of that Home, and distinct unless the assignee is the signed-in user (a task
+    of their own).
+  - On someone's behalf (requester ≠ creator) is allowed for admins, and for anyone
+    recording what someone asked of them in person (assignee = the signed-in user).
+    Either way the creator is the writer, immutably, so it always shows who wrote it.
   - `participants` is exactly requester, assignee and creator.
   - It starts `requested`, unplanned and unlinked.
 - **Updating a request:**

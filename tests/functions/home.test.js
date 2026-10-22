@@ -61,6 +61,18 @@ const fire = (rid, u) => engine.handleHomeUpdate({ update: u, requestId: rid, up
   await db.doc('ledger_notification_prefs/maria').set({ homeOversight: true });
   reset(); await fire('r3', { type: 'created', actorUid: 'shaun' });
   check(who() === 'shaun', 'a member who is not an admin never follows Home (Maria opted in, still nothing)', who());
+  // a task someone adds for themselves: their own idea, or asked of them in person
+  await db.doc('ledger_home_requests/s1').set(R({ text: 'Sort the toy box', requesterUid: 'maria', assigneeUid: 'maria', createdByUid: 'maria', participants: ['maria'], visibility: 'home' }));
+  reset(); await fire('s1', { type: 'created', actorUid: 'maria' });
+  check(who() === 'shaun' && to('shaun')[0].payload.title === 'Maria added a task' && to('shaun')[0].payload.body === 'Sort the toy box',
+    'Maria adds her own task → never told herself; Shaun, following Home: "Maria added a task"', sent.map((s) => s.endpoint + ' ' + s.payload.title));
+  await db.doc('ledger_home_requests/s2').set(R({ text: 'Fold the washing', requesterUid: 'abi', assigneeUid: 'maria', createdByUid: 'maria', participants: ['abi', 'maria'] }));
+  reset(); await fire('s2', { type: 'created', actorUid: 'maria' });
+  check(who() === 'maria,shaun' && to('maria')[0].payload.title === 'Abi sent a request' && to('shaun')[0].payload.title === 'Abi asked Maria' && !to('abi').length,
+    'Maria writes down what Abi asked in person → as if Abi sent it: Maria "Abi sent a request", Abi nothing; Shaun following: "Abi asked Maria"', sent.map((s) => s.endpoint + ' ' + s.payload.title));
+  await db.doc('ledger_home_requests/s1').update({ status: 'done' });
+  reset(); await fire('s1', { type: 'status', actorUid: 'maria', metadata: { status: 'done' } });
+  check(who() === 'shaun' && to('shaun')[0].payload.title === 'Maria completed “Sort the toy box”' && to('shaun')[0].payload.body === 'Own task', 'her own task done → nobody to tell but Shaun following: "Own task"', sent.map((s) => s.payload));
   // comments → everyone in it but the author
   reset(); await fire('r1', { type: 'comment', actorUid: 'maria', text: 'Done early, all asleep' });
   check(who() === 'shaun' && to('shaun')[0].payload.title === 'Maria updated “Bath at six”' && to('shaun')[0].payload.body === 'Done early, all asleep', 'Maria adds an update → Shaun');
@@ -139,6 +151,9 @@ const fire = (rid, u) => engine.handleHomeUpdate({ update: u, requestId: rid, up
   await db.doc('ledger_home_requests/t1_20261025').set(R({ text: 'School uniform ready', requesterUid: 'abi', assigneeUid: 'maria', createdByUid: 'abi', participants: ['abi', 'maria'], recurringId: 't1', occurrenceDate: '2026-10-25' }));
   reset(); await fire('t1_20261025', { type: 'created', actorUid: 'abi', metadata: { recurring: 't1', occurrence: '2026-10-25', mode: 'assigned' } });
   check(who() === 'maria' && to('maria')[0].payload.title === 'Today: School uniform ready' && to('maria')[0].payload.body === 'Regular, from Abi', 'a recurring one, due today → its person: "Today: …" · "Regular, from Abi"', sent.map((x) => x.payload));
+  await db.doc('ledger_home_requests/t3_20261025').set(R({ text: 'Water the plants', requesterUid: 'maria', assigneeUid: 'maria', createdByUid: 'maria', participants: ['maria'], visibility: 'home', recurringId: 't3', occurrenceDate: '2026-10-25' }));
+  reset(); await fire('t3_20261025', { type: 'created', actorUid: 'maria', metadata: { recurring: 't3', occurrence: '2026-10-25', mode: 'assigned' } });
+  check(who() === 'maria' && to('maria')[0].payload.title === 'Today: Water the plants' && to('maria')[0].payload.body === 'Regular', 'her own recurring one → her reminder: "Today: …" · "Regular"', sent.map((x) => x.payload));
   await db.doc('ledger_home_requests/t2_20261026').set(R({ text: 'Bins out', requesterUid: 'abi', assigneeUid: null, createdByUid: 'abi', participants: ['abi'], visibility: 'home', recurringId: 't2', occurrenceDate: '2026-10-26' }));
   reset(); await fire('t2_20261026', { type: 'created', actorUid: 'abi', metadata: { recurring: 't2', occurrence: '2026-10-26', mode: 'anyone' } });
   check(who() === 'maria,shaun' && to('maria')[0].payload.title === 'Today at Home: Bins out' && to('maria')[0].payload.body === 'Anyone can take it', 'anyone at Home → everyone at Home but Abi who set it up (and never the removed)', who());

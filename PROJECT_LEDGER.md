@@ -727,6 +727,28 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-22 — Home: anyone adds a task of their own (Shaun's request)
+- **Who:** anyone at Home — Shaun, Abi or the nanny. It works for one task (with or
+  without a checklist), several at once, and recurring ones.
+- **Whose idea:** "Asked by" says it.
+  - **Their own** (requester, assignee and creator all them): shown as "Maria's task" /
+    "Your task". It isn't news to them: no notification, no Home dot, never in Shaun's
+    Inbox, and no "Can't do" or Withdraw. Admins following Home hear "Maria added a
+    task".
+  - **Asked in person** (requester = whoever asked; creator = them): this extends the
+    2026-10-16 on-behalf decision to everyone, unchanged. It behaves exactly as if the
+    asker had sent it ("Abi sent a request" to them; the asker hears nothing), and it
+    shows "added by Maria". Only for themselves: a non-admin still never writes a
+    request between two other people.
+- **Visible to everyone:** "Everyone at Home can see it" is on by default for a task of
+  your own (one, several or recurring), and can be switched off.
+- **Rules:** create allows requester = assignee only when the assignee is the writer.
+  A non-admin may name another member as requester only when the task is for
+  themselves. A recurring template may be assigned to its creator. Creator provenance
+  is unchanged: always the signed-in user.
+- **Not done:** "Asked by" on several-at-once and on recurring tasks. Those are always
+  your own idea.
+
 ### 2026-10-22 — Home: Recent updates can be hidden and cleared (Shaun's request)
 - **Show / hide:** the Recent updates header opens and shuts the section in place,
   using the chevron-down pattern. Hidden, it shows its count. The choice is remembered
@@ -2098,6 +2120,18 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-22) — **Home: anyone adds a task of their own** (see Decisions). Add →
+  "Something I'll do"; Me in For on every form; Asked by for in-person instructions.
+
+  Tests:
+  - rules 553;
+  - engine 47, recurrence 35, push 49;
+  - Home e2e 183 (H17: the nanny's own task, an in-person one, several, a recurring
+    one, and Shaun's own not in his Inbox), at 390 and 1440;
+  - Partner Sharing 209, push e2e 76.
+
+  **Needs rules and functions deployed** (the live rules refuse a task for yourself).
+
 - (2026-10-22) — **Home: Recent updates can be hidden, and cleared with Undo** (see
   Decisions).
 
@@ -2505,6 +2539,10 @@ minutes before", recurring/accountability).
       - Comms → Quick capture → paste a sweep ("James — reply about accounts", one per
         line) → check the list (an existing James says "Updates James") → Save → all
         under Needs me, and Today says "N need you";
+      - **Deploy first:** `npx firebase-tools deploy --only firestore:rules,functions --project ledger-6aec3`;
+        then the nanny: Home → Add → Something I'll do → it shows on your phone as
+        "<her name>'s task"; again with Asked by → Abi → Abi's phone stays quiet, hers
+        says "Abi sent a request";
       - Home → Recent updates: tap the header to hide it (it stays hidden), Clear all →
         Undo brings them back; on the Mac, Home rows are one compact line each;
       - Comms → Business → only Business conversations, with matching counts; open an

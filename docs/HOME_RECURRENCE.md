@@ -129,7 +129,8 @@ occurrence still exists (soft delete), so it is never recreated.
   or anyone at Home when its visibility is `home`. That mirrors the request rule.
 - **Create:**
   - an active member, as themselves (`createdByUid`), into their own Home;
-  - `assigned`: the assignee is another active member;
+  - `assigned`: the assignee is an active member (since 2026-10-22, possibly
+    themselves: a regular task of their own, announced to them as "Today: …" · "Regular");
   - `anyone`: no assignee, and visibility `home`;
   - the shape and schedule are validated;
   - status `active`, and no server-owned field.

@@ -5635,6 +5635,7 @@
     mountain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 19.5l6.2-9.6 3.6 5.2 2.4-3.4 6.8 7.8z"/><path d="M8.7 9.9l1.9-3"/></svg>',
     sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.3" y1="5.3" x2="7.1" y2="7.1"/><line x1="16.9" y1="16.9" x2="18.7" y2="18.7"/><line x1="5.3" y1="18.7" x2="7.1" y2="16.9"/><line x1="16.9" y1="7.1" x2="18.7" y2="5.3"/></svg>',
     laptop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="11" rx="1.8"/><line x1="2.5" y1="19.5" x2="21.5" y2="19.5"/></svg>',
+    user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.6 7-5.6s6.2 2 7 5.6"/></svg>',
     people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c0-3.1 2.5-5.2 5.5-5.2s5.5 2.1 5.5 5.2"/><path d="M16.5 5.2a3.2 3.2 0 0 1 0 6"/><path d="M17.5 14.6c2 .6 3.5 2.4 3.5 4.9"/></svg>',
     calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.8" y="5.2" width="16.4" height="15" rx="2.4"/><line x1="3.8" y1="9.8" x2="20.2" y2="9.8"/><line x1="8.2" y1="3.2" x2="8.2" y2="6.6"/><line x1="15.8" y1="3.2" x2="15.8" y2="6.6"/></svg>',
     clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><polyline points="12 7.2 12 12 15.2 13.8"/></svg>',
@@ -13961,6 +13962,14 @@
   function homeWho(uid){ return uid === homeMe() ? 'You' : homeNameOf(uid); }
   function homeWhose(uid){ return uid === homeMe() ? 'your' : homeNameOf(uid) + '’s'; }
   function homeReq(id){ return home.requests.find(function(r){ return r.id === id; }) || null; }
+  // someone's own task: their idea, for themselves. (Something asked of them in person is
+  // an ordinary request from whoever asked — only who wrote it differs.)
+  function hrOwnIdea(r){ return !!r && !!r.assigneeUid && r.requesterUid === r.assigneeUid && r.createdByUid === r.assigneeUid; }
+  function homeMeFirst(list){
+    var me = homeMe();
+    return list.slice().sort(function(a, b){ return (a.uid === me ? -1 : 0) - (b.uid === me ? -1 : 0) || (a.displayName || '').localeCompare(b.displayName || ''); });
+  }
+  function homeUids(list){ var out = []; list.forEach(function(u){ if (u && out.indexOf(u) === -1) out.push(u); }); return out; }
   function homeRef(id){ return dbRef.collection(HOME_REQ).doc(id); }
 
   // ---- data: started with the rest of a person's data, stopped when they leave Home ----
@@ -14100,6 +14109,7 @@
   // "From Abi · for Maria", and who wrote it when that was someone else
   function hrKicker(r){
     var me = homeMe();
+    if (hrOwnIdea(r)) return r.assigneeUid === me ? 'Your task' : homeNameOf(r.assigneeUid) + '’s task';
     if (!r.assigneeUid) return (r.requesterUid === me ? 'For anyone at Home' : 'From ' + homeNameOf(r.requesterUid) + ' · for anyone at Home');
     var s = r.assigneeUid === me ? 'From ' + homeNameOf(r.requesterUid)
       : (r.requesterUid === me ? 'For ' + homeNameOf(r.assigneeUid) : homeNameOf(r.requesterUid) + ' → ' + homeNameOf(r.assigneeUid));
@@ -14364,7 +14374,7 @@
   function homeAttention(){
     if (!homeOn()) return 0;
     var me = homeMe();
-    return hrVisible().filter(function(r){ return (r.assigneeUid === me && r.status === 'requested') || hrUnread(r); }).length;
+    return hrVisible().filter(function(r){ return (r.assigneeUid === me && r.status === 'requested' && !hrOwnIdea(r)) || hrUnread(r); }).length;
   }
   function hrCanTick(r){
     var me = homeMe();
@@ -14434,7 +14444,7 @@
   // "Maria completed it · 2h", from the request's own summary of its latest entry
   function hrActivityLine(r){
     var who = homeWho(r.latestUpdateByUid || r.createdByUid), t = r.latestUpdateType || 'created', verb;
-    if (t === 'created') verb = who === 'You' ? 'asked' : 'asked';
+    if (t === 'created') verb = hrOwnIdea(r) ? 'added it' : 'asked';
     else if (t === 'comment') verb = 'added an update';
     else if (t === 'status') verb = r.status === 'done' ? 'completed it' : (r.status === 'in_progress' ? 'started it' : 'reopened it');
     else if (t === 'planned') verb = 'planned it';
@@ -14766,10 +14776,10 @@
   // set one up, or edit the series (the change applies from the next one)
   function openHomeRecurring(t){
     var me = homeMe(), editing = !!t;
-    var people = homeActiveMembers().filter(function(m){ return m.uid !== ((t && t.createdByUid) || me); }).sort(function(a, b){ return (a.displayName || '').localeCompare(b.displayName || ''); });
-    var helpers = people.filter(function(m){ return m.role === 'member'; });
+    var people = homeMeFirst(homeActiveMembers());
+    var helpers = people.filter(function(m){ return m.role === 'member' && m.uid !== me; });
     var sc = t ? Object.assign({}, t.schedule) : { freq: 'weekly', days: [rcWeekday(todayStr())], monthDay: Number(todayStr().slice(8)), every: 2, startDate: todayStr(), endDate: null, time: null };
-    var st = { mode: t ? t.mode : 'assigned', assignee: t ? t.assigneeUid : (helpers.length === 1 ? helpers[0].uid : null), shared: t ? t.visibility === 'home' : false };
+    var st = { mode: t ? t.mode : 'assigned', assignee: t ? t.assigneeUid : (!homeIsAdmin() ? me : (helpers.length === 1 ? helpers[0].uid : null)), shared: t ? t.visibility === 'home' : false, shareTouched: !!t };
     var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', editing ? 'Edit responsibility' : 'Recurring responsibility', editing ? 'Changes apply from the next one.' : 'Set it up once; it comes round by itself.', '') +
       '<div class="field"><label for="rcText">What</label><textarea id="rcText" rows="2" maxlength="280" placeholder="e.g. School uniform washed, ironed and ready"></textarea></div>' +
       '<div class="field"><label>Who</label><div class="bk-filter-pop" id="rcMode" role="radiogroup" aria-label="Who"></div></div>' +
@@ -14817,7 +14827,8 @@
     function paint(){
       chipRow(sh.querySelector('#rcMode'), [['assigned', 'A named person'], ['anyone', 'Anyone at Home']], st.mode, function(v){ st.mode = v; });
       sh.querySelector('#rcForField').hidden = st.mode !== 'assigned';
-      chipRow(sh.querySelector('#rcFor'), people.map(function(m){ return [m.uid, m.displayName]; }), st.assignee, function(v){ st.assignee = v; });
+      chipRow(sh.querySelector('#rcFor'), people.map(function(m){ return [m.uid, m.uid === me ? 'Me' : m.displayName]; }), st.assignee, function(v){ st.assignee = v; });
+      if (!st.shareTouched) st.shared = st.mode === 'assigned' && st.assignee === me;   // your own: shared, unless you say
       chipRow(sh.querySelector('#rcFreq'), [['daily', 'Daily'], ['weekdays', 'Chosen days'], ['weekly', 'Weekly'], ['monthly', 'Monthly'], ['interval', 'Every few days']], sc.freq, function(v){
         sc.freq = v;
         if (v === 'weekdays' && (!sc.days || sc.days.length < 2)) sc.days = [1, 2, 3, 4, 5];
@@ -14840,7 +14851,7 @@
       var s2 = readSchedule(), next = rcNextDue(s2, todayStr()), label = rcLabel(s2);
       sh.querySelector('#rcPreview').textContent = label ? label + (next ? ' · first ' + rcDayWordCap(next) : ' · no dates in that range') : '';
     }
-    sh.querySelector('#rcShare').addEventListener('click', function(){ if (st.mode !== 'anyone'){ st.shared = !st.shared; paint(); } });
+    sh.querySelector('#rcShare').addEventListener('click', function(){ if (st.mode !== 'anyone'){ st.shared = !st.shared; st.shareTouched = true; paint(); } });
     ['#rcMonthDay', '#rcEvery', '#rcStart', '#rcEnd', '#rcTime'].forEach(function(id){ sh.querySelector(id).addEventListener('input', preview); sh.querySelector(id).addEventListener('change', preview); });
     paint();
     sh.querySelector('#rcSave').addEventListener('click', function(){
@@ -14894,11 +14905,13 @@
     var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Add to Home', '', '') +
       '<div class="act-rows" id="hamRows">' +
         '<button type="button" class="act-row" id="hamOne"><span class="act-ic">' + BK_PLUS_SVG + '</span><span class="act-label lc-row-x"><span class="lc-row-t">New request</span><span class="lc-row-m">One thing, for one person</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
+        '<button type="button" class="act-row" id="hamSelf"><span class="act-ic">' + UI_ICON.user + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Something I’ll do</span><span class="lc-row-m">Your own idea, or something asked of you in person</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
         '<button type="button" class="act-row" id="hamList"><span class="act-ic">' + CHECK_SVG + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Shopping or checklist</span><span class="lc-row-m">One request with a list to tick off</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
         '<button type="button" class="act-row" id="hamRecur"><span class="act-ic">' + RC_ICON + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Recurring responsibility</span><span class="lc-row-m">Set it up once — it comes round by itself</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
         '<button type="button" class="act-row" id="hamMany"><span class="act-ic">' + UI_ICON.list + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Add several tasks</span><span class="lc-row-m">Paste or type a list — each line becomes its own request</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
       '</div>');
     sh.querySelector('#hamOne').addEventListener('click', function(){ openHomeNew(); });
+    sh.querySelector('#hamSelf').addEventListener('click', function(){ openHomeNew({ forMe: true }); });
     sh.querySelector('#hamList').addEventListener('click', function(){ openHomeNew({ checklist: true }); });
     sh.querySelector('#hamMany').addEventListener('click', function(){ openHomeBulk(); });
     sh.querySelector('#hamRecur').addEventListener('click', function(){ openHomeRecurring(null); });
@@ -14916,8 +14929,10 @@
     }).filter(Boolean);
   }
   function hbDefaultFor(people){
-    // an admin writing a list for the one person who helps at home: that's who it's for
+    // an admin writing a list for the one person who helps at home: that's who it's for;
+    // anyone else's list is, to start with, their own
     var me = homeMe(), others = people.filter(function(m){ return m.uid !== me; });
+    if (!homeIsAdmin()) return me;
     var helpers = others.filter(function(m){ return m.role === 'member'; });
     if (homeIsAdmin() && helpers.length === 1) return helpers[0].uid;
     return others.length === 1 ? others[0].uid : null;
@@ -14934,7 +14949,7 @@
   }
   function openHomeBulk(draft){
     var me = homeMe();
-    var people = homeActiveMembers().filter(function(m){ return m.uid !== me; }).sort(function(a, b){ return (a.displayName || '').localeCompare(b.displayName || ''); });
+    var people = homeMeFirst(homeActiveMembers());
     var st = draft || { text: lsGet(HB_DRAFT_KEY, ''), forUid: hbDefaultFor(homeActiveMembers()), when: { kind: 'today' }, note: '' };
     if (typeof st.text !== 'string') st.text = '';
     var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Add several tasks', 'One per line — type them or paste a list.', '') +
@@ -14979,7 +14994,7 @@
         var b = document.createElement('button'); b.type = 'button';
         var on = get() === m.uid;
         b.className = 'bk-filter-chip' + (on ? ' sel' : ''); b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', on ? 'true' : 'false');
-        b.textContent = m.displayName;
+        b.textContent = m.uid === homeMe() ? 'Me' : m.displayName;
         b.addEventListener('click', function(){ set(m.uid); paint(); if (onChange) onChange(); });
         el.appendChild(b);
       });
@@ -15011,7 +15026,7 @@
   }
   function openHomeBulkPreview(st){
     var me = homeMe();
-    var people = homeActiveMembers().filter(function(m){ return m.uid !== me; }).sort(function(a, b){ return (a.displayName || '').localeCompare(b.displayName || ''); });
+    var people = homeMeFirst(homeActiveMembers());
     var busy = false, opened = null;
     var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Check the list', '<span id="hbpSub"></span>', '') +
       '<div class="field"><label>For</label><div class="bk-filter-pop" id="hbpFor" role="radiogroup" aria-label="For all"></div></div>' +
@@ -15023,12 +15038,13 @@
       '<button type="button" class="btn-primary" id="hbpSave"></button>' +
       '<button type="button" class="btn-quiet" id="hbpBack">Back to the list</button>');
     var rowsEl = sh.querySelector('#hbpRows'), err = sh.querySelector('#hbpErr'), save = sh.querySelector('#hbpSave');
-    function nameOf(uid){ return uid ? homeNameOf(uid) : 'Choose who'; }
+    function nameOf(uid){ return uid ? homeWho(uid) : 'Choose who'; }
     function live(){ return st.rows.filter(function(r){ return !r.saved; }); }
     function summary(){
-      var n = live().filter(function(r){ return r.text.trim(); }).length;
-      sh.querySelector('#hbpSub').textContent = n + (n === 1 ? ' request' : ' requests') + (st.note ? ' · “' + st.note + '”' : '');
-      if (!busy) save.textContent = n ? 'Create ' + n + (n === 1 ? ' request' : ' requests') : 'Nothing to create';
+      var rows = live().filter(function(r){ return r.text.trim(); }), n = rows.length;
+      var word = n && rows.every(function(r){ return (r.forUid || st.forUid) === me; }) ? (n === 1 ? ' task' : ' tasks') : (n === 1 ? ' request' : ' requests');
+      sh.querySelector('#hbpSub').textContent = n + word + (st.note ? ' · “' + st.note + '”' : '');
+      if (!busy) save.textContent = n ? (word.indexOf('task') > -1 ? 'Add ' : 'Create ') + n + word : 'Nothing to create';
       save.disabled = busy || !n;
     }
     function paintRows(){
@@ -15097,8 +15113,11 @@
           if (!res.failed.length){
             try { localStorage.removeItem(HB_DRAFT_KEY); } catch(e){}
             homeCloseAll();
-            var whoSet = {}; res.saved.forEach(function(r){ whoSet[homeNameOf(r.forUid || st.forUid)] = true; });
-            showPinToast(res.saved.length + (res.saved.length === 1 ? ' request' : ' requests') + ' sent to ' + Object.keys(whoSet).join(' and '), false, CHECK_SVG);
+            var whoSet = {}; res.saved.forEach(function(r){ whoSet[homeWho(r.forUid || st.forUid)] = true; });
+            var whoList = Object.keys(whoSet);
+            showPinToast(whoList.join() === 'You'
+              ? res.saved.length + (res.saved.length === 1 ? ' task' : ' tasks') + ' added to Home'
+              : res.saved.length + (res.saved.length === 1 ? ' request' : ' requests') + ' sent to ' + whoList.join(' and ').replace('You', 'you'), false, CHECK_SVG);
             return;
           }
           // say exactly what happened; what failed stays here to try again, and what was
@@ -15127,7 +15146,7 @@
         var ref = dbRef.collection(HOME_REQ).doc(r.id);
         b.set(ref, { homeId: H, text: r.text.trim().slice(0, 280), note: st.note ? st.note.slice(0, 500) : null,
           requestedTiming: tm.requestedTiming, requestedDate: tm.requestedDate,
-          requesterUid: me, assigneeUid: to, createdByUid: me, participants: [me, to], visibility: 'private',
+          requesterUid: me, assigneeUid: to, createdByUid: me, participants: homeUids([me, to]), visibility: to === me ? 'home' : 'private',
           status: 'requested', plannedDate: null, linkedActionId: null, createdAt: now, updatedAt: now,
           latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created', readAt: readAt });
         b.set(ref.collection('updates').doc('created'), hrEntry('created', null, { timing: tm.requestedTiming, date: tm.requestedDate, batchId: st.batchId }));
@@ -15319,6 +15338,7 @@
     var m = e.metadata || {}, who = homeWho(e.actorUid);
     if (e.type === 'created'){
       if (m.recurring) return 'Due ' + rqDayWord(m.occurrence) + ' · a regular one from ' + (e.actorUid === homeMe() ? 'you' : homeNameOf(e.actorUid));
+      if (hrOwnIdea(r) && e.actorUid === r.createdByUid) return 'Added by ' + (e.actorUid === homeMe() ? 'you' : homeNameOf(e.actorUid));
       if (r.createdByUid && r.createdByUid !== r.requesterUid && e.actorUid === r.createdByUid)
         return 'Created by ' + (e.actorUid === homeMe() ? 'you' : homeNameOf(e.actorUid)) + ' on ' + homeWhose(r.requesterUid) + ' behalf';
       if (m.renewedFrom) return who + ' moved it to upcoming, after withdrawing it';
@@ -15392,12 +15412,15 @@
   function openHomeNew(opts){
     opts = opts || {};
     var me = homeMe(), admin = homeIsAdmin(), withList = !!opts.checklist;
-    var people = homeActiveMembers().slice().sort(function(a, b){ return (a.displayName || '').localeCompare(b.displayName || ''); });
-    var requester = me, assignee = null, timing = 'today', shared = false;
-    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'New request', '', '') +
-      (admin ? '<div class="field"><label>Asked by</label><div class="bk-filter-pop" id="hnFrom" role="radiogroup" aria-label="Asked by"></div>' +
-        '<p class="hn-note" id="hnFromNote" hidden></p></div>' : '') +
+    var people = homeMeFirst(homeActiveMembers());
+    // For comes first. Asked by: an admin may write anyone's request; anyone writing a task
+    // for themselves says whose idea it was — their own, or someone who asked in person.
+    // A task for yourself is shared with everyone at Home unless you say otherwise.
+    var requester = me, assignee = opts.forMe ? me : null, timing = 'today', shared = !!opts.forMe, shareTouched = false;
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', opts.forMe ? 'New task' : 'New request', '', '') +
       '<div class="field"><label>For</label><div class="bk-filter-pop" id="hnFor" role="radiogroup" aria-label="For"></div></div>' +
+      '<div class="field" id="hnFromField"><label>Asked by</label><div class="bk-filter-pop" id="hnFrom" role="radiogroup" aria-label="Asked by"></div>' +
+        '<p class="hn-note" id="hnFromNote" hidden></p></div>' +
       '<div class="field"><label for="hnText" id="hnTextLabel">What’s needed?</label><textarea id="hnText" rows="2" maxlength="280"></textarea></div>' +
       '<button type="button" class="cz-opt' + (withList ? ' on' : '') + '" id="hnListOn" role="switch" aria-checked="' + withList + '">' +
         '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
@@ -15429,15 +15452,27 @@
       });
     }
     function paint(){
-      if (admin){
-        chips(sh.querySelector('#hnFrom'), people, requester, 'hnFrom');
-        var note = sh.querySelector('#hnFromNote');
-        note.hidden = requester === me;
-        if (requester !== me) note.textContent = 'You’re adding it for ' + homeNameOf(requester) + '. It shows as created by you on their behalf.';
-      }
-      if (assignee === requester) assignee = null;
-      chips(sh.querySelector('#hnFor'), people.filter(function(m){ return m.uid !== requester; }), assignee, 'hnFor');
-      sh.querySelector('#hnTextLabel').textContent = requester === me ? 'What’s needed?' : 'What did ' + homeNameOf(requester) + ' ask for?';
+      var self = assignee === me;
+      // nobody asks themselves, except you, for yourself; only an admin writes for others
+      if (!admin && !self) requester = me;
+      if (assignee && assignee !== me && requester === assignee) requester = me;
+      chips(sh.querySelector('#hnFor'), people, assignee, 'hnFor');
+      var fromOn = admin || self;
+      sh.querySelector('#hnFromField').hidden = !fromOn;
+      if (fromOn) chips(sh.querySelector('#hnFrom'), people.filter(function(m){ return self || m.uid !== assignee; }), requester, 'hnFrom');
+      var note = sh.querySelector('#hnFromNote');
+      note.hidden = requester === me;
+      if (requester !== me) note.textContent = self
+        ? homeNameOf(requester) + ' asked you in person. It shows as from ' + homeNameOf(requester) + ', added by you.'
+        : 'You’re adding it for ' + homeNameOf(requester) + '. It shows as created by you on their behalf.';
+      sh.querySelector('#hnTextLabel').textContent = self
+        ? (requester === me ? 'What will you do?' : 'What did ' + homeNameOf(requester) + ' ask you to do?')
+        : (requester === me ? 'What’s needed?' : 'What did ' + homeNameOf(requester) + ' ask for?');
+      sh.querySelector('.sheet-title').textContent = self ? 'New task' : 'New request';
+      sh.querySelector('#hnSave').textContent = self ? 'Add to Home' : 'Send request';
+      if (!shareTouched) shared = self;
+      var sw = sh.querySelector('#hnShare');
+      sw.classList.toggle('on', shared); sw.setAttribute('aria-checked', shared ? 'true' : 'false');
       wire();
     }
     function wire(){
@@ -15453,7 +15488,7 @@
       });
     });
     var share = sh.querySelector('#hnShare');
-    share.addEventListener('click', function(){ shared = !shared; share.classList.toggle('on', shared); share.setAttribute('aria-checked', shared ? 'true' : 'false'); });
+    share.addEventListener('click', function(){ shared = !shared; shareTouched = true; share.classList.toggle('on', shared); share.setAttribute('aria-checked', shared ? 'true' : 'false'); });
     var listOn = sh.querySelector('#hnListOn');
     listOn.addEventListener('click', function(){
       withList = !withList; listOn.classList.toggle('on', withList); listOn.setAttribute('aria-checked', withList ? 'true' : 'false');
@@ -15471,7 +15506,7 @@
       if (!dbRef){ err.textContent = 'You’re offline — try again when you’re connected.'; return; }
       save.disabled = true; err.textContent = '';
       var now = new Date().toISOString(), ref = dbRef.collection(HOME_REQ).doc(), b = dbRef.batch();
-      var parts = [requester, assignee]; if (parts.indexOf(me) === -1) parts.push(me);
+      var parts = homeUids([requester, assignee, me]);
       var readAt = {}; readAt[me] = now;
       var items = withList ? hbParse(sh.querySelector('#hnList').value).slice(0, 40) : [];
       var doc = { homeId: home.me.homeId, text: t.slice(0, 280), note: n ? n.slice(0, 500) : null, requestedTiming: timing, requestedDate: d || null,
@@ -15487,10 +15522,13 @@
       b.commit().then(function(){
         // the Home screen is the list, wherever it was sent from
         homeCloseAll();
-        showPinToast('Sent to ' + homeNameOf(assignee), false, CHECK_SVG);
+        showPinToast(assignee === me ? (shared ? 'Added to Home — everyone can see it' : 'Added to Home') : 'Sent to ' + homeNameOf(assignee), false, CHECK_SVG);
       }).catch(function(e){ console.error('home request failed', e); save.disabled = false; err.textContent = 'Couldn’t send — check your connection and try again.'; });
     });
-    setTimeout(function(){ try { (admin ? sh.querySelector('#hnFor .bk-filter-chip') : text).focus(); } catch(e){} }, 60);
+    setTimeout(function(){
+      var at = document.activeElement; if (at && /^(INPUT|TEXTAREA|SELECT)$/.test(at.tagName)) return;
+      try { (assignee ? text : sh.querySelector('#hnFor .bk-filter-chip')).focus(); } catch(e){}
+    }, 60);
   }
 
   // ---- a request, opened: where it stands, what can happen next, its history ----
@@ -15518,7 +15556,7 @@
     function paint(){
       var r = cur();
       if (!r || !open()) return false;
-      var me = homeMe(), mine = r.assigneeUid === me, asker = r.requesterUid === me || r.createdByUid === me;
+      var me = homeMe(), mine = r.assigneeUid === me, asker = r.requesterUid === me || r.createdByUid === me, own = hrOwnIdea(r);
       sh.querySelector('#hdKicker').textContent = hrKicker(r) + (r.visibility === 'home' ? ' · everyone at Home' : '');
       sh.querySelector('#hdTitle').textContent = r.text;
       var st = sh.querySelector('#hdState');
@@ -15536,11 +15574,11 @@
         html = home.surface === 'owner'
           ? btn('hdToday', BK_PLUS_SVG + 'Today', 'gold') + btn('hdDay', UI_ICON.calendar + 'Choose day') + btn('hdDone', CHECK_SVG + 'Done', 'ib-done')
           : btn('hdStart', 'Start', 'gold') + btn('hdDone', 'Done');
-        html += btn('hdCant', 'Can’t do', 'ib-dismiss');
+        if (!own) html += btn('hdCant', 'Can’t do', 'ib-dismiss');
       } else if (mine && a){
         html = '';
       } else if (mine && (r.status === 'in_progress' || r.status === 'planned')){
-        html = btn('hdDone', 'Done', 'gold') + btn('hdCant', 'Can’t do', 'ib-dismiss');
+        html = btn('hdDone', 'Done', 'gold') + (own ? '' : btn('hdCant', 'Can’t do', 'ib-dismiss'));
       } else if (mine && (r.status === 'done' || r.status === 'cant_do')){
         html = btn('hdReopen', 'Reopen');
       }
@@ -15557,16 +15595,17 @@
       }
       function on(id, fn){ var el = sh.querySelector('#' + id); if (el) el.addEventListener('click', fn); }
       on('hdToday', function(){ hrAccept(cur(), todayStr()); });
-      on('hdDay', function(){ var x = cur(); openRequestDaySheet(x, hrAccept, 'From ' + homeNameOf(x.requesterUid), function(){ openHomeDetail(rid); }); });
+      on('hdDay', function(){ var x = cur(); openRequestDaySheet(x, hrAccept, hrOwnIdea(x) ? 'Your task' : 'From ' + homeNameOf(x.requesterUid), function(){ openHomeDetail(rid); }); });
       on('hdStart', function(){ hrSetStatus(cur(), 'in_progress'); });
       on('hdClaim', function(){ var b = sh.querySelector('#hdClaim'); if (b) b.disabled = true; hrClaim(cur()); });
       on('hdDone', function(){ var x = cur(); if (hrConfirmDone(x)) hrSetStatus(x, 'done'); });
       on('hdReopen', function(){ var x = cur(); if (x.status === 'cant_do') hrWrite(x, { status: 'requested', cantDoReason: null }, 'status', null, { status: 'requested' }).catch(hrFail('reopen it')); else hrSetStatus(x, 'in_progress'); });
       on('hdCant', function(){ openHomeCantDo(cur()); });
       on('hdPass', function(){ openHomePass(cur()); });
-      var own = sh.querySelector('#hdOwn');
-      own.innerHTML = asker && r.status === 'requested'
-        ? '<button type="button" class="btn-link" id="hdEdit">Edit request</button><button type="button" class="btn-link rq-withdraw" id="hdWithdraw">Withdraw</button>' : '';
+      var ownEl = sh.querySelector('#hdOwn');
+      ownEl.innerHTML = asker && r.status === 'requested'
+        ? '<button type="button" class="btn-link" id="hdEdit">' + (own ? 'Edit task' : 'Edit request') + '</button>' +
+          (own ? '' : '<button type="button" class="btn-link rq-withdraw" id="hdWithdraw">Withdraw</button>') : '';
       on('hdEdit', function(){ openHomeEdit(cur()); });
       on('hdWithdraw', function(){ if (confirm('Withdraw this request?')) hrWithdraw(cur()); });
       var shareWrap = sh.querySelector('#hdShareWrap');
@@ -15584,7 +15623,7 @@
       var dw = sh.querySelector('#hdDelWrap');
       if (asker){
         if (!dw.firstChild){
-          dw.innerHTML = '<button type="button" class="delete-btn rq-del-btn" id="hdDelBtn">Delete request</button>';
+          dw.innerHTML = '<button type="button" class="delete-btn rq-del-btn" id="hdDelBtn">' + (own ? 'Delete task' : 'Delete request') + '</button>';
           dw.querySelector('#hdDelBtn').addEventListener('click', function(){ openHomeDelete(cur()); });
         }
       } else dw.innerHTML = '';
@@ -15680,9 +15719,9 @@
   function homeInboxItems(){
     if (!homeOn()) return [];
     var me = homeMe();
-    var fresh = home.requests.filter(function(r){ return r.assigneeUid === me && r.status === 'requested'; })
+    var fresh = home.requests.filter(function(r){ return r.assigneeUid === me && r.status === 'requested' && !hrOwnIdea(r); })
       .sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1; });
-    var upd = home.requests.filter(function(r){ return !(r.assigneeUid === me && r.status === 'requested') && hrUnread(r) && (r.participants || []).indexOf(me) > -1; });
+    var upd = home.requests.filter(function(r){ return !(r.assigneeUid === me && r.status === 'requested' && !hrOwnIdea(r)) && hrUnread(r) && (r.participants || []).indexOf(me) > -1; });
     return fresh.map(function(r){ return { r: r, kind: 'new' }; }).concat(upd.map(function(r){ return { r: r, kind: 'update' }; }));
   }
 

@@ -151,6 +151,10 @@ async function oobLink(email){
     else if (p === A) await p.click('[data-pp-tab="home"]');
     await sleep(200);
   }
+  async function addSelf(p, text){
+    await goHome(p); await p.waitForSelector('#hsAdd'); await p.click('#hsAdd'); await p.waitForSelector('#hamSelf'); await p.click('#hamSelf');
+    await p.waitForSelector('#hnText'); await p.fill('#hnText', text); await p.click('#hnSave'); await sleep(800);
+  }
   async function addOne(p){ await goHome(p); await p.waitForSelector('#hsAdd'); await p.click('#hsAdd'); await p.waitForSelector('#hamOne'); await p.click('#hamOne'); }
   const chip = (p, group, label) => p.evaluate(([g, l]) => { const b = [...document.querySelectorAll(g + ' .bk-filter-chip')].find(x => x.textContent === l); if (!b) return false; b.click(); return true; }, [group, label]);
   const toast = p => p.evaluate(() => (document.querySelector('.pin-toast') || {}).textContent || '');
@@ -275,7 +279,7 @@ async function oobLink(email){
   check(await until(A, () => !!document.getElementById('ppHomeScreen') && document.querySelector('[data-pp-tab="home"]').classList.contains('sel') && /Hi, Abi/.test(document.getElementById('ppTitle').textContent)), 'H5 …which opens her Home tab');
   await A.screenshot({ path: `${shots}/${tag}-H5-abi-home.png` });
   await addOne(M);
-  check(await until(M, () => !document.getElementById('hnFrom') && [...document.querySelectorAll('#hnFor .bk-filter-chip')].map(b => b.textContent).join('|') === 'Abi|Shaun'), 'H5 Maria asks for herself only, of Abi or Shaun');
+  check(await until(M, () => document.getElementById('hnFromField').hidden && [...document.querySelectorAll('#hnFor .bk-filter-chip')].map(b => b.textContent).join('|') === 'Me|Abi|Shaun'), 'H5 Maria asks as herself, of Abi or Shaun (or adds her own: Me)');
   await newRequest(M, { for: 'Abi', text: 'Nappies running low' });
   check(await rowHas(A, AH, 'Nappies running low'), 'H5 Abi sees it, for her');
   await openRow(A, AH, 'Nappies running low');
@@ -621,6 +625,68 @@ async function oobLink(email){
   const { id: laterId, ...laterData } = later;
   await put(`${HR}/${laterId}`, Object.assign({}, laterData, { latestUpdateAt: new Date(Date.now() + 60000).toISOString(), latestUpdateType: 'comment' }));
   check(await until(S, () => [...document.querySelectorAll('#hsRecentBody .hs-row')].some(r => /Bath at six/.test(r.innerText))), 'H16 a newer update appears again after clearing');
+
+  // H17 — anyone adds a task for themselves: their own idea, or asked in person; everyone sees it
+  await M.click('#hsFilterClear').catch(() => {});
+  await M.click('#hsAdd'); await M.waitForSelector('#hamSelf'); await M.click('#hamSelf');
+  await M.waitForSelector('#hnText');
+  check(await M.evaluate(() => document.querySelector('#ppSheet .sheet-title').textContent === 'New task'
+    && [...document.querySelectorAll('#hnFor .bk-filter-chip.sel')].map(b => b.textContent).join() === 'Me'
+    && [...document.querySelectorAll('#hnFrom .bk-filter-chip.sel')].map(b => b.textContent).join() === 'Me'
+    && document.getElementById('hnShare').getAttribute('aria-checked') === 'true'
+    && document.getElementById('hnTextLabel').textContent === 'What will you do?' && document.getElementById('hnSave').textContent === 'Add to Home'),
+    'H17 Maria: Add → Something I’ll do — for Me, asked by Me, everyone at Home can see it');
+  await M.screenshot({ path: `${shots}/${tag}-H17-own-form.png` });
+  await M.fill('#hnText', 'Sort the toy box'); await M.click('#hnSave');
+  check(await until(M, () => /Added to Home — everyone can see it/.test((document.querySelector('.pin-toast') || {}).textContent || '')), 'H17 "Added to Home — everyone can see it"');
+  await sleep(600);
+  const own = await reqByText('Sort the toy box');
+  check(own && own.requesterUid === maria && own.assigneeUid === maria && own.createdByUid === maria && JSON.stringify(own.participants) === JSON.stringify([maria]) && own.visibility === 'home',
+    'H17 stored as hers: asked by, for and written by Maria; shared with Home', JSON.stringify(own));
+  check(await rowHas(A, AH, 'Sort the toy box', 'Maria’s task'), 'H17 Abi sees it: "Maria’s task"');
+  check(await rowHas(S, SH, 'Sort the toy box', 'Maria’s task'), 'H17 …and Shaun');
+  check(await rowHas(M, MH, 'Sort the toy box', 'Your task'), 'H17 Maria: "Your task"');
+  // asked in person
+  await M.click('#hsAdd'); await M.waitForSelector('#hamSelf'); await M.click('#hamSelf'); await M.waitForSelector('#hnText');
+  check(await chip(M, '#hnFrom', 'Abi'), 'H17 asked by Abi (in person)');
+  check(await M.evaluate(() => document.getElementById('hnTextLabel').textContent === 'What did Abi ask you to do?' && /Abi asked you in person/.test(document.getElementById('hnFromNote').textContent)),
+    'H17 "What did Abi ask you to do?" — "Abi asked you in person. It shows as from Abi, added by you."');
+  await M.fill('#hnText', 'Fold the washing'); await M.click('#hnSave'); await sleep(900);
+  const ip = await reqByText('Fold the washing');
+  check(ip && ip.requesterUid === abi && ip.assigneeUid === maria && ip.createdByUid === maria && ip.visibility === 'home', 'H17 stored as from Abi, for Maria, written by Maria', JSON.stringify(ip));
+  check(await rowHas(A, AH, 'Fold the washing', 'For Maria · added by Maria'), 'H17 Abi sees "For Maria · added by Maria"');
+  // her own: no "Can't do"; she ticks it off
+  await openRow(M, MH, 'Sort the toy box'); await M.waitForSelector('#hdAct');
+  check(await until(M, () => !document.getElementById('hdCant') && !document.getElementById('hdWithdraw') && /Edit task/.test(document.getElementById('hdOwn').textContent) && /Added by you/.test(document.getElementById('hdTimeline').innerText)),
+    'H17 her own task: no "Can’t do" or Withdraw; "Edit task"; history "Added by you"');
+  await M.click('#hdDone');
+  check(await rowDone(A, AH, 'Sort the toy box'), 'H17 she does it → Abi sees it done');
+  await M.click('#ppSheet .sheet-close').catch(() => {});
+  // several at once, for herself
+  await M.click('#hsAdd'); await M.waitForSelector('#hamMany'); await M.click('#hamMany'); await M.waitForSelector('#hbText');
+  check(await M.evaluate(() => [...document.querySelectorAll('#hbFor .bk-filter-chip.sel')].map(b => b.textContent).join() === 'Me'), 'H17 Add several tasks: for Me, to start with');
+  await M.fill('#hbText', 'Wipe the high chair\nTidy the shoes'); await M.click('#hbPreview'); await M.waitForSelector('#hbpRows .hb-input');
+  check(await M.evaluate(() => document.getElementById('hbpSave').textContent === 'Add 2 tasks'), 'H17 "Add 2 tasks"');
+  await M.click('#hbpSave');
+  check(await until(M, () => /2 tasks added to Home/.test((document.querySelector('.pin-toast') || {}).textContent || '')), 'H17 "2 tasks added to Home"');
+  await sleep(600);
+  const two = (await all(HR)).filter(r => ['Wipe the high chair', 'Tidy the shoes'].includes(r.text));
+  check(two.length === 2 && two.every(r => r.requesterUid === maria && r.assigneeUid === maria && r.visibility === 'home'), 'H17 both hers, shared with Home');
+  // recurring, for herself
+  await M.click('#hsAdd'); await M.waitForSelector('#hamRecur'); await M.click('#hamRecur'); await M.waitForSelector('#rcText');
+  check(await M.evaluate(() => [...document.querySelectorAll('#rcFor .bk-filter-chip.sel')].map(b => b.textContent).join() === 'Me' && document.getElementById('rcShare').getAttribute('aria-checked') === 'true'),
+    'H17 Recurring responsibility: for Me, shared, to start with');
+  await M.fill('#rcText', 'Water the plants'); await M.click('#rcSave');
+  check(await until(M, () => /Set up/.test((document.querySelector('.pin-toast') || {}).textContent || '')), 'H17 set up');
+  await sleep(600);
+  const wt = (await all('ledger_home_recurring')).find(t => t.title === 'Water the plants');
+  check(wt && wt.assigneeUid === maria && wt.createdByUid === maria && wt.visibility === 'home', 'H17 a recurring one of her own, shared');
+  // Shaun's own task is not news to him: it never lands in his Inbox
+  await addSelf(S, 'Call the boiler man');
+  check(await rowHas(A, AH, 'Call the boiler man', 'Shaun’s task'), 'H17 Shaun adds his own → Abi sees "Shaun’s task"');
+  await backToToday(S);
+  check(!(await S.evaluate(() => /Call the boiler man/.test(document.querySelector('main').innerText))), 'H17 …and it isn\'t in his Inbox on Today');
+  await goHome(S);
 
   // H11 — the partner portal still does what it did
   await A.click('[data-pp-tab="today"]'); await sleep(300);

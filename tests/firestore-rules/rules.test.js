@@ -619,7 +619,14 @@ async function check(name, fn){
   await check('ask: the creator is always the one writing', () => assertFails(asks(nanny, 'n3', ask({ requesterUid: 'nanny1', assigneeUid: 'owner1', createdByUid: 'owner1', participants: ['nanny1', 'owner1'] }), 'nanny1')));
   await check('ask: never of someone removed', () => assertFails(asks(owner, 'o2', ask({ requesterUid: 'owner1', assigneeUid: 'exnanny', createdByUid: 'owner1', participants: ['owner1', 'exnanny'] }), 'owner1')));
   await check('ask: never of someone not at Home', () => assertFails(asks(owner, 'o3', ask({ requesterUid: 'owner1', assigneeUid: 'nanny2', createdByUid: 'owner1', participants: ['owner1', 'nanny2'] }), 'owner1')));
-  await check('ask: never of yourself', () => assertFails(asks(nanny, 'n4', ask({ requesterUid: 'nanny1', assigneeUid: 'nanny1', createdByUid: 'nanny1', participants: ['nanny1'] }), 'nanny1')));
+  // a task for yourself: your own idea, or something asked of you in person
+  await check('own: the nanny adds a task for herself, for everyone to see', () => assertSucceeds(asks(nanny, 'n4', ask({ requesterUid: 'nanny1', assigneeUid: 'nanny1', createdByUid: 'nanny1', participants: ['nanny1'], visibility: 'home' }), 'nanny1')));
+  await check('own: she marks it done', () => assertSucceeds(act(nanny, 'n4', { status: 'done', latestUpdateAt: 'now', latestUpdateByUid: 'nanny1', latestUpdateType: 'status', updatedAt: 'now' }, { type: 'status', actorUid: 'nanny1', text: null, createdAt: NOW(), metadata: { status: 'done' } })));
+  await check('own: the nanny records what Abi asked her in person', () => assertSucceeds(asks(nanny, 'n4b', ask({ requesterUid: 'partner1', assigneeUid: 'nanny1', createdByUid: 'nanny1', participants: ['partner1', 'nanny1'] }), 'nanny1')));
+  await check('own: never "their own" for someone else', () => assertFails(asks(nanny, 'n4c', ask({ requesterUid: 'owner1', assigneeUid: 'owner1', createdByUid: 'nanny1', participants: ['owner1', 'nanny1'] }), 'nanny1')));
+  await check('own: never written down as if the asker wrote it', () => assertFails(asks(nanny, 'n4d', ask({ requesterUid: 'partner1', assigneeUid: 'nanny1', createdByUid: 'partner1', participants: ['partner1', 'nanny1'] }), 'nanny1')));
+  await check('own: never as asked by someone not at Home', () => assertFails(asks(nanny, 'n4e', ask({ requesterUid: 'exnanny', assigneeUid: 'nanny1', createdByUid: 'nanny1', participants: ['exnanny', 'nanny1'] }), 'nanny1')));
+  await check('own: just her, nobody added', () => assertFails(asks(nanny, 'n4f', ask({ requesterUid: 'nanny1', assigneeUid: 'nanny1', createdByUid: 'nanny1', participants: ['nanny1', 'partner1'] }), 'nanny1')));
   await check('ask: participants are exactly who it involves (none left out)', () => assertFails(asks(owner, 'o4', ask({ requesterUid: 'nanny1', assigneeUid: 'partner1', createdByUid: 'owner1', participants: ['nanny1', 'partner1'] }), 'owner1')));
   await check('ask: …and nobody added', () => assertFails(asks(nanny, 'n5', ask({ requesterUid: 'nanny1', assigneeUid: 'owner1', createdByUid: 'nanny1', participants: ['nanny1', 'owner1', 'partner1'] }), 'nanny1')));
   await check('ask: starts as a request, unlinked', () => assertFails(asks(nanny, 'n6', ask({ requesterUid: 'nanny1', assigneeUid: 'owner1', createdByUid: 'nanny1', participants: ['nanny1', 'owner1'], status: 'done' }), 'nanny1')));
@@ -720,7 +727,7 @@ async function check(name, fn){
   await check('recurring: anyone at Home is never private', () => assertFails(partner.doc(RT + '/t3').set(tpl('partner1', { mode: 'anyone', assigneeUid: null, visibility: 'private' }))));
   await check('recurring: never as someone else', () => assertFails(nanny.doc(RT + '/t4').set(tpl('partner1', { updatedByUid: 'nanny1' }))));
   await check('recurring: never for someone not at Home', () => assertFails(partner.doc(RT + '/t5').set(tpl('partner1', { assigneeUid: 'exnanny' }))));
-  await check('recurring: never for yourself', () => assertFails(partner.doc(RT + '/t6').set(tpl('partner1', { assigneeUid: 'partner1' }))));
+  await check('recurring: one for yourself', () => assertSucceeds(nanny.doc(RT + '/t6').set(tpl('nanny1', { assigneeUid: 'nanny1', visibility: 'home' }))));
   await check('recurring: a schedule that makes sense', () => assertFails(partner.doc(RT + '/t7').set(tpl('partner1', { schedule: { freq: 'hourly', startDate: '2026-10-25' } }))));
   await check('recurring: …weekly means one day', () => assertFails(partner.doc(RT + '/t8').set(tpl('partner1', { schedule: { freq: 'weekly', days: [0, 1], startDate: '2026-10-25' } }))));
   await check('recurring: …ending before it starts is refused', () => assertFails(partner.doc(RT + '/t9').set(tpl('partner1', { schedule: { freq: 'daily', startDate: '2026-10-25', endDate: '2026-10-01' } }))));
