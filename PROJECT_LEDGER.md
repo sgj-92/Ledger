@@ -2016,6 +2016,15 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-22) — **Fix: Home flashing (and its tab dot).**
+  - **Cause:** any refused Home read restarted all of Home's data 4 seconds later.
+    Until the new rules are deployed, the recurring-responsibilities read is
+    refused, so Home blanked and reloaded every 4 seconds.
+  - **Fix:** each read now retries on its own, backing off to two minutes, and never
+    clears the others.
+  - **Verified:** reproduced against the live (undeployed) rules; fixed. Home e2e
+    152.
+
 - (2026-10-22) — **Recurring responsibilities (M4):** `functions/recur.js`
   (`onRecurringTick` hourly, `onRecurringWritten`), the template rules, the claim rule
   and late done. In the app: the form, the Recurring section and sheet (Edit, Pause,

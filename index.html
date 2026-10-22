@@ -13540,18 +13540,28 @@
   }
   function startHomeData(){
     var me = homeMe(), H = home.me.homeId;
-    // a refused read (rules not yet published, a membership still settling) is tried again
-    function refused(what){
-      return function(err){
-        console.warn('home ' + what + ' unavailable', err && err.code);
-        clearTimeout(home.retry);
-        home.retry = setTimeout(function(){ if (homeOn()){ stopHomeData(); startHomeData(); } }, 4000);
-      };
+    // Each live read stands alone. One that is refused (rules not yet published, a
+    // membership still settling) is tried again by itself, a little later each time —
+    // never by tearing down the others, which blanked the screen and its dot every few
+    // seconds while one new read waited on a rules deploy.
+    function listen(q, onSnap, what){
+      var h = { stop: null, timer: null, delay: 4000, dead: false };
+      function sub(){
+        h.stop = q.onSnapshot(function(snap){ h.delay = 4000; onSnap(snap); }, function(err){
+          console.warn('home ' + what + ' unavailable', err && err.code);
+          h.stop = null;
+          if (h.dead) return;
+          h.timer = setTimeout(function(){ if (!h.dead && homeOn()) sub(); }, h.delay);
+          h.delay = Math.min(h.delay * 2, 120000);
+        });
+      }
+      sub();
+      home.stops.push(function(){ h.dead = true; clearTimeout(h.timer); if (h.stop) h.stop(); });
     }
-    home.stops.push(dbRef.collection(HOME_MEMBERS).where('homeId', '==', H).onSnapshot(function(snap){
+    listen(dbRef.collection(HOME_MEMBERS).where('homeId', '==', H), function(snap){
       home.members = snap.docs.map(function(d){ return Object.assign({ uid: d.id }, d.data()); });
       home.membersLoaded = true; homeChanged();
-    }, refused('members')));
+    }, 'members');
     // an admin sees the whole Home; anyone else, what they are part of and what is shared
     var parts = {}, shared = {}, all = {};
     function merge(){
@@ -13589,17 +13599,17 @@
       };
     }
     var RC = dbRef.collection(HOME_RECUR);
-    if (home.me.role === 'admin') home.stops.push(RC.where('homeId', '==', H).onSnapshot(intoT(tAll), refused('recurring')));
+    if (home.me.role === 'admin') listen(RC.where('homeId', '==', H), intoT(tAll), 'recurring');
     else {
-      home.stops.push(RC.where('homeId', '==', H).where('createdByUid', '==', me).onSnapshot(intoT(tMine), refused('recurring')));
-      home.stops.push(RC.where('homeId', '==', H).where('assigneeUid', '==', me).onSnapshot(intoT(tFor), refused('recurring')));
-      home.stops.push(RC.where('homeId', '==', H).where('visibility', '==', 'home').onSnapshot(intoT(tShared), refused('recurring')));
+      listen(RC.where('homeId', '==', H).where('createdByUid', '==', me), intoT(tMine), 'recurring');
+      listen(RC.where('homeId', '==', H).where('assigneeUid', '==', me), intoT(tFor), 'recurring');
+      listen(RC.where('homeId', '==', H).where('visibility', '==', 'home'), intoT(tShared), 'recurring');
     }
     if (home.me.role === 'admin'){
-      home.stops.push(dbRef.collection(HOME_REQ).where('homeId', '==', H).onSnapshot(into(all), refused('requests')));
+      listen(dbRef.collection(HOME_REQ).where('homeId', '==', H), into(all), 'requests');
     } else {
-      home.stops.push(dbRef.collection(HOME_REQ).where('homeId', '==', H).where('participants', 'array-contains', me).onSnapshot(into(parts), refused('requests')));
-      home.stops.push(dbRef.collection(HOME_REQ).where('homeId', '==', H).where('visibility', '==', 'home').onSnapshot(into(shared), refused('shared requests')));
+      listen(dbRef.collection(HOME_REQ).where('homeId', '==', H).where('participants', 'array-contains', me), into(parts), 'requests');
+      listen(dbRef.collection(HOME_REQ).where('homeId', '==', H).where('visibility', '==', 'home'), into(shared), 'shared requests');
     }
   }
   function stopHomeData(){
