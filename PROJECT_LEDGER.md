@@ -727,6 +727,21 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-22 — Home: Recent updates can be hidden and cleared (Shaun's request)
+- **Show / hide:** the Recent updates header opens and shuts the section in place,
+  using the chevron-down pattern. Hidden, it shows its count. The choice is remembered
+  per device (`ledger_home_recent_open`), and the section is open by default.
+- **Clear all**, beside the chevron while the section is open:
+  - it empties the section at once and shows "N updates cleared · Undo";
+  - only after the Undo time (about 5s) is the clear kept, and those updates marked
+    read, so the Home dot doesn't stay lit for something no longer shown.
+- **What "cleared" means:** a moment, kept per person on this device
+  (`ledger_home_recent_cleared`). Anything updated after it shows again by itself.
+  It is not shared between devices, because the member record isn't the member's
+  own to write and a rules change wasn't warranted. Nothing is deleted: All activity
+  (now a link under the section) still shows everything.
+- The same Home screen serves Abi's portal and the nanny's app, so they get it too.
+
 ### 2026-10-22 — Communications: Personal or Business; tags later (Shaun's addendum)
 - **One primary category per conversation:** `category` on the conversation record is
   `personal` or `business`.
@@ -2083,6 +2098,16 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-22) — **Home: Recent updates can be hidden, and cleared with Undo** (see
+  Decisions).
+
+  Tests: Home e2e H16 (hide, remembered, clear, Undo, kept after Undo, a newer update
+  returns, All activity intact) at 390, 1100 and 1440; Home 162.
+
+  **Also fixed:** on screens 1024px and wider, every Home row was about 280px tall.
+  The wide Actions rule gave titles a 240px flex basis, which in Home's stacked rows
+  became their height. Rows are now 58px, with a test guarding it.
+
 - (2026-10-22) — **Communications categories, and records ready for tags.**
   - Every new conversation is Personal or Business; existing ones stay unset until
     chosen.
@@ -2480,6 +2505,8 @@ minutes before", recurring/accountability).
       - Comms → Quick capture → paste a sweep ("James — reply about accounts", one per
         line) → check the list (an existing James says "Updates James") → Save → all
         under Needs me, and Today says "N need you";
+      - Home → Recent updates: tap the header to hide it (it stays hidden), Clear all →
+        Undo brings them back; on the Mac, Home rows are one compact line each;
       - Comms → Business → only Business conversations, with matching counts; open an
         older one ("Category not set") → choose Personal → it moves; the phone and
         the Mac each remember their own switch;

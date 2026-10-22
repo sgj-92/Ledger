@@ -4662,7 +4662,7 @@
   .hs-row { padding-left: 2px; padding-right: 2px; }
   .hs-row .hs-row-body { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 0; padding: 2px 0; background: none; border: none;
     text-align: left; font-family: var(--sans); color: inherit; cursor: pointer; }
-  .hs-row-body .commitment-title { overflow-wrap: anywhere; }
+  .hs-row-body .commitment-title { overflow-wrap: anywhere; flex: none; }   /* a column: the wide Actions basis (240px) would be its height */
   .hs-row-body .commitment-meta { overflow-wrap: anywhere; }
   .hs-row-body .commitment-meta.unread { color: var(--gold); }
   .hs-row.overdue .commitment-meta { color: rgba(var(--danger-rgb),0.9); }
@@ -4678,6 +4678,20 @@
   .hs-row.st-in_progress .hs-pill, .hs-row.st-planned .hs-pill { color: var(--gold); }
   html[data-theme="light"] .hs-row.st-in_progress .hs-pill, html[data-theme="light"] .hs-row.st-planned .hs-pill { color: var(--gold-2); }
   .hs-more { display: block; margin: 8px 2px 0; padding: 6px 0; font-size: 12.5px; color: var(--text-2); }
+  /* Recent updates: the header opens and shuts it in place; Clear all sits in the extra slot */
+  .hs-recent-head { padding-right: 0; }
+  .hs-recent-toggle { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 34px; padding: 0;
+    background: none; border: none; text-align: left; font-family: var(--sans); color: inherit; cursor: pointer; }
+  .hs-recent-toggle .cz-sec-title { flex: 1; }
+  .hs-recent-chev { display: flex; width: 13px; height: 13px; color: var(--text-3); transition: transform 0.22s ease; }
+  .hs-recent-chev svg { width: 100%; height: 100%; display: block; }
+  .hs-recent-toggle[aria-expanded="true"] .hs-recent-chev { transform: rotate(180deg); }
+  .hs-recent-clear { flex-shrink: 0; min-height: 34px; padding: 0 2px 0 6px; font-size: 12.5px; color: var(--text-2); }
+  .hs-recent-clear[hidden] { display: none; }
+  .hs-recent-all { display: inline-flex; align-items: center; gap: 4px; }
+  .hs-recent-all svg { width: 12px; height: 12px; display: block; }
+  .hs-recent:not(:has(#hsRecentBody)) { margin-bottom: var(--sp-3); }
+  @media (prefers-reduced-motion: reduce) { .hs-recent-chev { transition: none; } }
   .hs-empty { margin: 12px 2px; font-size: 13px; color: var(--text-3); }
   .hs-empty-state { padding: var(--sp-6) var(--sp-2); text-align: center; }
   .hs-empty-title { margin: 0 0 6px; font-family: var(--serif); font-size: 20px; color: var(--text); }
@@ -14458,6 +14472,66 @@
     }
     el.appendChild(sec);
   }
+  // Recent updates: shown or hidden (per device), and cleared up to a moment (per person,
+  // on this device). Clearing hides what's there and marks it read — only once Undo has
+  // passed; anything newer comes back on its own.
+  var HS_RECENT_OPEN_KEY = 'ledger_home_recent_open', HS_RECENT_CLEARED_KEY = 'ledger_home_recent_cleared';
+  function hsRecentCleared(){
+    var m; try { m = JSON.parse(lsGet(HS_RECENT_CLEARED_KEY, '{}')) || {}; } catch(e){ m = {}; }
+    var at = typeof m[homeMe()] === 'string' ? m[homeMe()] : '';
+    return home.pendingClear && home.pendingClear.at > at ? home.pendingClear.at : at;
+  }
+  function hrUpdatedAt(r){ return r.latestUpdateAt || r.updatedAt || r.createdAt || ''; }
+  function hsClearRecent(list){
+    if (home.pendingClear || !list.length) return;
+    var at = new Date().toISOString();
+    list.forEach(function(r){ if (hrUpdatedAt(r) > at) at = hrUpdatedAt(r); });
+    var ids = list.map(function(r){ return r.id; }), me = homeMe();
+    home.pendingClear = { at: at, timer: setTimeout(function(){
+      home.pendingClear = null;
+      if (homeMe() !== me) return;                    // signed out meanwhile
+      var m; try { m = JSON.parse(lsGet(HS_RECENT_CLEARED_KEY, '{}')) || {}; } catch(e){ m = {}; }
+      m[me] = at; lsSet(HS_RECENT_CLEARED_KEY, JSON.stringify(m));
+      ids.forEach(function(id){ hrMarkRead(homeReq(id)); });
+      homeChanged();
+    }, 5200) };
+    homeChanged();
+    showActionToast(list.length === 1 ? '1 update cleared' : list.length + ' updates cleared', 'Undo', function(){
+      if (!home.pendingClear) return;
+      clearTimeout(home.pendingClear.timer); home.pendingClear = null; homeChanged();
+    });
+  }
+  function hsRecentInto(wrap, all){
+    if (!all.length) return;
+    var cleared = hsRecentCleared();
+    var list = all.filter(function(r){ return hrUpdatedAt(r) > cleared; });
+    var open = lsGet(HS_RECENT_OPEN_KEY, '1') !== '0';
+    var sec = document.createElement('section'); sec.className = 'hs-sec hs-recent';
+    var head = document.createElement('div'); head.className = 'hs-sec-head hs-recent-head';
+    head.innerHTML = '<button type="button" class="hs-recent-toggle" id="hsRecentToggle" aria-controls="hsRecentBody"><h3 class="cz-sec-title">Recent updates</h3>' +
+      '<span class="cz-sec-count"></span><span class="hs-recent-chev" aria-hidden="true">' + TSEC_CHEV_DOWN + '</span></button>' +
+      '<button type="button" class="btn-link hs-recent-clear" id="hsRecentClear">Clear all</button>';
+    var tog = head.querySelector('#hsRecentToggle'), clr = head.querySelector('#hsRecentClear');
+    tog.setAttribute('aria-expanded', open ? 'true' : 'false');
+    head.querySelector('.cz-sec-count').textContent = list.length ? String(list.length) : '';
+    if (!open || !list.length) clr.hidden = true;
+    tog.addEventListener('click', function(){ lsSet(HS_RECENT_OPEN_KEY, open ? '0' : '1'); homeChanged(); });
+    clr.addEventListener('click', function(){ hsClearRecent(list); });
+    sec.appendChild(head);
+    if (open){
+      var body = document.createElement('div'); body.id = 'hsRecentBody';
+      var box = document.createElement('div'); box.className = 'hs-list';
+      list.slice(0, 4).forEach(function(r){ box.appendChild(hrRowEl(r, { activity: true })); });
+      if (!list.length){ var p = document.createElement('p'); p.className = 'hs-empty'; p.textContent = 'You’re up to date.'; box.appendChild(p); }
+      body.appendChild(box);
+      var more = document.createElement('button'); more.type = 'button'; more.className = 'btn-link hs-more hs-recent-all'; more.id = 'hsRecentAll';
+      more.innerHTML = '<span>All activity</span>' + UI_ICON.chevronRight;
+      more.addEventListener('click', function(){ home.filter = 'all'; home.allShown = 30; homeChanged(); window.scrollTo(0, 0); });
+      body.appendChild(more);
+      sec.appendChild(body);
+    }
+    wrap.appendChild(sec);
+  }
   function homeScreenInto(el, opts){
     opts = opts || {};
     var scrollY = window.scrollY;
@@ -14523,7 +14597,7 @@
       homeRecurringInto(wrap, false);
       var recent = vis.filter(function(r){ return !hrOpen(r) || r.latestUpdateType === 'comment'; }).sort(hrNewest)
         .filter(function(r){ return (r.latestUpdateAt || r.updatedAt || '') >= fmtDate(addDays(todayStr(), -14)); });
-      hsSection(wrap, 'Recent updates', recent, { max: 4, activity: true, count: '', onMore: function(){ home.filter = 'all'; home.allShown = 30; homeChanged(); window.scrollTo(0, 0); } });
+      hsRecentInto(wrap, recent);
     }
     // the people, and (for Shaun) where Home is looked after
     var card = document.createElement('div'); card.className = 'set-card hs-people';

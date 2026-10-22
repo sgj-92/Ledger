@@ -555,7 +555,7 @@ async function oobLink(email){
   await S.waitForSelector('#hmmBack'); await S.click('#hmmBack');
   check(await until(M, () => !document.getElementById('partnerApp').hidden && [...document.querySelectorAll('#hpList .hs-row')].some(r => /Bins out/.test(r.innerText)), null, 15000), 'H10 added back: her Home returns');
   await M.click('#hsFilterClear').catch(() => {});
-  await M.evaluate(() => { const h = [...document.querySelectorAll('#hpList .hs-sec-head')].find(x => /Recent updates/i.test(x.innerText)); if (h) h.click(); });
+  await M.evaluate(() => { const h = document.getElementById('hsRecentAll'); if (h) h.click(); });
   check(await until(M, () => [...document.querySelectorAll('#hpList .hs-row')].some(r => /Bath at six/.test(r.innerText))), 'H10 …with its history (All activity)');
   await M.evaluate(() => { const x = document.getElementById('hsFilterClear'); if (x) x.click(); });
   await S.click('#sheetCloseBtn');
@@ -584,6 +584,43 @@ async function oobLink(email){
   check(await until(N2, () => /already an account for this email/.test(document.getElementById('authError').textContent), null, 20000), 'H12 an email that already has an account: "Sign in instead"',
     await N2.evaluate(() => JSON.stringify({ err: (document.getElementById('authError') || {}).textContent, state: document.getElementById('authCard').getAttribute('data-state'), email: (document.getElementById('authEmail') || {}).value, btn: (document.getElementById('authCreate') || {}).textContent })));
   await N2.context().close();
+
+  // H16 — Recent updates: shown or hidden (remembered), cleared with Undo, newer ones come back
+  await goHome(S); await S.click('#hsFilterClear').catch(() => {});
+  await S.waitForSelector('#hsRecentToggle');
+  const recentRows = p => p.evaluate(() => [...document.querySelectorAll('#hsRecentBody .hs-row')].length);
+  check(await S.evaluate(() => document.getElementById('hsRecentToggle').getAttribute('aria-expanded') === 'true' && !document.getElementById('hsRecentClear').hidden) && await recentRows(S) > 0,
+    'H16 Recent updates: open, with Clear all');
+  const tallest = await S.evaluate(() => Math.max(...[...document.querySelectorAll('#view-home .hs-row')].map(r => r.offsetHeight)));
+  check(tallest < 100, 'H16 every Home row stays compact at this width (tallest ' + tallest + 'px)');
+  const n0 = await S.evaluate(() => document.querySelector('#hsRecentToggle .cz-sec-count').textContent);
+  await S.click('#hsRecentToggle');
+  check(await until(S, () => !document.getElementById('hsRecentBody') && document.getElementById('hsRecentToggle').getAttribute('aria-expanded') === 'false' && document.getElementById('hsRecentClear').hidden)
+    && await S.evaluate(n => document.querySelector('#hsRecentToggle .cz-sec-count').textContent === n && localStorage.getItem('ledger_home_recent_open') === '0', n0),
+    'H16 hidden: only its header, with its count (' + n0 + '), remembered on this device');
+  await S.screenshot({ path: `${shots}/${tag}-H16-hidden.png` });
+  await backToToday(S); await goHome(S);
+  check(await until(S, () => !document.getElementById('hsRecentBody')), 'H16 …still hidden on coming back');
+  await S.click('#hsRecentToggle'); await S.waitForSelector('#hsRecentBody');
+  await S.click('#hsRecentClear');
+  check(await until(S, () => /You’re up to date/.test(document.getElementById('hsRecentBody').innerText) && !document.querySelector('#hsRecentBody .hs-row')) && /updates? cleared\s*Undo/.test(await toast(S)),
+    'H16 Clear all: the list empties at once — "' + (await toast(S)).replace(/\s+/g, ' ') + '"');
+  await S.screenshot({ path: `${shots}/${tag}-H16-cleared.png` });
+  await S.click('.pin-toast-act');
+  check(await until(S, () => document.querySelectorAll('#hsRecentBody .hs-row').length > 0) && await S.evaluate(() => !localStorage.getItem('ledger_home_recent_cleared')), 'H16 Undo: they are all back, nothing kept');
+  await sleep(5600);
+  check(await recentRows(S) > 0, 'H16 …and stay back after the Undo time');
+  await S.click('#hsRecentClear'); await sleep(5800);
+  check(await S.evaluate(o => { const m = JSON.parse(localStorage.getItem('ledger_home_recent_cleared') || '{}'); return typeof m[o] === 'string'; }, owner)
+    && !(await recentRows(S)), 'H16 cleared for good once Undo has passed (for Shaun, on this device)');
+  await S.click('#hsRecentAll');
+  check(await until(S, () => [...document.querySelectorAll('#view-home .hs-row')].some(r => /Bath at six/.test(r.innerText))), 'H16 All activity still has everything');
+  await S.click('#hsFilterClear');
+  // something new afterwards shows again
+  const later = (await all(HR)).find(r => r.text === 'Bath at six');
+  const { id: laterId, ...laterData } = later;
+  await put(`${HR}/${laterId}`, Object.assign({}, laterData, { latestUpdateAt: new Date(Date.now() + 60000).toISOString(), latestUpdateType: 'comment' }));
+  check(await until(S, () => [...document.querySelectorAll('#hsRecentBody .hs-row')].some(r => /Bath at six/.test(r.innerText))), 'H16 a newer update appears again after clearing');
 
   // H11 — the partner portal still does what it did
   await A.click('[data-pp-tab="today"]'); await sleep(300);
