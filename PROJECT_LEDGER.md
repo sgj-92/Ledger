@@ -721,6 +721,14 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-22 — Anyone can create a sign-in; a role is still granted by hand
+**Decision:** the sign-in screen offers "New here? Create an account", using email and
+password. Before this, a new person had no way in: a failed sign-in pointed them to
+"Set or reset your password", and Firebase sends no email to an address with no account.
+
+A new account opens nothing. The rules still give it no data, and it lands on "This
+account isn't set up" with its Account ID. Roles stay Console-only.
+
 ### 2026-10-19 — A request can be done on the spot
 **Decision (Shaun):** some requests take less time to do than to plan. A request waiting
 for Shaun now offers **Done** beside Today / Choose day. Where it appears:
@@ -1957,6 +1965,13 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-22) — **Create an account from the sign-in screen,** plus clearer wording:
+  - a failed sign-in now says "New here? Create an account";
+  - "already an account";
+  - reset: "no email is sent if this email has no account".
+
+  Home e2e 80 (7 new), Partner Sharing 209.
+
 - (2026-10-19) — **Done, straight from a request:** Partner Sharing (Inbox and sheet,
   with Undo) and Home. No rules or functions change: it uses the existing owner status
   write and its "status" entry. Partner Sharing e2e 209 (8 new; 320, 390 dark, 1440
@@ -2226,7 +2241,8 @@ minutes before", recurring/accountability).
       `npx firebase-tools deploy --only firestore:rules,firestore:indexes,functions --project ledger-6aec3`
       If it asks to delete indexes that aren't in the file, answer **No**.
    2. **The nanny's account:**
-      - She opens `ledger.sgj.luxe` and signs in. She sees her Account ID.
+      - She opens `ledger.sgj.luxe` → "New here? Create an account". She sees her
+        Account ID.
       - In the Console: `ledger_users/{that id}` → `role: household`,
         `displayName: <her name>`.
       - She taps "try again" → "Almost there".

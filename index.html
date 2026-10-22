@@ -4804,6 +4804,7 @@
   .auth-error { min-height: 18px; margin: 10px 0 0; font-size: 13px; line-height: 1.45; color: var(--danger); }
   .auth-error:empty { min-height: 0; margin: 0; }
   .auth-fine { margin: 18px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--text-3); }
+  .auth-fine.auth-hint { margin: 6px 0 0; }
   .auth-alt { margin-top: 16px; color: var(--text-2); }
   .auth-id {
     width: 100%; box-sizing: border-box; margin-top: 22px; padding: 12px 14px; border-radius: var(--r-md);
@@ -6298,16 +6299,19 @@
       ? 'Ledger has sent all the sign-in links Firebase allows for today. Sign in with your password, or use a link already in your inbox.'
       : 'Firebase’s daily email limit has been reached. Try again tomorrow.';
     else if (code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials' || code === 'auth/wrong-password' || code === 'auth/user-not-found')
-      msg = 'That email and password don’t match. No password yet? Use “Set or reset your password” below.';
+      msg = 'That email and password don’t match. New here? Create an account below. Forgotten it? Use “Set or reset your password”.';
+    else if (code === 'auth/email-already-in-use') msg = 'There’s already an account for this email. Sign in instead — or use “Set or reset your password”.';
     else if (code === 'auth/weak-password') msg = 'Choose a longer password — at least 8 characters.';
     else if (code === 'auth/requires-recent-login') msg = 'For safety, Firebase wants a recent sign-in before changing the password.';
     else if (code === 'auth/too-many-requests') msg = 'Too many attempts from this device. Wait a few minutes, then try again.';
-    else if (code === 'auth/operation-not-allowed') msg = 'Email-link sign-in isn’t switched on for this Ledger (Firebase Console → Authentication → Sign-in method).';
+    else if (code === 'auth/operation-not-allowed') msg = action === 'create'
+      ? 'Email and password accounts aren’t switched on for this Ledger (Firebase Console → Authentication → Sign-in method → Email/Password).'
+      : 'Email-link sign-in isn’t switched on for this Ledger (Firebase Console → Authentication → Sign-in method).';
     else if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri' || code === 'auth/unauthorized-domain')
       msg = 'This address isn’t an authorised domain for Ledger’s sign-in (Firebase Console → Authentication → Settings → Authorized domains).';
     else if (/^auth\/requests-from-referer/.test(code)) msg = 'Ledger’s Firebase key doesn’t allow requests from this address (Google Cloud → Credentials → the browser key’s website restrictions).';
     else msg = { finish: 'Couldn’t finish signing in.', password: 'Couldn’t sign in.', reset: 'Couldn’t send the password email.',
-      change: 'Couldn’t save the password.' }[action] || 'Couldn’t send the sign-in link.';
+      change: 'Couldn’t save the password.', create: 'Couldn’t create the account.' }[action] || 'Couldn’t send the sign-in link.';
     return msg + ' · ' + authErrorCode(e);
   }
   function completeEmailLink(email, link){
@@ -6349,12 +6353,30 @@
         '<div class="auth-alts">' +
           '<button type="button" class="btn-link" id="authReset">Set or reset your password</button>' +
           '<button type="button" class="btn-link" id="authSend">Email me a sign-in link instead</button>' +
+          '<button type="button" class="btn-link" id="authCreateGo">New here? Create an account</button>' +
         '</div>' +
         '<p class="auth-fine">You stay signed in on this device.</p>';
+    } else if (state === 'create'){
+      // someone new (Abi, the people who help at home): an account first; access is
+      // granted afterwards, by its Account ID — creating one opens nothing on its own
+      html += '<h1 class="auth-title">Create your account</h1>' +
+        '<p class="auth-sub">Use the email you’ll sign in with. Next you’ll see your Account ID — send it to whoever is setting you up.</p>' +
+        '<form class="auth-form" id="authCreateForm" novalidate>' +
+          '<label class="auth-label" for="authEmail">Email</label>' +
+          '<input class="auth-input" type="email" id="authEmail" name="email" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" required>' +
+          '<label class="auth-label auth-label-gap" for="authNewPassword">Choose a password</label>' +
+          '<input class="auth-input" type="password" id="authNewPassword" name="new-password" autocomplete="new-password" minlength="8" required>' +
+          '<p class="auth-fine auth-hint">At least 8 characters.</p>' +
+          '<button type="submit" class="save-btn auth-btn" id="authCreate">Create account</button>' +
+          '<p class="auth-error" id="authError" role="alert"></p>' +
+        '</form>' +
+        '<button type="button" class="btn-link auth-alt" id="authRestart">Back to sign in</button>';
     } else if (state === 'reset'){
       html += '<h1 class="auth-title">Check your email</h1>' +
         '<p class="auth-sub">A link to set your password is on its way to <strong data-role="auth-email"></strong>.</p>' +
         '<p class="auth-fine">Choose a password there, then come back and sign in with it. The link works on any device.</p>' +
+        '<p class="auth-fine">Nothing after a few minutes? Check spam — and if this email has no Ledger account yet, no email is sent: create one instead.</p>' +
+        '<button type="button" class="btn-link auth-alt" id="authCreateGo">Create an account</button>' +
         '<button type="button" class="save-btn auth-btn" id="authRestart">Back to sign in</button>';
     } else if (state === 'sent'){
       html += '<h1 class="auth-title">Check your email</h1>' +
@@ -6402,7 +6424,7 @@
           '<button type="button" class="btn-link" id="authCopyUid">Copy</button></div>' +
         '<p class="auth-fine">If this is your Ledger, give this account the owner role in the Firebase Console ' +
           '(Firestore → ledger_users → a document with this ID, role: owner), then reopen Ledger. ' +
-          'If someone is sharing their Ledger with you, send them this Account ID.</p>' +
+          'If you’re joining someone’s Ledger or Home, send them this Account ID.</p>' +
         '<button type="button" class="save-btn auth-btn" id="authRetry">I’ve done that — try again</button>' +
         '<button type="button" class="btn-link auth-alt" id="authSignOut">Sign out</button>';
     } else if (state === 'offline'){
@@ -6473,6 +6495,35 @@
           btn.disabled = false; btn.textContent = 'Email me a sign-in link instead';
           console.warn('sending the sign-in link failed', e && e.code, e && e.message);
           err(authErrorText(e, 'send'));
+        });
+      });
+    }
+    var createGo = document.getElementById('authCreateGo');
+    if (createGo) createGo.addEventListener('click', function(){
+      var em = document.getElementById('authEmail');
+      var typed = em ? em.value.trim() : (info.email || '');
+      if (typed){ try { localStorage.setItem(AUTH_EMAIL_KEY, typed); } catch(e){} }
+      renderGate('create');
+    });
+    var createF = document.getElementById('authCreateForm');
+    if (createF){
+      var cEmail = document.getElementById('authEmail'), cPass = document.getElementById('authNewPassword');
+      try { cEmail.value = localStorage.getItem(AUTH_EMAIL_KEY) || ''; } catch(e){}
+      setTimeout(function(){ try { (cEmail.value ? cPass : cEmail).focus(); } catch(e){} }, 60);
+      createF.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        var email = cEmail.value.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ err('That doesn’t look like an email address.'); cEmail.focus(); return; }
+        if (cPass.value.length < 8){ err('Use at least 8 characters.'); cPass.focus(); return; }
+        var btn = document.getElementById('authCreate');
+        btn.disabled = true; btn.textContent = 'Creating…'; err('');
+        firebase.auth().createUserWithEmailAndPassword(email, cPass.value).then(function(){
+          try { localStorage.setItem(AUTH_EMAIL_KEY, email); } catch(e){}
+          renderGate('splash');   // onAuthStateChanged takes it from here: their Account ID
+        }).catch(function(e){
+          btn.disabled = false; btn.textContent = 'Create account';
+          console.warn('account creation failed', e && e.code);
+          err(authErrorText(e, 'create'));
         });
       });
     }

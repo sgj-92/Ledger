@@ -335,6 +335,30 @@ async function oobLink(email){
   check(await until(M, () => !document.getElementById('partnerApp').hidden && [...document.querySelectorAll('#hpList .hm-li')].some(r => /Bath at six/.test(r.innerText)), null, 15000), 'H10 added back: her Home and its history return');
   await S.click('#sheetCloseBtn');
 
+  // H12 — someone new creates an account from the sign-in screen (no link, no Console)
+  const N = await session('newbie');
+  await N.goto(APP); await N.waitForSelector('#authEmail', { timeout: 20000 });
+  await N.fill('#authEmail', 'newbie@example.com'); await N.fill('#authPassword', 'whatever-123'); await N.click('#authSignIn');
+  check(await until(N, () => /New here\? Create an account/.test(document.getElementById('authError').textContent)), 'H12 a sign-in with no account says "New here? Create an account"');
+  await N.click('#authCreateGo');
+  check(await until(N, () => document.getElementById('authCard').getAttribute('data-state') === 'create' && document.getElementById('authEmail').value === 'newbie@example.com'), 'H12 Create your account, with the email carried over');
+  await N.screenshot({ path: `${shots}/${tag}-H12-create.png` });
+  await N.fill('#authNewPassword', 'short'); await N.click('#authCreate');
+  check(/at least 8/.test(await txt(N, '#authError')), 'H12 a short password is refused');
+  await N.fill('#authNewPassword', 'a-good-password-9'); await N.click('#authCreate');
+  check(await until(N, () => document.getElementById('authCard').getAttribute('data-state') === 'noaccess' && /\S{20,}/.test((document.querySelector('[data-role="auth-uid"]') || {}).textContent || ''), null, 20000),
+    'H12 account created: "isn’t set up for Ledger" with the Account ID to send');
+  check(await N.evaluate(() => /joining someone.s Ledger or Home/.test(document.getElementById('authCard').innerText)), 'H12 …and says what to do with it');
+  const newbieProbe = await N.evaluate(async () => { try { await firebase.firestore().collection('ledger_home_requests').where('homeId', '==', 'x').get(); return 'ALLOWED'; } catch (e){ return e.code; } });
+  check(newbieProbe === 'permission-denied', 'H12 a new account opens nothing on its own');
+  await N.context().close();
+  const N2 = await session('existing');
+  await N2.goto(APP); await N2.waitForSelector('#authCreateGo', { timeout: 20000 });
+  await N2.click('#authCreateGo'); await N2.waitForSelector('#authNewPassword');
+  await N2.fill('#authEmail', ABI); await N2.fill('#authNewPassword', 'another-pass-9'); await N2.click('#authCreate');
+  check(await until(N2, () => /already an account for this email/.test(document.getElementById('authError').textContent)), 'H12 an email that already has an account: "Sign in instead"');
+  await N2.context().close();
+
   // H11 — the partner portal still does what it did
   check(await A.evaluate(() => /Nothing shared for today yet/.test(document.getElementById('partnerApp').innerText)), 'H11 Abi\'s shared day is untouched');
   // layout and errors

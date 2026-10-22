@@ -187,8 +187,8 @@ npx firebase-tools deploy --only firestore:rules,firestore:indexes,functions --p
 - **Two new functions:** `onHomeUpdateCreated` and `onHomeMigrationRequested`.
 
 **The nanny's account.**
-1. She opens `ledger.sgj.luxe` and signs in (email link or password). She sees "This
-   account isn't set up" with her Account ID.
+1. She opens `ledger.sgj.luxe` and taps "New here? Create an account" (or uses the
+   email link). She sees "This account isn't set up" with her Account ID.
 2. Shaun adds `ledger_users/{that id}` with `role: household` and `displayName` in the
    Console.
 3. She taps "try again", and sees "Almost there".
