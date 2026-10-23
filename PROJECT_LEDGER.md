@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-23 (Native iOS and Android: architecture audit, awaiting Shaun's decisions)
+Last updated: 2026-10-23 (Native apps Phase 1 — the shells — built on `feature/native-apps`, not merged)
 
 ---
 
@@ -13,8 +13,12 @@ date; no build step, no framework, ES5-style vanilla JS).
 Supporting files: `sw.js`, `manifest.json`, `fonts/` (self-hosted Playfair
 Display + Inter woff2 subsets), `hero-mountain.webp`, icons, `avatars/`,
 and `functions/` (the push engine and Home's server jobs — see `CLAUDE.md`).
-**Native apps:** none yet. The architecture audit is in `docs/NATIVE_MIGRATION.md`
-(2026-10-23).
+**Native apps:** Phase 1 (iOS and Android shells) is built on the branch
+`feature/native-apps` (2026-10-23) and **not merged**.
+- `native/` holds the Capacitor 8 projects. The apps load `https://ledger.sgj.luxe`.
+- The page's native hooks in `index.html` are inert on the web.
+- Neither app has been compiled yet: that needs Shaun's Mac. See
+  `docs/NATIVE_MIGRATION.md` §12a and `native/README.md`.
 
 **Five tabs (since 2026-10-22):** Plan · Today · **Me** · **Comms** · **Home**. Me holds
 Calendar, Progress and Focus behind one switch (remembered per device; a dated link
@@ -729,6 +733,29 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-23 — Native apps Phase 1: approved and built as the shell
+**Shaun approved:**
+- Capacitor;
+- `native/` in this repository;
+- app id `luxe.sgj.ledger` (iOS and Android);
+- loading `https://ledger.sgj.luxe` (the audit's option A);
+- work on `feature/native-apps`, never merged into `main` automatically.
+
+**Implementation decisions** (see `docs/NATIVE_MIGRATION.md` §12a):
+- **Status bar:** Capacitor 8's core SystemBars replaces the StatusBar plugin.
+- **Links:** no Browser plugin. Off-site links go to the system, as Capacitor does by
+  default.
+- **Android back:** closes the open sheet as its × would. With nothing open, Ledger goes
+  to the background (`minimizeApp`, not exit). Tabs never become history.
+- **Push:** the app never uses Web Push (`pushSupported()` is false in it), and registers
+  no service worker. Native notifications are Phase 2.
+- **Backups:** Android excludes the app's data from backups and device transfer.
+- **Camera:** permission declared on both platforms, for the progress-photo field.
+- **Deployment configuration:** `.vercelignore` keeps `native/` off the website;
+  `_config.yml` excludes it from Pages; `vercel.json` is unchanged.
+- **Before merge:** the page's hooks reach the app only when `index.html` is merged,
+  because the app loads production.
 
 ### 2026-10-23 — Native iOS and Android apps: audit first (Shaun's brief, Phase 1)
 **Decided by Shaun's brief:**
@@ -2054,11 +2081,15 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (decisions), then Claude Code
-Status: **native apps — Phase 1 audit delivered 2026-10-23; nothing built.** Waiting on
-Shaun's decisions and preparation (`docs/NATIVE_MIGRATION.md` §14): option A
-(production URL), `native/` in this repo, the app identifier, Apple Developer and
-Firebase setup. Then the first milestone (§12: the native shell).
+Owner: Shaun (verification on the Mac, and the merge decision)
+Status: **native apps Phase 1 built on `feature/native-apps`, 2026-10-23, not merged.**
+Shaun:
+1. Builds and runs both apps (`native/README.md`) on the iPhone 16e simulator and the
+   Pixel 10 Pro emulator.
+2. Works through `docs/NATIVE_MIGRATION.md` §12's acceptance list.
+3. Decides whether to merge.
+
+Phase 2 (native notifications, links) is not started and not authorised.
 Earlier, still open: device checks (Next 1).
 - **Navigation Redesign & Home Expansion:** all four milestones are built and deployed
   by Shaun (2026-10-22: rules, indexes, all eight functions, Cloud Scheduler enabled).
@@ -2146,9 +2177,30 @@ No active handoff.
 
 ### Claude Code
 
-No active handoff. The native-apps audit is done (`docs/NATIVE_MIGRATION.md`). **Not
-authorised until Shaun approves:** any native implementation, `native/`, Capacitor,
-rules changes for push devices, or `vercel.json` headers. Navigation Redesign & Home Expansion (M1–M4) is built (2026-10-22)
+No active handoff. Native apps Phase 1 is done on `feature/native-apps` (not merged).
+
+**Phase 2 handoff, ready when Shaun approves it** (`docs/NATIVE_MIGRATION.md` §5, §6,
+§11):
+- **Native push over FCM:**
+  - the Capacitor Firebase Messaging plugin;
+  - an additive `fcmShape` branch for `ledger_push_subscriptions` in the rules, with
+    rules tests;
+  - `sendPushToUser` choosing a sender per record (`web-push` / FCM);
+  - Android notification channels;
+  - a tap → `openLedgerLink(url)`;
+  - Settings → Notifications for "this app";
+  - a `nativeEnabled` rollback flag.
+- **Links:**
+  - Universal Links (AASA) and App Links (`assetlinks.json`) on `ledger.sgj.luxe` —
+    needs Shaun's approval for `vercel.json` headers;
+  - `appUrlOpen` → `openLedgerLink`.
+- **Needs from Shaun:**
+  - the Apple Developer team;
+  - iOS and Android apps registered in Firebase, plus the APNs key in the Console;
+  - the Android signing key's SHA-256.
+
+**Not authorised until Shaun approves:** Phase 2 or later, widgets, rules changes for
+push devices, `vercel.json` headers, merging `feature/native-apps`. Navigation Redesign & Home Expansion (M1–M4) is built (2026-10-22)
 and waits on Shaun's deploy and device checks. **Not authorised:**
 - giving Abi or the nanny access to private Actions or Ledger data;
 - more Homes per owner;
@@ -2158,6 +2210,21 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-23) — **Native apps Phase 1: iOS and Android shells** (`feature/native-apps`,
+  not merged).
+  - Capacitor 8 projects in `native/`, loading production, with Ledger's icon and splash.
+  - Safe areas, the status bar, the keyboard, Android back, and the offline page.
+  - Native hooks in `index.html`, inert on the web.
+
+  Tests:
+  - `native-shell` e2e 27 and offline page 13;
+  - web screenshots byte-identical to `main`;
+  - regression suites green (rules 553, functions 131, Home 183, Partner 209, Quick
+    capture 24, push e2e 76).
+
+  Not compiled here (no Apple tools; Google's SDK downloads are blocked in this
+  environment): on Shaun's Mac.
 
 - (2026-10-23) — **Native iOS and Android apps: architecture and migration audit**
   (`docs/NATIVE_MIGRATION.md`):

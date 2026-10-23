@@ -1,0 +1,3 @@
+# The website is the repository root, served as static files (vercel.json). The native
+# iOS and Android projects are not part of it: they are built on a Mac, never served.
+native/

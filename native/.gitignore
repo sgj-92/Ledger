@@ -1,0 +1,11 @@
+node_modules/
+# written by `npm run sync` from LEDGER_APP_URL (the offline page falls back to production)
+www/app-url.js
+# signing material never enters the repository
+*.keystore
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+GoogleService-Info.plist
+google-services.json

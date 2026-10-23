@@ -1,7 +1,13 @@
 # Ledger — native iOS and Android apps: architecture and migration audit
 
-Status: **audit and proposal, 2026-10-23.** Nothing is built. Every decision below marked
-**Shaun** needs his answer before the phase that depends on it starts.
+Status: audit 2026-10-23. **Phase 1 (the native shell) built on `feature/native-apps`,
+2026-10-23. It is not merged; see §12a.** Shaun approved:
+- Capacitor;
+- `native/` in this repository;
+- the app id `luxe.sgj.ledger`;
+- loading `https://ledger.sgj.luxe` (option A).
+
+Every other decision marked **Shaun** still needs his answer before its phase starts.
 Scope: installable iOS and Android apps with native home-screen widgets and
 notifications. The web app at `ledger.sgj.luxe` stays the product, and stays operational
 throughout.
@@ -450,6 +456,98 @@ existing suites plus the 390px screenshot diff.
    screenshots.
 
 **Not in Phase 1:** push, widgets, Universal Links, store submission.
+
+## 12a. Phase 1 as built (`feature/native-apps`, 2026-10-23)
+
+**What exists** (`native/README.md` has the run steps):
+- **Capacitor 8.5.3:** iOS (Swift Package Manager) and Android projects, app id
+  `luxe.sgj.ledger`, `server.url` = production. `LEDGER_APP_URL` points a local build
+  elsewhere, for testing only.
+- **Plugins:** App, Keyboard, SplashScreen, plus the core **SystemBars**.
+  - The audit's StatusBar plugin is replaced by SystemBars, Capacitor 8's edge-to-edge
+    API.
+  - The audit's Browser plugin is dropped: Capacitor already hands every off-site link
+    and `window.open` to the system (Safari / the default browser / the site's app).
+- **Icons and splash** come from `icon-512.png` (`native/scripts/make-assets.py`). The
+  black corners are filled, the Android adaptive icon has its mark inside the safe zone,
+  and the splash is Ledger's dark ground with the mark.
+- **Safe areas:**
+  - **iOS:** `contentInset: never`, so the page's own `viewport-fit=cover` and `env()`
+    padding apply, as in the PWA;
+  - **Android:** edge to edge (`EdgeToEdge.enable`), and SystemBars `insetsHandling:
+    css` keeps `env(safe-area-inset-*)` right.
+- **Keyboard:** `resize: native` (the web view shrinks above it), and
+  `resizeOnFullScreen` for Android edge to edge.
+- **Offline:** `server.errorPath` → the bundled `www/offline.html`, in both themes.
+  "Try again" opens Ledger, and it reopens by itself when the connection returns.
+- **Auth:**
+  - unchanged: the page keeps its own origin, so sign-in, authorised domains and the API
+    key's restrictions behave exactly as on the web;
+  - `allowNavigation` lists only `ledger-6aec3.firebaseapp.com`, so Firebase's auth
+    frame is never handed to the system browser;
+  - email links still open in the browser (Universal Links are Phase 2); password and
+    "paste the link" work in the app.
+- **Privacy:** Android backups and device transfer exclude the app's data (the signed-in
+  session and any offline copy stay on the phone). On iOS this is unchanged: the system
+  includes app data in encrypted device backups.
+- **Camera:** `NSCameraUsageDescription` (iOS) and the CAMERA permission (Android), for
+  the progress-photo field's "Take photo".
+
+**The page's side** (`index.html`, the "native apps" block). All of it is guarded by
+`window.Capacitor`, and there is no behaviour change on the web — proven below:
+- `NATIVE`, plus `nativeCall` through the injected bridge (`Capacitor.nativePromise`).
+  A remote page has no `@capacitor/core`, so it uses the bridge's own calls.
+- **The status bar** follows Ledger's theme (`applyTheme` → SystemBars).
+- **Android back:**
+  - an open sheet (`#ppBackdrop`, then `#sheetBackdrop`) is closed by its own × — the
+    same as tapping it;
+  - otherwise `App.minimizeApp`, Android's convention for an app's first screen;
+  - tabs add no history, so back never steps through tabs.
+- **Push:** `pushSupported()` is false in the app. The app never subscribes to Web Push
+  (a web view may still expose `PushManager`). Settings → Notifications says
+  notifications come to the app later.
+- **No service worker registration** in the app.
+- The Claude link no longer shows a false "Couldn't open" when the system opened it.
+- The Build sheet shows "Native app · iOS / Android version (build)".
+
+**Deployment configuration:**
+- `.vercelignore` (new) keeps `native/` off the public website.
+- `_config.yml` excludes `native` from the legacy Pages build.
+- `vercel.json` is unchanged.
+
+**Verified here** (Linux, no simulators: Apple's tools don't run on Linux, and this
+environment's network policy blocks Google's Android SDK downloads, so neither app was
+compiled here):
+- `tests/e2e/native-shell.test.js`: 27 checks, against the emulators, with a stand-in
+  bridge:
+  - Shaun on Android and iOS, Abi on Android, and a web session;
+  - sign-in, the five tabs, a saved Action;
+  - the status bar in both themes;
+  - back closing the sheet, then the background;
+  - no back listener on iOS;
+  - no service worker;
+  - the notifications copy;
+  - the Build sheet;
+  - the web untouched.
+- The offline page: 13 checks, in both themes.
+- Web unchanged: screenshots of every tab and Settings at 390px, both themes, are
+  byte-identical to `main`.
+- Regression suites: rules 553, functions 47 + 35 + 49, Home 183, Partner Sharing 209,
+  Quick capture 24, push e2e 76.
+- `cap sync` and `cap doctor`: Android configuration OK; "Xcode not installed" (expected
+  here).
+
+**Still to verify on the Mac:** everything in §12's acceptance list on the iPhone 16e
+simulator and Pixel 10 Pro emulator. The first thing it proves is that both projects
+compile.
+
+**The web-side hooks ship with `index.html`.** The app loads production, so until this
+branch is merged the app runs `main`'s page. Before the merge, the hooks can only be
+tried against a preview or local build (`LEDGER_APP_URL`). Merging is Shaun's decision.
+Without the hooks, in the app:
+- Android back leaves the app;
+- the status bar is always light text;
+- Notifications shows the browser's "can't receive" note.
 
 ## 13. Risks and dependencies
 

@@ -1,0 +1,24 @@
+{
+  "name": "ledger-native",
+  "private": true,
+  "description": "Ledger's iOS and Android apps: Capacitor shells around https://ledger.sgj.luxe (docs/NATIVE_MIGRATION.md).",
+  "scripts": {
+    "app-url": "node scripts/app-url.mjs",
+    "sync": "node scripts/app-url.mjs && cap sync",
+    "ios": "npm run sync && cap open ios",
+    "android": "npm run sync && cap open android",
+    "doctor": "cap doctor"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
+    "@capacitor/keyboard": "8.0.6",
+    "@capacitor/splash-screen": "8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "typescript": "7.0.2"
+  }
+}

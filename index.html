@@ -7425,8 +7425,10 @@
     var ua = navigator.userAgent || '';
     return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   }
+  // Web Push only: the native apps get their own notifications in a later phase, and never
+  // subscribe this way (an app's web view may still expose the API)
   function pushSupported(){
-    return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    return !NATIVE && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
   }
 
   function urlBase64ToUint8Array(base64String){
@@ -7980,6 +7982,55 @@
   // Both are sparse hints: an id that isn't listed simply sorts after the ones that are,
   // by creation order. That means no migration for existing days, and a newly created
   // action lands at the bottom of both systems without anything being written.
+
+  // ============ The native apps (iOS / Android) ============
+  // Ledger's apps (docs/NATIVE_MIGRATION.md) run this same page inside a Capacitor shell,
+  // which injects window.Capacitor before any script here runs. Everything below is
+  // guarded by it, so on the web none of it does anything. It touches presentation and
+  // the shell's own controls only — never data, roles or sign-in.
+  var NATIVE = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+  var nativeInfo = null;   // { platform, version } of the installed app, for the Build sheet
+  function nativeCall(plugin, method, opts){
+    if (!NATIVE || typeof window.Capacitor.nativePromise !== 'function') return Promise.resolve(null);
+    try {
+      return window.Capacitor.nativePromise(plugin, method, opts || {})
+        .catch(function(e){ console.warn('native ' + plugin + '.' + method + ' failed', e && e.message); return null; });
+    } catch(e){ return Promise.resolve(null); }
+  }
+  // the status bar's text follows Ledger's theme: light on the dark theme, dark on light
+  function nativeSyncBars(){
+    if (!NATIVE) return;
+    nativeCall('SystemBars', 'setStyle', { style: document.documentElement.getAttribute('data-theme') === 'light' ? 'LIGHT' : 'DARK' });
+  }
+  // Android's back button: like tapping the open sheet's ×; with nothing open, Ledger goes
+  // to the background, as Android does for an app's first screen. Tabs add no history, so
+  // back never steps through them.
+  function nativeBack(){
+    var ids = ['ppBackdrop', 'sheetBackdrop'];
+    for (var i = 0; i < ids.length; i++){
+      var bd = document.getElementById(ids[i]);
+      if (bd && bd.classList.contains('open')){
+        var x = bd.querySelector('.sheet-close');
+        if (x) x.click();
+        else if (ids[i] === 'ppBackdrop') ppSheetClose();
+        else closeSheet();
+        return;
+      }
+    }
+    nativeCall('App', 'minimizeApp');
+  }
+  function startNative(){
+    if (!NATIVE) return;
+    nativeSyncBars();
+    if (window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android' && typeof window.Capacitor.addListener === 'function')
+      window.Capacitor.addListener('App', 'backButton', nativeBack);
+    nativeCall('App', 'getInfo').then(function(info){
+      if (!info) return;
+      var clean = function(v){ return String(v == null ? '' : v).replace(/[^A-Za-z0-9 ._()-]/g, '').slice(0, 24); };
+      nativeInfo = { platform: window.Capacitor.getPlatform() === 'ios' ? 'iOS' : 'Android', version: clean(info.version) + (info.build ? ' (' + clean(info.build) + ')' : '') };
+    });
+  }
+
   // ============ Theme ============
   // Device-level preference, so localStorage rather than Firestore (see PROJECT_LEDGER).
   // 'dark' | 'light' | 'system'. The resolved value lands on <html data-theme>, which is
@@ -8006,6 +8057,7 @@
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', THEME_COLOR[resolved]);
     renderThemeSwitch();
+    nativeSyncBars();
   }
   function setThemePref(pref){
     try { localStorage.setItem(THEME_KEY, pref); } catch(e){}
@@ -11891,7 +11943,8 @@
     // a new window from this tap; Ledger itself never navigates away
     var w = window.open(url, '_blank');
     if (w){ try { w.opener = null; } catch(e){} }
-    else showPinToast('Couldn’t open Claude — use Open Claude in Share with Claude', true);
+    // the app hands the link to the system (Safari or the Claude app), so there is no window
+    else if (!NATIVE) showPinToast('Couldn’t open Claude — use Open Claude in Share with Claude', true);
   }
   function closeClaudeMenu(){
     var m = document.getElementById('claudeMenu'), t = document.getElementById('shareDayFootBtn');
@@ -18326,6 +18379,7 @@
       '<table class="build-detail">' +
         row('This device', b.sha ? b.sha + (b.when ? ' \u00b7 ' + b.when : '') : 'local build') +
         row('Served from', location.host + (LEGACY_HOSTS.indexOf(location.hostname) > -1 ? ' (legacy)' : '')) +
+        (nativeInfo ? row('Native app', nativeInfo.platform + ' ' + nativeInfo.version) : '') +
         row('Site serving', buildState.served) +
         row('Latest commit', buildState.latest) +
         row('Live', PAGES_LABEL[f.pages] || '\u2014') +
@@ -19136,10 +19190,13 @@
     on: 'Enabled', off: 'Not enabled', denied: 'Blocked in settings', unsupported: 'Not supported here',
     install: 'Needs Home Screen', unconfigured: 'Not set up yet'
   };
+  // the apps have no Web Push: their own notifications come in a later phase
+  if (NATIVE) DEVICE_STATE_TEXT.unsupported = 'Not in the app yet';
   var DEVICE_STATE_NOTE = {
     install: 'Install Ledger to your Home Screen to enable notifications: in Safari, Share → Add to Home Screen, then open Ledger from there.',
     denied: 'Notifications for Ledger are blocked on this device. Allow them in the browser or system settings, then come back here.',
-    unsupported: 'This browser can’t receive web notifications.',
+    unsupported: NATIVE ? 'Notifications in Ledger’s app come in a later update. Wherever you turned them on in a browser or on the Home Screen, they keep arriving there.'
+      : 'This browser can’t receive web notifications.',
     unconfigured: 'Notifications aren’t set up on the server yet.'
   };
   // Settings → Notifications (and the partner's footer): this device, and the two choices.
@@ -25407,8 +25464,10 @@
   renderAll();
   tryHandleDeepLink();
   initDb();
+  startNative();
 
-  if ('serviceWorker' in navigator) {
+  // the web app's service worker (install, Web Push) — the native apps need neither
+  if (!NATIVE && 'serviceWorker' in navigator) {
     window.addEventListener('load', function(){
       navigator.serviceWorker.register('sw.js').catch(function(e){ console.warn('SW registration failed', e); });
     });

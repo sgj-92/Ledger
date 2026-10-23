@@ -17,6 +17,7 @@
 timezone: Europe/London
 
 exclude:
+  - native
   - buildInfo.js
   - tests
   - scripts

@@ -210,6 +210,11 @@ These are observed facts about this repo, useful before making changes.
   It has its own `package.json`. Tests are in `tests/functions/` (the engine,
   on the Firestore emulator) and `tests/e2e/execution.run.js`, which starts
   the Auth, Firestore and Functions emulators.
+- `native/` (since 2026-10-23, branch `feature/native-apps`): the iOS and Android apps,
+  Capacitor shells that load `https://ledger.sgj.luxe` (`native/README.md`,
+  `docs/NATIVE_MIGRATION.md`). The page's native hooks live in `index.html` (the "native
+  apps" block), are guarded by `window.Capacitor` and must stay inert on the web —
+  `tests/e2e/native-shell.test.js` checks both sides.
 - Other root files: `sw.js` (service worker), `manifest.json`, `fonts/`
   (self-hosted woff2 subsets), `hero-mountain.webp`, app icons, `avatars/`.
 - `docs/` holds product documentation, not code: `PRODUCT.md`,
