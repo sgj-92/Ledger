@@ -199,7 +199,7 @@ These are observed facts about this repo, useful before making changes.
 
 ## Shape
 - **Single-file app.** All product code — HTML, CSS and JavaScript — lives in
-  `index.html` (~10,500 lines). There is no build step, no bundler, no framework
+  `index.html` (~25,400 lines). There is no build step, no bundler, no framework
   and no package manager for the app itself.
 - `functions/` is the only separate codebase: the push sender and Home's server
   jobs. `push.js` is the one notification engine (`sendPushToUser`); `index.js`

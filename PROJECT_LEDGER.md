@@ -1,17 +1,20 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-22 (Communications categories, Personal / Business)
+Last updated: 2026-10-23 (Native iOS and Android: architecture audit, awaiting Shaun's decisions)
 
 ---
 
 ## Current State
 
 Ledger is a **single-file PWA**: the entire app (HTML, CSS, JS) lives in
-`index.html` (~10,500 lines, no build step, no framework, ES5-style vanilla JS).
+`index.html` (about 25,400 lines as of 2026-10-23 — the earlier "~10,500" was out of
+date; no build step, no framework, ES5-style vanilla JS).
 Supporting files: `sw.js`, `manifest.json`, `fonts/` (self-hosted Playfair
 Display + Inter woff2 subsets), `hero-mountain.webp`, icons, `avatars/`,
-and `functions/` (one Firebase Cloud Function).
+and `functions/` (the push engine and Home's server jobs — see `CLAUDE.md`).
+**Native apps:** none yet. The architecture audit is in `docs/NATIVE_MIGRATION.md`
+(2026-10-23).
 
 **Five tabs (since 2026-10-22):** Plan · Today · **Me** · **Comms** · **Home**. Me holds
 Calendar, Progress and Focus behind one switch (remembered per device; a dated link
@@ -726,6 +729,36 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-23 — Native iOS and Android apps: audit first (Shaun's brief, Phase 1)
+**Decided by Shaun's brief:**
+- Ledger becomes installable iOS and Android apps, with native home-screen widgets and
+  notifications.
+- The web app (`ledger.sgj.luxe`, desktop included) stays operational and remains the
+  product.
+- The five tabs and the shared Home architecture are kept.
+- There is no second task engine and no duplicated records.
+
+**Proposed by the audit, not yet agreed** (`docs/NATIVE_MIGRATION.md`):
+- **Capacitor, not React Native.** Widgets and App Intents are native Swift / Kotlin
+  either way; React Native would mean rewriting the 25k-line UI and keeping a second
+  one forever.
+- **The app loads production** (`server.url = https://ledger.sgj.luxe`) to start. One
+  deploy pipeline; the auth origin, authorised domains, key restrictions and deep links
+  are unchanged. A bundled offline page is shown with no connection. Bundling the web
+  files is revisited after Phase 5.
+- **Widgets draw a versioned snapshot** built by the web app's own logic (a pure
+  `buildWidgetSnapshot`). They contain no Ledger logic.
+- **Widget writes go through the user's own Firebase token,** so the Firestore rules
+  still apply. They complete only items the app marks `inlineComplete`; a
+  conversation-linked Action, the Current Focus or an unfinished checklist opens the
+  app instead.
+- **Native push is FCM on both platforms**, as an additive device-record shape beside
+  Web Push, with one sender per transport in `sendPushToUser`.
+- **No big-bang modularisation:** a guarded `isNative()` adapter, plus the snapshot
+  builder.
+- **Six phases, each with acceptance criteria and a rollback.** First milestone: the
+  native shell (§12 of the doc).
 
 ### 2026-10-22 — Home: anyone adds a task of their own (Shaun's request)
 - **Who:** anyone at Home — Shaun, Abi or the nanny. It works for one task (with or
@@ -2021,8 +2054,12 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Claude Code
-Status: device checks (Next 1).
+Owner: Shaun (decisions), then Claude Code
+Status: **native apps — Phase 1 audit delivered 2026-10-23; nothing built.** Waiting on
+Shaun's decisions and preparation (`docs/NATIVE_MIGRATION.md` §14): option A
+(production URL), `native/` in this repo, the app identifier, Apple Developer and
+Firebase setup. Then the first milestone (§12: the native shell).
+Earlier, still open: device checks (Next 1).
 - **Navigation Redesign & Home Expansion:** all four milestones are built and deployed
   by Shaun (2026-10-22: rules, indexes, all eight functions, Cloud Scheduler enabled).
 - **Unified headers and Communications quick capture:** built 2026-10-22; Vercel
@@ -2109,7 +2146,9 @@ No active handoff.
 
 ### Claude Code
 
-No active handoff. Navigation Redesign & Home Expansion (M1–M4) is built (2026-10-22)
+No active handoff. The native-apps audit is done (`docs/NATIVE_MIGRATION.md`). **Not
+authorised until Shaun approves:** any native implementation, `native/`, Capacitor,
+rules changes for push devices, or `vercel.json` headers. Navigation Redesign & Home Expansion (M1–M4) is built (2026-10-22)
 and waits on Shaun's deploy and device checks. **Not authorised:**
 - giving Abi or the nanny access to private Actions or Ledger data;
 - more Homes per owner;
@@ -2119,6 +2158,18 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-23) — **Native iOS and Android apps: architecture and migration audit**
+  (`docs/NATIVE_MIGRATION.md`):
+  - the recommendation (Capacitor, loading production);
+  - feature-by-feature preservation and adaptation;
+  - widgets (snapshot contract, freshness, interactive completion);
+  - background limits, native push, deep links, auth, offline;
+  - modularisation (targeted seams only);
+  - a six-phase roadmap with acceptance criteria and rollback;
+  - the first milestone, and what Shaun needs to prepare.
+
+  No product code changed.
 
 - (2026-10-22) — **Home: anyone adds a task of their own** (see Decisions). Add →
   "Something I'll do"; Me in For on every form; Asked by for in-person instructions.
