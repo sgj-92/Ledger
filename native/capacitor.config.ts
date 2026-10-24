@@ -43,8 +43,8 @@ const config: CapacitorConfig = {
     },
     Keyboard: {
       // the web view shrinks above the keyboard, so a sheet's field stays in view
+      // (on Android, SystemBars handles the keyboard's inset itself)
       resize: 'native',
-      resizeOnFullScreen: true,
     },
   },
 };

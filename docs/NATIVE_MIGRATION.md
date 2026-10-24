@@ -476,8 +476,12 @@ existing suites plus the 390px screenshot diff.
     padding apply, as in the PWA;
   - **Android:** edge to edge (`EdgeToEdge.enable`), and SystemBars `insetsHandling:
     css` keeps `env(safe-area-inset-*)` right.
-- **Keyboard:** `resize: native` (the web view shrinks above it), and
-  `resizeOnFullScreen` for Android edge to edge.
+- **Keyboard:** `resize: native` (the web view shrinks above it). On Android,
+  SystemBars handles the keyboard's inset; `resizeOnFullScreen` was removed on
+  2026-10-24, because Capacitor warns it conflicts with SystemBars.
+- **Android window ground:** `windowBackground` is Ledger's `#0e0b08`. The first
+  emulator run showed a white strip under the status bar — the theme's default
+  background showing where Android kept space for the bar.
 - **Offline:** `server.errorPath` → the bundled `www/offline.html`, in both themes.
   "Try again" opens Ledger, and it reopens by itself when the connection returns.
 - **Auth:**

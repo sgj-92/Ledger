@@ -13,6 +13,10 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- whatever shows around the page (under the system bars, while it loads) is
+             Ledger's dark ground, never the theme's white -->
+        <item name="android:windowBackground">@color/ledgerGround</item>
+        <item name="android:colorBackground">@color/ledgerGround</item>
     </style>
 
 
