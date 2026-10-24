@@ -488,6 +488,11 @@ existing suites plus the 390px screenshot diff.
   "Ledger" title bar with the splash smeared across it, under the status bar. WebView
   145 was confirmed in `chrome://inspect`, and the page's own insets were correct
   (`--safe-area-inset-top: 52px`).
+  - **The real cause:** the bar was still there, plain, after that change.
+    `EdgeToEdge.enable` ran *before* `super.onCreate`, which built the window under the
+    launch theme — and Android's own action bar came with it. It now runs after
+    Capacitor's set-up, and every theme states the framework's `android:windowNoTitle`
+    and `android:windowActionBar` as well as AppCompat's.
 - **Offline:** `server.errorPath` → the bundled `www/offline.html`, in both themes.
   "Try again" opens Ledger, and it reopens by itself when the connection returns.
 - **Auth:**
