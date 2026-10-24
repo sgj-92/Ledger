@@ -6848,6 +6848,9 @@
           presets.weekStartsOn = data.weekStartsOn || null;
           presets.trainingTarget = data.trainingTarget || null;
           presets.shareTemplates = data.shareTemplates || null;      // snapshot presets
+          // the Claude conversation link (Share with Claude) — every device, and never
+          // lost when another device saves these presets
+          presets.claudeUrl = data.claudeUrl || null;
           applyWeekPreference();
           if (currentView === 'calendar') renderCalendar();
           if (currentView === 'focus') renderFocus();

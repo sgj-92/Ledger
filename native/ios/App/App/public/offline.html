@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="color-scheme" content="dark light">
+<title>Ledger — offline</title>
+<!-- Shown by the app when Ledger can't load (no connection). Bundled with the app, so it
+     always opens; it reads nothing from Ledger and stores nothing. -->
+<script src="app-url.js"></script>
+<style>
+  @font-face { font-family: 'Playfair Display'; font-weight: 500; font-display: block; src: url(fonts/playfair-500.woff2) format('woff2'); }
+  @font-face { font-family: 'Inter'; font-weight: 400; font-display: block; src: url(fonts/inter-400.woff2) format('woff2'); }
+  @font-face { font-family: 'Inter'; font-weight: 500; font-display: block; src: url(fonts/inter-500.woff2) format('woff2'); }
+  :root { --bg: #0e0b08; --text: #f0e9dd; --text-2: #a89b88; --gold: #dcb878; --gold-rgb: 220,184,120; --ink: #0e0b08; }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f2eadd; --text: #261d16; --text-2: #5a4d3e; --gold: #866325; --gold-rgb: 134,99,37; --ink: #fffbf3; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); -webkit-text-size-adjust: 100%; }
+  body {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    padding: calc(24px + env(safe-area-inset-top)) 28px calc(24px + env(safe-area-inset-bottom));
+    font-family: Inter, -apple-system, system-ui, sans-serif; -webkit-font-smoothing: antialiased;
+    -webkit-user-select: none; user-select: none;
+  }
+  .mark { width: 56px; height: 56px; margin-bottom: 28px; }
+  .kicker { margin: 0 0 8px; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-2); }
+  h1 { margin: 0 0 12px; font-family: 'Playfair Display', Georgia, serif; font-weight: 500; font-size: 30px; line-height: 1.15; }
+  p.sub { margin: 0 0 32px; max-width: 300px; font-size: 15px; line-height: 1.5; color: var(--text-2); text-wrap: balance; }
+  button {
+    min-width: 200px; height: 50px; padding: 0 24px; border: none; border-radius: 14px;
+    background: var(--gold); color: var(--ink); font-family: inherit; font-size: 15px; font-weight: 500; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  button:active { transform: scale(0.98); opacity: 0.85; }
+  button[disabled] { opacity: 0.6; }
+  .status { min-height: 18px; margin: 16px 0 0; font-size: 12.5px; color: var(--text-2); }
+  @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>
+</head>
+<body>
+  <img class="mark" src="ledger-mark.png" alt="">
+  <p class="kicker">Ledger</p>
+  <h1>You’re offline</h1>
+  <p class="sub">Ledger needs a connection to open. Everything is safe — it opens by itself as soon as you’re back online.</p>
+  <button type="button" id="retry">Try again</button>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+<script>
+(function(){
+  var target = window.LEDGER_APP_URL || 'https://ledger.sgj.luxe/';
+  var btn = document.getElementById('retry'), status = document.getElementById('status');
+  var going = false;
+  function go(){
+    if (going) return;
+    going = true; btn.disabled = true; status.textContent = 'Connecting…';
+    window.location.replace(target);
+    // if it fails again the app brings this page back; if it is merely slow, allow another tap
+    setTimeout(function(){ going = false; btn.disabled = false; status.textContent = navigator.onLine === false ? 'Still offline.' : ''; }, 8000);
+  }
+  btn.addEventListener('click', go);
+  // back online: open Ledger by itself
+  window.addEventListener('online', go);
+  // the splash never outlives this page (where the bridge is available: iOS)
+  try { if (window.Capacitor && window.Capacitor.nativePromise) window.Capacitor.nativePromise('SplashScreen', 'hide', {}); } catch(e){}
+})();
+</script>
+</body>
+</html>
