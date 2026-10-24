@@ -482,6 +482,12 @@ existing suites plus the 390px screenshot diff.
 - **Android window ground:** `windowBackground` is Ledger's `#0e0b08`. The first
   emulator run showed a white strip under the status bar — the theme's default
   background showing where Android kept space for the bar.
+- **Android themes (2026-10-24):** no theme has a title bar or action bar. The launch
+  theme no longer sets a theme-wide `android:background` (Capacitor's template set it to
+  the splash image). Every view inherits that attribute, and on the emulator it drew a
+  "Ledger" title bar with the splash smeared across it, under the status bar. WebView
+  145 was confirmed in `chrome://inspect`, and the page's own insets were correct
+  (`--safe-area-inset-top: 52px`).
 - **Offline:** `server.errorPath` → the bundled `www/offline.html`, in both themes.
   "Try again" opens Ledger, and it reopens by itself when the connection returns.
 - **Auth:**
