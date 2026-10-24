@@ -1,6 +1,7 @@
 {
   "name": "ledger-native",
   "private": true,
+  "type": "module",
   "description": "Ledger's iOS and Android apps: Capacitor shells around https://ledger.sgj.luxe (docs/NATIVE_MIGRATION.md).",
   "scripts": {
     "app-url": "node scripts/app-url.mjs",
