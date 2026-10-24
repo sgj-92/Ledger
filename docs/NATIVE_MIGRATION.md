@@ -521,7 +521,12 @@ existing suites plus the 390px screenshot diff.
 - **Push:** `pushSupported()` is false in the app. The app never subscribes to Web Push
   (a web view may still expose `PushManager`). Settings → Notifications says
   notifications come to the app later.
-- **No service worker registration** in the app.
+- **No service worker registration** in the app, and any registered earlier is
+  removed (2026-10-24). On the emulator, an offline launch showed Android's "Webpage
+  not available" (`net::ERR_FAILED`), not the offline page. The web's pass-through
+  worker, registered while the app ran `main`'s page, failed the navigation itself,
+  so Capacitor never saw the error. **Until the merge,** the worker comes back with
+  each launch of `main`'s page; clearing the app's storage removes it until then.
 - The Claude link no longer shows a false "Couldn't open" when the system opened it.
 - The Build sheet shows "Native app · iOS / Android version (build)".
 

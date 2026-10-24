@@ -78,6 +78,19 @@ function fakeBridge(platform){
   };
 }
 
+// the same bridge, only once the page has been told it is in the app (to test an upgrade)
+function fakeBridgeWhenAsked(){
+  var platform = localStorage.getItem('ledger_fake_native');
+  if (!platform) return;
+  window.__nat = { calls: [], listeners: {} };
+  window.Capacitor = {
+    isNativePlatform: function(){ return true; },
+    getPlatform: function(){ return platform; },
+    nativePromise: function(plugin, method){ window.__nat.calls.push(plugin + '.' + method); return Promise.resolve({}); },
+    addListener: function(){ return { remove: function(){ return Promise.resolve(); } }; }
+  };
+}
+
 (async () => {
   await fetch(`http://127.0.0.1:8080/emulator/v1/projects/${PID}/databases/(default)/documents`, { method: 'DELETE' });
   await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PID}/accounts`, { method: 'DELETE' });
@@ -180,6 +193,21 @@ function fakeBridge(platform){
   check(await until(P, () => document.getElementById('ppBackdrop').classList.contains('open')), 'Abi: Notifications opens in her sheet');
   await back(P);
   check(await until(P, () => !document.getElementById('ppBackdrop').classList.contains('open')), 'Abi: back closes it');
+
+  // ---- a service worker left from before the app stopped registering one is removed ----
+  {
+    const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await ctx.route(/api\.github\.com|gstatic\.com/, r => r.abort());
+    await ctx.addInitScript(fakeBridgeWhenAsked);
+    const p = await ctx.newPage();
+    await p.goto(APP);
+    const before = await until(p, async () => !!(navigator.serviceWorker && (await navigator.serviceWorker.getRegistrations()).length), null, 8000);
+    await p.evaluate(() => localStorage.setItem('ledger_fake_native', 'android'));
+    await p.reload();
+    check(before && await until(p, async () => (await navigator.serviceWorker.getRegistrations()).length === 0, null, 8000),
+      'Android: an old service worker (registered by the web page) is removed in the app');
+    await ctx.close();
+  }
 
   // ---- the web: untouched ----
   const W = await session('web', null, 'dark');

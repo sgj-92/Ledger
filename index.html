@@ -8024,6 +8024,14 @@
   }
   function startNative(){
     if (!NATIVE) return;
+    // the web's service worker has no place in the app, and one registered before the app
+    // stopped registering it answers an offline launch with a failed page instead of the
+    // app's own offline screen: remove it
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
+      navigator.serviceWorker.getRegistrations().then(function(regs){
+        regs.forEach(function(r){ r.unregister().catch(function(){}); });
+      }).catch(function(){});
+    }
     nativeSyncBars();
     if (window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android' && typeof window.Capacitor.addListener === 'function')
       window.Capacitor.addListener('App', 'backButton', nativeBack);
