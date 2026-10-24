@@ -552,6 +552,14 @@ compiled here):
 - `cap sync` and `cap doctor`: Android configuration OK; "Xcode not installed" (expected
   here).
 
+**Verified on Shaun's Mac (2026-10-24):**
+- **Both apps build and run** (Xcode 26.3, iPhone 16e on iOS 26.3; Android Studio,
+  Pixel 10 Pro with WebView 145).
+- **Signed in, Today renders:** the hero runs under the notch and camera, and the tab bar
+  sits above the home indicator.
+- **Android needed three fixes** (§12a above), now right.
+- **iPhone:** the first load was slow (a cold cache).
+
 **Still to verify on the Mac:** everything in §12's acceptance list on the iPhone 16e
 simulator and Pixel 10 Pro emulator. The first thing it proves is that both projects
 compile.
