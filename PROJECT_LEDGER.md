@@ -2211,6 +2211,15 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-24) — **Fix: the Claude conversation link now follows the account.**
+  - **What was wrong:** it was saved in `ledger_meta/presets`, but the presets listener
+    didn't read it, so other devices never saw it. Worse, any other presets save on
+    such a device (week start, routines) erased it.
+  - **Fix:** the listener now reads it.
+  - **Tests:** `tests/e2e/settings-sync.test.js` (9: phone and Mac, set, survive
+    another save, clear). Without the fix it reproduces the bug. Home 183, Partner
+    209, Quick capture 24.
+
 - (2026-10-23) — **Native apps Phase 1: iOS and Android shells** (`feature/native-apps`,
   not merged).
   - Capacitor 8 projects in `native/`, loading production, with Ledger's icon and splash.
