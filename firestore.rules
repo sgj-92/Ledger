@@ -256,9 +256,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // "Why it matters": optional, the asker's reason, shown to the person asked
+    function homeWhy(d) {
+      return d.get('why', null) == null || (d.why is string && d.why.size() <= 300);
+    }
     function homeText(d) {
       return d.text is string && d.text.size() > 0 && d.text.size() <= 280
           && (!('note' in d) || d.note == null || (d.note is string && d.note.size() <= 500))
+          && homeWhy(d)
           && d.requestedTiming in ['today', 'week', 'date', 'none', 'later']
           && (!('requestedDate' in d) || d.requestedDate == null || d.requestedDate is string);
     }
@@ -284,7 +289,7 @@ service cloud.firestore {
       // requester and assignee are active members.
       allow create: if rid.matches('^[A-Za-z0-9]{1,40}$')
                     && inHome(request.resource.data.homeId)
-                    && request.resource.data.keys().hasOnly(['homeId', 'text', 'note', 'requestedTiming', 'requestedDate',
+                    && request.resource.data.keys().hasOnly(['homeId', 'text', 'note', 'why', 'requestedTiming', 'requestedDate',
                          'requesterUid', 'assigneeUid', 'createdByUid', 'participants', 'visibility', 'status',
                          'plannedDate', 'linkedActionId', 'createdAt', 'updatedAt', 'latestUpdateAt', 'latestUpdateByUid',
                          'latestUpdateType', 'readAt', 'hasChecklist'])
@@ -311,7 +316,7 @@ service cloud.firestore {
                       // the person who asked (or wrote it): wording and timing, while it waits
                       ((request.auth.uid == resource.data.requesterUid || request.auth.uid == resource.data.createdByUid)
                        && resource.data.status == 'requested'
-                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'note', 'requestedTiming', 'requestedDate', 'updatedAt'])
+                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'note', 'why', 'requestedTiming', 'requestedDate', 'updatedAt'])
                        && homeText(request.resource.data))
                       // …or withdraw it, while it waits
                       || ((request.auth.uid == resource.data.requesterUid || request.auth.uid == resource.data.createdByUid)
@@ -443,10 +448,11 @@ service cloud.firestore {
           && (sc.get('every', 2) is int && sc.get('every', 2) >= 2 && sc.get('every', 2) <= 365);
     }
     function recurShape(d) {
-      return d.keys().hasOnly(['homeId', 'title', 'note', 'createdByUid', 'mode', 'assigneeUid', 'visibility', 'schedule', 'timezone',
+      return d.keys().hasOnly(['homeId', 'title', 'note', 'why', 'createdByUid', 'mode', 'assigneeUid', 'visibility', 'schedule', 'timezone',
                                'checklist', 'status', 'createdAt', 'updatedAt', 'updatedByUid', 'endedAt', 'lastDate', 'lastRunAt', 'blocked'])
           && d.title is string && d.title.size() > 0 && d.title.size() <= 280
           && (d.get('note', null) == null || (d.note is string && d.note.size() <= 500))
+          && homeWhy(d)
           && d.mode in ['assigned', 'anyone']
           && (d.mode == 'anyone'
               ? (d.get('assigneeUid', null) == null && d.visibility == 'home')

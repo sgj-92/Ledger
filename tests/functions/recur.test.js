@@ -80,6 +80,11 @@ const get = async (p) => { const d = await db.doc(p).get(); return d.exists ? d.
   r = await rec.runTemplate(dref, { anyHour: true });
   check(r.created === 'dishes_20261026', '…but setting one up makes today\'s at once');
   check(!(await get(REQ + '/dishes_20261026')).hasChecklist, 'no checklist, no checklist flag');
+  check((await get(REQ + '/uni_20261025')).why === null, 'no reason given, none on the occurrence');
+  const wref = db.collection(TPL).doc('why');
+  await wref.set(T({ title: 'Bins out', checklist: [], why: 'Collection is at 7am', schedule: S({ freq: 'daily' }) }));
+  r = await rec.runTemplate(wref, { anyHour: true });
+  check((await get(REQ + '/' + r.created)).why === 'Collection is at 7am', 'each occurrence carries the template\'s "why it matters"');
 
   // the next one: the previous, still open, becomes missed — never done
   NOW = new Date('2026-10-27T08:00:00Z');

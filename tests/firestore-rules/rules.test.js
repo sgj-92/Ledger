@@ -613,6 +613,11 @@ async function check(name, fn){
   const created = (by) => ({ type: 'created', actorUid: by, text: null, createdAt: NOW(), metadata: {} });
   async function asks(db, id, doc, by){ const b = db.batch(); b.set(db.doc(HR + '/' + id), doc); b.set(db.doc(HR + '/' + id + '/updates/created'), created(by)); return b.commit(); }
   await check('ask: the nanny asks Shaun', () => assertSucceeds(asks(nanny, 'n1', ask({ requesterUid: 'nanny1', assigneeUid: 'owner1', createdByUid: 'nanny1', participants: ['nanny1', 'owner1'] }), 'nanny1')));
+  await check('why: Abi says why she is asking', () => assertSucceeds(asks(partner, 'w1', ask({ why: 'So it is ready for Sunday', requesterUid: 'partner1', assigneeUid: 'nanny1', createdByUid: 'partner1', participants: ['partner1', 'nanny1'] }), 'partner1')));
+  await check('why: …at most 300 characters', () => assertFails(asks(partner, 'w2', ask({ why: 'x'.repeat(301), requesterUid: 'partner1', assigneeUid: 'nanny1', createdByUid: 'partner1', participants: ['partner1', 'nanny1'] }), 'partner1')));
+  await check('why: …and only words', () => assertFails(asks(partner, 'w3', ask({ why: { html: '<b>' }, requesterUid: 'partner1', assigneeUid: 'nanny1', createdByUid: 'partner1', participants: ['partner1', 'nanny1'] }), 'partner1')));
+  await check('why: Abi rewords why while it waits', () => assertSucceeds(partner.doc(HR + '/w1').update({ why: 'The in-laws arrive Friday', updatedAt: 'now' })));
+  await check('why: the nanny (asked) cannot rewrite the reason', () => assertFails(nanny.doc(HR + '/w1').update({ why: 'No reason', updatedAt: 'now' })));
   await check('ask: Abi asks the nanny, shared with the whole Home', () => assertSucceeds(asks(partner, 'a1', ask({ requesterUid: 'partner1', assigneeUid: 'nanny1', createdByUid: 'partner1', participants: ['partner1', 'nanny1'], visibility: 'home' }), 'partner1')));
   await check('ask: Shaun records the nanny asking Abi (on her behalf)', () => assertSucceeds(asks(owner, 'o1', ask({ requesterUid: 'nanny1', assigneeUid: 'partner1', createdByUid: 'owner1', participants: ['nanny1', 'partner1', 'owner1'] }), 'owner1')));
   await check('ask: the nanny never asks on someone else\'s behalf', () => assertFails(asks(nanny, 'n2', ask({ requesterUid: 'partner1', assigneeUid: 'owner1', createdByUid: 'nanny1', participants: ['partner1', 'owner1', 'nanny1'] }), 'nanny1')));
@@ -723,6 +728,8 @@ async function check(name, fn){
     schedule: { freq: 'weekly', days: [0], monthDay: 1, every: 2, startDate: '2026-10-25', endDate: null, time: null }, timezone: 'Europe/London', checklist: ['Wash', 'Iron'],
     status: 'active', createdAt: 'now', updatedAt: 'now', updatedByUid: by }, o || {});
   await check('recurring: Abi sets one up for the nanny', () => assertSucceeds(partner.doc(RT + '/t1').set(tpl('partner1'))));
+  await check('recurring: …with why it matters', () => assertSucceeds(partner.doc(RT + '/tw').set(tpl('partner1', { why: 'Ready for Monday' }))));
+  await check('recurring: …why at most 300 characters', () => assertFails(partner.doc(RT + '/tw2').set(tpl('partner1', { why: 'x'.repeat(301) }))));
   await check('recurring: anyone at Home, shared with everyone', () => assertSucceeds(partner.doc(RT + '/t2').set(tpl('partner1', { mode: 'anyone', assigneeUid: null, visibility: 'home' }))));
   await check('recurring: anyone at Home is never private', () => assertFails(partner.doc(RT + '/t3').set(tpl('partner1', { mode: 'anyone', assigneeUid: null, visibility: 'private' }))));
   await check('recurring: never as someone else', () => assertFails(nanny.doc(RT + '/t4').set(tpl('partner1', { updatedByUid: 'nanny1' }))));

@@ -4589,6 +4589,11 @@
   .rq-state.st-dismissed, .rq-state.st-withdrawn { color: var(--text-2); }
   .rq-meta { margin: 0 0 var(--sp-3); font-size: 12.5px; line-height: 1.5; color: var(--text-3); overflow-wrap: anywhere; }
   .rq-meta:empty { display: none; }
+  /* "Why it matters": the asker's reason, first thing under the title */
+  .rq-why { margin: 6px 0 var(--sp-3); font-size: 14px; line-height: 1.5; color: var(--text-2); overflow-wrap: anywhere; }
+  .rq-why-k { display: block; margin-bottom: 2px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+  .ib-why { display: block; margin-top: 4px; font-size: 13px; line-height: 1.45; color: var(--text-2); overflow-wrap: anywhere; }
+  .ib-why b { font-weight: 500; color: var(--gold); }
   .rq-act .ib-actions { margin: 0 0 var(--sp-2); }
   .rq-own { display: flex; gap: 20px; margin: -4px 0 var(--sp-2); }
   /* on-behalf: who asked and whose it is, stated once and fixed */
@@ -4733,6 +4738,8 @@
   .rc-ended { margin-top: 10px; }
   /* a checklist inside a request: tick, text, a handle to reorder; ticked ones fold away */
   .hl-wrap { margin: var(--sp-4) 0 var(--sp-2); }
+  .commit-list { margin: var(--sp-3) 0 var(--sp-6); }
+  .commit-why { margin: -4px 0 var(--sp-4); }   /* a request's checklist inside its Action's sheet */
   .hl-wrap:empty { display: none; }
   .hl-head { padding: 0; }
   .hl-list { border-top: 1px solid var(--line); }
@@ -8354,6 +8361,8 @@
     if (opts.showCategory) bits.push(actionCategoryLabel(actionCategoryKey(c)));
     if (c.minVersion && !done) bits.push('Min: ' + c.minVersion);
     if (c.sourceType === 'partner_request' || c.sourceType === 'home_request') bits.push('From ' + (c.sourceLabel || 'your partner'));
+    var listReq = actionChecklistReq(c), listProg = listReq && hrProgress(listReq);
+    if (listProg && listProg.total) bits.push(listProg.done + ' of ' + listProg.total + (listProg.total === 1 ? ' item' : ' items'));
     var meta = row.querySelector('.commitment-meta');
     meta.textContent = bits.join(' · ');
     // the wider matter an action belongs to, quietly
@@ -9001,6 +9010,8 @@
       var html = '<div class="sheet-handle"></div>' +
         '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit action' : 'New action') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
         '<div class="field"><label>Action</label><input type="text" id="f_commitTitle" placeholder="e.g. Strength session" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
+        (isEditing && existing.sourceType === 'home_request' && homeReq(existing.sourceRequestId) && homeReq(existing.sourceRequestId).why ? '<p class="rq-why commit-why" id="commitWhy"></p>' : '') +
+        (isEditing && actionChecklistReq(existing) ? '<div class="hl-wrap commit-list" id="commitList"></div>' : '') +
         fieldSelect('f_commitCategory', 'Category',
           [{value:'', label:'No category'}].concat(QUICK_CAPTURE_CATEGORIES.map(function(c){ return {value:c.key, label:c.label, dot:c.color}; })),
           existing ? (existing.category || '') : (opts.category || qcLastCategory)) +
@@ -9136,6 +9147,14 @@
     function escOpt(t){ return String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
 
     sheetEl.innerHTML = buildHtml();
+    var commitWhy = document.getElementById('commitWhy');
+    if (commitWhy) hrWhyInto(commitWhy, homeReq(existing.sourceRequestId).why);
+    var commitList = document.getElementById('commitList');
+    if (commitList){
+      commitList.dataset.rid = existing.sourceRequestId;
+      homeSyncItems(existing.sourceRequestId);
+      hrChecklistInto(commitList, existing.sourceRequestId);
+    }
     var srcNote = document.getElementById('commitSourceNote');
     if (srcNote){
       var srcText = 'From ' + (existing.sourceLabel || 'your partner') + (existing.sourceNote ? ' · “' + existing.sourceNote + '”' : '') +
@@ -13740,7 +13759,7 @@
         var upd = it.kind === 'update';
         return '<div class="ib-row' + (upd ? ' ib-update' : '') + '" data-hb-row="' + i + '">' +
           '<button type="button" class="ib-body" data-hb-open="' + i + '"><span class="ib-kicker"></span><span class="ib-title"></span>' +
-            (upd && it.r.latestCommentText ? '<span class="ib-quote"></span>' : (it.r.note ? '<span class="ib-note"></span>' : '')) + '<span class="ib-meta"></span></button>' +
+            (upd && it.r.latestCommentText ? '<span class="ib-quote"></span>' : (it.r.why ? '<span class="ib-why"></span>' : '') + (it.r.note ? '<span class="ib-note"></span>' : '')) + '<span class="ib-meta"></span></button>' +
           '<div class="ib-actions">' + (upd
             ? '<button type="button" class="bk-btn gold" data-hb-open="' + i + '">Review</button>'
             : '<button type="button" class="bk-btn gold" data-hb-today="' + i + '">' + BK_PLUS_SVG + 'Today</button>' +
@@ -13776,6 +13795,8 @@
       row.querySelector('.ib-title').textContent = r.text;
       var q = row.querySelector('.ib-quote'); if (q) q.textContent = '“' + r.latestCommentText + '”';
       var nt = row.querySelector('.ib-note'); if (nt) nt.textContent = '“' + r.note + '”';
+      var wy = row.querySelector('.ib-why');
+      if (wy){ var wb = document.createElement('b'); wb.textContent = 'Why: '; wy.appendChild(wb); wy.appendChild(document.createTextNode(r.why)); }
       row.querySelector('.ib-meta').textContent = it.kind === 'update'
         ? [from + ' updated · ' + rqAgo(r.latestCommentAt), hrStatusLabel(r)].join(' · ')
         : [requestedWhenLabel(r), requestTimingLabel(r), 'Home'].filter(Boolean).join(' · ');
@@ -14137,9 +14158,16 @@
   }
   function homeChanged(){
     if (home.detailRefresh) home.detailRefresh();
+    // an Action's sheet showing its request's checklist follows it live
+    var cl = document.getElementById('commitList');
+    if (cl && cl.dataset.rid && cl.closest('.sheet-backdrop.open')) hrChecklistInto(cl, cl.dataset.rid);
     if (home.listRefresh) home.listRefresh();
     renderHomeTabDot();
-    if (home.surface === 'owner'){ renderInboxSection(); renderHomeView(); renderHomeSettings(); }
+    if (home.surface === 'owner'){
+      renderInboxSection(); renderHomeView(); renderHomeSettings();
+      // an Action taken on from a request with a checklist shows its progress
+      if (commitments.some(actionChecklistReq)) renderCommitments();
+    }
     else if (home.surface === 'partner'){ renderPortal(); }
     else if (home.surface === 'household'){ renderHomePortal(); }
   }
@@ -14201,6 +14229,21 @@
     return { done: all.filter(function(i){ return i.done; }).length, total: all.length };
   }
   function hrOutstanding(r){ var p = hrProgress(r); return p ? p.total - p.done : 0; }
+  // the Home request an Action was taken on from, when it carries a checklist: the list is
+  // shown and ticked from the Action too (Today), the same items, live
+  function actionChecklistReq(c){
+    if (!c || c.sourceType !== 'home_request' || !c.sourceRequestId) return null;
+    var r = homeReq(c.sourceRequestId);
+    return r && r.hasChecklist && !r.deletedAt ? r : null;
+  }
+  // "Why it matters" as an element: the label and the asker's words, all as text
+  function hrWhyInto(el, why){
+    el.textContent = '';
+    el.hidden = !why;
+    if (!why) return;
+    var k = document.createElement('span'); k.className = 'rq-why-k'; k.textContent = 'Why it matters';
+    el.appendChild(k); el.appendChild(document.createTextNode(why));
+  }
   function hrIsListEditor(r){ var me = homeMe(); return !!r && (r.requesterUid === me || r.createdByUid === me || r.assigneeUid === me); }
   function homeSyncItems(extraId){
     if (extraId) home.itemExtra = extraId;
@@ -14790,6 +14833,7 @@
     var sh = homeHost().open('<div class="sheet-handle"></div>' +
       '<div class="sheet-head rq-head"><div class="sheet-title-wrap"><p class="rq-kicker" id="rcKicker"></p><div class="sheet-title rq-title" id="rcTitle"></div></div>' +
       '<button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<p class="rq-why" id="rcWhyShow" hidden></p>' +
       '<p class="rq-state" id="rcState"></p><p class="rq-meta" id="rcMeta"></p>' +
       '<div id="rcList"></div>' +
       '<div class="ib-actions rc-actions" id="rcAct"></div>');
@@ -14799,6 +14843,7 @@
       if (!t || !document.body.contains(mark)) return false;
       sh.querySelector('#rcKicker').textContent = 'Recurring · ' + (t.createdByUid === homeMe() ? 'set up by you' : 'from ' + homeNameOf(t.createdByUid));
       sh.querySelector('#rcTitle').textContent = t.title;
+      hrWhyInto(sh.querySelector('#rcWhyShow'), t.why);
       var next = t.status === 'active' ? rcNextDue(t.schedule, todayStr()) : null;
       mark.textContent = t.status === 'ended' ? 'Ended' : (t.status === 'paused' ? 'Paused' : (t.blocked === 'assignee_removed' ? 'Needs someone new' : (next ? 'Next ' + rcDayWordCap(next) : 'No more dates')));
       mark.className = 'rq-state' + (t.blocked ? ' st-dismissed' : '');
@@ -14855,6 +14900,7 @@
       '<div class="rc-dates">' + fieldDate('rcStart', 'Starts', sc.startDate) +
         '<div class="field"><label for="rcTime">Time <span class="pp-opt">optional</span></label><input type="time" id="rcTime"></div></div>' +
       fieldDate('rcEnd', 'Ends <span class="pp-opt">optional</span>', sc.endDate || '') +
+      '<div class="field"><label for="rcWhy">Why it matters <span class="pp-opt">optional</span></label><input type="text" id="rcWhy" maxlength="300" autocomplete="off" placeholder="e.g. so the uniform is ready for Monday"></div>' +
       '<div class="field"><label for="rcNote">Note <span class="pp-opt">optional</span></label><input type="text" id="rcNote" maxlength="500" autocomplete="off"></div>' +
       '<div class="field"><label for="rcList">Checklist each time <span class="pp-opt">optional · one per line</span></label><textarea id="rcList" rows="3" maxlength="4000"></textarea></div>' +
       '<button type="button" class="cz-opt" id="rcShare" role="switch" aria-checked="false">' +
@@ -14866,6 +14912,7 @@
       '<button type="button" class="btn-primary" id="rcSave">' + (editing ? 'Save' : 'Set it up') + '</button>');
     sh.querySelector('#rcText').value = t ? t.title : '';
     sh.querySelector('#rcNote').value = t && t.note ? t.note : '';
+    sh.querySelector('#rcWhy').value = t && t.why ? t.why : '';
     sh.querySelector('#rcList').value = t ? (t.checklist || []).join('\n') : '';
     sh.querySelector('#rcMonthDay').value = sc.monthDay || 1;
     sh.querySelector('#rcEvery').value = sc.every || 2;
@@ -14928,9 +14975,11 @@
       if (!rcNextDue(s2, todayStr())){ err.textContent = 'There’s no date in that range.'; return; }
       if (!dbRef || !homeOn()){ err.textContent = 'You’re offline — try again when you’re connected.'; return; }
       var now = new Date().toISOString(), btn = sh.querySelector('#rcSave');
+      var why = sh.querySelector('#rcWhy').value.trim();
       var fields = { title: title.slice(0, 280), note: note ? note.slice(0, 500) : null, mode: st.mode, assigneeUid: st.mode === 'assigned' ? st.assignee : null,
         visibility: st.mode === 'anyone' || st.shared ? 'home' : 'private', schedule: s2, timezone: rcTimezone(),
         checklist: hbParse(sh.querySelector('#rcList').value).slice(0, 40).map(function(x){ return x.slice(0, 200); }), updatedAt: now, updatedByUid: me };
+      if (why || (editing && t.why)) fields.why = why ? why.slice(0, 300) : null;   // only when used: older rules don't know the field
       btn.disabled = true; err.textContent = '';
       var write = editing
         ? dbRef.collection(HOME_RECUR).doc(t.id).update(fields)
@@ -15021,11 +15070,12 @@
       '<div class="field"><label>For</label><div class="bk-filter-pop" id="hbFor" role="radiogroup" aria-label="For"></div></div>' +
       '<div class="field"><label>When</label><div class="bk-filter-pop" id="hbWhen" role="radiogroup" aria-label="When"></div></div>' +
       '<div id="hbDateField" hidden>' + fieldDate('hbDate', 'Date', nextDateStr(todayStr())) + '</div>' +
+      '<div class="field"><label for="hbWhy">Why they matter <span class="pp-opt">optional · for all of them</span></label><input type="text" id="hbWhy" maxlength="300" autocomplete="off" placeholder="e.g. the in-laws arrive on Friday"></div>' +
       '<div class="field"><label for="hbNote">Note for all of them <span class="pp-opt">optional</span></label><input type="text" id="hbNote" maxlength="200" autocomplete="off" placeholder="e.g. before school pickup"></div>' +
       '<p class="auth-error" id="hbErr" role="alert"></p>' +
       '<button type="button" class="btn-primary" id="hbPreview" disabled>Preview tasks</button>');
     var ta = sh.querySelector('#hbText'), btn = sh.querySelector('#hbPreview'), err = sh.querySelector('#hbErr');
-    ta.value = st.text; sh.querySelector('#hbNote').value = st.note || '';
+    ta.value = st.text; sh.querySelector('#hbNote').value = st.note || ''; sh.querySelector('#hbWhy').value = st.why || '';
     if (st.when.kind === 'date') sh.querySelector('#hbDate').value = st.when.date;
     function count(){
       var n = hbParse(ta.value).length;
@@ -15042,7 +15092,7 @@
       if (lines.length > HB_MAX){ err.textContent = 'That’s ' + lines.length + ' lines — up to ' + HB_MAX + ' at a time.'; return; }
       if (st.when.kind === 'date') st.when.date = sh.querySelector('#hbDate').value || st.when.date;
       if (st.when.kind === 'date' && !st.when.date){ err.textContent = 'Choose a date.'; return; }
-      st.text = ta.value; st.note = sh.querySelector('#hbNote').value.trim();
+      st.text = ta.value; st.note = sh.querySelector('#hbNote').value.trim(); st.why = sh.querySelector('#hbWhy').value.trim();
       // each row gets its id now, so a retry can never make a second copy
       st.rows = lines.map(function(t){ return { id: dbRef.collection(HOME_REQ).doc().id, text: t.slice(0, 280), forUid: null, when: null, saved: false }; });
       st.batchId = dbRef.collection('ledger_home_batches').doc().id;
@@ -15208,11 +15258,13 @@
       chunk.forEach(function(r){
         var to = r.forUid || st.forUid, w = r.when || st.when, tm = hbTiming(w), readAt = {}; readAt[me] = now;
         var ref = dbRef.collection(HOME_REQ).doc(r.id);
-        b.set(ref, { homeId: H, text: r.text.trim().slice(0, 280), note: st.note ? st.note.slice(0, 500) : null,
+        var doc = { homeId: H, text: r.text.trim().slice(0, 280), note: st.note ? st.note.slice(0, 500) : null,
           requestedTiming: tm.requestedTiming, requestedDate: tm.requestedDate,
           requesterUid: me, assigneeUid: to, createdByUid: me, participants: homeUids([me, to]), visibility: to === me ? 'home' : 'private',
           status: 'requested', plannedDate: null, linkedActionId: null, createdAt: now, updatedAt: now,
-          latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created', readAt: readAt });
+          latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created', readAt: readAt };
+        if (st.why) doc.why = st.why.slice(0, 300);
+        b.set(ref, doc);
         b.set(ref.collection('updates').doc('created'), hrEntry('created', null, { timing: tm.requestedTiming, date: tm.requestedDate, batchId: st.batchId }));
       });
       return b.commit();
@@ -15486,6 +15538,7 @@
       '<div class="field" id="hnFromField"><label>Asked by</label><div class="bk-filter-pop" id="hnFrom" role="radiogroup" aria-label="Asked by"></div>' +
         '<p class="hn-note" id="hnFromNote" hidden></p></div>' +
       '<div class="field"><label for="hnText" id="hnTextLabel">What’s needed?</label><textarea id="hnText" rows="2" maxlength="280"></textarea></div>' +
+      '<div class="field"><label for="hnWhy">Why it matters <span class="pp-opt">optional</span></label><textarea id="hnWhy" rows="2" maxlength="300" placeholder="So they know the reason — e.g. so Magda can iron ahead of Sunday"></textarea></div>' +
       '<button type="button" class="cz-opt' + (withList ? ' on' : '') + '" id="hnListOn" role="switch" aria-checked="' + withList + '">' +
         '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
         '<span class="cz-opt-text"><span class="cz-opt-title">With a checklist</span>' +
@@ -15562,7 +15615,7 @@
     if (withList){ sh.querySelector('#hnText').placeholder = 'e.g. Weekly groceries'; }
     var text = sh.querySelector('#hnText'), noteEl = sh.querySelector('#hnNote'), err = sh.querySelector('#hnErr'), save = sh.querySelector('#hnSave');
     save.addEventListener('click', function(){
-      var t = text.value.trim(), n = noteEl.value.trim();
+      var t = text.value.trim(), n = noteEl.value.trim(), why = sh.querySelector('#hnWhy').value.trim();
       if (!assignee){ err.textContent = 'Choose who it’s for.'; return; }
       if (!t){ err.textContent = 'Say what’s needed.'; text.focus(); return; }
       var d = timing === 'date' ? sh.querySelector('#hnDate').value : null;
@@ -15578,6 +15631,7 @@
         status: 'requested', plannedDate: null, linkedActionId: null, createdAt: now, updatedAt: now,
         latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created', readAt: readAt };
       if (items.length) doc.hasChecklist = true;
+      if (why) doc.why = why.slice(0, 300);
       b.set(ref, doc);
       b.set(ref.collection('updates').doc('created'), hrEntry('created', null, { timing: timing, date: d || null, onBehalf: requester !== me }));
       if (items.length){
@@ -15603,6 +15657,7 @@
       '<div class="sheet-head rq-head"><div class="sheet-title-wrap">' +
         '<p class="rq-kicker" id="hdKicker"></p><div class="sheet-title rq-title" id="hdTitle"></div>' +
       '</div><button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<p class="rq-why" id="hdWhy" hidden></p>' +
       '<p class="rq-state" id="hdState"></p>' +
       '<p class="rq-meta" id="hdMeta"></p>' +
       '<div class="rq-act" id="hdAct"></div>' +
@@ -15623,6 +15678,7 @@
       var me = homeMe(), mine = r.assigneeUid === me, asker = r.requesterUid === me || r.createdByUid === me, own = hrOwnIdea(r);
       sh.querySelector('#hdKicker').textContent = hrKicker(r) + (r.visibility === 'home' ? ' · everyone at Home' : '');
       sh.querySelector('#hdTitle').textContent = r.text;
+      hrWhyInto(sh.querySelector('#hdWhy'), r.why);
       var st = sh.querySelector('#hdState');
       st.textContent = hrStatusLabel(r) + (r.status === 'cant_do' && r.cantDoReason ? ' — “' + r.cantDoReason + '”' : '');
       st.className = 'rq-state st-' + hrStatusClass(r);
@@ -15722,9 +15778,10 @@
           return '<button type="button" class="bk-filter-chip' + (timing === t[0] ? ' sel' : '') + '" role="radio" aria-checked="' + (timing === t[0]) + '" data-he-timing="' + t[0] + '">' + t[1] + '</button>';
         }).join('') + '</div></div>' +
       '<div id="heDateField"' + (timing === 'date' ? '' : ' hidden') + '>' + fieldDate('heDate', 'Date', r.requestedDate || nextDateStr(todayStr())) + '</div>' +
+      '<div class="field"><label for="heWhy">Why it matters <span class="pp-opt">optional</span></label><textarea id="heWhy" rows="2" maxlength="300"></textarea></div>' +
       '<div class="field"><label for="heNote">Note <span class="pp-opt">optional</span></label><textarea id="heNote" rows="2" maxlength="500"></textarea></div>' +
       '<p class="auth-error" id="heErr" role="alert"></p><button type="button" class="btn-primary" id="heSave">Save</button>');
-    sh.querySelector('#heText').value = r.text; sh.querySelector('#heNote').value = r.note || '';
+    sh.querySelector('#heText').value = r.text; sh.querySelector('#heNote').value = r.note || ''; sh.querySelector('#heWhy').value = r.why || '';
     sh.querySelectorAll('[data-he-timing]').forEach(function(b){
       b.addEventListener('click', function(){
         timing = b.dataset.heTiming;
@@ -15734,10 +15791,13 @@
     });
     sh.querySelector('#heSave').addEventListener('click', function(){
       var t = sh.querySelector('#heText').value.trim(), n = sh.querySelector('#heNote').value.trim(), err = sh.querySelector('#heErr');
+      var why = sh.querySelector('#heWhy').value.trim();
       if (!t){ err.textContent = 'Say what’s needed.'; return; }
       if (!homeReq(r.id)){ err.textContent = 'This request was deleted.'; return; }
       var d = timing === 'date' ? sh.querySelector('#heDate').value : null;
-      homeRef(r.id).update({ text: t.slice(0, 280), note: n ? n.slice(0, 500) : null, requestedTiming: timing, requestedDate: d || null, updatedAt: new Date().toISOString() })
+      var upd = { text: t.slice(0, 280), note: n ? n.slice(0, 500) : null, requestedTiming: timing, requestedDate: d || null, updatedAt: new Date().toISOString() };
+      if (why || r.why) upd.why = why ? why.slice(0, 300) : null;
+      homeRef(r.id).update(upd)
         .then(function(){ openHomeDetail(r.id); showPinToast('Request updated', false, CHECK_SVG); })
         .catch(function(e){ console.error(e); err.textContent = 'It’s already been picked up, so it can’t be changed — add an update instead.'; });
     });

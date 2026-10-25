@@ -688,6 +688,94 @@ async function oobLink(email){
   check(!(await S.evaluate(() => /Call the boiler man/.test(document.querySelector('main').innerText))), 'H17 …and it isn\'t in his Inbox on Today');
   await goHome(S);
 
+  // H18 — a request's checklist travels with the Action it became: shown and ticked from Today
+  {
+    const rid = 'cl18', aid = 'act18', now = new Date().toISOString();
+    // the items first: in the app they arrive in the same batch as the request
+    let i = 0;
+    for (const t of ['Carrot cake', 'Lotus cake', 'Apple tart']){
+      await put(`${HR}/${rid}/items/i${i}`, { text: t, done: false, order: ++i, createdByUid: abi, createdAt: now, doneByUid: null, doneAt: null, updatedByUid: abi, updatedAt: now });
+    }
+    await put(`${HR}/${rid}`, { homeId: owner, text: 'Grandiose shop', note: null, requestedTiming: 'today', requestedDate: null,
+      requesterUid: abi, assigneeUid: owner, createdByUid: abi, participants: [abi, owner], visibility: 'private', status: 'planned',
+      plannedDate: TODAY, linkedActionId: aid, linkedByUid: owner, hasChecklist: true, createdAt: now, updatedAt: now,
+      latestUpdateAt: now, latestUpdateByUid: owner, latestUpdateType: 'planned', readAt: {} });
+    await put(`ledger_commitments/${aid}`, { date: TODAY, originalDate: TODAY, title: 'Grandiose shop', category: 'family', status: 'planned',
+      priorityId: null, minVersion: null, disruptionReason: null, createdAt: now, sourceType: 'home_request', sourceRequestId: rid, sourceLabel: 'Abi' });
+    await backToToday(S);
+    check(await until(S, () => [...document.querySelectorAll('#commitmentsList .commitment-item')].some(r => /Grandiose shop/.test(r.innerText) && /0 of 3 items/.test(r.innerText)), null, 15000),
+      'H18 Today: the Action from Abi\'s request shows its checklist, "0 of 3 items"');
+    await editRow(S, 'Grandiose shop');
+    check(await until(S, () => { const l = document.getElementById('commitList'); return !!l && ['Carrot cake', 'Lotus cake', 'Apple tart'].every(t => l.innerText.indexOf(t) > -1); }),
+      'H18 the Action\'s sheet shows the request\'s checklist');
+    await S.screenshot({ path: `${shots}/${tag}-H18-action-checklist.png` });
+    await S.evaluate(() => { const row = [...document.querySelectorAll('#commitList .hl-row')].find(r => /Lotus cake/.test(r.innerText)); row.querySelector('.commitment-status-dot').click(); });
+    let ticked = false;
+    for (let k = 0; k < 20 && !ticked; k++){ await sleep(300); ticked = (await all(`${HR}/${rid}/items`)).some(x => x.text === 'Lotus cake' && x.done === true && x.doneByUid === owner); }
+    check(ticked, 'H18 ticking it there ticks the same item, as Shaun');
+    check((await all(`${HR}/${rid}/items`)).filter(x => x.done).length === 1, 'H18 …one item, nothing else');
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
+    check(await until(S, () => [...document.querySelectorAll('#commitmentsList .commitment-item')].some(r => /Grandiose shop/.test(r.innerText) && /1 of 3 items/.test(r.innerText))),
+      'H18 and Today\'s row follows: "1 of 3 items"');
+  }
+
+  // H19 — "Why it matters": the asker says why; the person asked sees it wherever the request goes
+  {
+    await addOne(A);
+    await A.waitForSelector('#hnWhy');
+    check(await chip(A, '#hnFor', 'Shaun'), 'chose For Shaun');
+    await A.fill('#hnText', 'Book the car service');
+    await A.fill('#hnWhy', 'The MOT runs out on the 3rd');
+    await A.screenshot({ path: `${shots}/${tag}-H19-new-why.png` });
+    await A.click('#hnSave');
+    await until(A, () => !document.getElementById('ppBackdrop').classList.contains('open'), null, 8000); await sleep(600);
+    const wr = await reqByText('Book the car service');
+    check(wr && wr.why === 'The MOT runs out on the 3rd', 'H19 stored with the request, as Abi wrote it');
+    check(!('why' in (await reqByText('Weekly groceries'))), 'H19 a request without one carries no "why" at all (older rules accept it)');
+    await backToToday(S);
+    check(await until(S, () => [...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Book the car service/.test(r.innerText) && /Why: The MOT runs out on the 3rd/.test(r.innerText)), null, 15000),
+      'H19 Shaun\'s Inbox: "Why: The MOT runs out on the 3rd"');
+    await goHome(S);
+    check(await openRow(S, SH, 'Book the car service'), 'H19 Shaun opens it from Home');
+    check(await until(S, () => { const w = document.getElementById('hdWhy'); return !!w && !w.hidden && /Why it matters/i.test(w.innerText) && /MOT runs out on the 3rd/.test(w.innerText); }), 'H19 the request: "Why it matters", first under the title');
+    await S.screenshot({ path: `${shots}/${tag}-H19-detail-why.png` });
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    // Abi rewords it while it waits
+    await goHome(A);
+    check(await openRow(A, AH, 'Book the car service'), 'H19 Abi opens hers');
+    await A.waitForSelector('#hdEdit'); await A.click('#hdEdit'); await A.waitForSelector('#heWhy');
+    check(await A.evaluate(() => document.getElementById('heWhy').value) === 'The MOT runs out on the 3rd', 'H19 editing shows the reason');
+    await A.fill('#heWhy', 'The MOT runs out on the 3rd of next month'); await A.click('#heSave'); await sleep(800);
+    check((await reqByText('Book the car service')).why === 'The MOT runs out on the 3rd of next month', 'H19 …and saves the new wording');
+    await A.evaluate(() => { const x = document.querySelector('#ppBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    // it becomes Shaun's Action: the reason goes with it
+    const aid = 'act19', now = new Date().toISOString();
+    await put(`ledger_commitments/${aid}`, { date: TODAY, originalDate: TODAY, title: 'Book the car service', category: 'family', status: 'planned',
+      priorityId: null, minVersion: null, disruptionReason: null, createdAt: now, sourceType: 'home_request', sourceRequestId: wr.id, sourceLabel: 'Abi' });
+    await backToToday(S);
+    await until(S, () => [...document.querySelectorAll('#commitmentsList .commitment-item')].some(r => /Book the car service/.test(r.innerText)), null, 15000);
+    await editRow(S, 'Book the car service');
+    check(await until(S, () => { const w = document.getElementById('commitWhy'); return !!w && /MOT runs out on the 3rd of next month/.test(w.innerText); }), 'H19 the Action\'s sheet shows why it matters');
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    // several at once: one reason for all of them
+    await goHome(A); await A.click('#hsAdd'); await A.waitForSelector('#hamMany'); await A.click('#hamMany');
+    await A.waitForSelector('#hbWhy');
+    await A.fill('#hbText', 'Make up the spare bed\nBuy flowers');
+    await A.fill('#hbWhy', 'The in-laws arrive on Friday');
+    await A.click('#hbPreview'); await A.waitForSelector('#hbpSave'); await A.click('#hbpSave');
+    await until(A, () => !document.getElementById('ppBackdrop').classList.contains('open'), null, 15000); await sleep(800);
+    const both = (await all(HR)).filter(r => ['Make up the spare bed', 'Buy flowers'].includes(r.text));
+    check(both.length === 2 && both.every(r => r.why === 'The in-laws arrive on Friday'), 'H19 several at once: each carries the one reason');
+    // recurring: the template keeps it (the server copies it onto each one)
+    await goHome(A); await A.click('#hsAdd'); await A.waitForSelector('#hamRecur'); await A.click('#hamRecur');
+    await A.waitForSelector('#rcWhy');
+    await A.fill('#rcText', 'Recycling out'); await A.fill('#rcWhy', 'Collection is at 7am');
+    await A.click('#rcSave'); await sleep(1000);
+    const rt = (await all('ledger_home_recurring')).find(t => t.title === 'Recycling out');
+    check(rt && rt.why === 'Collection is at 7am', 'H19 recurring: the template keeps why it matters');
+    check(!('why' in (await all('ledger_home_recurring')).find(t => /School uniform/.test(t.title))), 'H19 …one set up without a reason has none');
+  }
+
   // H11 — the partner portal still does what it did
   await A.click('[data-pp-tab="today"]'); await sleep(300);
   check(await A.evaluate(() => /Nothing shared for today yet/.test(document.getElementById('partnerApp').innerText)), 'H11 Abi\'s shared day is untouched');

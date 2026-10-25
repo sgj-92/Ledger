@@ -106,6 +106,7 @@ function createRecurrer(deps) {
     const items = (Array.isArray(t.checklist) ? t.checklist : []).filter((x) => typeof x === 'string' && x.trim()).slice(0, 40);
     const occ = {
       homeId: t.homeId, text: String(t.title || '').slice(0, 280), note: t.note ? String(t.note).slice(0, 500) : null,
+      why: t.why ? String(t.why).slice(0, 300) : null,
       requestedTiming: 'date', requestedDate: date, requestedTime: (t.schedule && t.schedule.time) || null,
       requesterUid: t.createdByUid, assigneeUid: anyone ? null : t.assigneeUid, createdByUid: t.createdByUid,
       participants, visibility: anyone ? 'home' : (t.visibility === 'home' ? 'home' : 'private'),
