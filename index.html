@@ -6388,6 +6388,7 @@
   async function handleAuthState(user){
     if (!user){
       authUser = null; authRole = null; authProfile = null;
+      nativeWidgetClear();
       // private data never outlives the session that loaded it
       if (ownerDataStarted || pp.started){ location.reload(); return; }
       lockApp();
@@ -6413,6 +6414,7 @@
     // not (or no longer) the owner: private data is neither shown nor kept on screen
     if (ownerDataStarted){ location.reload(); return; }
     // a partner sees only what has been published to them — never this device's copy
+    nativeWidgetClear();                               // the widget is the owner's alone
     if (role === 'partner'){ startPartner(); return; }
     // someone who helps at home: their Home, and nothing of Ledger
     if (role === 'household'){ startHousehold(); return; }
@@ -6476,6 +6478,7 @@
 
   function signOutLedger(){
     forgetRole();
+    nativeWidgetClear();
     // this device stops receiving this user's notifications first
     forgetThisDevice().then(function(){
       firebase.auth().signOut().catch(function(){ location.reload(); });
@@ -8035,11 +8038,78 @@
     nativeSyncBars();
     if (window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android' && typeof window.Capacitor.addListener === 'function')
       window.Capacitor.addListener('App', 'backButton', nativeBack);
+    // a link into Ledger from outside the page (the Today widget, later notifications):
+    // the same router as every Ledger link
+    if (typeof window.Capacitor.addListener === 'function')
+      window.Capacitor.addListener('App', 'appUrlOpen', function(d){ if (d && typeof d.url === 'string') nativeOpenLink(d.url); });
+    nativeCall('App', 'getLaunchUrl').then(function(d){ if (d && typeof d.url === 'string') nativeOpenLink(d.url); });
+    document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'hidden') nativeWidgetPublish(); });
     nativeCall('App', 'getInfo').then(function(info){
       if (!info) return;
       var clean = function(v){ return String(v == null ? '' : v).replace(/[^A-Za-z0-9 ._()-]/g, '').slice(0, 24); };
       nativeInfo = { platform: window.Capacitor.getPlatform() === 'ios' ? 'iOS' : 'Android', version: clean(info.version) + (info.build ? ' (' + clean(info.build) + ')' : '') };
     });
+  }
+
+  // only Ledger's own links: its app scheme, or its own address
+  function nativeOpenLink(url){
+    if (!/^luxe\.sgj\.ledger:\/\//.test(url) && url.indexOf(LEDGER_HOME) !== 0) return;
+    var p; try { p = new URL(url).searchParams; } catch(e){ return; }
+    // the widget itself: open Today (the owner's; a partner's view= is handled as a link)
+    if (p.get('view') === 'today' && authRole === 'owner' && !p.get('openAction')){
+      viewedDate = todayStr(); goView('log'); renderAll();
+      return;
+    }
+    openLedgerLink(url);
+  }
+
+  // ---- the Today widget (iOS; docs/NATIVE_MIGRATION.md §4) ----
+  // What it shows is worked out here, by Ledger's own rules — today's Actions in Flow order —
+  // and handed to the app as a small snapshot that the widget only draws. Titles, times and
+  // categories only: never notes, Comms, Home, health or anyone else's data. Only the
+  // confirmed owner's; signing out, or any other role, clears it.
+  var WIDGET_MAX = 12, widgetTimer = null, widgetLast = '';
+  function nativeWidgetOn(){
+    return NATIVE && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() === 'ios';
+  }
+  function buildWidgetSnapshot(){
+    var date = todayStr();
+    var acts = dayFlowItems(date).filter(function(it){ return it.kind === 'action'; }).map(function(it){ return it.c; });
+    return {
+      v: 1, date: date, dayLabel: shortDayLabel(date), total: acts.length,
+      done: acts.filter(function(c){ return c.status === 'completed'; }).length,
+      items: acts.slice(0, WIDGET_MAX).map(function(c){
+        return {
+          id: String(c.id), title: String(c.title || '').slice(0, 120), time: actionTime(c), category: c.category || null,
+          done: c.status === 'completed', open: c.status !== 'completed' && c.status !== 'disrupted',
+          link: 'luxe.sgj.ledger://open?openAction=' + encodeURIComponent(c.id)
+        };
+      })
+    };
+  }
+  function widgetReady(){
+    return nativeWidgetOn() && authRole === 'owner' && ownerDataStarted && dbReady && czLoaded.commitments && czLoaded.plans;
+  }
+  // after a render: once things settle, and only when what the widget shows has changed
+  // (each reload counts against the widget's daily budget)
+  function nativeWidgetSoon(){
+    if (!widgetReady()) return;
+    clearTimeout(widgetTimer);
+    widgetTimer = setTimeout(nativeWidgetPublish, 700);
+  }
+  function nativeWidgetPublish(){
+    clearTimeout(widgetTimer);
+    if (!widgetReady()) return;
+    var snap = buildWidgetSnapshot(), key = JSON.stringify(snap);
+    if (key === widgetLast) return;
+    widgetLast = key;
+    snap.generatedAt = new Date().toISOString();
+    nativeCall('LedgerWidget', 'publish', { snapshot: JSON.stringify(snap) });
+  }
+  function nativeWidgetClear(){
+    if (!nativeWidgetOn()) return Promise.resolve();
+    widgetLast = '';
+    return nativeCall('LedgerWidget', 'clear');
   }
 
   // ============ Theme ============
@@ -19993,6 +20063,7 @@
   }
 
   function renderLogView(){
+    nativeWidgetSoon();          // the Today widget follows Today (iOS app only)
     renderChallengeStrip();
     renderTodayMode();
     renderNowCue();
