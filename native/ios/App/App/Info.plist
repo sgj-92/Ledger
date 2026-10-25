@@ -55,6 +55,17 @@
 	<string>Ledger uses the camera only when you take a progress photo.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>luxe.sgj.ledger</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>luxe.sgj.ledger</string>
+			</array>
+		</dict>
+	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
