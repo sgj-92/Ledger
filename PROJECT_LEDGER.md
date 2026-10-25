@@ -596,6 +596,11 @@ never a view of Ledger. Model, rules, notifications and migration:
 - **Moving earlier requests:** Partner Sharing requests move into Home through a Cloud
   Function (same ids, private to Shaun and Abi). Until then, Partner Sharing requests
   work as before.
+- **Since 2026-10-25:**
+  - an Action made from a request with a checklist shows that checklist in its sheet,
+    and "n of m items" on its Today row;
+  - a request may carry an optional **"Why it matters"** (new, several at once,
+    recurring). It needs the rules and functions deployed.
 
 ---
 
@@ -734,6 +739,20 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-25 — Home: checklists follow the Action; "Why it matters"; ongoing tasks designed first
+Shaun's requests and answers:
+- **A request's checklist follows its Action.** An Action taken on from a Home request
+  shows the request's checklist. Ticking it there ticks the same items, as Shaun.
+- **"Why it matters"** is a separate, optional field: up to 300 characters, the
+  asker's words. It is available on a new request, several at once (one reason for
+  all) and recurring (copied onto each occurrence).
+  - It is shown first under the title, in the Inbox and in the Action's sheet.
+  - Only the asker or writer may reword it, while the request waits.
+  - It is written only when used, so Home works on the old rules until Shaun deploys.
+- **Ongoing tasks with steps for different people:** designed first, for approval
+  (`docs/HOME_ONGOING.md`). Each step is an ordinary request carrying the parent's id;
+  it is not a separate task engine.
 
 ### 2026-10-25 — Native apps: Phase 1 merged; the first widget is today's Actions (iOS)
 **Shaun approved:**
@@ -2095,7 +2114,13 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Claude Code
-Status: **native apps.** Phase 1 was merged into `main` on 2026-10-25.
+Status: **Home requests of 2026-10-25.**
+- A request's checklist now shows in its Action, and "Why it matters" is built
+  (87c3122). The "Why" needs Shaun's deploy (Next 1).
+- Ongoing tasks: `docs/HOME_ONGOING.md` waits for Shaun's answers. **Not authorised to
+  build until approved.**
+
+Before that: **native apps.** Phase 1 was merged into `main` on 2026-10-25.
 - **Shaun approved Phase 3, iOS only first:** a read-only home-screen widget for
   **today's Actions**. Phase 2 (notifications) is not started.
 - **Shaun is enrolling** in the Apple Developer Program. App Groups — the app and the
@@ -2226,6 +2251,20 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-25) — **Home: checklists in the Action; "Why it matters"** (87c3122).
+  - **Checklists:** an Action from a checklist request shows and ticks the list in its
+    sheet, with "n of m items" on Today.
+  - **"Why it matters":** on new, several and recurring requests; shown in the request,
+    the Inbox and the Action.
+  - **Changes:** rules (`homeWhy`), and `recur.js` copies it.
+  - **Tests:**
+    - rules 560;
+    - functions 47 / 37 / 49;
+    - Home e2e 201 (H18, H19);
+    - Partner 209, Quick capture 24, native shell 28, settings sync 9, push 76.
+  - **Deploy:** Shaun deploys rules and functions.
+  - **Next:** the design for ongoing tasks, `docs/HOME_ONGOING.md`, for review.
 
 - (2026-10-24) — **Fix: the Claude conversation link now follows the account.**
   - **What was wrong:** it was saved in `ledger_meta/presets`, but the presets listener
@@ -2654,6 +2693,8 @@ minutes before", recurring/accountability).
       **Until it's deployed:**
       - a request with a checklist, or a recurring responsibility, is refused by the
         live rules;
+      - since 2026-10-25, so is a request with "Why it matters" filled in (requests
+        without one are unaffected);
       - a list's requests save, but each sends its own notification.
    2. **The nanny's account:**
       - She opens `ledger.sgj.luxe` → "New here? Create an account". She sees her
