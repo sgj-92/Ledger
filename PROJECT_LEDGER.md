@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-23 (Native apps Phase 1 — the shells — built on `feature/native-apps`, not merged)
+Last updated: 2026-10-25 (Native apps Phase 1 merged into `main`; Phase 3 — the first iOS widget — next)
 
 ---
 
@@ -13,12 +13,13 @@ date; no build step, no framework, ES5-style vanilla JS).
 Supporting files: `sw.js`, `manifest.json`, `fonts/` (self-hosted Playfair
 Display + Inter woff2 subsets), `hero-mountain.webp`, icons, `avatars/`,
 and `functions/` (the push engine and Home's server jobs — see `CLAUDE.md`).
-**Native apps:** Phase 1 (iOS and Android shells) is built on the branch
-`feature/native-apps` (2026-10-23) and **not merged**.
+**Native apps:** Phase 1 (iOS and Android shells) was **merged into `main` on
+2026-10-25**.
 - `native/` holds the Capacitor 8 projects. The apps load `https://ledger.sgj.luxe`.
 - The page's native hooks in `index.html` are inert on the web.
-- Neither app has been compiled yet: that needs Shaun's Mac. See
-  `docs/NATIVE_MIGRATION.md` §12a and `native/README.md`.
+- **Verified by Shaun:** the iPhone 16e simulator, the Pixel 10 Pro emulator, and his
+  own iPhone (free Personal Team signing, which expires every 7 days).
+- See `docs/NATIVE_MIGRATION.md` §12a and `native/README.md`.
 
 **Five tabs (since 2026-10-22):** Plan · Today · **Me** · **Comms** · **Home**. Me holds
 Calendar, Progress and Focus behind one switch (remembered per device; a dated link
@@ -733,6 +734,18 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-25 — Native apps: Phase 1 merged; the first widget is today's Actions (iOS)
+**Shaun approved:**
+- merging `feature/native-apps` into `main`;
+- Phase 3 starting on iOS with one read-only widget: **today's Actions**;
+- enrolling in the Apple Developer Program, which App Groups, TestFlight and push need.
+
+Before the merge, the web suites were all green: Home 183, Partner 209, Quick capture
+24, native shell 28, settings sync 9, push e2e 76.
+
+Opening Claude from the app uses Safari: the Claude app does not claim `claude.ai/chat`
+links, so iOS has nothing to hand them to. That is not Ledger's to change.
 
 ### 2026-10-23 — Native apps Phase 1: approved and built as the shell
 **Shaun approved:**
@@ -2081,15 +2094,12 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (verification on the Mac, and the merge decision)
-Status: **native apps Phase 1 built on `feature/native-apps`, 2026-10-23, not merged.**
-Shaun:
-1. Builds and runs both apps (`native/README.md`) on the iPhone 16e simulator and the
-   Pixel 10 Pro emulator.
-2. Works through `docs/NATIVE_MIGRATION.md` §12's acceptance list.
-3. Decides whether to merge.
-
-Phase 2 (native notifications, links) is not started and not authorised.
+Owner: Claude Code
+Status: **native apps.** Phase 1 was merged into `main` on 2026-10-25.
+- **Shaun approved Phase 3, iOS only first:** a read-only home-screen widget for
+  **today's Actions**. Phase 2 (notifications) is not started.
+- **Shaun is enrolling** in the Apple Developer Program. App Groups — the app and the
+  widget sharing data — need it on a real device; the simulator does not.
 Earlier, still open: device checks (Next 1).
 - **Navigation Redesign & Home Expansion:** all four milestones are built and deployed
   by Shaun (2026-10-22: rules, indexes, all eight functions, Cloud Scheduler enabled).
@@ -2177,7 +2187,13 @@ No active handoff.
 
 ### Claude Code
 
-No active handoff. Native apps Phase 1 is done on `feature/native-apps` (not merged).
+**Active: native apps Phase 3, iOS** — the "Today" widget (`docs/NATIVE_MIGRATION.md`
+§4).
+- Read-only, showing today's open Actions in Ledger's order. A tap opens that Action.
+- Built from the web app's own snapshot (`buildWidgetSnapshot`), through an App Group.
+- No new collections or rules.
+
+Native apps Phase 1 is done and merged (2026-10-25).
 
 **Phase 2 handoff, ready when Shaun approves it** (`docs/NATIVE_MIGRATION.md` §5, §6,
 §11):
