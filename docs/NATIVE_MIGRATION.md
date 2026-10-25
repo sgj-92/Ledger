@@ -564,6 +564,9 @@ compiled here):
   sits above the home indicator.
 - **Android needed three fixes** (§12a above), now right.
 - **iPhone:** the first load was slow (a cold cache).
+- **2026-10-25: on Shaun's own iPhone,** signed with his free Personal Team from Xcode.
+  The app must be re-run from Xcode every 7 days until the Apple Developer Program
+  (TestFlight) is in place.
 
 **Still to verify on the Mac:** everything in §12's acceptance list on the iPhone 16e
 simulator and Pixel 10 Pro emulator. The first thing it proves is that both projects
