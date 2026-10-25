@@ -580,6 +580,51 @@ Without the hooks, in the app:
 - the status bar is always light text;
 - Notifications shows the browser's "can't receive" note.
 
+## 12b. Phase 3 (iOS first): the Today widget, as built (`feature/native-widgets`, 2026-10-25)
+
+Shaun's choice: one read-only widget, **today's Actions**.
+
+**The snapshot** (version 1, §4.1, narrowed):
+- `date`, `dayLabel`, `total`, `done`, and up to 12 items. Each item is `id`, `title`,
+  `time`, `category`, `done`, `open` and a `luxe.sgj.ledger://open?openAction=` link.
+- **Built in `index.html` by Ledger's own Flow order** (`dayFlowItems`):
+  - only in the iOS app, and only for the confirmed owner, after commitments and plans
+    have loaded from the server;
+  - debounced, and sent only when it changes, because each reload counts against
+    WidgetKit's daily budget;
+  - signing out, or any other role, clears it.
+- **Links back into Ledger** go through `openLedgerLink`, and only Ledger's own scheme
+  or address is accepted. `?view=today` opens Today.
+
+**iOS side:**
+- **`Shared/LedgerShared.swift`:** the App Group `group.luxe.sgj.ledger` and the
+  model, in both targets. The file is readable after first unlock.
+- **The plugin:** `LedgerWidgetPlugin` (`publish` checks the shape and a 64 KB limit,
+  writes, reloads; `clear`), registered by `LedgerBridgeViewController`.
+- **The URL scheme:** `luxe.sgj.ledger`.
+- **The `LedgerWidget` extension (iOS 17+):**
+  - **small:** the next Action and a progress bar;
+  - **medium:** the count beside the next four, each a link;
+  - Ledger's dark and light palette;
+  - titles marked `privacySensitive`;
+  - a midnight entry turns yesterday's snapshot into "Open Ledger".
+- **The target** was added with `native/scripts/add-ios-widget.rb` (xcodeproj).
+
+**Verified here:**
+- `native-shell` e2e 39 (11 widget checks, with a stand-in bridge);
+- web suites green;
+- the Xcode project re-read: targets, phases, settings, references.
+
+**Not verified:** Swift compiles, and the widget's look, in Xcode and the simulator.
+
+**Signing:** App Groups need a paid Apple Developer team on a real iPhone (a free
+Personal Team can't sign them). The simulator works meanwhile. Until Shaun's team is
+in place, this branch can't run on his phone, so it stays off `main`.
+
+**Testing before a merge:** the app loads production. So either the web-side commit
+goes to `main` on its own (inert on the web and in today's apps), or the app is pointed
+at a preview with `LEDGER_APP_URL`.
+
 ## 13. Risks and dependencies
 
 | Risk | Mitigation |

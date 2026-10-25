@@ -87,6 +87,24 @@ npm run sync         # writes the app's settings and the offline page into both 
 - **Not in Phase 1:** native notifications, widgets, Universal / App Links, store
   submission.
 
+## The Today widget (iOS, branch `feature/native-widgets`)
+
+The widget shows today's Actions in Ledger's Flow order. Ledger's page builds the list
+and hands it to the app (the `LedgerWidget` plugin), which shares it with the widget
+through the App Group `group.luxe.sgj.ledger`.
+
+**In Xcode:**
+- **Signing:** App → Signing & Capabilities: choose your Team for **both** the `App` and
+  `LedgerWidget` targets. App Groups need a paid Apple Developer team on a real
+  iPhone; the simulator works without one.
+- **Running it:** run the `App` scheme, then add the widget: long-press the Home
+  Screen → Edit → Add Widget → Ledger.
+- **Previews:** `LedgerWidget/TodayWidget.swift` has previews for both sizes (Editor →
+  Canvas).
+
+The page must include the widget's web side (in `main`, or a preview via
+`LEDGER_APP_URL`) for the widget to fill.
+
 ## Tests
 
 - `tests/e2e/native-shell.test.js`: the page's native hooks, with a stand-in bridge, and

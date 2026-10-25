@@ -2227,6 +2227,15 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-25) — **Native apps Phase 3, iOS: the Today widget** (`feature/native-widgets`,
+  not merged).
+  - Small and medium widgets, showing today's Actions in Ledger's Flow order. A tap
+    opens the Action, or Today.
+  - The web side builds the snapshot; the app shares it through an App Group.
+  - Tests: native-shell e2e 39; web suites green.
+  - Swift not compiled here. Needs Xcode, and a paid team for a real iPhone
+    (`docs/NATIVE_MIGRATION.md` §12b).
+
 - (2026-10-24) — **Fix: the Claude conversation link now follows the account.**
   - **What was wrong:** it was saved in `ledger_meta/presets`, but the presets listener
     didn't read it, so other devices never saw it. Worse, any other presets save on
