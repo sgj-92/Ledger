@@ -66,7 +66,11 @@ function fakeBridge(platform){
     isNativePlatform: function(){ return true; },
     getPlatform: function(){ return platform; },
     nativePromise: function(plugin, method, options){
-      window.__nat.calls.push(plugin + '.' + method + (options && Object.keys(options).length ? ' ' + JSON.stringify(options) : ''));
+      var entry = plugin + '.' + method + (options && Object.keys(options).length ? ' ' + JSON.stringify(options) : '');
+      window.__nat.calls.push(entry);
+      // kept across a reload (signing out reloads the page)
+      try { var log = JSON.parse(sessionStorage.getItem('__natlog') || '[]'); log.push(plugin + '.' + method); sessionStorage.setItem('__natlog', JSON.stringify(log)); } catch(e){}
+      if (plugin === 'LedgerWidget' && method === 'publish') (window.__nat.snapshots = window.__nat.snapshots || []).push(JSON.parse(options.snapshot));
       if (plugin === 'App' && method === 'getInfo') return Promise.resolve({ name: 'Ledger', id: 'luxe.sgj.ledger', version: '1.0', build: '7' });
       return Promise.resolve({});
     },
@@ -140,6 +144,7 @@ function fakeBridgeWhenAsked(){
   check(await until(A, () => /Finish the quarterly plan/.test(document.querySelector('main').innerText), null, 25000), 'Android: Shaun signs in with his password and gets his Ledger');
   check((await calls(A)).includes('SystemBars.setStyle {"style":"DARK"}'), 'Android: the status bar is set for the dark theme (light text)', (await calls(A)).join(' | '));
   check(await A.evaluate(() => (window.__nat.listeners['App.backButton'] || []).length === 1), 'Android: one back-button listener');
+  check(await A.evaluate(() => !window.__nat.calls.some(c => /^LedgerWidget/.test(c))), 'Android: no widget calls yet (the widget is iOS first)');
   check(await A.evaluate(async () => !navigator.serviceWorker || (await navigator.serviceWorker.getRegistrations()).length === 0), 'Android: no web service worker in the app');
   // the five tabs
   for (const v of ['plan', 'log', 'me', 'comms', 'home']){
@@ -184,6 +189,44 @@ function fakeBridgeWhenAsked(){
   check(await until(I, ready, null, 25000), 'iOS: Shaun signs in and gets his Ledger');
   check((await calls(I)).includes('SystemBars.setStyle {"style":"LIGHT"}'), 'iOS: the light theme gets dark status-bar text');
   check(await I.evaluate(() => !(window.__nat.listeners['App.backButton'] || []).length), 'iOS: no back-button listener (iOS has no back button)');
+  // the Today widget: a snapshot of today's Actions, Ledger's order, for the owner only
+  const lastSnap = p => p.evaluate(() => { const a = window.__nat.snapshots || []; return a.length ? a[a.length - 1] : null; });
+  check(await until(I, () => (window.__nat.snapshots || []).length > 0, null, 10000), 'iOS widget: Today is published to the widget once his data has loaded');
+  let snap = await lastSnap(I);
+  check(snap && snap.v === 1 && snap.date === new Date().toLocaleDateString('en-CA') && snap.total === 1 && snap.items[0].title === 'Finish the quarterly plan'
+    && snap.items[0].link === 'luxe.sgj.ledger://open?openAction=k1' && typeof snap.generatedAt === 'string',
+    'iOS widget: version 1, today, his Action with its link', JSON.stringify(snap));
+  check(snap && Object.keys(snap.items[0]).sort().join() === 'category,done,id,link,open,time,title', 'iOS widget: titles, times and categories only — nothing else crosses', snap && Object.keys(snap.items[0]).join());
+  const published = await I.evaluate(() => (window.__nat.snapshots || []).length);
+  await put('ledger_commitments/k2', { date: TODAY, originalDate: TODAY, title: 'Call the plumber', category: 'personal', status: 'planned', time: '09:15', priorityId: null, minVersion: null, disruptionReason: null, createdAt: '2026-10-20T10:00:00.000Z' });
+  check(await until(I, n => (window.__nat.snapshots || []).length > n && window.__nat.snapshots[window.__nat.snapshots.length - 1].total === 2, published, 12000), 'iOS widget: a new Action today is published again');
+  snap = await lastSnap(I);
+  // Ledger's Flow order: untimed Actions keep their place; a time orders only timed ones
+  check(snap.items.map(i => i.title + ' ' + i.time).join(' | ') === 'Finish the quarterly plan null | Call the plumber 09:15',
+    'iOS widget: in Ledger\'s own Flow order, with times', snap.items.map(i => i.title + ' ' + i.time).join(' | '));
+  const sent = await I.evaluate(() => (window.__nat.snapshots || []).length);
+  for (const v of ['plan', 'log', 'me', 'log']){ await I.click(`.tab-btn[data-view="${v}"]`); await sleep(250); }
+  await sleep(1200);
+  check(await I.evaluate(n => (window.__nat.snapshots || []).length === n, sent), 'iOS widget: re-rendering Today sends nothing new when nothing changed');
+  // its links open Ledger at the right place — and only Ledger's own links
+  const openLink = (p, url) => p.evaluate(u => (window.__nat.listeners['App.appUrlOpen'] || []).forEach(cb => cb({ url: u })), url);
+  await I.click('.tab-btn[data-view="plan"]');
+  await openLink(I, 'https://evil.example/?openAction=k2');
+  await sleep(500);
+  check(!(await sheetOpen(I)), 'iOS: a link that isn\'t Ledger\'s is ignored');
+  await openLink(I, 'luxe.sgj.ledger://open?openAction=k2');
+  check(await until(I, () => document.getElementById('sheetBackdrop').classList.contains('open')
+      && [...document.querySelectorAll('#sheetBackdrop input, #sheetBackdrop textarea')].some(f => f.value === 'Call the plumber')),
+    'iOS widget tap: opens that Action in Ledger');
+  await I.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
+  await I.click('.tab-btn[data-view="comms"]');
+  await openLink(I, 'luxe.sgj.ledger://open?view=today');
+  check(await until(I, () => document.querySelector('.view.active').id === 'view-log'), 'iOS widget tap elsewhere: opens Today');
+  // signing out empties the widget
+  I.on('dialog', d => d.accept());
+  await openSettings(I); await I.waitForSelector('#setSignOut'); await I.click('#setSignOut');
+  check(await until(I, () => { try { return JSON.parse(sessionStorage.getItem('__natlog') || '[]').indexOf('LedgerWidget.clear') > -1; } catch (e){ return false; } }, null, 15000),
+    'iOS: signing out clears the widget');
 
   // ---- Abi (partner) in the Android app: back closes her portal's sheet ----
   const P = await session('abi', 'android', 'dark');
