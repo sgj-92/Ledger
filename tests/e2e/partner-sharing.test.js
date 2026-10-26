@@ -271,8 +271,11 @@ async function oobLink(email){
   await S.click('[data-ib-today]');
 
   // 9 — one Action, with provenance; request planned
-  await sleep(1200);
-  let acts = (await all('ledger_commitments')).filter(c => c.title === 'Pick up nappies');
+  // wait for the write to land (a fixed pause raced it on a busy machine)
+  let acts = [];
+  for (let k = 0; k < 40; k++){ await sleep(300); acts = (await all('ledger_commitments')).filter(c => c.title === 'Pick up nappies'); if (acts.length) break; }
+  await sleep(600);
+  acts = (await all('ledger_commitments')).filter(c => c.title === 'Pick up nappies');
   check(acts.length === 1 && acts[0].sourceType === 'partner_request' && acts[0].sourceLabel === 'Abi' && !!acts[0].sourceRequestId && acts[0].date === TODAY, '9 exactly one Action, sourceType partner_request, from Abi, today');
   let reqs = await all('ledger_shared_requests');
   let nap = reqs.find(r => r.text === 'Pick up nappies');

@@ -7,6 +7,14 @@
         { "fieldPath": "homeId", "order": "ASCENDING" },
         { "fieldPath": "participants", "arrayConfig": "CONTAINS" }
       ]
+    },
+    {
+      "collectionGroup": "ledger_home_ongoing",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "homeId", "order": "ASCENDING" },
+        { "fieldPath": "participants", "arrayConfig": "CONTAINS" }
+      ]
     }
   ],
   "fieldOverrides": []

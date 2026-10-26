@@ -688,6 +688,218 @@ async function oobLink(email){
   check(!(await S.evaluate(() => /Call the boiler man/.test(document.querySelector('main').innerText))), 'H17 …and it isn\'t in his Inbox on Today');
   await goHome(S);
 
+  // H18 — a request's checklist travels with the Action it became: shown and ticked from Today
+  {
+    const rid = 'cl18', aid = 'act18', now = new Date().toISOString();
+    // the items first: in the app they arrive in the same batch as the request
+    let i = 0;
+    for (const t of ['Carrot cake', 'Lotus cake', 'Apple tart']){
+      await put(`${HR}/${rid}/items/i${i}`, { text: t, done: false, order: ++i, createdByUid: abi, createdAt: now, doneByUid: null, doneAt: null, updatedByUid: abi, updatedAt: now });
+    }
+    await put(`${HR}/${rid}`, { homeId: owner, text: 'Grandiose shop', note: null, requestedTiming: 'today', requestedDate: null,
+      requesterUid: abi, assigneeUid: owner, createdByUid: abi, participants: [abi, owner], visibility: 'private', status: 'planned',
+      plannedDate: TODAY, linkedActionId: aid, linkedByUid: owner, hasChecklist: true, createdAt: now, updatedAt: now,
+      latestUpdateAt: now, latestUpdateByUid: owner, latestUpdateType: 'planned', readAt: {} });
+    await put(`ledger_commitments/${aid}`, { date: TODAY, originalDate: TODAY, title: 'Grandiose shop', category: 'family', status: 'planned',
+      priorityId: null, minVersion: null, disruptionReason: null, createdAt: now, sourceType: 'home_request', sourceRequestId: rid, sourceLabel: 'Abi' });
+    await backToToday(S);
+    check(await until(S, () => [...document.querySelectorAll('#commitmentsList .commitment-item')].some(r => /Grandiose shop/.test(r.innerText) && /0 of 3 items/.test(r.innerText)), null, 15000),
+      'H18 Today: the Action from Abi\'s request shows its checklist, "0 of 3 items"');
+    await editRow(S, 'Grandiose shop');
+    check(await until(S, () => { const l = document.getElementById('commitList'); return !!l && ['Carrot cake', 'Lotus cake', 'Apple tart'].every(t => l.innerText.indexOf(t) > -1); }),
+      'H18 the Action\'s sheet shows the request\'s checklist');
+    await S.screenshot({ path: `${shots}/${tag}-H18-action-checklist.png` });
+    await S.evaluate(() => { const row = [...document.querySelectorAll('#commitList .hl-row')].find(r => /Lotus cake/.test(r.innerText)); row.querySelector('.commitment-status-dot').click(); });
+    let ticked = false;
+    for (let k = 0; k < 20 && !ticked; k++){ await sleep(300); ticked = (await all(`${HR}/${rid}/items`)).some(x => x.text === 'Lotus cake' && x.done === true && x.doneByUid === owner); }
+    check(ticked, 'H18 ticking it there ticks the same item, as Shaun');
+    check((await all(`${HR}/${rid}/items`)).filter(x => x.done).length === 1, 'H18 …one item, nothing else');
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
+    check(await until(S, () => [...document.querySelectorAll('#commitmentsList .commitment-item')].some(r => /Grandiose shop/.test(r.innerText) && /1 of 3 items/.test(r.innerText))),
+      'H18 and Today\'s row follows: "1 of 3 items"');
+  }
+
+  // H19 — "Why it matters": the asker says why; the person asked sees it wherever the request goes
+  {
+    await addOne(A);
+    await A.waitForSelector('#hnWhy');
+    check(await chip(A, '#hnFor', 'Shaun'), 'chose For Shaun');
+    await A.fill('#hnText', 'Book the car service');
+    await A.fill('#hnWhy', 'The MOT runs out on the 3rd');
+    await A.screenshot({ path: `${shots}/${tag}-H19-new-why.png` });
+    await A.click('#hnSave');
+    await until(A, () => !document.getElementById('ppBackdrop').classList.contains('open'), null, 8000); await sleep(600);
+    const wr = await reqByText('Book the car service');
+    check(wr && wr.why === 'The MOT runs out on the 3rd', 'H19 stored with the request, as Abi wrote it');
+    check(!('why' in (await reqByText('Weekly groceries'))), 'H19 a request without one carries no "why" at all (older rules accept it)');
+    await backToToday(S);
+    check(await until(S, () => [...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Book the car service/.test(r.innerText) && /Why: The MOT runs out on the 3rd/.test(r.innerText)), null, 15000),
+      'H19 Shaun\'s Inbox: "Why: The MOT runs out on the 3rd"');
+    await goHome(S);
+    check(await openRow(S, SH, 'Book the car service'), 'H19 Shaun opens it from Home');
+    check(await until(S, () => { const w = document.getElementById('hdWhy'); return !!w && !w.hidden && /Why it matters/i.test(w.innerText) && /MOT runs out on the 3rd/.test(w.innerText); }), 'H19 the request: "Why it matters", first under the title');
+    await S.screenshot({ path: `${shots}/${tag}-H19-detail-why.png` });
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    // Abi rewords it while it waits
+    await goHome(A);
+    check(await openRow(A, AH, 'Book the car service'), 'H19 Abi opens hers');
+    await A.waitForSelector('#hdEdit'); await A.click('#hdEdit'); await A.waitForSelector('#heWhy');
+    check(await A.evaluate(() => document.getElementById('heWhy').value) === 'The MOT runs out on the 3rd', 'H19 editing shows the reason');
+    await A.fill('#heWhy', 'The MOT runs out on the 3rd of next month'); await A.click('#heSave'); await sleep(800);
+    check((await reqByText('Book the car service')).why === 'The MOT runs out on the 3rd of next month', 'H19 …and saves the new wording');
+    await A.evaluate(() => { const x = document.querySelector('#ppBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    // it becomes Shaun's Action: the reason goes with it
+    const aid = 'act19', now = new Date().toISOString();
+    await put(`ledger_commitments/${aid}`, { date: TODAY, originalDate: TODAY, title: 'Book the car service', category: 'family', status: 'planned',
+      priorityId: null, minVersion: null, disruptionReason: null, createdAt: now, sourceType: 'home_request', sourceRequestId: wr.id, sourceLabel: 'Abi' });
+    await backToToday(S);
+    await until(S, () => [...document.querySelectorAll('#commitmentsList .commitment-item')].some(r => /Book the car service/.test(r.innerText)), null, 15000);
+    await editRow(S, 'Book the car service');
+    check(await until(S, () => { const w = document.getElementById('commitWhy'); return !!w && /MOT runs out on the 3rd of next month/.test(w.innerText); }), 'H19 the Action\'s sheet shows why it matters');
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    // several at once: one reason for all of them
+    await goHome(A); await A.click('#hsAdd'); await A.waitForSelector('#hamMany'); await A.click('#hamMany');
+    await A.waitForSelector('#hbWhy');
+    await A.fill('#hbText', 'Make up the spare bed\nBuy flowers');
+    await A.fill('#hbWhy', 'The in-laws arrive on Friday');
+    await A.click('#hbPreview'); await A.waitForSelector('#hbpSave'); await A.click('#hbpSave');
+    await until(A, () => !document.getElementById('ppBackdrop').classList.contains('open'), null, 15000); await sleep(800);
+    const both = (await all(HR)).filter(r => ['Make up the spare bed', 'Buy flowers'].includes(r.text));
+    check(both.length === 2 && both.every(r => r.why === 'The in-laws arrive on Friday'), 'H19 several at once: each carries the one reason');
+    // recurring: the template keeps it (the server copies it onto each one)
+    await goHome(A); await A.click('#hsAdd'); await A.waitForSelector('#hamRecur'); await A.click('#hamRecur');
+    await A.waitForSelector('#rcWhy');
+    await A.fill('#rcText', 'Recycling out'); await A.fill('#rcWhy', 'Collection is at 7am');
+    await A.click('#rcSave'); await sleep(1000);
+    const rt = (await all('ledger_home_recurring')).find(t => t.title === 'Recycling out');
+    check(rt && rt.why === 'Collection is at 7am', 'H19 recurring: the template keeps why it matters');
+    check(!('why' in (await all('ledger_home_recurring')).find(t => /School uniform/.test(t.title))), 'H19 …one set up without a reason has none');
+  }
+
+  // H20 — ongoing tasks: bigger than a day, with steps for different people
+  {
+    const OG = 'ledger_home_ongoing';
+    const sheetOpen = (p, sel) => until(p, (sel) => { const e = document.querySelector(sel); return !!e && !!e.closest('.sheet-backdrop.open'); }, sel);
+    const stepTitles = p => p.evaluate(() => [...document.querySelectorAll('#ogSteps .og-step .commitment-title')].map(e => e.textContent));
+    // only admins start one
+    await M.click('#hsAdd'); await M.waitForSelector('#hamOne');
+    check(!(await M.$('#hamOngoing')), 'H20 Maria (not an admin) has no "Ongoing task" to add');
+    await M.evaluate(() => { const x = document.querySelector('#ppBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    // Shaun starts one
+    await goHome(S); await S.click('#hsAdd'); await S.waitForSelector('#hamOngoing'); await S.click('#hamOngoing');
+    await S.waitForSelector('#ogText');
+    await S.fill('#ogText', 'Kitchen refit'); await S.fill('#ogWhyIn', 'Before the baby arrives in March');
+    await S.click('#ogSave');
+    check(await sheetOpen(S, '#ogSteps'), 'H20 started: its sheet opens, ready for steps');
+    check(await S.evaluate(() => /No steps yet/.test(document.getElementById('ogState').textContent) && /Before the baby/.test(document.getElementById('ogWhy').textContent)), 'H20 "No steps yet", and why it matters');
+    // steps for himself, no date — two at once
+    await S.click('#ogAdd'); await S.waitForSelector('#ogsText');
+    await S.fill('#ogsText', 'Get three quotes\nChoose the worktop');
+    check(await S.evaluate(() => document.getElementById('ogsSave').textContent) === 'Add 2 steps', 'H20 "Add 2 steps"');
+    check(await S.evaluate(() => [...document.querySelectorAll('#ogsFor .bk-filter-chip.sel')].map(b => b.textContent).join() === 'Me' && [...document.querySelectorAll('#ogsWhen .bk-filter-chip.sel')].map(b => b.textContent).join() === 'No date'), 'H20 for Me, no date, to start with');
+    await S.screenshot({ path: `${shots}/${tag}-H20-add-steps.png` });
+    await S.click('#ogsSave');
+    check(await until(S, () => [...document.querySelectorAll('#ogSteps .og-step')].length === 2), 'H20 two steps in the sheet');
+    // and one for Maria, today
+    await S.click('#ogAdd'); await S.waitForSelector('#ogsText');
+    await S.fill('#ogsText', 'Empty the kitchen cupboards');
+    check(await chip(S, '#ogsFor', 'Maria'), 'H20 for Maria'); check(await chip(S, '#ogsWhen', 'Today'), 'H20 today');
+    await S.click('#ogsSave');
+    check(await until(S, () => [...document.querySelectorAll('#ogSteps .og-step')].length === 3), 'H20 three steps');
+    await sleep(500);
+    const og = (await all(OG)).find(o => o.title === 'Kitchen refit');
+    const steps = (await all(HR)).filter(r => og && r.ongoingId === og.id);
+    check(og && og.createdByUid === owner && og.status === 'active' && og.why === 'Before the baby arrives in March' && og.participants.includes(maria) && og.stepOrder.length === 3,
+      'H20 stored once: Shaun\'s, active, Maria among its people, three steps in order', JSON.stringify(og));
+    check(steps.length === 3 && steps.every(r => r.requesterUid === owner && r.createdByUid === owner && r.status === 'requested')
+      && steps.filter(r => r.assigneeUid === owner && r.requestedTiming === 'none').length === 2 && steps.find(r => r.assigneeUid === maria).requestedTiming === 'today',
+      'H20 each step an ordinary request: two Shaun\'s (no date), Maria\'s today');
+    check(JSON.stringify(await stepTitles(S)) === JSON.stringify(['Get three quotes', 'Choose the worktop', 'Empty the kitchen cupboards']), 'H20 in the order they were added');
+    await S.screenshot({ path: `${shots}/${tag}-H20-ongoing-sheet.png` });
+    // drag the last one to the top
+    const box = async (sel) => S.evaluate((sel) => { const b = document.querySelector(sel).getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; }, sel);
+    const from = await box('#ogSteps .og-step:nth-child(3) .hl-grip'), to = await box('#ogSteps .og-step:nth-child(1)');
+    await S.mouse.move(from.x, from.y); await S.mouse.down(); await S.mouse.move(from.x, from.y - 20, { steps: 3 }); await S.mouse.move(from.x, to.y - 12, { steps: 8 }); await S.mouse.up();
+    let reordered = false;
+    for (let k = 0; k < 20 && !reordered; k++){ await sleep(250); const o = (await all(OG)).find(o => o.id === og.id); reordered = o.stepOrder[0] === steps.find(r => r.assigneeUid === maria).id; }
+    check(reordered, 'H20 an admin drags a step to the top: the order is kept');
+    check(await until(S, () => document.querySelector('#ogSteps .og-step .commitment-title').textContent === 'Empty the kitchen cupboards'), 'H20 …and the sheet shows it');
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    // Home: an Ongoing section; undated steps aren't in Upcoming; nothing new in the Inbox
+    check(await until(S, () => [...document.querySelectorAll('#view-home .og-row')].some(r => /Kitchen refit/.test(r.innerText) && /0 of 3 steps · with you, Maria · next today/.test(r.innerText))),
+      'H20 Shaun\'s Home → Ongoing: "0 of 3 steps · with you, Maria · next today"');
+    check(!(await titles(S, SH)).includes('Get three quotes'), 'H20 an undated step waits in its task, not in Upcoming');
+    await S.screenshot({ path: `${shots}/${tag}-H20-home.png`, fullPage: true });
+    // Maria: her step, with what it's part of; not Shaun's private steps
+    check(await until(M, () => [...document.querySelectorAll('#hpList .hs-row')].some(r => /Empty the kitchen cupboards/.test(r.innerText) && /Kitchen refit/.test(r.innerText)), null, 15000), 'H20 Maria: her step today, saying it\'s part of Kitchen refit');
+    check(await until(M, () => [...document.querySelectorAll('#hpList .og-row')].some(r => /Kitchen refit/.test(r.innerText) && /1 for you · next today/.test(r.innerText))), 'H20 …and the task in her Ongoing: "1 for you · next today" (only her part)');
+    await M.evaluate(() => [...document.querySelectorAll('#hpList .og-row')].find(r => /Kitchen refit/.test(r.innerText)).click());
+    check(await sheetOpen(M, '#ogSteps'), 'H20 she opens it');
+    check(JSON.stringify(await stepTitles(M)) === JSON.stringify(['Empty the kitchen cupboards']) && !(await M.$('#ogAdd')) && /Before the baby/.test(await M.evaluate(() => document.getElementById('ogWhy').textContent)),
+      'H20 …her step only, why it matters, and no Add steps (not an admin)');
+    check(await M.evaluate(() => document.getElementById('ogState').textContent === 'Your part · 0 of 1 done' && document.getElementById('ogStepsHead').textContent === 'Your steps'), 'H20 …said as her part: "Your part · 0 of 1 done"');
+    await M.screenshot({ path: `${shots}/${tag}-H20-maria.png` });
+    // she finishes hers from there
+    await M.evaluate(() => document.querySelector('#ogSteps .og-step .commitment-status-dot').click());
+    let mDone = false;
+    for (let k = 0; k < 40 && !mDone; k++){ await sleep(300); mDone = (await reqByText('Empty the kitchen cupboards')).status === 'done'; }
+    check(mDone, 'H20 Maria ticks her step: done');
+    await M.evaluate(() => { const x = document.querySelector('#ppBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    check(await until(S, () => [...document.querySelectorAll('#view-home .og-row')].some(r => /Kitchen refit/.test(r.innerText) && /1 of 3 steps/.test(r.innerText)), null, 15000), 'H20 Shaun sees "1 of 3 steps"');
+    // Shaun puts a step on his day: the ordinary Today, and the Action says what it's part of
+    await S.evaluate(() => [...document.querySelectorAll('#view-home .og-row')].find(r => /Kitchen refit/.test(r.innerText)).click());
+    await sheetOpen(S, '#ogSteps');
+    await S.evaluate(() => [...document.querySelectorAll('#ogSteps .og-step .hs-row-body')].find(b => /Get three quotes/.test(b.innerText)).click());
+    check(await until(S, () => { const p = document.getElementById('hdPartOf'); return !!p && /Kitchen refit/.test(p.innerText) && /1 of 3 steps/.test(p.innerText); }), 'H20 the step\'s sheet: "Part of Kitchen refit · 1 of 3 steps"');
+    await S.click('#hdToday');
+    let act = null;
+    for (let k = 0; k < 30 && !act; k++){ await sleep(300); act = (await all('ledger_commitments')).find(c => c.title === 'Get three quotes'); }
+    check(act && act.sourceType === 'home_request' && act.date === TODAY, 'H20 Today → an Action on today, from the step');
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    await backToToday(S);
+    await until(S, () => [...document.querySelectorAll('#commitmentsList .commitment-item')].some(r => /Get three quotes/.test(r.innerText)), null, 15000);
+    await editRow(S, 'Get three quotes');
+    check(await until(S, () => /part of Kitchen refit/.test((document.getElementById('commitSourceNote') || {}).textContent || '')), 'H20 the Action\'s sheet: "From Shaun · part of Kitchen refit"');
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    // Move to Ongoing: something Abi asked, sitting in Shaun's Inbox
+    await addOne(A); await A.waitForSelector('#hnText');
+    check(await chip(A, '#hnFor', 'Shaun'), 'chose For Shaun');
+    await A.fill('#hnText', 'Sort out the garden'); await A.fill('#hnWhy', 'So the kids can play out in spring');
+    await A.click('#hnSave'); await until(A, () => !document.getElementById('ppBackdrop').classList.contains('open'), null, 8000); await sleep(600);
+    check(await until(S, () => [...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Sort out the garden/.test(r.innerText)), null, 15000), 'H20 Abi\'s request in Shaun\'s Inbox');
+    await S.evaluate(() => [...document.querySelectorAll('#inboxSection .ib-row')].find(r => /Sort out the garden/.test(r.innerText)).querySelector('.ib-body, button, [data-hb-open]').click());
+    if (!(await until(S, () => !!document.getElementById('hdOngoing'), null, 4000))){ await goHome(S); await openRow(S, SH, 'Sort out the garden'); }
+    check(await until(S, () => !!document.getElementById('hdOngoing')), 'H20 its sheet offers "Move to Ongoing"');
+    await S.click('#hdOngoing'); await S.waitForSelector('#ogText');
+    check(await S.evaluate(() => document.getElementById('ogText').value === 'Sort out the garden' && document.getElementById('ogWhyIn').value === 'So the kids can play out in spring' && /becomes its first step — still Abi’s request/.test(document.getElementById('ogFromNote').textContent)),
+      'H20 prefilled from the request; "becomes its first step — still Abi\'s request"');
+    await S.screenshot({ path: `${shots}/${tag}-H20-move.png` });
+    await S.click('#ogSave');
+    check(await sheetOpen(S, '#ogSteps'), 'H20 moved: the new ongoing task opens');
+    check(JSON.stringify(await stepTitles(S)) === JSON.stringify(['Sort out the garden']), 'H20 …with the request as its first step');
+    await sleep(500);
+    const garden = (await all(OG)).find(o => o.title === 'Sort out the garden'), greq = await reqByText('Sort out the garden');
+    check(garden && greq.ongoingId === garden.id && garden.fromRequestId === greq.id && garden.participants.includes(abi) && greq.requesterUid === abi && greq.status === 'requested',
+      'H20 stored: the request filed under it, still Abi\'s and waiting; Abi among its people');
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    await backToToday(S);
+    check(await until(S, () => ![...document.querySelectorAll('#inboxSection .ib-row')].some(r => /Sort out the garden/.test(r.innerText))), 'H20 it leaves the Inbox — it lives in Ongoing now');
+    await goHome(A);
+    check(await until(A, () => [...document.querySelectorAll('#ppHomeScreen .og-row')].some(r => /Sort out the garden/.test(r.innerText))), 'H20 Abi sees it in Ongoing');
+    // finishing: by hand, asking first while steps are open
+    await goHome(S);
+    await S.evaluate(() => [...document.querySelectorAll('#view-home .og-row')].find(r => /Kitchen refit/.test(r.innerText)).click());
+    await sheetOpen(S, '#ogFinish');
+    const dl = S.dialogs.length;
+    await S.click('#ogFinish');
+    check(await until(S, () => /Finished/.test(document.getElementById('ogState').textContent)) && /2 steps are still open/.test(S.dialogs[dl] || ''), 'H20 Mark finished asks first ("2 steps are still open")');
+    await sleep(400);
+    check((await all(OG)).find(o => o.id === og.id).status === 'done', 'H20 stored as finished');
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    check(await until(S, () => !![...document.querySelectorAll('#view-home .og-row')].every(r => !/Kitchen refit/.test(r.innerText)) && /Finished · 1/.test((document.getElementById('ogDoneToggle') || {}).textContent || '')), 'H20 it moves under "Finished · 1"');
+    check(S.errs.length === 0, 'H20 no page errors (Shaun)', S.errs.join(' | '));
+  }
+
   // H11 — the partner portal still does what it did
   await A.click('[data-pp-tab="today"]'); await sleep(300);
   check(await A.evaluate(() => /Nothing shared for today yet/.test(document.getElementById('partnerApp').innerText)), 'H11 Abi\'s shared day is untouched');

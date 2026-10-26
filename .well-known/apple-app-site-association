@@ -1,0 +1,22 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["W6S7LQWZY4.luxe.sgj.ledger"],
+        "components": [
+          { "/": "/", "?": { "openAction": "*" }, "comment": "an Action" },
+          { "/": "/", "?": { "request": "*" }, "comment": "a Partner Sharing request" },
+          { "/": "/", "?": { "home": "*" }, "comment": "a Home request" },
+          { "/": "/", "?": { "sprint": "*" }, "comment": "a sprint" },
+          { "/": "/", "?": { "view": "*" }, "comment": "a view" },
+          { "/": "/index.html", "?": { "openAction": "*" } },
+          { "/": "/index.html", "?": { "request": "*" } },
+          { "/": "/index.html", "?": { "home": "*" } }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["W6S7LQWZY4.luxe.sgj.ledger"]
+  }
+}

@@ -596,6 +596,19 @@ never a view of Ledger. Model, rules, notifications and migration:
 - **Moving earlier requests:** Partner Sharing requests move into Home through a Cloud
   Function (same ids, private to Shaun and Abi). Until then, Partner Sharing requests
   work as before.
+- **Since 2026-10-25:**
+  - an Action made from a request with a checklist shows that checklist in its sheet,
+    and "n of m items" on its Today row;
+  - a request may carry an optional **"Why it matters"** (new, several at once,
+    recurring). It has been live since 2026-10-26.
+- **Ongoing tasks (2026-10-26, `docs/HOME_ONGOING.md`):**
+  - **What:** something bigger than a day, with steps for different people. Each step
+    is an ordinary request carrying `ongoingId`.
+  - **Who:** admins start, add steps, reorder (drag), edit and finish them by hand.
+    Others see the task's title and why, and only their own steps.
+  - **Move to Ongoing:** turns an open request, e.g. from the Inbox, into one, with the
+    request as its first step.
+  - **Live once** the rules and indexes are deployed.
 
 ---
 
@@ -734,6 +747,78 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-26 — Native apps Phase 2 approved: push and app links (Shaun)
+**Shaun approved Phase 2**, including:
+- the push rules change (an additive `fcmShape` for `ledger_push_subscriptions`);
+- one `vercel.json` header, so `/.well-known/apple-app-site-association` is served as
+  JSON;
+- the two `.well-known` files.
+
+**From Shaun:**
+- Team ID `W6S7LQWZY4`;
+- an APNs key (Sandbox and Production, team-scoped), uploaded to Firebase;
+- the iOS and Android apps added to Firebase;
+- the Android debug key's SHA-256, in `assetlinks.json`. A release key is added when
+  there is one.
+
+**How it is split:**
+- **On `main`** (inert for the web and for app builds without the plugin):
+  - the rules;
+  - the sender, which picks Web Push or FCM for each device, with
+    `ledger_config/push.nativeEnabled: false` as the off switch;
+  - the app's registration in `index.html`;
+  - `.well-known` and the header.
+- **The native project:** on `feature/native-push`, which includes the widget, until
+  Shaun has tried it on his phone.
+
+### 2026-10-26 — Home: ongoing tasks built (Shaun's answers)
+Shaun's answers:
+- **Name:** "Ongoing".
+- **Who sees what:** Maria sees the title and "Why" of a task she has a step in, and
+  only her own steps.
+- **Who starts them:** admins only.
+- **Finishing:** by hand.
+- **Steps:** every step is for someone.
+- **Move to Home:** yes.
+
+Decided in the build (`docs/HOME_ONGOING.md` §6):
+- A step never lands in the Inbox as new; it is decided in its task. Notifications
+  are unchanged.
+- An undated step stays out of Upcoming.
+- "Move to Ongoing" files an existing request under a new task once, and the request
+  stays the asker's.
+
+Also 2026-10-26: the Today widget's web side (1423dfc) is on `main` (6781ce2). It is
+inert on the web, and a no-op in an app build without the widget.
+
+### 2026-10-26 — Firebase deploys from GitHub, started by hand (Shaun's request)
+Shaun wanted to deploy rules and functions from his phone.
+- **How:** the GitHub Actions workflow "Deploy Firebase", run by hand only. It runs
+  the rules and functions tests first, and deploys `main`.
+- **Signing in:** keyless Workload Identity Federation. Google accepts only this
+  repository's id, in its `firebase` environment, on `main`. No key exists anywhere,
+  and none is in a Claude Code session.
+- **What the deploy account may do:** deploy and read settings, but not read
+  Firestore data directly.
+- **Guardrails:**
+  - no deploy on push;
+  - no `--force`, so it never deletes an index or a function.
+- Runbook: `docs/DEPLOY_FROM_GITHUB.md`.
+
+### 2026-10-25 — Home: checklists follow the Action; "Why it matters"; ongoing tasks designed first
+Shaun's requests and answers:
+- **A request's checklist follows its Action.** An Action taken on from a Home request
+  shows the request's checklist. Ticking it there ticks the same items, as Shaun.
+- **"Why it matters"** is a separate, optional field: up to 300 characters, the
+  asker's words. It is available on a new request, several at once (one reason for
+  all) and recurring (copied onto each occurrence).
+  - It is shown first under the title, in the Inbox and in the Action's sheet.
+  - Only the asker or writer may reword it, while the request waits.
+  - It is written only when used, so Home works on the old rules until Shaun deploys.
+- **Ongoing tasks with steps for different people:** designed first, for approval
+  (`docs/HOME_ONGOING.md`). Each step is an ordinary request carrying the parent's id;
+  it is not a separate task engine.
 
 ### 2026-10-25 — Native apps: Phase 1 merged; the first widget is today's Actions (iOS)
 **Shaun approved:**
@@ -2095,7 +2180,17 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Claude Code
-Status: **native apps.** Phase 1 was merged into `main` on 2026-10-25.
+Status: **Ongoing tasks built (2026-10-26).** They wait on Shaun's "Deploy Firebase"
+(Rules and indexes). Native push (Phase 2) waits on the Firebase and Apple setup Shaun
+was sent.
+
+Earlier: **Home requests of 2026-10-25.**
+- A request's checklist now shows in its Action, and "Why it matters" is built
+  (87c3122). It is deployed: the rules and functions went out on 2026-10-26, through
+  "Deploy Firebase".
+- Ongoing tasks: approved 2026-10-26 and built (`docs/HOME_ONGOING.md`).
+
+Before that: **native apps.** Phase 1 was merged into `main` on 2026-10-25.
 - **Shaun approved Phase 3, iOS only first:** a read-only home-screen widget for
   **today's Actions**. Phase 2 (notifications) is not started.
 - **Shaun is enrolling** in the Apple Developer Program. App Groups — the app and the
@@ -2227,14 +2322,62 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
-- (2026-10-25) — **Native apps Phase 3, iOS: the Today widget** (`feature/native-widgets`,
-  not merged).
-  - Small and medium widgets, showing today's Actions in Ledger's Flow order. A tap
-    opens the Action, or Today.
-  - The web side builds the snapshot; the app shares it through an App Group.
-  - Tests: native-shell e2e 39; web suites green.
-  - Swift not compiled here. Needs Xcode, and a paid team for a real iPhone
-    (`docs/NATIVE_MIGRATION.md` §12b).
+- (2026-10-26) — **Native apps Phase 2, web and server side** (on `main`):
+  - **Rules:** `fcmShape`.
+  - **Sender:** `sendPushToUser` sends an app device by FCM, with the same payload, an
+    Android channel by kind, and collapse by tag. A dead token is removed, and there is
+    an off switch.
+  - **`index.html`:** Settings → Notifications for "this app", a tap opens the link,
+    token refresh, and sign-out removes the device.
+  - **Links:** AASA, assetlinks and the `vercel.json` header.
+  - **Tests:**
+    - rules 606;
+    - functions 47 / 37 / 59;
+    - push e2e 76;
+    - native shell 50;
+    - Home 240, Partner 209, Quick capture 24, settings 9.
+  - **Deploy:** Shaun runs "Deploy Firebase", Everything.
+
+- (2026-10-26) — **Home: ongoing tasks.**
+  - **What was built:**
+    - the rules (`ledger_home_ongoing`, `ongoingId` on requests), plus an index;
+    - in the app: the Ongoing section, the task sheet, Add steps, drag to reorder,
+      Mark finished / Reopen, Move to Ongoing, and "Part of" on steps and Actions.
+  - **Tests:**
+    - rules 593;
+    - Home e2e 240 (H20);
+    - Partner 209 (a fixed-pause race in check 9 now polls), Quick capture 24, native
+      shell 39, settings sync 9, functions 47 / 37 / 49, push 76.
+  - **Deploy:** Shaun runs "Deploy Firebase" (Rules and indexes).
+- (2026-10-26) — **The Today widget's web side is on `main`** (6781ce2). It is inert on
+  the web; native shell 39, Home 201.
+
+- (2026-10-26) — **"Deploy Firebase": a manual GitHub workflow.**
+  - `.github/workflows/deploy-firebase.yml`: tests, then deploys everything, rules and
+    indexes, or functions.
+  - `scripts/setup-github-deploy.sh`: a one-time Cloud Shell setup (service account,
+    roles, Workload Identity pool).
+  - Runbook: `docs/DEPLOY_FROM_GITHUB.md`.
+  - **Live, 2026-10-26:**
+    - Shaun ran the setup;
+    - run #2 deployed everything from `600554a` (tests passed, then rules, indexes
+      and functions).
+  - **Run #1 failed:** a region pasted with a terminal's trailing "%". The workflow
+    now names a mistyped setting instead of deploying it.
+
+- (2026-10-25) — **Home: checklists in the Action; "Why it matters"** (87c3122).
+  - **Checklists:** an Action from a checklist request shows and ticks the list in its
+    sheet, with "n of m items" on Today.
+  - **"Why it matters":** on new, several and recurring requests; shown in the request,
+    the Inbox and the Action.
+  - **Changes:** rules (`homeWhy`), and `recur.js` copies it.
+  - **Tests:**
+    - rules 560;
+    - functions 47 / 37 / 49;
+    - Home e2e 201 (H18, H19);
+    - Partner 209, Quick capture 24, native shell 28, settings sync 9, push 76.
+  - **Deploy:** Shaun deploys rules and functions.
+  - **Next:** the design for ongoing tasks, `docs/HOME_ONGOING.md`, for review.
 
 - (2026-10-24) — **Fix: the Claude conversation link now follows the account.**
   - **What was wrong:** it was saved in `ledger_meta/presets`, but the presets listener
@@ -2650,6 +2793,9 @@ minutes before", recurring/accountability).
 ## Next
 
 1. **Shaun: deploy Home and set it up.**
+   0. **Since 2026-10-26, also from the phone:** once
+      `docs/DEPLOY_FROM_GITHUB.md` is set up, Actions → Deploy Firebase → Run workflow
+      does the deploy below. Indexes that aren't in the file are never deleted.
    1. From `~/Ledger` after `git pull`:
       `npx firebase-tools deploy --only firestore:rules,firestore:indexes,functions --project ledger-6aec3`
       If it asks to delete indexes that aren't in the file, answer **No**. (Since
@@ -2663,6 +2809,8 @@ minutes before", recurring/accountability).
       **Until it's deployed:**
       - a request with a checklist, or a recurring responsibility, is refused by the
         live rules;
+      - since 2026-10-25, so is a request with "Why it matters" filled in (requests
+        without one are unaffected);
       - a list's requests save, but each sends its own notification.
    2. **The nanny's account:**
       - She opens `ledger.sgj.luxe` → "New here? Create an account". She sees her

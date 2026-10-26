@@ -127,12 +127,25 @@ service cloud.firestore {
           && d.deviceId is string && d.deviceId.size() <= 64
           && (!('deviceLabel' in d) || (d.deviceLabel is string && d.deviceLabel.size() <= 80));
     }
+    // The iOS and Android apps: a device's Firebase Cloud Messaging token instead of a Web
+    // Push endpoint (docs/NATIVE_MIGRATION.md §5). Additive: the same owner-only rules.
+    function fcmShape(d) {
+      return d.keys().hasOnly(['userUid', 'transport', 'fcmToken', 'deviceId', 'deviceLabel', 'platform', 'appVersion',
+                               'createdAt', 'updatedAt', 'lastSeenAt', 'lastSentAt', 'lastError', 'lastErrorAt'])
+          && d.userUid == request.auth.uid
+          && d.transport == 'fcm'
+          && d.fcmToken is string && d.fcmToken.size() > 0 && d.fcmToken.size() <= 4096
+          && d.deviceId is string && d.deviceId.size() <= 64
+          && d.platform in ['ios', 'android']
+          && (!('deviceLabel' in d) || (d.deviceLabel is string && d.deviceLabel.size() <= 80))
+          && (!('appVersion' in d) || (d.appVersion is string && d.appVersion.size() <= 40));
+    }
     match /ledger_push_subscriptions/{subId} {
       allow read: if signedIn() && resource.data.userUid == request.auth.uid;
-      allow create: if hasLedgerRole() && ownId(subId) && subShape(request.resource.data);
+      allow create: if hasLedgerRole() && ownId(subId) && (subShape(request.resource.data) || fcmShape(request.resource.data));
       allow update: if hasLedgerRole() && ownId(subId)
                     && resource.data.userUid == request.auth.uid
-                    && subShape(request.resource.data);
+                    && (subShape(request.resource.data) || fcmShape(request.resource.data));
       // a device's own record; or, for the owner, the device's record from before
       // subscriptions had a user (found by the id this device's endpoint gave it)
       allow delete: if signedIn()
@@ -256,9 +269,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // "Why it matters": optional, the asker's reason, shown to the person asked
+    function homeWhy(d) {
+      return d.get('why', null) == null || (d.why is string && d.why.size() <= 300);
+    }
     function homeText(d) {
       return d.text is string && d.text.size() > 0 && d.text.size() <= 280
           && (!('note' in d) || d.note == null || (d.note is string && d.note.size() <= 500))
+          && homeWhy(d)
           && d.requestedTiming in ['today', 'week', 'date', 'none', 'later']
           && (!('requestedDate' in d) || d.requestedDate == null || d.requestedDate is string);
     }
@@ -284,11 +302,13 @@ service cloud.firestore {
       // requester and assignee are active members.
       allow create: if rid.matches('^[A-Za-z0-9]{1,40}$')
                     && inHome(request.resource.data.homeId)
-                    && request.resource.data.keys().hasOnly(['homeId', 'text', 'note', 'requestedTiming', 'requestedDate',
+                    && request.resource.data.keys().hasOnly(['homeId', 'text', 'note', 'why', 'requestedTiming', 'requestedDate',
                          'requesterUid', 'assigneeUid', 'createdByUid', 'participants', 'visibility', 'status',
                          'plannedDate', 'linkedActionId', 'createdAt', 'updatedAt', 'latestUpdateAt', 'latestUpdateByUid',
-                         'latestUpdateType', 'readAt', 'hasChecklist'])
+                         'latestUpdateType', 'readAt', 'hasChecklist', 'ongoingId'])
                     && request.resource.data.get('hasChecklist', true) == true
+                    && (request.resource.data.get('ongoingId', null) == null
+                        || (homeAdmin(request.resource.data.homeId) && ongoingOpenAfter(request.resource.data.ongoingId, request.resource.data.homeId)))
                     && request.resource.data.createdByUid == request.auth.uid
                     && (request.resource.data.requesterUid != request.resource.data.assigneeUid
                         || request.resource.data.assigneeUid == request.auth.uid)
@@ -311,7 +331,7 @@ service cloud.firestore {
                       // the person who asked (or wrote it): wording and timing, while it waits
                       ((request.auth.uid == resource.data.requesterUid || request.auth.uid == resource.data.createdByUid)
                        && resource.data.status == 'requested'
-                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'note', 'requestedTiming', 'requestedDate', 'updatedAt'])
+                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'note', 'why', 'requestedTiming', 'requestedDate', 'updatedAt'])
                        && homeText(request.resource.data))
                       // …or withdraw it, while it waits
                       || ((request.auth.uid == resource.data.requesterUid || request.auth.uid == resource.data.createdByUid)
@@ -371,6 +391,15 @@ service cloud.firestore {
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedAt', 'deletedByUid', 'updatedAt'])
                           && request.resource.data.deletedAt is string
                           && request.resource.data.deletedByUid == request.auth.uid)
+                      // an admin files a request under an ongoing task (once; it stays there).
+                      // Last, and cheapest checks first: every branch above is evaluated before
+                      // it, and rules stop at 1,000 expressions.
+                      || (resource.data.get('ongoingId', null) == null
+                          && request.resource.data.get('ongoingId', null) != null
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ongoingId', 'updatedAt'])
+                          && resource.data.get('recurringId', null) == null
+                          && homeAdmin(resource.data.homeId)
+                          && ongoingOpenAfter(request.resource.data.ongoingId, resource.data.homeId))
                     );
       allow delete: if false;
 
@@ -443,10 +472,11 @@ service cloud.firestore {
           && (sc.get('every', 2) is int && sc.get('every', 2) >= 2 && sc.get('every', 2) <= 365);
     }
     function recurShape(d) {
-      return d.keys().hasOnly(['homeId', 'title', 'note', 'createdByUid', 'mode', 'assigneeUid', 'visibility', 'schedule', 'timezone',
+      return d.keys().hasOnly(['homeId', 'title', 'note', 'why', 'createdByUid', 'mode', 'assigneeUid', 'visibility', 'schedule', 'timezone',
                                'checklist', 'status', 'createdAt', 'updatedAt', 'updatedByUid', 'endedAt', 'lastDate', 'lastRunAt', 'blocked'])
           && d.title is string && d.title.size() > 0 && d.title.size() <= 280
           && (d.get('note', null) == null || (d.note is string && d.note.size() <= 500))
+          && homeWhy(d)
           && d.mode in ['assigned', 'anyone']
           && (d.mode == 'anyone'
               ? (d.get('assigneeUid', null) == null && d.visibility == 'home')
@@ -483,6 +513,49 @@ service cloud.firestore {
                     && (request.resource.data.mode == 'anyone'
                         || request.resource.data.assigneeUid == resource.data.get('assigneeUid', null)
                         || activeIn(request.resource.data.assigneeUid, resource.data.homeId));
+      allow delete: if false;
+    }
+
+    // ---- Ongoing tasks at Home (docs/HOME_ONGOING.md) ----
+    // A small parent record; its steps are ordinary requests carrying its id. Started and
+    // kept by admins; read by admins, the people with a step in it, or everyone when
+    // shared. Never deleted: finished (done) or archived.
+    function ongoingPath(oid) {
+      return /databases/$(database)/documents/ledger_home_ongoing/$(oid);
+    }
+    function ongoingOpenAfter(oid, homeId) {
+      return oid is string && oid.matches('^[A-Za-z0-9]{1,40}$') && existsAfter(ongoingPath(oid))
+          && getAfter(ongoingPath(oid)).data.homeId == homeId && getAfter(ongoingPath(oid)).data.status == 'active';
+    }
+    function ongoingShape(d) {
+      return d.keys().hasOnly(['homeId', 'title', 'note', 'why', 'createdByUid', 'visibility', 'participants', 'status',
+                               'stepOrder', 'fromRequestId', 'createdAt', 'updatedAt', 'updatedByUid', 'doneAt'])
+          && d.title is string && d.title.size() > 0 && d.title.size() <= 280
+          && (d.get('note', null) == null || (d.note is string && d.note.size() <= 500))
+          && homeWhy(d)
+          && d.visibility in ['private', 'home']
+          && d.participants is list && d.participants.size() <= 20
+          && d.status in ['active', 'done', 'archived']
+          && d.get('stepOrder', []) is list && d.get('stepOrder', []).size() <= 100
+          && (d.get('fromRequestId', null) == null || d.fromRequestId is string)
+          && d.updatedByUid == request.auth.uid;
+    }
+    match /ledger_home_ongoing/{oid} {
+      allow read: if inHome(resource.data.homeId)
+                  && (me().role == 'admin' || request.auth.uid in resource.data.participants || resource.data.visibility == 'home');
+      allow create: if oid.matches('^[A-Za-z0-9]{1,40}$')
+                    && homeAdmin(request.resource.data.homeId)
+                    && request.resource.data.createdByUid == request.auth.uid
+                    && request.resource.data.participants.hasAll([request.auth.uid])
+                    && request.resource.data.status == 'active'
+                    && ongoingShape(request.resource.data);
+      allow update: if homeAdmin(resource.data.homeId)
+                    && request.resource.data.homeId == resource.data.homeId
+                    && request.resource.data.createdByUid == resource.data.createdByUid
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && request.resource.data.get('fromRequestId', null) == resource.data.get('fromRequestId', null)
+                    && request.resource.data.participants.hasAll(resource.data.participants)
+                    && ongoingShape(request.resource.data);
       allow delete: if false;
     }
 
