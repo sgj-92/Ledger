@@ -39,11 +39,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
@@ -69,8 +69,8 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Install the functions' dependencies
@@ -85,6 +85,16 @@ jobs:
           for k in VAPID_PUBLIC_KEY VAPID_SUBJECT FUNCTIONS_REGION; do
             if [ -z "${!k}" ]; then echo "::error::Missing variable $k in the \"firebase\" environment (docs/DEPLOY_FROM_GITHUB.md)"; exit 1; fi
           done
+          # spaces around a pasted value are harmless; anything else is a copying slip
+          # (a terminal's trailing "%", a quote) and is named rather than deployed
+          trim() { printf '%s' "$1" | tr -d '[:space:]'; }
+          VAPID_PUBLIC_KEY=$(trim "$VAPID_PUBLIC_KEY"); VAPID_SUBJECT=$(trim "$VAPID_SUBJECT")
+          FUNCTIONS_REGION=$(trim "$FUNCTIONS_REGION"); APP_URL=$(trim "$APP_URL")
+          bad() { echo "::error::The variable $1 is \"$2\", which doesn't look right — $3 (Settings → Environments → firebase)"; exit 1; }
+          [[ "$FUNCTIONS_REGION" =~ ^[a-z]+-[a-z]+[0-9]+$ ]] || bad FUNCTIONS_REGION "$FUNCTIONS_REGION" "a region looks like us-central1 or europe-west2"
+          [[ "$VAPID_PUBLIC_KEY" =~ ^[A-Za-z0-9_-]{40,}=*$ ]] || bad VAPID_PUBLIC_KEY "$VAPID_PUBLIC_KEY" "the public key is letters, digits, - and _ only"
+          [[ "$VAPID_SUBJECT" =~ ^(mailto:[^@]+@[^@]+\.[A-Za-z]+|https://[^ ]+)$ ]] || bad VAPID_SUBJECT "$VAPID_SUBJECT" "it should be mailto:you@example.com"
+          [ -z "$APP_URL" ] || [[ "$APP_URL" =~ ^https://[^%]+$ ]] || bad APP_URL "$APP_URL" "it should be https://ledger.sgj.luxe/ (or left out)"
           {
             echo "VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY"
             echo "VAPID_SUBJECT=$VAPID_SUBJECT"
@@ -92,7 +102,7 @@ jobs:
             if [ -n "$APP_URL" ]; then echo "APP_URL=$APP_URL"; fi
           } > functions/.env
       - name: Sign in to Google (keyless)
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: projects/607695857530/locations/global/workloadIdentityPools/github/providers/ledger
           service_account: github-deploy@ledger-6aec3.iam.gserviceaccount.com
