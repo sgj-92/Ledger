@@ -82,6 +82,93 @@ npm run sync         # writes the app's settings and the offline page into both 
 **Switching the apps' notifications off for everyone:** in Firestore, set
 `ledger_config/push` → `nativeEnabled: false`. Web Push carries on.
 
+## Getting the app to other phones
+
+Abi's and Maria's phones get release builds:
+- **iPhone:** through **TestFlight** (external testers);
+- **Android:** through **Firebase App Distribution**.
+
+Both update themselves when you send a new build. Website changes still reach every
+phone without a new build; you only send one when something in `native/` changes.
+
+**Every time, first:** `cd ~/Ledger/native && git pull && npm install && npm run bump &&
+npm run sync`. `bump` raises the build number, which the stores require to go up each
+time. Commit that change.
+
+### Android: Firebase App Distribution
+
+**Once: the upload key.** Keep it outside the Ledger folder and back it up; if you lose
+it, the app can't be updated in place.
+1. Create it:
+   ```
+   mkdir -p ~/ledger-keys && cd ~/ledger-keys
+   keytool -genkeypair -v -keystore ledger-upload.jks -alias ledger -keyalg RSA -keysize 2048 -validity 10000
+   ```
+   It asks for a password and your name. Remember the password. If `keytool` isn't
+   found, use `"/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin/keytool"`.
+2. Create `native/android/keystore.properties`. Git ignores it.
+   ```
+   storeFile=/Users/shaunjohnson/ledger-keys/ledger-upload.jks
+   storePassword=YOUR_PASSWORD
+   keyAlias=ledger
+   keyPassword=YOUR_PASSWORD
+   ```
+3. Get its fingerprint:
+   `keytool -list -v -keystore ~/ledger-keys/ledger-upload.jks -alias ledger | grep SHA256`.
+   - Send it to Claude for `assetlinks.json`, so links open the app on their phones.
+   - Add it in Firebase Console → Project settings → Ledger Android → **Add fingerprint**.
+
+**Each build:**
+1. `npm run android`.
+2. In Android Studio: **Build → Generate Signed App Bundle or APK → APK** → your
+   key → **release** → Create. The APK lands in `native/android/app/release/`.
+3. In Firebase Console → **App Distribution** (under Run / Release & Monitor), choose
+   **Ledger Android**:
+   - drag the APK in;
+   - add testers by email (Maria, Abi) or a group;
+   - Distribute.
+4. **On their phone, first time:**
+   - they open the email → **Get started** → install the **App Tester** app;
+   - allow it to install apps → install Ledger → sign in as usual.
+
+   After that, App Tester tells them when there's an update.
+
+### iPhone: TestFlight
+
+**Once: the App Store Connect record.**
+1. Go to appstoreconnect.apple.com → **Apps** → **+** → **New App**:
+   - **Platform:** iOS;
+   - **Name:** must be unique on the App Store, so "Ledger" is likely taken. Try e.g.
+     **"Ledger SGJ"**. What the phone shows under the icon stays "Ledger";
+   - **Primary language:** English (UK);
+   - **Bundle ID:** `luxe.sgj.ledger`;
+   - **SKU:** `ledger`;
+   - **User access:** Full.
+2. **TestFlight** tab → **Test Information**:
+   - **Beta app description:** e.g. "Ledger, our household planner";
+   - **Feedback email:** yours;
+   - **Privacy Policy URL:** `https://ledger.sgj.luxe/privacy.html`.
+3. **TestFlight** tab → **External Testing** → **+** → a group, e.g. "Family".
+
+**Each build:**
+1. `npm run ios`.
+2. In Xcode, top bar: scheme **App**, device **Any iOS Device (arm64)**.
+3. **Product → Archive**. When it finishes, the Organizer opens: **Distribute App** →
+   **App Store Connect** → **Distribute**. It uploads; keep the defaults.
+4. After 10–30 minutes the build appears in App Store Connect → TestFlight, once Apple
+   has processed it.
+   - Add it to the **Family** group, and add testers by email.
+   - The first build goes to Apple's **beta review**, usually within a day. Later builds
+     are usually instant.
+5. **On their iPhone:** they open the invite email → install **TestFlight** from the
+   App Store → **Accept** → **Install** → sign in as usual.
+
+**TestFlight builds expire after 90 days.** Upload a new one, even unchanged (`npm run
+bump` first), before then.
+
+### After installing, on each phone
+They sign in, then Settings → Notifications → **Enable notifications**.
+
 ## Which Ledger the app loads
 
 - **By default: production,** `https://ledger.sgj.luxe/`. Every Vercel deploy reaches

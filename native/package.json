@@ -8,7 +8,8 @@
     "sync": "node scripts/app-url.mjs && cap sync",
     "ios": "npm run sync && cap open ios",
     "android": "npm run sync && cap open android",
-    "doctor": "cap doctor"
+    "doctor": "cap doctor",
+    "bump": "node scripts/bump-build.mjs"
   },
   "dependencies": {
     "@capacitor-firebase/messaging": "8.5.2",

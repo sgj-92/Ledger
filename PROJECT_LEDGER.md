@@ -748,6 +748,21 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-26 — The apps on other phones: TestFlight and Firebase App Distribution
+**Shaun's choice:**
+- **iPhone:** TestFlight with external testers. Apple reviews the first build, and it
+  needs a privacy page: `privacy.html`, added to the site.
+- **Android:** Firebase App Distribution. It is free, uses the existing project, and
+  testers hear about updates.
+
+**What changed in the project:**
+- Release builds are signed with an upload key kept on Shaun's Mac only. The keystore
+  and `keystore.properties` are never in git.
+- `npm run bump` raises the build number for both apps, the widget included.
+- iOS declares no non-exempt encryption.
+
+The steps are in `native/README.md`, "Getting the app to other phones".
+
 ### 2026-10-26 — Native apps Phase 2 and the iOS widget: verified, merged
 Shaun built `feature/native-push` on his iPhone. Everything worked:
 - notifications arrive, and a tap opens the item;
@@ -2189,7 +2204,11 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Claude Code
-Status: **Native apps Phase 2 and the iOS Today widget: done.** Verified on Shaun's
+Status: **Getting the apps onto Abi's and Maria's phones** (2026-10-26). The project is
+ready; Shaun does the account steps in `native/README.md`.
+- He sends the upload key's SHA-256, for `assetlinks.json`.
+
+**Before that:** Native apps Phase 2 and the iOS Today widget were verified on Shaun's
 iPhone and merged into `main` (2026-10-26).
 - **Not started, each needs Shaun's go-ahead:**
   - Android widgets;

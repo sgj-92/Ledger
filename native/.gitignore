@@ -7,5 +7,6 @@ www/app-url.js
 *.p8
 *.p12
 *.mobileprovision
+keystore.properties
 GoogleService-Info.plist
 google-services.json
