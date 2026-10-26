@@ -8067,6 +8067,7 @@
       var clean = function(v){ return String(v == null ? '' : v).replace(/[^A-Za-z0-9 ._()-]/g, '').slice(0, 24); };
       nativeInfo = { platform: window.Capacitor.getPlatform() === 'ios' ? 'iOS' : 'Android', version: clean(info.version) + (info.build ? ' (' + clean(info.build) + ')' : '') };
     });
+    startNativePush();
   }
 
   // only Ledger's own links: its app scheme, or its own address
@@ -19570,7 +19571,9 @@
   function deviceLabel(){
     var name = (authProfile && authProfile.displayName) || (authUser && authUser.email ? authUser.email.split('@')[0] : '');
     name = String(name || '').split(' ')[0].slice(0, 30);
-    return (name ? name + ' · ' : '') + deviceKind().label;
+    // in the app, the platform says what it is (an iPad's web view may claim to be a Mac)
+    var kind = NATIVE ? (nativePlatform() === 'android' ? 'Android app' : (deviceKind().platform === 'ipados' ? 'iPad app' : 'iPhone app')) : deviceKind().label;
+    return (name ? name + ' · ' : '') + kind;
   }
   function pushKeyOf(sub){
     try {
@@ -19598,6 +19601,7 @@
   // The device's state for this user: 'unsupported' | 'install' (iPhone/iPad in Safari) |
   // 'unconfigured' (no key published yet) | 'denied' | 'off' | 'on'
   async function thisDeviceState(){
+    if (NATIVE) return nativePushState();
     if (!pushSupported()) return 'unsupported';
     if (isIOSDevice() && !isStandalonePwa()) return 'install';
     if (!(await pushPublicKey())) return 'unconfigured';
@@ -19613,6 +19617,7 @@
   }
   // Only ever from a tap: ask, subscribe with the published key, save this device.
   async function enableThisDevice(){
+    if (NATIVE) return nativePushEnable();
     if (!pushSupported()) throw new Error('unsupported');
     if (isIOSDevice() && !isStandalonePwa()) throw new Error('install');
     // asked first, while the tap still counts (Safari allows the prompt only then); the key
@@ -19633,6 +19638,7 @@
     return sub;
   }
   async function disableThisDevice(){
+    if (NATIVE) return nativePushDisable();
     var reg = await swReady();
     var sub = await reg.pushManager.getSubscription();
     if (!sub) return;
@@ -19642,7 +19648,7 @@
   // On sign-out the device stops being this user's: its record goes, so a phone handed to
   // someone else never shows the last person's notifications.
   function forgetThisDevice(){
-    if (!pushSupported() || !dbRef || !authUser) return Promise.resolve();
+    if (!(pushSupported() || nativePushOn()) || !dbRef || !authUser) return Promise.resolve();
     return Promise.race([
       disableThisDevice().catch(function(){}),
       new Promise(function(r){ setTimeout(r, 2500); })
@@ -19650,6 +19656,7 @@
   }
   // Once a day, an enabled device says it is still here (and refreshes its label).
   function touchThisDevice(){
+    if (NATIVE){ nativePushTouch(); return; }
     if (!pushSupported() || !dbRef || !authUser || Notification.permission !== 'granted') return;
     if (lsGet('ledger_push_seen', '') === todayStr() + authUser.uid) return;
     pushPublicKey().then(function(key){
@@ -19664,6 +19671,101 @@
       });
     }).catch(function(){});
   }
+  // ---- the iOS and Android apps: notifications through Firebase Cloud Messaging ----
+  // (docs/NATIVE_MIGRATION.md §5.) The same ledger_push_subscriptions record, owned the same
+  // way, with an FCM token instead of a Web Push endpoint: {uid}_n{deviceId} = { userUid,
+  // transport: 'fcm', fcmToken, deviceId, deviceLabel, platform, appVersion, … }. The server
+  // sends each device what it sends a browser. Only an app built with the messaging plugin
+  // offers it; an older build says so.
+  var FM = 'FirebaseMessaging';
+  function nativePushOn(){
+    return NATIVE && typeof window.Capacitor.isPluginAvailable === 'function' && window.Capacitor.isPluginAvailable(FM);
+  }
+  function nativePlatform(){ return typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() === 'android' ? 'android' : 'ios'; }
+  function nativeSubRef(){ return dbRef.collection('ledger_push_subscriptions').doc(authUser.uid + '_n' + thisDeviceId()); }
+  function nativePerm(){ return nativeCall(FM, 'checkPermissions').then(function(r){ return (r && r.receive) || 'prompt'; }); }
+  async function nativePushState(){
+    if (!nativePushOn()) return 'unsupported';
+    if (!dbRef || !authUser) return 'off';
+    var perm = await nativePerm();
+    if (perm === 'denied') return 'denied';
+    if (perm !== 'granted') return 'off';
+    var doc = await nativeSubRef().get().catch(function(){ return null; });
+    return doc && doc.exists ? 'on' : 'off';
+  }
+  function nativeRecord(token, prev){
+    var now = new Date().toISOString(), rec = {
+      userUid: authUser.uid, transport: 'fcm', fcmToken: String(token).slice(0, 4096), deviceId: thisDeviceId(),
+      deviceLabel: deviceLabel().slice(0, 80), platform: nativePlatform(),
+      createdAt: (prev && prev.createdAt) || now, updatedAt: now, lastSeenAt: now
+    };
+    if (nativeInfo && nativeInfo.version) rec.appVersion = String(nativeInfo.version).slice(0, 40);
+    return rec;
+  }
+  // Android groups notifications by kind, so each can be silenced on its own (the ids are
+  // the server's: functions/push.js channelFor)
+  function nativeChannels(){
+    if (nativePlatform() !== 'android') return Promise.resolve();
+    return Promise.all([
+      ['focus', 'Current focus', 'When your focus changes on another device', 4],
+      ['home', 'Home', 'Requests at Home: new, updated, planned or done', 3],
+      ['partner', 'Requests', 'Requests and updates with your partner', 3],
+      ['general', 'Ledger', 'Everything else, like Pin now', 3]
+    ].map(function(c){ return nativeCall(FM, 'createChannel', { id: c[0], name: c[1], description: c[2], importance: c[3], visibility: 0 }); }));
+  }
+  async function nativePushEnable(){
+    if (!nativePushOn()) throw new Error('unsupported');
+    var perm = await nativeCall(FM, 'requestPermissions');
+    if (!perm || perm.receive !== 'granted') throw new Error('denied');
+    await nativeChannels();
+    var t = await nativeCall(FM, 'getToken', {});
+    if (!t || !t.token) throw new Error('no token');
+    var ref = nativeSubRef();
+    var prev = await ref.get().then(function(d){ return d.exists ? d.data() : null; }).catch(function(){ return null; });
+    await ref.set(nativeRecord(t.token, prev));
+    return true;
+  }
+  async function nativePushDisable(){
+    if (!dbRef || !authUser) return;
+    await nativeSubRef().delete().catch(function(){});
+    await nativeCall(FM, 'deleteToken');
+  }
+  // once a day, and whenever FCM hands the app a new token: a device that is on stays on
+  function nativePushTouch(){
+    if (!nativePushOn() || !dbRef || !authUser) return;
+    if (lsGet('ledger_push_seen', '') === todayStr() + authUser.uid) return;
+    nativeRefreshToken().then(function(ok){ if (ok) lsSet('ledger_push_seen', todayStr() + authUser.uid); });
+  }
+  function nativeRefreshToken(token){
+    if (!nativePushOn() || !dbRef || !authUser) return Promise.resolve(false);
+    var ref = nativeSubRef();
+    return ref.get().then(function(doc){
+      if (!doc.exists) return false;                     // turned off here, or never on: only a tap turns it on
+      return nativePerm().then(function(perm){
+        if (perm !== 'granted'){ return ref.delete().then(function(){ return false; }); }
+        return (token ? Promise.resolve({ token: token }) : nativeCall(FM, 'getToken', {})).then(function(t){
+          if (!t || !t.token) return false;
+          return ref.set(nativeRecord(t.token, doc.data())).then(function(){ return true; });
+        });
+      });
+    }).catch(function(){ return false; });
+  }
+  // a tapped notification opens what it is about, by the same router as every Ledger link;
+  // one that arrives while Ledger is open on Android is offered in place (iOS shows its banner)
+  function startNativePush(){
+    if (!nativePushOn() || typeof window.Capacitor.addListener !== 'function') return;
+    window.Capacitor.addListener(FM, 'notificationActionPerformed', function(e){
+      var d = (e && e.notification && e.notification.data) || {};
+      if (typeof d.url === 'string') nativeOpenLink(d.url);
+    });
+    window.Capacitor.addListener(FM, 'tokenReceived', function(e){ if (e && typeof e.token === 'string') nativeRefreshToken(e.token); });
+    if (nativePlatform() === 'android') window.Capacitor.addListener(FM, 'notificationReceived', function(e){
+      var n = (e && e.notification) || {}, d = n.data || {}, t = String(n.title || 'Ledger').slice(0, 80);
+      if (typeof d.url === 'string') showActionToast(t, 'Open', function(){ nativeOpenLink(d.url); });
+      else showPinToast(t, false);
+    });
+  }
+
   // a user's own choices (ledger_notification_prefs/{uid}); on unless turned off
   function loadNotifPrefs(){
     return dbRef.collection('ledger_notification_prefs').doc(authUser.uid).get()
@@ -19677,13 +19779,15 @@
     on: 'Enabled', off: 'Not enabled', denied: 'Blocked in settings', unsupported: 'Not supported here',
     install: 'Needs Home Screen', unconfigured: 'Not set up yet'
   };
-  // the apps have no Web Push: their own notifications come in a later phase
-  if (NATIVE) DEVICE_STATE_TEXT.unsupported = 'Not in the app yet';
+  // the apps have no Web Push: they use their own (FCM), from the build that includes it
+  if (NATIVE) DEVICE_STATE_TEXT.unsupported = 'Needs an app update';
   var DEVICE_STATE_NOTE = {
     install: 'Install Ledger to your Home Screen to enable notifications: in Safari, Share → Add to Home Screen, then open Ledger from there.',
-    denied: 'Notifications for Ledger are blocked on this device. Allow them in the browser or system settings, then come back here.',
-    unsupported: NATIVE ? 'Notifications in Ledger’s app come in a later update. Wherever you turned them on in a browser or on the Home Screen, they keep arriving there.'
+    denied: NATIVE ? 'Notifications for Ledger are off for this app. Turn them on in the phone’s Settings → Notifications → Ledger, then come back here.'
+      : 'Notifications for Ledger are blocked on this device. Allow them in the browser or system settings, then come back here.',
+    unsupported: NATIVE ? 'This version of the app can’t show notifications yet — update the app. Wherever you turned them on in a browser or on the Home Screen, they keep arriving there.'
       : 'This browser can’t receive web notifications.',
+    on: NATIVE ? 'If you also turned notifications on in Ledger on the Home Screen of this phone, turn them off there — otherwise each arrives twice.' : '',
     unconfigured: 'Notifications aren’t set up on the server yet.'
   };
   // Settings → Notifications (and the partner's footer): this device, and the two choices.

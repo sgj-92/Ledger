@@ -1,7 +1,8 @@
 // Ledger — the one notification engine.
 //
-// Everything that sends a Web Push goes through sendPushToUser(). It is written against
-// small injected pieces (the Firestore Admin handle, a `send` function, the clock), so the
+// Everything that sends a push goes through sendPushToUser(): Web Push to a browser, FCM to
+// the iOS and Android apps. It is written against small injected pieces (the Firestore
+// Admin handle, the senders, the clock), so the
 // same code runs in the Cloud Functions in index.js and in the tests.
 //
 // Principles:
@@ -22,6 +23,38 @@ const PREFS = 'ledger_notification_prefs';
 
 const FOCUS_TAG = 'ledger-current-focus';
 
+// The iOS and Android apps get the same payload through Firebase Cloud Messaging (FCM
+// for Android; FCM's APNs bridge for iOS). Android groups notifications into channels by
+// kind, created by the app with these ids.
+function channelFor(payload) {
+  const url = String((payload && payload.url) || '');
+  if (payload && payload.tag === FOCUS_TAG) return 'focus';
+  if (/[?&]home=/.test(url)) return 'home';
+  if (/[?&]request=/.test(url)) return 'partner';
+  return 'general';
+}
+// An FCM message for one device: what the user sees, and the link a tap opens (as data,
+// all strings). The tag replaces an earlier notification of the same thing.
+function fcmMessage(token, payload, o) {
+  const p = payload || {}, ttl = o.ttl != null ? o.ttl : 3600, high = o.urgency === 'high';
+  const channel = channelFor(p), tag = p.tag ? String(p.tag).slice(0, 64) : null;
+  const data = { url: String(p.url || ''), kind: channel };
+  if (tag) data.tag = tag;
+  const android = { priority: high ? 'high' : 'normal', ttl: ttl * 1000, notification: { channelId: channel } };
+  if (tag) android.notification.tag = tag;
+  const apns = {
+    headers: { 'apns-priority': high ? '10' : '5', 'apns-expiration': String(Math.floor(Date.now() / 1000) + ttl) },
+    payload: { aps: { sound: 'default', 'thread-id': channel } }
+  };
+  if (tag) apns.headers['apns-collapse-id'] = tag;
+  return { token, notification: { title: clip(p.title || 'Ledger', 120), body: clip(p.body || '', 400) }, data, android, apns };
+}
+// FCM's answer for a token the device no longer holds (app removed, token rotated)
+function fcmGone(err) {
+  const code = String((err && (err.code || (err.errorInfo && err.errorInfo.code))) || '');
+  return code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token';
+}
+
 function clip(text, n) {
   const s = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
   return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s;
@@ -40,6 +73,7 @@ function appLink(appUrl, params) {
 function createEngine(deps) {
   const db = deps.db;
   const send = deps.send;                                  // (subscription, body, options) => Promise
+  const sendFcm = deps.sendFcm || null;                    // (message) => Promise — the apps; absent, they're skipped
   const now = deps.now || (() => new Date().toISOString());
   const deleteField = deps.deleteField;                    // FieldValue.delete()
   const log = deps.log || (() => {});
@@ -73,9 +107,17 @@ function createEngine(deps) {
     return optIn ? p[kind] === true : p[kind] !== false;
   }
 
+  // The apps' notifications can be switched off in one place (ledger_config/push,
+  // nativeEnabled: false): their devices are then skipped, and Web Push carries on.
+  async function nativeOn() {
+    const doc = await db.collection('ledger_config').doc('push').get().catch(() => null);
+    return !(doc && doc.exists && (doc.data() || {}).nativeEnabled === false);
+  }
+
   // Sends one payload to every device the user has registered (minus, optionally, the
-  // device that caused it). Dead subscriptions (404/410) are removed; other failures are
-  // recorded on the device and in the result.
+  // device that caused it): a browser by Web Push, an app by FCM. Dead subscriptions
+  // (404/410, or a token FCM no longer knows) are removed; other failures are recorded on
+  // the device and in the result.
   async function sendPushToUser(userUid, payload, options) {
     const o = options || {};
     const result = { recipientUid: userUid, devices: 0, excluded: 0, sent: 0, removed: 0, failed: 0, errors: [] };
@@ -87,8 +129,30 @@ function createEngine(deps) {
     });
     result.devices = docs.length;
     const body = JSON.stringify(payload);
+    const apps = docs.some((d) => (d.data() || {}).transport === 'fcm') && sendFcm ? await nativeOn() : false;
     await Promise.all(docs.map(async (doc) => {
       const s = doc.data() || {};
+      if (s.transport === 'fcm') {
+        if (!apps || !s.fcmToken) { result.skipped = (result.skipped || 0) + 1; return; }
+        try {
+          await sendFcm(fcmMessage(s.fcmToken, payload, o));
+          result.sent++;
+          const patch = { lastSentAt: now() };
+          if (deleteField && s.lastError) { patch.lastError = deleteField(); patch.lastErrorAt = deleteField(); }
+          await doc.ref.update(patch).catch(() => {});
+        } catch (err) {
+          if (fcmGone(err)) {
+            await doc.ref.delete().catch(() => {});
+            result.removed++;
+          } else {
+            result.failed++;
+            const msg = clip(String((err && (err.code || err.message)) || err), 200);
+            result.errors.push(msg);
+            await doc.ref.update({ lastError: msg, lastErrorAt: now() }).catch(() => {});
+          }
+        }
+        return;
+      }
       // made with a different key pair: no push service will accept it, and the app
       // re-subscribes with the current key the next time it opens on that device
       if (o.vapidPublicKey && s.vapidPublicKey && s.vapidPublicKey !== o.vapidPublicKey) {
@@ -409,4 +473,4 @@ function createEngine(deps) {
   return { sendPushToUser, handleFocusWrite, handleRequestUpdate, handleHomeUpdate, handleHomeBatch, handlePinCreated, claimEvent };
 }
 
-module.exports = { createEngine, appLink, clip, FOCUS_TAG };
+module.exports = { createEngine, appLink, clip, fcmMessage, channelFor, FOCUS_TAG };

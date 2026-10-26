@@ -61,6 +61,8 @@ function engine() {
   return createEngine({
     db,
     send: (sub, body, opts) => webpush.sendNotification(sub, body, opts),
+    // the iOS and Android apps (docs/NATIVE_MIGRATION.md §5): the project's own FCM, no key
+    sendFcm: (message) => admin.messaging().send(message),
     deleteField: () => FieldValue.delete(),
     log: (...a) => logger.warn(...a)
   });

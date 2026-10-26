@@ -65,6 +65,8 @@ function fakeBridge(platform){
   window.Capacitor = {
     isNativePlatform: function(){ return true; },
     getPlatform: function(){ return platform; },
+    // an app built with the messaging plugin (Phase 2) says so; an older build doesn't
+    isPluginAvailable: function(name){ return name === 'FirebaseMessaging' && localStorage.getItem('__fm') === '1'; },
     nativePromise: function(plugin, method, options){
       var entry = plugin + '.' + method + (options && Object.keys(options).length ? ' ' + JSON.stringify(options) : '');
       window.__nat.calls.push(entry);
@@ -72,6 +74,11 @@ function fakeBridge(platform){
       try { var log = JSON.parse(sessionStorage.getItem('__natlog') || '[]'); log.push(plugin + '.' + method); sessionStorage.setItem('__natlog', JSON.stringify(log)); } catch(e){}
       if (plugin === 'LedgerWidget' && method === 'publish') (window.__nat.snapshots = window.__nat.snapshots || []).push(JSON.parse(options.snapshot));
       if (plugin === 'App' && method === 'getInfo') return Promise.resolve({ name: 'Ledger', id: 'luxe.sgj.ledger', version: '1.0', build: '7' });
+      if (plugin === 'FirebaseMessaging'){
+        if (method === 'checkPermissions') return Promise.resolve({ receive: localStorage.getItem('__fmperm') || 'prompt' });
+        if (method === 'requestPermissions'){ localStorage.setItem('__fmperm', 'granted'); return Promise.resolve({ receive: 'granted' }); }
+        if (method === 'getToken') return Promise.resolve({ token: 'fcm-token-' + platform + '-1' });
+      }
       return Promise.resolve({});
     },
     addListener: function(plugin, event, cb){
@@ -107,7 +114,7 @@ function fakeBridgeWhenAsked(){
   await put('ledger_commitments/k1', { date: TODAY, originalDate: TODAY, title: 'Finish the quarterly plan', category: 'work', status: 'planned', priorityId: null, minVersion: null, disruptionReason: null, createdAt: '2026-10-20T09:00:00.000Z' });
 
   const b = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
-  async function session(name, platform, theme){
+  async function session(name, platform, theme, withPush){
     const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, timezoneId: 'Europe/London' });
     await ctx.route(/api\.github\.com/, r => r.abort());
     await ctx.route(/gstatic\.com\/firebasejs\/10\.12\.2\/(firebase-[a-z-]+\.js)/, r => {
@@ -115,6 +122,7 @@ function fakeBridgeWhenAsked(){
       r.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(SDK + f) });
     });
     await ctx.addInitScript(t => { localStorage.setItem('ledger_emulator', '1'); localStorage.setItem('ledger_theme', t); }, theme || 'dark');
+    if (withPush) await ctx.addInitScript(() => localStorage.setItem('__fm', '1'));
     if (platform) await ctx.addInitScript(fakeBridge, platform);
     const p = await ctx.newPage(); p.errs = []; p.name = name;
     p.on('pageerror', e => p.errs.push(String(e)));
@@ -167,8 +175,9 @@ function fakeBridgeWhenAsked(){
   await A.click('[data-theme-set="dark"]');
   // notifications: honest about the app
   await A.click('#setNotifications'); await sleep(600);
-  check(await until(A, () => /Not in the app yet/.test(document.getElementById('sheetBackdrop').innerText) && /come in a later update/.test(document.getElementById('sheetBackdrop').innerText)),
-    'Android: Notifications says "Not in the app yet" — they come in a later update', await A.evaluate(() => document.getElementById('sheetBackdrop').innerText.slice(0, 300)));
+  check(await until(A, () => /Needs an app update/.test(document.getElementById('sheetBackdrop').innerText) && /update the app/.test(document.getElementById('sheetBackdrop').innerText)),
+    'Android, an app built before notifications: "Needs an app update"', await A.evaluate(() => document.getElementById('sheetBackdrop').innerText.slice(0, 300)));
+  check(!(await A.evaluate(() => window.__nat.calls.some(c => /^FirebaseMessaging/.test(c)))), 'Android, that older build: nothing is asked of a plugin it doesn\'t have');
   await A.screenshot({ path: `${shots}/native-android-notifications.png` });
   await back(A);
   // the Build sheet names the app
@@ -184,7 +193,7 @@ function fakeBridgeWhenAsked(){
   check(saved, 'Android: ticking an Action saves it to Firestore');
 
   // ---- Shaun, in the iOS app (light theme) ----
-  const I = await session('ios', 'ios', 'light');
+  const I = await session('ios', 'ios', 'light', true);
   await signIn(I, SHAUN);
   check(await until(I, ready, null, 25000), 'iOS: Shaun signs in and gets his Ledger');
   check((await calls(I)).includes('SystemBars.setStyle {"style":"LIGHT"}'), 'iOS: the light theme gets dark status-bar text');
@@ -222,11 +231,47 @@ function fakeBridgeWhenAsked(){
   await I.click('.tab-btn[data-view="comms"]');
   await openLink(I, 'luxe.sgj.ledger://open?view=today');
   check(await until(I, () => document.querySelector('.view.active').id === 'view-log'), 'iOS widget tap elsewhere: opens Today');
-  // signing out empties the widget
+  // notifications in the app (Phase 2): FCM, from a tap, the device his alone
+  const subs = async () => {
+    const r = await fetch(`${FS}/ledger_push_subscriptions?pageSize=50`, { headers: ADMIN });
+    const j = await r.json();
+    return (j.documents || []).map(d => ({ id: d.name.split('/').pop(), f: Object.fromEntries(Object.entries(d.fields).map(([k, v]) => [k, Object.values(v)[0]])) }));
+  };
+  check(await I.evaluate(() => !window.__nat.calls.some(c => /^FirebaseMessaging\.(requestPermissions|getToken)/.test(c))), 'iOS push: nothing is asked before a tap');
+  check(await I.evaluate(() => (window.__nat.listeners['FirebaseMessaging.notificationActionPerformed'] || []).length === 1), 'iOS push: it listens for a tapped notification');
+  await openSettings(I); await I.click('#setNotifications');
+  check(await until(I, () => /Not enabled/.test(document.getElementById('ntDeviceState').textContent) && !document.getElementById('ntEnable').hidden && /iPhone app/.test(document.getElementById('ntDeviceName').textContent)),
+    'iOS push: Settings → Notifications: "Shaun · iPhone app — Not enabled", with Enable');
+  await I.click('#ntEnable');
+  check(await until(I, () => /Enabled/.test(document.getElementById('ntDeviceState').textContent) && /Home Screen/.test(document.getElementById('ntNote').textContent)), 'iOS push: Enable → "Enabled", with a word about the Home Screen web app');
+  await I.screenshot({ path: `${shots}/native-ios-notifications.png` });
+  let mine = (await subs()).filter(x => x.f.userUid === owner && x.f.transport === 'fcm');
+  check(mine.length === 1 && mine[0].id.indexOf(owner + '_n') === 0 && mine[0].f.fcmToken === 'fcm-token-ios-1' && mine[0].f.platform === 'ios' && mine[0].f.appVersion === '1.0 (7)' && mine[0].f.deviceLabel === 'Shaun · iPhone app' && !mine[0].f.endpoint,
+    'iOS push: one device record, his, with an FCM token (no Web Push endpoint)', JSON.stringify(mine));
+  check(await I.evaluate(() => window.__nat.calls.some(c => c === 'FirebaseMessaging.requestPermissions') && !window.__nat.calls.some(c => /createChannel/.test(c))), 'iOS push: permission asked on the tap; no Android channels on iOS');
+  await I.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
+  // a new token from FCM replaces the old one
+  await I.evaluate(() => (window.__nat.listeners['FirebaseMessaging.tokenReceived'] || []).forEach(cb => cb({ token: 'fcm-token-ios-2' })));
+  let rotated = false;
+  for (let k = 0; k < 20 && !rotated; k++){ await sleep(250); rotated = (await subs()).some(x => x.f.userUid === owner && x.f.fcmToken === 'fcm-token-ios-2'); }
+  check(rotated, 'iOS push: a new token replaces the old one on the same record');
+  // tapping a notification opens what it is about
+  await I.click('.tab-btn[data-view="plan"]');
+  await I.evaluate(() => (window.__nat.listeners['FirebaseMessaging.notificationActionPerformed'] || []).forEach(cb => cb({ actionId: 'tap', notification: { data: { url: 'https://ledger.sgj.luxe/?openAction=k2', kind: 'general' } } })));
+  check(await until(I, () => document.getElementById('sheetBackdrop').classList.contains('open')
+      && [...document.querySelectorAll('#sheetBackdrop input, #sheetBackdrop textarea')].some(f => f.value === 'Call the plumber')),
+    'iOS push tap: opens that Action');
+  await I.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
+  await I.evaluate(() => (window.__nat.listeners['FirebaseMessaging.notificationActionPerformed'] || []).forEach(cb => cb({ notification: { data: { url: 'https://evil.example/?openAction=k2' } } })));
+  await sleep(500);
+  check(!(await sheetOpen(I)), 'iOS push tap: a link that isn\'t Ledger\'s is ignored');
+  // signing out empties the widget, and the phone stops being his for notifications
   I.on('dialog', d => d.accept());
   await openSettings(I); await I.waitForSelector('#setSignOut'); await I.click('#setSignOut');
   check(await until(I, () => { try { return JSON.parse(sessionStorage.getItem('__natlog') || '[]').indexOf('LedgerWidget.clear') > -1; } catch (e){ return false; } }, null, 15000),
     'iOS: signing out clears the widget');
+  check(await until(I, () => { try { return JSON.parse(sessionStorage.getItem('__natlog') || '[]').indexOf('FirebaseMessaging.deleteToken') > -1; } catch (e){ return false; } }, null, 15000)
+    && !(await subs()).some(x => x.f.userUid === owner && x.f.transport === 'fcm'), 'iOS push: signing out removes his app record and its token');
 
   // ---- Abi (partner) in the Android app: back closes her portal's sheet ----
   const P = await session('abi', 'android', 'dark');

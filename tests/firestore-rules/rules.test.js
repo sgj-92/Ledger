@@ -381,6 +381,22 @@ async function check(name, fn){
   await check('owner: cannot hand own device to another uid', () => assertFails(owner.doc(SUBS + '/owner1_dev1').set(sub('partner1'))));
   await check('owner: cannot change a partner device', () => assertFails(owner.doc(SUBS + '/partner1_dev1').set(sub('owner1'))));
   await check('owner: cannot delete a partner device', () => assertFails(owner.doc(SUBS + '/partner1_dev1').delete()));
+  // the iOS and Android apps: an FCM token instead of a Web Push endpoint
+  const fcm = (uid, o) => Object.assign({ userUid: uid, transport: 'fcm', fcmToken: 'tok-' + uid, deviceId: 'dev-app', deviceLabel: 'Shaun · iPhone app', platform: 'ios',
+    appVersion: '1.0 (1)', createdAt: 'now', updatedAt: 'now', lastSeenAt: 'now' }, o || {});
+  await check('fcm: the owner registers the app on his phone', () => assertSucceeds(owner.doc(SUBS + '/owner1_ndev-app').set(fcm('owner1'))));
+  await check('fcm: …and refreshes its token', () => assertSucceeds(owner.doc(SUBS + '/owner1_ndev-app').set(fcm('owner1', { fcmToken: 'tok-new' }))));
+  await check('fcm: Abi registers hers (Android)', () => assertSucceeds(partner.doc(SUBS + '/partner1_ndev-a').set(fcm('partner1', { platform: 'android', deviceId: 'dev-a' }))));
+  await check('fcm: never for someone else (their id)', () => assertFails(owner.doc(SUBS + '/partner1_ndev-x').set(fcm('partner1'))));
+  await check('fcm: never for someone else (own id)', () => assertFails(owner.doc(SUBS + '/owner1_ndev-x').set(fcm('partner1'))));
+  await check('fcm: only ios or android', () => assertFails(owner.doc(SUBS + '/owner1_ndev-w').set(fcm('owner1', { platform: 'web' }))));
+  await check('fcm: a token, and only one kind of record', () => assertFails(owner.doc(SUBS + '/owner1_ndev-m').set(fcm('owner1', { endpoint: 'https://push.example/x' }))));
+  await check('fcm: no empty token', () => assertFails(owner.doc(SUBS + '/owner1_ndev-e').set(fcm('owner1', { fcmToken: '' }))));
+  await check('fcm: never a recipient named by the client', () => assertFails(owner.doc(SUBS + '/owner1_ndev-r').set(fcm('owner1', { recipientUid: 'partner1' }))));
+  await check('fcm: the owner cannot read the partner\'s app', () => assertFails(owner.doc(SUBS + '/partner1_ndev-a').get()));
+  await check('fcm: …nor take it over', () => assertFails(owner.doc(SUBS + '/partner1_ndev-a').set(fcm('owner1'))));
+  await check('fcm: a signed-out device removes nothing', () => assertFails(anon.doc(SUBS + '/owner1_ndev-app').delete()));
+  await check('fcm: the owner removes his own app', () => assertSucceeds(owner.doc(SUBS + '/owner1_ndev-app').delete()));
   await check('owner: an http endpoint is refused', () => assertFails(owner.doc(SUBS + '/owner1_http').set(sub('owner1', { endpoint: 'http://push.example/x' }))));
   await check('owner: unknown fields are refused', () => assertFails(owner.doc(SUBS + '/owner1_extra').set(sub('owner1', { recipientUid: 'partner1' }))));
   await check('owner: can remove the legacy record of this device', () => assertSucceeds(owner.doc(SUBS + '/sub_legacy').delete()));

@@ -748,6 +748,30 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-26 — Native apps Phase 2 approved: push and app links (Shaun)
+**Shaun approved Phase 2**, including:
+- the push rules change (an additive `fcmShape` for `ledger_push_subscriptions`);
+- one `vercel.json` header, so `/.well-known/apple-app-site-association` is served as
+  JSON;
+- the two `.well-known` files.
+
+**From Shaun:**
+- Team ID `W6S7LQWZY4`;
+- an APNs key (Sandbox and Production, team-scoped), uploaded to Firebase;
+- the iOS and Android apps added to Firebase;
+- the Android debug key's SHA-256, in `assetlinks.json`. A release key is added when
+  there is one.
+
+**How it is split:**
+- **On `main`** (inert for the web and for app builds without the plugin):
+  - the rules;
+  - the sender, which picks Web Push or FCM for each device, with
+    `ledger_config/push.nativeEnabled: false` as the off switch;
+  - the app's registration in `index.html`;
+  - `.well-known` and the header.
+- **The native project:** on `feature/native-push`, which includes the widget, until
+  Shaun has tried it on his phone.
+
 ### 2026-10-26 — Home: ongoing tasks built (Shaun's answers)
 Shaun's answers:
 - **Name:** "Ongoing".
@@ -2297,6 +2321,22 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-26) — **Native apps Phase 2, web and server side** (on `main`):
+  - **Rules:** `fcmShape`.
+  - **Sender:** `sendPushToUser` sends an app device by FCM, with the same payload, an
+    Android channel by kind, and collapse by tag. A dead token is removed, and there is
+    an off switch.
+  - **`index.html`:** Settings → Notifications for "this app", a tap opens the link,
+    token refresh, and sign-out removes the device.
+  - **Links:** AASA, assetlinks and the `vercel.json` header.
+  - **Tests:**
+    - rules 606;
+    - functions 47 / 37 / 59;
+    - push e2e 76;
+    - native shell 50;
+    - Home 240, Partner 209, Quick capture 24, settings 9.
+  - **Deploy:** Shaun runs "Deploy Firebase", Everything.
 
 - (2026-10-26) — **Home: ongoing tasks.**
   - **What was built:**

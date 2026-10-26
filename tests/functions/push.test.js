@@ -11,7 +11,7 @@
 const path = require('path');
 const fnDir = path.join(__dirname, '../../functions');
 const admin = require(path.join(fnDir, 'node_modules/firebase-admin'));
-const { createEngine, appLink } = require(path.join(fnDir, 'push.js'));
+const { createEngine, appLink, fcmMessage } = require(path.join(fnDir, 'push.js'));
 
 admin.initializeApp({ projectId: 'demo-ledger' });
 const db = admin.firestore();
@@ -221,6 +221,55 @@ const reset = () => { sent = []; };
   check(sent.length === 0 && (await pin2.get()).data().status === 'failed', 'Pin now: a pin naming a non-owner sends nothing');
 
   check(appLink(APP, { request: 'a b&c' }) === APP + '?request=a%20b%26c', 'links are encoded');
+
+  // ---- the iOS and Android apps: FCM, alongside Web Push ----
+  let fcmSent = [];
+  const goneTokens = new Set(), badTokens = new Set();
+  async function sendFcm(m){
+    if (goneTokens.has(m.token)){ const e = new Error('gone'); e.code = 'messaging/registration-token-not-registered'; throw e; }
+    if (badTokens.has(m.token)){ const e = new Error('unavailable'); e.code = 'messaging/server-unavailable'; throw e; }
+    fcmSent.push(m);
+  }
+  const both = createEngine({ db, send, sendFcm, deleteField: () => admin.firestore.FieldValue.delete() });
+  const app = (uid, dev, o) => Object.assign({ userUid: uid, transport: 'fcm', fcmToken: 'tok-' + uid + '-' + dev, deviceId: dev, platform: 'ios', deviceLabel: uid + ' app' }, o || {});
+  await db.doc('ledger_push_subscriptions/abi_napp').set(app('abi', 'app'));
+  reset(); fcmSent = [];
+  r = await both.sendPushToUser('abi', { title: 'Shaun sent a request', body: 'Milk', url: APP + '?home=r1' }, { vapidPublicKey: KEY, ttl: 86400 });
+  check(r.sent === 2 && to('abi').length === 1 && fcmSent.length === 1 && fcmSent[0].token === 'tok-abi-app', 'apps: the browser by Web Push and the app by FCM, both', r);
+  const m = fcmSent[0];
+  check(m.notification.title === 'Shaun sent a request' && m.notification.body === 'Milk' && m.data.url === APP + '?home=r1' && m.data.kind === 'home'
+    && m.android.notification.channelId === 'home' && m.apns.payload.aps['thread-id'] === 'home' && m.android.ttl === 86400000,
+    'apps: the same title, body and link; Android\'s Home channel; a day to live', m);
+  check(Object.values(m.data).every((v) => typeof v === 'string'), 'apps: FCM data is all strings');
+  const f = fcmMessage('t', { title: 'Ledger · Current focus', body: 'x', url: APP + '?openAction=a', tag: 'ledger-current-focus' }, { urgency: 'high' });
+  check(f.android.notification.channelId === 'focus' && f.android.notification.tag === 'ledger-current-focus' && f.apns.headers['apns-collapse-id'] === 'ledger-current-focus'
+    && f.apns.headers['apns-priority'] === '10' && f.android.priority === 'high', 'apps: Current Focus replaces the last one (tag / collapse id), sent at high priority');
+  check(fcmMessage('t', { title: 'x', url: APP + '?request=q' }, {}).data.kind === 'partner' && fcmMessage('t', { title: 'x', url: APP + '?openAction=q' }, {}).data.kind === 'general', 'apps: Partner and other kinds have their channels');
+  // the app's own device is left out like a browser's
+  reset(); fcmSent = [];
+  r = await both.sendPushToUser('abi', { title: 't' }, { excludeDeviceId: 'app' });
+  check(fcmSent.length === 0 && r.excluded === 1, 'apps: the device that did it is left out', r);
+  // a token FCM no longer knows is removed; a passing failure is kept and noted
+  goneTokens.add('tok-abi-app'); fcmSent = [];
+  r = await both.sendPushToUser('abi', { title: 't' }, {});
+  check(r.removed === 1 && !(await db.doc('ledger_push_subscriptions/abi_napp').get()).exists, 'apps: an unregistered token is removed', r);
+  await db.doc('ledger_push_subscriptions/abi_napp2').set(app('abi', 'app2'));
+  badTokens.add('tok-abi-app2');
+  r = await both.sendPushToUser('abi', { title: 't' }, {});
+  const kept = (await db.doc('ledger_push_subscriptions/abi_napp2').get()).data();
+  check(r.failed === 1 && kept && /server-unavailable/.test(kept.lastError), 'apps: a passing failure keeps the device and notes why', r);
+  badTokens.clear();
+  // the off switch: ledger_config/push nativeEnabled false — apps skipped, browsers carry on
+  await db.doc('ledger_config/push').set({ nativeEnabled: false }, { merge: true });
+  reset(); fcmSent = [];
+  r = await both.sendPushToUser('abi', { title: 't' }, {});
+  check(fcmSent.length === 0 && to('abi').length === 1 && r.skipped === 1, 'apps: switched off in one place — Web Push carries on', r);
+  await db.doc('ledger_config/push').set({ nativeEnabled: true }, { merge: true });
+  // an engine without FCM (as before) never touches app records
+  reset(); fcmSent = [];
+  r = await engine.sendPushToUser('abi', { title: 't' }, {});
+  check(fcmSent.length === 0 && to('abi').length === 1 && (await db.doc('ledger_push_subscriptions/abi_napp2').get()).exists, 'apps: without FCM, app records are skipped and kept', r);
+  await db.doc('ledger_push_subscriptions/abi_napp2').delete();
 
   console.log('\n' + passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);

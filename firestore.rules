@@ -127,12 +127,25 @@ service cloud.firestore {
           && d.deviceId is string && d.deviceId.size() <= 64
           && (!('deviceLabel' in d) || (d.deviceLabel is string && d.deviceLabel.size() <= 80));
     }
+    // The iOS and Android apps: a device's Firebase Cloud Messaging token instead of a Web
+    // Push endpoint (docs/NATIVE_MIGRATION.md §5). Additive: the same owner-only rules.
+    function fcmShape(d) {
+      return d.keys().hasOnly(['userUid', 'transport', 'fcmToken', 'deviceId', 'deviceLabel', 'platform', 'appVersion',
+                               'createdAt', 'updatedAt', 'lastSeenAt', 'lastSentAt', 'lastError', 'lastErrorAt'])
+          && d.userUid == request.auth.uid
+          && d.transport == 'fcm'
+          && d.fcmToken is string && d.fcmToken.size() > 0 && d.fcmToken.size() <= 4096
+          && d.deviceId is string && d.deviceId.size() <= 64
+          && d.platform in ['ios', 'android']
+          && (!('deviceLabel' in d) || (d.deviceLabel is string && d.deviceLabel.size() <= 80))
+          && (!('appVersion' in d) || (d.appVersion is string && d.appVersion.size() <= 40));
+    }
     match /ledger_push_subscriptions/{subId} {
       allow read: if signedIn() && resource.data.userUid == request.auth.uid;
-      allow create: if hasLedgerRole() && ownId(subId) && subShape(request.resource.data);
+      allow create: if hasLedgerRole() && ownId(subId) && (subShape(request.resource.data) || fcmShape(request.resource.data));
       allow update: if hasLedgerRole() && ownId(subId)
                     && resource.data.userUid == request.auth.uid
-                    && subShape(request.resource.data);
+                    && (subShape(request.resource.data) || fcmShape(request.resource.data));
       // a device's own record; or, for the owner, the device's record from before
       // subscriptions had a user (found by the id this device's endpoint gave it)
       allow delete: if signedIn()

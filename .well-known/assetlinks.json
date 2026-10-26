@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "luxe.sgj.ledger",
+      "sha256_cert_fingerprints": [
+        "09:00:BB:14:6C:3E:95:79:AD:CD:E9:5B:74:EE:B3:42:A0:39:70:35:95:C7:23:83:19:1B:7A:16:E8:37:83:B9"
+      ]
+    }
+  }
+]
