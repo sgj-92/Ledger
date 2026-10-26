@@ -48,6 +48,40 @@ npm run sync         # writes the app's settings and the offline page into both 
 
 **After pulling new commits:** run `npm install && npm run sync` again before building.
 
+## Notifications and app links (Phase 2, `feature/native-push`)
+
+1. **Get the code:**
+   ```
+   cd ~/Ledger && git fetch origin && git checkout feature/native-push && git pull
+   cd native && npm install && npm run sync
+   ```
+2. **Copy in the two Firebase files.** They are configuration, not secrets, and are kept
+   out of git.
+   - `GoogleService-Info.plist` → `native/ios/App/App/`
+   - `google-services.json` → `native/android/app/`
+
+   Both come from Firebase Console → Project settings → Your apps. The iOS build stops
+   with a message if the plist is missing.
+3. **iOS:** run `npm run ios`.
+   - In Xcode → App → Signing & Capabilities, **Push Notifications**, **Associated
+     Domains** and **App Groups** come from the entitlements file. With automatic
+     signing on, Xcode registers them.
+   - Run it on the iPhone.
+4. **Android:** run `npm run android`, then Run.
+5. **In the app:** Settings → Notifications → **Enable notifications**, then allow them.
+   - Send yourself a test: a Pin now, or a Home request from Abi.
+   - A tap opens it in Ledger.
+   - If the Home Screen web app on the same phone also has notifications on, turn them
+     off there.
+6. **Links:** tap a `https://ledger.sgj.luxe/?home=…` link in Notes or Messages, and the
+   app opens it.
+   - iOS fetches the site's association file when the app is installed, so reinstall
+     after the site has it.
+   - On Android: Settings → Apps → Ledger → Open by default.
+
+**Switching the apps' notifications off for everyone:** in Firestore, set
+`ledger_config/push` → `nativeEnabled: false`. Web Push carries on.
+
 ## Which Ledger the app loads
 
 - **By default: production,** `https://ledger.sgj.luxe/`. Every Vercel deploy reaches
@@ -84,8 +118,26 @@ npm run sync         # writes the app's settings and the offline page into both 
   - no web service worker or Web Push in the app — Settings → Notifications says
     notifications come to the app later;
   - the Build sheet names the app's version.
-- **Not in Phase 1:** native notifications, widgets, Universal / App Links, store
-  submission.
+- **Not in Phase 1:** native notifications and Universal / App Links (Phase 2,
+  above), widgets (Phase 3), store submission.
+
+## The Today widget (iOS, branch `feature/native-widgets`)
+
+The widget shows today's Actions in Ledger's Flow order. Ledger's page builds the list
+and hands it to the app (the `LedgerWidget` plugin), which shares it with the widget
+through the App Group `group.luxe.sgj.ledger`.
+
+**In Xcode:**
+- **Signing:** App → Signing & Capabilities: choose your Team for **both** the `App` and
+  `LedgerWidget` targets. App Groups need a paid Apple Developer team on a real
+  iPhone; the simulator works without one.
+- **Running it:** run the `App` scheme, then add the widget: long-press the Home
+  Screen → Edit → Add Widget → Ledger.
+- **Previews:** `LedgerWidget/TodayWidget.swift` has previews for both sizes (Editor →
+  Canvas).
+
+The page must include the widget's web side (in `main`, or a preview via
+`LEDGER_APP_URL`) for the widget to fill.
 
 ## Tests
 

@@ -2,4 +2,6 @@
 <resources>
     <!-- Ledger's dark ground (#0e0b08), behind the splash and the page while it loads -->
     <color name="ledgerGround">#0E0B08</color>
+    <!-- notifications: the small icon's tint -->
+    <color name="ledger_gold">#DCB878</color>
 </resources>

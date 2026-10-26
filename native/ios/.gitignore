@@ -11,3 +11,6 @@ capacitor-cordova-ios-plugins
 # Generated Config files
 App/App/capacitor.config.json
 App/App/config.xml
+
+# written by `npm run sync` (Capacitor links the messaging plugin's Swift package by path)
+App/CapApp-SPM/symlinks/

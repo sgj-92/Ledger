@@ -1,7 +1,9 @@
 # Ledger — native iOS and Android apps: architecture and migration audit
 
-Status: audit 2026-10-23. **Phase 1 (the native shell) built on `feature/native-apps`,
-2026-10-23. It is not merged; see §12a.** Shaun approved:
+Status: audit 2026-10-23.
+- **Phase 1** (the native shell) is merged (§12a).
+- **Phase 3, iOS** (the Today widget) is on `feature/native-widgets` (§12b).
+- **Phase 2** (notifications and app links) is on `feature/native-push` (§12c). Shaun approved:
 - Capacitor;
 - `native/` in this repository;
 - the app id `luxe.sgj.ledger`;
@@ -579,6 +581,118 @@ Without the hooks, in the app:
 - Android back leaves the app;
 - the status bar is always light text;
 - Notifications shows the browser's "can't receive" note.
+
+## 12b. Phase 3 (iOS first): the Today widget, as built (`feature/native-widgets`, 2026-10-25)
+
+Shaun's choice: one read-only widget, **today's Actions**.
+
+**The snapshot** (version 1, §4.1, narrowed):
+- `date`, `dayLabel`, `total`, `done`, and up to 12 items. Each item is `id`, `title`,
+  `time`, `category`, `done`, `open` and a `luxe.sgj.ledger://open?openAction=` link.
+- **Built in `index.html` by Ledger's own Flow order** (`dayFlowItems`):
+  - only in the iOS app, and only for the confirmed owner, after commitments and plans
+    have loaded from the server;
+  - debounced, and sent only when it changes, because each reload counts against
+    WidgetKit's daily budget;
+  - signing out, or any other role, clears it.
+- **Links back into Ledger** go through `openLedgerLink`, and only Ledger's own scheme
+  or address is accepted. `?view=today` opens Today.
+
+**iOS side:**
+- **`Shared/LedgerShared.swift`:** the App Group `group.luxe.sgj.ledger` and the
+  model, in both targets. The file is readable after first unlock.
+- **The plugin:** `LedgerWidgetPlugin` (`publish` checks the shape and a 64 KB limit,
+  writes, reloads; `clear`), registered by `LedgerBridgeViewController`.
+- **The URL scheme:** `luxe.sgj.ledger`.
+- **The `LedgerWidget` extension (iOS 17+):**
+  - **small:** the next Action and a progress bar;
+  - **medium:** the count beside the next four, each a link;
+  - Ledger's dark and light palette;
+  - titles marked `privacySensitive`;
+  - a midnight entry turns yesterday's snapshot into "Open Ledger".
+- **The target** was added with `native/scripts/add-ios-widget.rb` (xcodeproj).
+
+**Verified here:**
+- `native-shell` e2e 39 (11 widget checks, with a stand-in bridge);
+- web suites green;
+- the Xcode project re-read: targets, phases, settings, references.
+
+**Not verified:** Swift compiles, and the widget's look, in Xcode and the simulator.
+
+**Signing:** App Groups need a paid Apple Developer team on a real iPhone (a free
+Personal Team can't sign them). The simulator works meanwhile. Until Shaun's team is
+in place, this branch can't run on his phone, so it stays off `main`.
+
+**Testing before a merge:** the app loads production. So either the web-side commit
+goes to `main` on its own (inert on the web and in today's apps), or the app is pointed
+at a preview with `LEDGER_APP_URL`.
+
+## 12c. Phase 2: notifications and app links, as built (`feature/native-push`, 2026-10-26)
+
+Shaun approved Phase 2 on 2026-10-26, including the push rules change and the
+`vercel.json` header. From Shaun:
+- Team `W6S7LQWZY4`;
+- an APNs key (Sandbox and Production, team-scoped), uploaded to Firebase;
+- the iOS and Android apps added to Firebase (`luxe.sgj.ledger`);
+- the Android debug key's SHA-256.
+
+**On `main`** (inert for the web, and for app builds without the plugin):
+- **Rules:** `fcmShape`, an additive shape for `ledger_push_subscriptions` (an FCM token
+  instead of a Web Push endpoint), owner-only as before.
+- **Sender (`functions/push.js`):**
+  - `sendPushToUser` sends an app device through FCM with the same title, body and link;
+  - Android channels by kind: `focus`, `home`, `partner`, `general`;
+  - a tag collapses an earlier notification of the same thing (`apns-collapse-id`, and
+    the Android tag);
+  - a token FCM no longer knows is removed;
+  - `ledger_config/push` `nativeEnabled: false` skips the apps, while Web Push carries
+    on.
+- **`index.html`:**
+  - Settings → Notifications for "Shaun · iPhone app", asked only on a tap;
+  - the Android channels;
+  - a tapped notification opens its link through `openLedgerLink`, only for Ledger's own
+    links;
+  - token refresh;
+  - sign-out removes the device and its token;
+  - an older build says "Needs an app update".
+- **Links:**
+  - `/.well-known/apple-app-site-association` covers Ledger's deep-link query keys
+    (`openAction`, `request`, `home`, `sprint`, `view`) and is served as JSON by the one
+    `vercel.json` header;
+  - `/.well-known/assetlinks.json` holds the debug key's SHA-256. The release key's is
+    added when there is one.
+
+**On this branch** (built on `feature/native-widgets`, so the widget comes too):
+- **The plugin:** `@capacitor-firebase/messaging` 8.5.2, with `firebase` 12.19.0 as its
+  peer. SPM links it by path (`experimental.ios.spm.packageOptions`), because its
+  package identity collides with Firebase's.
+- **iOS:**
+  - `AppDelegate` forwards the APNs token, failure and background notifications;
+  - `App.entitlements`: `aps-environment`, and Associated Domains
+    `applinks:ledger.sgj.luxe` and `webcredentials:ledger.sgj.luxe`;
+  - Background Modes: remote notifications;
+  - `GoogleService-Info.plist` in the App target, plus a build step that stops with a
+    clear message if it hasn't been copied in (`native/scripts/add-ios-push.rb`);
+  - while Ledger is open, the banner still shows.
+- **Android:**
+  - the small icon `ic_stat_ledger` (white, a ledger page), tinted Ledger gold;
+  - `general` as the default channel;
+  - an App Links intent filter (`autoVerify`) for `https://ledger.sgj.luxe/`;
+  - `google-services.json` switches the Google Services plugin on (already
+    conditional).
+- **The two Firebase files** are configuration, not secrets. They are kept out of the
+  repository (`.gitignore`) and copied in on the Mac.
+
+**Verified here:**
+- rules 606;
+- functions 47 / 37 / 59;
+- push e2e 76;
+- native shell 50 (9 push checks with a stand-in plugin);
+- `cap sync` wires the plugin into both projects;
+- the Xcode project re-read.
+
+**Not verified here:** builds, and push on real devices. That needs Xcode and Android
+Studio (`native/README.md`, "Notifications").
 
 ## 13. Risks and dependencies
 
