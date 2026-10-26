@@ -27,7 +27,7 @@ or Google account is needed for simulators and emulators.
 ```
 cd ~/Ledger
 git fetch origin
-git checkout feature/native-apps
+git checkout main
 git pull
 cd native
 npm install          # Capacitor; the iOS project reads its Swift packages from here
@@ -48,11 +48,11 @@ npm run sync         # writes the app's settings and the offline page into both 
 
 **After pulling new commits:** run `npm install && npm run sync` again before building.
 
-## Notifications and app links (Phase 2, `feature/native-push`)
+## Notifications and app links (Phase 2)
 
 1. **Get the code:**
    ```
-   cd ~/Ledger && git fetch origin && git checkout feature/native-push && git pull
+   cd ~/Ledger && git checkout main && git pull
    cd native && npm install && npm run sync
    ```
 2. **Copy in the two Firebase files.** They are configuration, not secrets, and are kept
@@ -121,7 +121,7 @@ npm run sync         # writes the app's settings and the offline page into both 
 - **Not in Phase 1:** native notifications and Universal / App Links (Phase 2,
   above), widgets (Phase 3), store submission.
 
-## The Today widget (iOS, branch `feature/native-widgets`)
+## The Today widget (iOS)
 
 The widget shows today's Actions in Ledger's Flow order. Ledger's page builds the list
 and hands it to the app (the `LedgerWidget` plugin), which shares it with the widget

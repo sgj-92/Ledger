@@ -748,6 +748,15 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-26 — Native apps Phase 2 and the iOS widget: verified, merged
+Shaun built `feature/native-push` on his iPhone. Everything worked:
+- notifications arrive, and a tap opens the item;
+- Ledger's links open the app;
+- the Today widget works.
+
+The branch is merged into `main`. The two Firebase config files stay out of git; each
+Mac that builds the apps copies them in (`native/README.md`).
+
 ### 2026-10-26 — Native apps Phase 2 approved: push and app links (Shaun)
 **Shaun approved Phase 2**, including:
 - the push rules change (an additive `fcmShape` for `ledger_push_subscriptions`);
@@ -2180,19 +2189,15 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Claude Code
-Status: **Native apps Phase 2 built (2026-10-26).**
-- The web and server side is on `main`.
-- The native side is on `feature/native-push`, which includes the widget.
-
-**Waiting on Shaun:**
-1. "Deploy Firebase", Everything. This deploys the push rules, the FCM sender, and the
-   Ongoing rules and indexes.
-2. Copy the two Firebase files into `native/`, build on his iPhone and Pixel, and try
-   notifications, links and the widget (`native/README.md`).
-
-**Then:** merge `feature/native-push` into `main`.
-
-Ongoing tasks (built 2026-10-26) wait on the same deploy.
+Status: **Native apps Phase 2 and the iOS Today widget: done.** Verified on Shaun's
+iPhone and merged into `main` (2026-10-26).
+- **Not started, each needs Shaun's go-ahead:**
+  - Android widgets;
+  - Phase 4, the widget refreshing without the app open;
+  - release builds and TestFlight for Abi and Maria, which bring a release key and its
+    SHA-256 in `assetlinks.json`.
+- **Vercel's deployment-storage warning (75%):** Shaun to set "Only build production"
+  and a short retention policy. The optional `.vercelignore` trim waits for his yes.
 
 Earlier: **Home requests of 2026-10-25.**
 - A request's checklist now shows in its Action, and "Why it matters" is built
@@ -2292,12 +2297,14 @@ No active handoff.
 
 ### Claude Code
 
-**Built, waiting on Shaun's device check:**
-- Phase 2, notifications and app links: `feature/native-push`, §12c;
-- Phase 3, iOS, the "Today" widget: included in that branch, §12b.
+**Done 2026-10-26:**
+- Phase 2, notifications and app links (§12c);
+- Phase 3, iOS, the "Today" widget (§12b).
 
-**Next, after his check:** merge `feature/native-push` into `main`, then add the release
-key's SHA-256 to `assetlinks.json` once there is a release build.
+Both were verified on Shaun's iPhone and merged into `main`. No active Claude Code
+handoff.
+
+**When there is a release build:** add its key's SHA-256 to `assetlinks.json`.
 
 **Earlier:** native apps Phase 3, iOS — the "Today" widget (`docs/NATIVE_MIGRATION.md`
 §4).
@@ -2338,6 +2345,9 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-26) — **Native notifications, app links and the iOS Today widget merged**
+  (`feature/native-push` → `main`), after Shaun verified them on his iPhone.
 
 - (2026-10-26) — **Native apps Phase 2, web and server side** (on `main`):
   - **Rules:** `fcmShape`.

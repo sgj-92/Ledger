@@ -2,8 +2,12 @@
 
 Status: audit 2026-10-23.
 - **Phase 1** (the native shell) is merged (§12a).
-- **Phase 3, iOS** (the Today widget) is on `feature/native-widgets` (§12b).
-- **Phase 2** (notifications and app links) is on `feature/native-push` (§12c). Shaun approved:
+- **Phase 3, iOS** (the Today widget) is merged (§12b).
+- **Phase 2** (notifications and app links) is merged (§12c).
+
+Both were verified by Shaun on his iPhone on 2026-10-26 and merged into `main`.
+
+Shaun approved:
 - Capacitor;
 - `native/` in this repository;
 - the app id `luxe.sgj.ledger`;
