@@ -8081,6 +8081,8 @@
       viewedDate = todayStr(); goView('log'); renderAll();
       return;
     }
+    // its Communications line
+    if (p.get('view') === 'comms' && authRole === 'owner'){ goView('comms'); return; }
     openLedgerLink(url);
   }
 
@@ -8093,11 +8095,36 @@
   function nativeWidgetOn(){
     return NATIVE && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() === 'ios';
   }
+  // Version 2 adds, for the widget to show or not (Edit Widget): Morning Prime while it's
+  // not done, today's exercise, and Communications as counts only (as on Today: never
+  // names or messages).
+  function widgetPrime(date){
+    var st = mpState(date);
+    if (!st.total || st.completedAt) return null;
+    return { label: mpProgressLabel(st) || (st.resolvedCount + ' of ' + st.total) };
+  }
+  function widgetExercise(date){
+    var plan = getPlanForDate(date);
+    var recorded = sessions.filter(function(x){ return x.date === date && PLAN_TRAINING_TYPES.indexOf(x.type) > -1; });
+    var out = recorded.map(function(x){ return { title: TYPE_LABEL[x.type] || 'Exercise', done: true }; });
+    var types = recorded.map(function(x){ return x.type; });
+    if (plan && !plan.restDay) (plan.trainingTypes || []).forEach(function(t){
+      if (types.indexOf(t) === -1) out.push({ title: TYPE_LABEL[t] || 'Exercise', done: false });
+    });
+    if (plan && plan.restDay && !out.length) out.push({ title: 'Rest day', done: true });
+    return out.slice(0, 4);
+  }
+  function widgetComms(){
+    if (!conversations.length) return null;
+    var n = commsCounts();
+    return { needs: n.needs, due: n.due, waiting: n.waiting };
+  }
   function buildWidgetSnapshot(){
     var date = todayStr();
     var acts = dayFlowItems(date).filter(function(it){ return it.kind === 'action'; }).map(function(it){ return it.c; });
     return {
-      v: 1, date: date, dayLabel: shortDayLabel(date), total: acts.length,
+      v: 2, date: date, dayLabel: shortDayLabel(date), total: acts.length,
+      prime: widgetPrime(date), exercise: widgetExercise(date), comms: widgetComms(),
       done: acts.filter(function(c){ return c.status === 'completed'; }).length,
       items: acts.slice(0, WIDGET_MAX).map(function(c){
         return {

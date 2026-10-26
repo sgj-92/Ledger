@@ -44,7 +44,9 @@ enum LedgerShared {
     }
 }
 
-/// Version 1 of the snapshot (docs/NATIVE_MIGRATION.md §4.1).
+/// The snapshot (docs/NATIVE_MIGRATION.md §4.1). Version 2 adds Morning Prime (while it's
+/// not done), today's exercise and Communications counts; all optional, so either side
+/// reads the other's older snapshots.
 struct TodaySnapshot: Codable, Equatable {
     struct Item: Codable, Identifiable, Equatable {
         let id: String
@@ -55,6 +57,18 @@ struct TodaySnapshot: Codable, Equatable {
         let open: Bool           // planned or partly done: still to do
         let link: String         // luxe.sgj.ledger://open?openAction=…
     }
+    struct Prime: Codable, Equatable {
+        let label: String        // "Plan ✓ · Move 2/5"
+    }
+    struct Exercise: Codable, Equatable {
+        let title: String        // "Strength", "Padel", "Rest day"
+        let done: Bool
+    }
+    struct Comms: Codable, Equatable {
+        let needs: Int           // conversations waiting on you
+        let due: Int             // follow-ups due
+        let waiting: Int         // waiting on someone else
+    }
     let v: Int
     let date: String             // the day it describes, YYYY-MM-DD
     let dayLabel: String
@@ -62,4 +76,7 @@ struct TodaySnapshot: Codable, Equatable {
     let done: Int
     let items: [Item]
     let generatedAt: String?
+    let prime: Prime?            // nil once it's done (or there's no Morning Prime)
+    let exercise: [Exercise]?
+    let comms: Comms?            // counts only, never names
 }

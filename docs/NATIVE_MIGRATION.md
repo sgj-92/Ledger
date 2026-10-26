@@ -631,6 +631,17 @@ in place, this branch can't run on his phone, so it stays off `main`.
 goes to `main` on its own (inert on the web and in today's apps), or the app is pointed
 at a preview with `LEDGER_APP_URL`.
 
+**Version 2 of the widget (2026-10-26, Shaun's request):**
+- The snapshot adds `prime` (while Morning Prime isn't done), `exercise` (today's
+  planned and recorded sessions) and `comms` (counts: needs you, due, waiting). All are
+  optional, so older apps still accept it.
+- **The widget:**
+  - it is an `AppIntentConfiguration`, with Edit Widget switches for Morning Prime,
+    Exercise and Communications, all on by default;
+  - a large size;
+  - titles take the full width;
+  - its Communications line opens Communications (`?view=comms`).
+
 ## 12c. Phase 2: notifications and app links, as built (`feature/native-push`, 2026-10-26)
 
 Shaun approved Phase 2 on 2026-10-26, including the push rules change and the

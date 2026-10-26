@@ -1,37 +1,63 @@
 import WidgetKit
 import SwiftUI
+import AppIntents
 
 // Ledger's "Today" widget: today's Actions, in Ledger's own Flow order, exactly as the app
-// last saw them. Read-only (Phase 3): tapping an Action opens it in Ledger; tapping
-// anywhere else opens Today. The snapshot is built by the web app and shared through the
-// App Group (Shared/LedgerShared.swift); this file only draws it.
+// last saw them. Above them, if you like (Edit Widget): Morning Prime while it isn't done,
+// and today's exercise. Below them, Communications as counts. Read-only: tapping an Action
+// opens it in Ledger; tapping the Communications line opens Communications; anywhere else
+// opens Today. The snapshot is built by the web app and shared through the App Group
+// (Shared/LedgerShared.swift); this file only draws it.
+
+// MARK: - What it shows (long-press → Edit Widget)
+
+struct TodayWidgetIntent: WidgetConfigurationIntent {
+    static let title: LocalizedStringResource = "Today"
+    static let description = IntentDescription("Today's Actions, and what else to show with them.")
+
+    @Parameter(title: "Morning Prime, until it's done", default: true)
+    var showPrime: Bool
+
+    @Parameter(title: "Exercise", default: true)
+    var showExercise: Bool
+
+    @Parameter(title: "Communications", default: true)
+    var showComms: Bool
+}
 
 // MARK: - Timeline
 
 struct TodayEntry: TimelineEntry {
     let date: Date
     let snapshot: TodaySnapshot?
+    var showPrime = true
+    var showExercise = true
+    var showComms = true
 }
 
-struct TodayProvider: TimelineProvider {
+struct TodayProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> TodayEntry {
         TodayEntry(date: Date(), snapshot: .preview)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (TodayEntry) -> Void) {
-        completion(TodayEntry(date: Date(), snapshot: context.isPreview ? (LedgerShared.read() ?? .preview) : LedgerShared.read()))
+    func snapshot(for configuration: TodayWidgetIntent, in context: Context) async -> TodayEntry {
+        entry(Date(), context.isPreview ? (LedgerShared.read() ?? .preview) : LedgerShared.read(), configuration)
     }
 
     // One entry now, and one at midnight, when today's snapshot becomes yesterday's and the
     // widget says so. The app reloads the timeline whenever Today changes.
-    func getTimeline(in context: Context, completion: @escaping (Timeline<TodayEntry>) -> Void) {
+    func timeline(for configuration: TodayWidgetIntent, in context: Context) async -> Timeline<TodayEntry> {
         let now = Date()
         let snap = LedgerShared.read()
-        var entries = [TodayEntry(date: now, snapshot: snap)]
+        var entries = [entry(now, snap, configuration)]
         if let midnight = Calendar.current.nextDate(after: now, matching: DateComponents(hour: 0, minute: 0), matchingPolicy: .nextTime) {
-            entries.append(TodayEntry(date: midnight, snapshot: snap))
+            entries.append(entry(midnight, snap, configuration))
         }
-        completion(Timeline(entries: entries, policy: .atEnd))
+        return Timeline(entries: entries, policy: .atEnd)
+    }
+
+    private func entry(_ date: Date, _ snapshot: TodaySnapshot?, _ c: TodayWidgetIntent) -> TodayEntry {
+        TodayEntry(date: date, snapshot: snapshot, showPrime: c.showPrime, showExercise: c.showExercise, showComms: c.showComms)
     }
 }
 
@@ -76,17 +102,37 @@ private enum Palette {
 
 struct TodayWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "LedgerToday", provider: TodayProvider()) { entry in
+        AppIntentConfiguration(kind: "LedgerToday", intent: TodayWidgetIntent.self, provider: TodayProvider()) { entry in
             TodayWidgetView(entry: entry)
                 .containerBackground(Palette.ground, for: .widget)
         }
         .configurationDisplayName("Today")
-        .description("Today's Actions, in your Flow order.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .description("Today's Actions in your Flow order, with Morning Prime, exercise and communications if you like.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
 
 private let todayURL = URL(string: "\(LedgerShared.appScheme)://open?view=today")!
+private let commsURL = URL(string: "\(LedgerShared.appScheme)://open?view=comms")!
+
+// One line of the list: Morning Prime, an exercise, or an Action
+private enum Row: Identifiable {
+    case prime(String)
+    case exercise(TodaySnapshot.Exercise, Int)
+    case action(TodaySnapshot.Item)
+
+    var id: String {
+        switch self {
+        case .prime: return "prime"
+        case .exercise(_, let i): return "exercise-\(i)"
+        case .action(let item): return "action-\(item.id)"
+        }
+    }
+    var link: URL {
+        if case .action(let item) = self, let url = URL(string: item.link) { return url }
+        return todayURL
+    }
+}
 
 struct TodayWidgetView: View {
     @Environment(\.widgetFamily) private var family
@@ -98,10 +144,26 @@ struct TodayWidgetView: View {
         return s
     }
 
-    // a small widget is one tap: the next Action, or Today; a medium one has a link per row
+    // what to list, in order: Morning Prime (until it's done), exercise, then open Actions
+    private func rows(_ s: TodaySnapshot) -> [Row] {
+        var out: [Row] = []
+        if entry.showPrime, let p = s.prime { out.append(.prime(p.label)) }
+        if entry.showExercise, let ex = s.exercise {
+            for (i, e) in ex.enumerated() { out.append(.exercise(e, i)) }
+        }
+        for item in s.items where item.open { out.append(.action(item)) }
+        return out
+    }
+
+    private func comms(_ s: TodaySnapshot) -> TodaySnapshot.Comms? {
+        guard entry.showComms, let c = s.comms, !commsText(c).isEmpty else { return nil }
+        return c
+    }
+
+    // a small widget is one tap: what's next, or Today
     private var tapURL: URL {
-        if family == .systemSmall, let next = today?.items.first(where: { $0.open }), let url = URL(string: next.link) {
-            return url
+        if family == .systemSmall, let s = today, let next = rows(s).first(where: { if case .exercise(let e, _) = $0 { return !e.done }; return true }) {
+            return next.link
         }
         return todayURL
     }
@@ -110,8 +172,9 @@ struct TodayWidgetView: View {
         Group {
             if let s = today {
                 switch family {
-                case .systemMedium: MediumView(s: s)
-                default: SmallView(s: s)
+                case .systemLarge: ListView(s: s, rows: rows(s), comms: comms(s), limit: 9, lines: 2)
+                case .systemMedium: ListView(s: s, rows: rows(s), comms: comms(s), limit: comms(s) == nil ? 4 : 3, lines: 1)
+                default: SmallView(s: s, rows: rows(s), comms: comms(s))
                 }
             } else {
                 OpenLedgerView(signedOut: entry.snapshot == nil)
@@ -149,8 +212,98 @@ private struct Progress: View {
     }
 }
 
-private func meta(_ item: TodaySnapshot.Item) -> String? {
-    item.time
+// "2 need you · 1 due" — counts only, as Today shows them
+private func commsText(_ c: TodaySnapshot.Comms) -> String {
+    var bits: [String] = []
+    if c.needs > 0 { bits.append("\(c.needs) need\(c.needs == 1 ? "s" : "") you") }
+    if c.due > 0 { bits.append("\(c.due) due") }
+    if bits.isEmpty && c.waiting > 0 { bits.append("\(c.waiting) waiting") }
+    return bits.joined(separator: " · ")
+}
+
+private struct CommsLine: View {
+    let c: TodaySnapshot.Comms
+    var body: some View {
+        Link(destination: commsURL) {
+            HStack(spacing: 6) {
+                Image(systemName: "bubble.left.and.bubble.right")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Palette.text3)
+                    .frame(width: 12)
+                Text("Comms · " + commsText(c))
+                    .font(.system(size: 11, weight: c.needs > 0 ? .medium : .regular))
+                    .foregroundStyle(c.needs > 0 ? Palette.gold : Palette.text2)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
+private struct RowView: View {
+    let row: Row
+    let first: Bool
+    let lines: Int
+
+    private var title: String {
+        switch row {
+        case .prime: return "Morning Prime"
+        case .exercise(let e, _): return e.title
+        case .action(let item): return item.title
+        }
+    }
+    private var trailing: String? {
+        switch row {
+        case .prime(let label): return label
+        case .exercise(let e, _): return e.done ? "Done" : "Planned"
+        case .action(let item): return item.time
+        }
+    }
+    private var quiet: Bool {
+        if case .exercise(let e, _) = row { return e.done }
+        return false
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            mark.frame(width: 12)
+            // the title takes all the width there is: only the time beside it keeps its size
+            Text(title)
+                .font(.system(size: 13, weight: first ? .medium : .regular))
+                .foregroundStyle(quiet ? Palette.text2 : Palette.text)
+                .lineLimit(lines)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(1)
+                .privacySensitive()
+            if let t = trailing {
+                Text(t)
+                    .font(.system(size: 11).monospacedDigit())
+                    .foregroundStyle(Palette.text2)
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+        }
+        .padding(.vertical, lines > 1 ? 5 : 6)
+    }
+
+    @ViewBuilder private var mark: some View {
+        switch row {
+        case .prime:
+            Image(systemName: "sunrise")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Palette.gold)
+                .widgetAccentable()
+        case .exercise(let e, _):
+            Image(systemName: e.done ? "checkmark" : "figure.run")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(e.done ? Palette.text3 : Palette.category("training"))
+        case .action(let item):
+            Circle()
+                .fill(Palette.category(item.category))
+                .frame(width: 7, height: 7)
+        }
+    }
 }
 
 private struct NothingLeft: View {
@@ -177,12 +330,15 @@ private struct NothingLeft: View {
     }
 }
 
-// MARK: - Small: the next Action
+// MARK: - Small: what's next
 
 private struct SmallView: View {
     let s: TodaySnapshot
+    let rows: [Row]
+    let comms: TodaySnapshot.Comms?
     var body: some View {
-        let next = s.items.first(where: { $0.open })
+        // an exercise already done isn't "next"
+        let next = rows.first(where: { if case .exercise(let e, _) = $0 { return !e.done }; return true })
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Kicker(text: "Today")
@@ -198,38 +354,64 @@ private struct SmallView: View {
                     Text("Next")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Palette.gold)
-                    Text(next.title)
+                    Text(nextTitle(next))
                         .font(.system(size: 16, weight: .regular, design: .serif))
                         .foregroundStyle(Palette.text)
                         .lineLimit(3)
                         .minimumScaleFactor(0.85)
                         .privacySensitive()
-                    if let m = meta(next) {
+                    if let m = nextMeta(next) {
                         Text(m)
                             .font(.system(size: 11).monospacedDigit())
                             .foregroundStyle(Palette.text2)
+                            .lineLimit(1)
                     }
                 }
             } else {
                 NothingLeft(s: s)
             }
+            if let c = comms {
+                Text(commsText(c))
+                    .font(.system(size: 11, weight: c.needs > 0 ? .medium : .regular))
+                    .foregroundStyle(c.needs > 0 ? Palette.gold : Palette.text2)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    private func nextTitle(_ row: Row) -> String {
+        switch row {
+        case .prime: return "Morning Prime"
+        case .exercise(let e, _): return e.title
+        case .action(let item): return item.title
+        }
+    }
+    private func nextMeta(_ row: Row) -> String? {
+        switch row {
+        case .prime(let label): return label
+        case .exercise: return "Exercise"
+        case .action(let item): return item.time
         }
     }
 }
 
-// MARK: - Medium: the count beside the next few
+// MARK: - Medium and large: the count beside the list
 
-private struct MediumView: View {
+private struct ListView: View {
     let s: TodaySnapshot
-    private let rows = 4
+    let rows: [Row]
+    let comms: TodaySnapshot.Comms?
+    let limit: Int
+    let lines: Int
+
     var body: some View {
-        let open = s.items.filter { $0.open }
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
                 Kicker(text: "Today")
                 Text(s.dayLabel)
                     .font(.system(size: 12))
                     .foregroundStyle(Palette.text2)
+                    .lineLimit(1)
                 Spacer(minLength: 0)
                 Text("\(s.done)")
                     .font(.system(size: 34, weight: .regular, design: .serif).monospacedDigit())
@@ -242,54 +424,35 @@ private struct MediumView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(Palette.text3)
             }
-            .frame(width: 96, alignment: .leading)
+            .frame(width: 84, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 0) {
-                if open.isEmpty {
+                if rows.isEmpty {
                     Spacer(minLength: 0)
                     NothingLeft(s: s)
                     Spacer(minLength: 0)
                 } else {
-                    ForEach(Array(open.prefix(rows).enumerated()), id: \.element.id) { i, item in
-                        Link(destination: URL(string: item.link) ?? todayURL) {
-                            ActionRow(item: item, first: i == 0)
+                    let shown = Array(rows.prefix(limit))
+                    ForEach(Array(shown.enumerated()), id: \.element.id) { i, row in
+                        Link(destination: row.link) {
+                            RowView(row: row, first: i == 0, lines: lines)
                         }
-                        if i < min(open.count, rows) - 1 { Divider().overlay(Palette.track) }
+                        if i < shown.count - 1 { Divider().overlay(Palette.track) }
                     }
                     Spacer(minLength: 0)
-                    if open.count > rows {
-                        Text("+\(open.count - rows) more")
+                    if rows.count > limit {
+                        Text("+\(rows.count - limit) more")
                             .font(.system(size: 11))
                             .foregroundStyle(Palette.text3)
                     }
                 }
+                if let c = comms {
+                    CommsLine(c: c)
+                        .padding(.top, 4)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-    }
-}
-
-private struct ActionRow: View {
-    let item: TodaySnapshot.Item
-    let first: Bool
-    var body: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(Palette.category(item.category))
-                .frame(width: 7, height: 7)
-            Text(item.title)
-                .font(.system(size: 13, weight: first ? .medium : .regular))
-                .foregroundStyle(Palette.text)
-                .lineLimit(1)
-                .privacySensitive()
-            Spacer(minLength: 4)
-            if let t = item.time {
-                Text(t)
-                    .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(Palette.text2)
-            }
-        }
-        .padding(.vertical, 6)
     }
 }
 
@@ -320,14 +483,17 @@ extension TodaySnapshot {
         func item(_ id: String, _ title: String, _ time: String?, _ cat: String, done: Bool = false) -> Item {
             Item(id: id, title: title, time: time, category: cat, done: done, open: !done, link: "\(LedgerShared.appScheme)://open?openAction=\(id)")
         }
-        return TodaySnapshot(v: 1, date: today, dayLabel: "Today", total: 6, done: 2, items: [
+        return TodaySnapshot(v: 2, date: today, dayLabel: "Today", total: 6, done: 2, items: [
             item("a", "Morning walk", "07:30", "training", done: true),
             item("b", "Reply to the accountant", nil, "work", done: true),
-            item("c", "Finish the quarterly plan", "10:00", "work"),
+            item("c", "Finish the quarterly plan for the board", "10:00", "work"),
             item("d", "Call Mum", nil, "family"),
             item("e", "Book the plumber", "14:00", "personal"),
             item("f", "Padel", "18:30", "training")
-        ], generatedAt: nil)
+        ], generatedAt: nil,
+        prime: Prime(label: "Plan ✓ · Move 2/5"),
+        exercise: [Exercise(title: "Strength", done: false)],
+        comms: Comms(needs: 2, due: 1, waiting: 3))
     }
 }
 
@@ -338,6 +504,12 @@ extension TodaySnapshot {
 }
 
 #Preview(as: .systemMedium) {
+    TodayWidget()
+} timeline: {
+    TodayEntry(date: .now, snapshot: .preview)
+}
+
+#Preview(as: .systemLarge) {
     TodayWidget()
 } timeline: {
     TodayEntry(date: .now, snapshot: .preview)

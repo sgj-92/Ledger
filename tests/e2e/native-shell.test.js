@@ -202,9 +202,12 @@ function fakeBridgeWhenAsked(){
   const lastSnap = p => p.evaluate(() => { const a = window.__nat.snapshots || []; return a.length ? a[a.length - 1] : null; });
   check(await until(I, () => (window.__nat.snapshots || []).length > 0, null, 10000), 'iOS widget: Today is published to the widget once his data has loaded');
   let snap = await lastSnap(I);
-  check(snap && snap.v === 1 && snap.date === new Date().toLocaleDateString('en-CA') && snap.total === 1 && snap.items[0].title === 'Finish the quarterly plan'
+  check(snap && snap.v === 2 && snap.date === new Date().toLocaleDateString('en-CA') && snap.total === 1 && snap.items[0].title === 'Finish the quarterly plan'
     && snap.items[0].link === 'luxe.sgj.ledger://open?openAction=k1' && typeof snap.generatedAt === 'string',
-    'iOS widget: version 1, today, his Action with its link', JSON.stringify(snap));
+    'iOS widget: version 2, today, his Action with its link', JSON.stringify(snap));
+  check(snap && snap.prime && /Plan|Move|of/.test(snap.prime.label) && Array.isArray(snap.exercise) && 'comms' in snap,
+    'iOS widget: Morning Prime while it isn\'t done, today\'s exercise, and Communications (counts only)', JSON.stringify(snap && { p: snap.prime, e: snap.exercise, c: snap.comms }));
+  check(snap && (!snap.comms || Object.keys(snap.comms).sort().join() === 'due,needs,waiting'), 'iOS widget: Communications are counts — never names');
   check(snap && Object.keys(snap.items[0]).sort().join() === 'category,done,id,link,open,time,title', 'iOS widget: titles, times and categories only — nothing else crosses', snap && Object.keys(snap.items[0]).join());
   const published = await I.evaluate(() => (window.__nat.snapshots || []).length);
   await put('ledger_commitments/k2', { date: TODAY, originalDate: TODAY, title: 'Call the plumber', category: 'personal', status: 'planned', time: '09:15', priorityId: null, minVersion: null, disruptionReason: null, createdAt: '2026-10-20T10:00:00.000Z' });
@@ -231,6 +234,8 @@ function fakeBridgeWhenAsked(){
   await I.click('.tab-btn[data-view="comms"]');
   await openLink(I, 'luxe.sgj.ledger://open?view=today');
   check(await until(I, () => document.querySelector('.view.active').id === 'view-log'), 'iOS widget tap elsewhere: opens Today');
+  await openLink(I, 'luxe.sgj.ledger://open?view=comms');
+  check(await until(I, () => document.querySelector('.view.active').id === 'view-comms'), 'iOS widget: its Communications line opens Communications');
   // notifications in the app (Phase 2): FCM, from a tap, the device his alone
   const subs = async () => {
     const r = await fetch(`${FS}/ledger_push_subscriptions?pageSize=50`, { headers: ADMIN });

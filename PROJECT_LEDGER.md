@@ -748,6 +748,27 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-26 — Admins edit any open request; Move to Ongoing clears the date; the widget's version 2
+Shaun's requests:
+- **Editing:**
+  - An admin (Shaun, Abi) may edit any open request, whoever wrote it: wording, why,
+    note and when, including **No date**.
+  - The history keeps what it said before ("You edited it — it said …"). No
+    notification is sent.
+  - Whoever asked can still edit while it waits.
+  - On Shaun's day, "Take it off my day" removes his Action, and the request waits
+    again.
+- **Move to Ongoing:** the request loses its own date, and comes off Shaun's day. Its
+  steps carry the dates.
+- **The rules:** the request update is now one function given the changed keys once,
+  with the admin-edit branch first. Firestore's 1,000-expression limit was refusing it.
+- **The Today widget, version 2:**
+  - Morning Prime shows while it isn't done;
+  - exercise, and Communications as counts only (as on Today, never names);
+  - each is a switch under Edit Widget, on by default;
+  - a large size is added;
+  - titles take the full width. The early "…" was the title losing width to a spacer.
+
 ### 2026-10-26 — TestFlight internal testing for Abi (supersedes "external" below)
 The iPhone users are Shaun and Abi, both App Store Connect users, so both are
 **internal** testers: no Apple beta review, and no reviewer account. Magda uses Android,
@@ -2210,7 +2231,13 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Claude Code
-Status: **Getting the apps onto Abi's iPhone (TestFlight) and Magda's Android (App Distribution)** (2026-10-26). Shaun uses both. The project is
+Status: **Built 2026-10-26:**
+- request editing and Move to Ongoing without a date. Deploy rules with "Deploy
+  Firebase", Rules and indexes.
+- widget version 2. Rebuild the app in Xcode; on phones from TestFlight, upload a new
+  build.
+
+Before that: **Getting the apps onto Abi's iPhone (TestFlight) and Magda's Android (App Distribution)** (2026-10-26). Shaun uses both. The project is
 ready; Shaun does the account steps in `native/README.md`.
 - He sends the upload key's SHA-256, for `assetlinks.json`.
 
