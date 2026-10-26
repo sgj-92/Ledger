@@ -871,14 +871,15 @@ async function oobLink(email){
     if (!(await until(S, () => !!document.getElementById('hdOngoing'), null, 4000))){ await goHome(S); await openRow(S, SH, 'Sort out the garden'); }
     check(await until(S, () => !!document.getElementById('hdOngoing')), 'H20 its sheet offers "Move to Ongoing"');
     await S.click('#hdOngoing'); await S.waitForSelector('#ogText');
-    check(await S.evaluate(() => document.getElementById('ogText').value === 'Sort out the garden' && document.getElementById('ogWhyIn').value === 'So the kids can play out in spring' && /becomes its first step — still Abi’s request/.test(document.getElementById('ogFromNote').textContent)),
-      'H20 prefilled from the request; "becomes its first step — still Abi\'s request"');
+    check(await S.evaluate(() => document.getElementById('ogText').value === 'Sort out the garden' && document.getElementById('ogWhyIn').value === 'So the kids can play out in spring' && /becomes its first step, with no date of its own/.test(document.getElementById('ogFromNote').textContent) && /still Abi’s request/.test(document.getElementById('ogFromNote').textContent)),
+      'H20 prefilled from the request; "becomes its first step, with no date of its own … still Abi\'s request"');
     await S.screenshot({ path: `${shots}/${tag}-H20-move.png` });
     await S.click('#ogSave');
     check(await sheetOpen(S, '#ogSteps'), 'H20 moved: the new ongoing task opens');
     check(JSON.stringify(await stepTitles(S)) === JSON.stringify(['Sort out the garden']), 'H20 …with the request as its first step');
     await sleep(500);
     const garden = (await all(OG)).find(o => o.title === 'Sort out the garden'), greq = await reqByText('Sort out the garden');
+    check(greq.requestedTiming === 'none' && !greq.requestedDate, 'H20 moved: the request has no date of its own now (its steps carry the dates)', JSON.stringify({ t: greq.requestedTiming, d: greq.requestedDate }));
     check(garden && greq.ongoingId === garden.id && garden.fromRequestId === greq.id && garden.participants.includes(abi) && greq.requesterUid === abi && greq.status === 'requested',
       'H20 stored: the request filed under it, still Abi\'s and waiting; Abi among its people');
     await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
@@ -898,6 +899,53 @@ async function oobLink(email){
     await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
     check(await until(S, () => !![...document.querySelectorAll('#view-home .og-row')].every(r => !/Kitchen refit/.test(r.innerText)) && /Finished · 1/.test((document.getElementById('ogDoneToggle') || {}).textContent || '')), 'H20 it moves under "Finished · 1"');
     check(S.errs.length === 0, 'H20 no page errors (Shaun)', S.errs.join(' | '));
+  }
+
+  // H21 — an admin corrects any open request (a typo, a date, or no date); the history says so
+  {
+    await goHome(S);
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
+    check(await openRow(S, SH, 'Book the car service'), 'H21 Shaun opens what Abi asked him');
+    check(await until(S, () => !!document.getElementById('hdEdit')), 'H21 an admin may edit it, though Abi wrote it');
+    await S.click('#hdEdit'); await S.waitForSelector('#heText');
+    check(await S.evaluate(() => [...document.querySelectorAll('#heTiming .bk-filter-chip')].map(b => b.textContent).join('|') === 'Today|This week|Choose date|No date'), 'H21 When: Today, This week, Choose date, No date');
+    await S.fill('#heText', 'Book the car service at Halfords');
+    await S.click('[data-he-timing="none"]');
+    await S.screenshot({ path: `${shots}/${tag}-H21-edit.png` });
+    await S.click('#heSave');
+    let ed = null;
+    for (let k = 0; k < 20 && !(ed && ed.text === 'Book the car service at Halfords'); k++){ await sleep(300); ed = await reqByText('Book the car service at Halfords'); }
+    check(ed && ed.requestedTiming === 'none' && !ed.requestedDate && ed.latestUpdateType === 'edited' && ed.latestUpdateByUid === owner, 'H21 saved: new wording, no date, "edited" by Shaun');
+    const ents = ed ? await all(`${HR}/${ed.id}/updates`) : [];
+    check(ents.some(e => e.type === 'edited' && e.actorUid === owner && e.metadata && e.metadata.fromText === 'Book the car service'), 'H21 its history keeps what it said before');
+    check(await until(S, () => /You edited it — it said “Book the car service”/.test((document.getElementById('hdTimeline') || {}).innerText || '')), 'H21 the timeline: "You edited it — it said “Book the car service”"');
+    // a request on his day: off his day, and no date
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    await addOne(A); await A.waitForSelector('#hnText');
+    check(await chip(A, '#hnFor', 'Shaun'), 'chose For Shaun');
+    await A.fill('#hnText', 'Order the school photos'); await A.click('#hnSave');
+    await until(A, () => !document.getElementById('ppBackdrop').classList.contains('open'), null, 8000); await sleep(600);
+    await goHome(S);
+    check(await openRow(S, SH, 'Order the school photos'), 'H21 Shaun opens Abi\'s new one');
+    await S.waitForSelector('#hdToday'); await S.click('#hdToday');
+    let photos = null;
+    for (let k = 0; k < 30 && !(photos && photos.linkedActionId); k++){ await sleep(300); photos = await reqByText('Order the school photos'); }
+    check(photos && photos.status === 'planned' && !!photos.linkedActionId, 'H21 planned on his day (an Action)');
+    await until(S, () => !!document.getElementById('hdEdit'));
+    await S.click('#hdEdit'); await S.waitForSelector('#heOffDay');
+    check(await S.evaluate(() => /On your day: /.test(document.getElementById('heOnDay').textContent)), 'H21 the edit says it\'s on his day');
+    await S.click('#heOffDay'); await S.click('[data-he-timing="none"]'); await S.click('#heSave');
+    let back = null;
+    for (let k = 0; k < 40 && !(back && back.status === 'requested' && !back.linkedActionId); k++){ await sleep(300); back = await reqByText('Order the school photos'); }
+    check(back && back.status === 'requested' && !back.linkedActionId && back.requestedTiming === 'none', 'H21 "Take it off my day": the request waits again, with no date', JSON.stringify(back && { s: back.status, a: back.linkedActionId, t: back.requestedTiming }));
+    check(!(await all('ledger_commitments')).some(c => c.id === photos.linkedActionId), 'H21 …and its Action has gone from his day');
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    // Magda (not an admin) edits only what she wrote
+    check(await openRow(M, MH, 'Wash and iron the school uniform'), 'H21 Magda opens what Abi asked her');
+    await sleep(500);
+    check(!(await M.$('#hdEdit')), 'H21 …and has no Edit: she didn\'t write it, and isn\'t an admin');
+    await M.evaluate(() => { const x = document.querySelector('#ppBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    check(S.errs.length === 0, 'H21 no page errors (Shaun)', S.errs.join(' | '));
   }
 
   // H11 — the partner portal still does what it did

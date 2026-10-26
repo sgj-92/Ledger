@@ -661,7 +661,17 @@ async function check(name, fn){
   const entry = (by, type, meta, text) => ({ type, actorUid: by, text: text || null, createdAt: NOW(), metadata: meta || {} });
   async function act(db, id, patch, e){ const b = db.batch(); b.update(db.doc(HR + '/' + id), patch); if (e) b.set(db.collection(HR + '/' + id + '/updates').doc(), e); return b.commit(); }
   await check('work: the requester rewords it while it waits', () => assertSucceeds(nanny.doc(HR + '/hr4').update({ text: 'Nappies: size 5', updatedAt: 'now' })));
-  await check('work: the assignee cannot reword it', () => assertFails(partner.doc(HR + '/hr4').update({ text: 'Something else', updatedAt: 'now' })));
+  await check('work: an admin (Abi, asked it) corrects its wording — the history says so', async () => {
+    const b = partner.batch();
+    b.update(partner.doc(HR + '/hr4'), { text: 'Nappies: size 5 (Pampers)', latestUpdateAt: 'now', latestUpdateByUid: 'partner1', latestUpdateType: 'edited', updatedAt: 'now' });
+    b.set(partner.collection(HR + '/hr4/updates').doc(), { type: 'edited', actorUid: 'partner1', text: null, createdAt: NOW(), metadata: { fromText: 'Nappies: size 5', timing: 'today' } });
+    return assertSucceeds(b.commit());
+  });
+  await check('work: …and clears its date', () => assertSucceeds(partner.doc(HR + '/hr4').update({ requestedTiming: 'none', requestedDate: null, updatedAt: 'now' })));
+  await check('work: an admin never rewrites who it\'s for this way', () => assertFails(partner.doc(HR + '/hr4').update({ text: 'x', assigneeUid: 'owner1', updatedAt: 'now' })));
+  await check('work: an admin never signs as someone else', () => assertFails(partner.doc(HR + '/hr4').update({ text: 'y', latestUpdateByUid: 'nanny1', updatedAt: 'now' })));
+  await check('work: the nanny (assignee, not an admin) cannot reword what Shaun asked her', () => assertFails(nanny.doc(HR + '/hr1').update({ text: 'Something else', updatedAt: 'now' })));
+  await check('work: the nanny cannot write an "edited" entry on what she didn\'t write', () => assertFails(nanny.collection(HR + '/hr1/updates').add({ type: 'edited', actorUid: 'nanny1', text: null, createdAt: NOW(), metadata: {} })));
   await check('work: the nanny starts what was asked of her', () => assertSucceeds(act(nanny, 'hr1', Object.assign({ status: 'in_progress' }, sumBy('nanny1', 'status')), entry('nanny1', 'status', { status: 'in_progress' }))));
   await check('work: …and finishes it', () => assertSucceeds(act(nanny, 'hr1', Object.assign({ status: 'done' }, sumBy('nanny1', 'status')), entry('nanny1', 'status', { status: 'done' }))));
   await check('work: a "done" entry only when it is done', () => assertFails(nanny.collection(HR + '/hr4/updates').add(entry('nanny1', 'status', { status: 'done' }))));

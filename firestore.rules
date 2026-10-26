@@ -293,6 +293,96 @@ service cloud.firestore {
       return ['latestUpdateAt', 'latestUpdateByUid', 'latestUpdateType', 'latestCommentAt', 'latestCommentByUid',
               'latestCommentText', 'readAt', 'updatedAt'];
     }
+    // A request's changes, each kind with who may make it. `keys` (the fields this write
+    // changes) is worked out once and passed in: computed in every branch, the rule ran past
+    // Firestore's limit of 1,000 expressions and refused writes it should allow.
+    function homeReqUpdate(o, n, keys) {
+      return (
+          // an admin corrects any open request: wording, why, note and when (a typo, a
+          // date, or no date). The history records it. First: placed after the other
+          // branches it ran past the 1,000-expression limit; here it ends at its first
+          // check for any other write.
+          (keys.hasOnly(['text', 'note', 'why', 'requestedTiming', 'requestedDate'].concat(summaryKeys()))
+              && o.status in ['requested', 'planned', 'in_progress', 'cant_do']
+              && homeAdmin(o.homeId)
+              && homeText(n)
+              && homeSummary(o, n))
+          ||
+          // the person who asked (or wrote it): wording and timing, while it waits
+          ((request.auth.uid == o.requesterUid || request.auth.uid == o.createdByUid)
+           && o.status == 'requested'
+           && keys.hasOnly(['text', 'note', 'why', 'requestedTiming', 'requestedDate'].concat(summaryKeys()))
+           && homeText(n)
+           && homeSummary(o, n))
+          // …or withdraw it, while it waits
+          || ((request.auth.uid == o.requesterUid || request.auth.uid == o.createdByUid)
+              && o.status == 'requested' && n.status == 'withdrawn'
+              && keys.hasOnly(['status'].concat(summaryKeys()))
+              && homeSummary(o, n))
+          // the assignee: where it stands. Only the owner links a private Action,
+          // and only its id ever lands here.
+          || (request.auth.uid == o.assigneeUid
+              && o.status in ['requested', 'planned', 'in_progress', 'done', 'cant_do', 'missed']
+              && n.status in ['requested', 'planned', 'in_progress', 'done', 'cant_do']
+              && keys.hasOnly(['status', 'plannedDate', 'linkedActionId',
+                   'linkedByUid', 'processedAt', 'cantDoReason'].concat(summaryKeys()))
+              && (n.get('linkedActionId', null) == o.get('linkedActionId', null)
+                  || n.get('linkedActionId', null) == null
+                  || (isOwner() && n.linkedActionId is string && n.linkedByUid == request.auth.uid))
+              && (n.get('cantDoReason', null) == null
+                  || (n.cantDoReason is string && n.cantDoReason.size() <= 200))
+              && homeSummary(o, n))
+          // passing it on: the assignee, or an admin, to another active member. The
+          // new assignee joins its participants; nobody leaves them.
+          || ((request.auth.uid == o.assigneeUid || homeAdmin(o.homeId))
+              && o.status in ['requested', 'planned', 'in_progress', 'cant_do']
+              && keys.hasOnly(['assigneeUid', 'participants', 'status',
+                   'plannedDate', 'linkedActionId', 'linkedByUid', 'cantDoReason', 'processedAt'].concat(summaryKeys()))
+              && n.assigneeUid != o.assigneeUid
+              && n.assigneeUid != o.requesterUid
+              && activeIn(n.assigneeUid, o.homeId)
+              && n.participants.hasAll(o.participants)
+              && n.participants.hasOnly(o.participants.concat([n.assigneeUid]))
+              && n.status == 'requested'
+              && n.get('plannedDate', null) == null
+              && n.get('linkedActionId', null) == null
+              && homeSummary(o, n))
+          // "I'll do it": anyone at Home takes an unclaimed recurring one, as themselves
+          || (o.get('recurringId', null) != null && o.get('assigneeUid', null) == null
+              && o.status == 'requested'
+              && keys.hasOnly(['assigneeUid', 'participants'].concat(summaryKeys()))
+              && n.assigneeUid == request.auth.uid
+              && n.participants.hasAll(o.participants)
+              && n.participants.hasOnly(o.participants.concat([request.auth.uid]))
+              && homeSummary(o, n))
+          // who can see it: its creator or an admin
+          || ((request.auth.uid == o.createdByUid || homeAdmin(o.homeId))
+              && keys.hasOnly(['visibility'].concat(summaryKeys()))
+              && n.visibility in ['private', 'home']
+              && homeSummary(o, n))
+          // the people a checklist belongs to may give a request one
+          || (listEditor(o)
+              && keys.hasOnly(['hasChecklist', 'updatedAt'])
+              && n.hasChecklist == true)
+          // anyone who can see it: an update's summary, and their own read mark
+          || (keys.hasOnly(summaryKeys())
+              && homeSummary(o, n))
+          // deleting (soft), by whoever asked or wrote it: frozen from then on
+          || ((request.auth.uid == o.requesterUid || request.auth.uid == o.createdByUid)
+              && keys.hasOnly(['deletedAt', 'deletedByUid', 'updatedAt'])
+              && n.deletedAt is string
+              && n.deletedByUid == request.auth.uid)
+          // an admin files a request under an ongoing task (once; it stays there),
+          // leaving it without a date of its own: its steps carry the dates
+          || (o.get('ongoingId', null) == null
+              && n.get('ongoingId', null) != null
+              && keys.hasOnly(['ongoingId', 'requestedTiming', 'requestedDate', 'updatedAt'])
+              && n.get('requestedTiming', 'none') in ['none', 'later', 'today', 'week', 'date']
+              && o.get('recurringId', null) == null
+              && homeAdmin(o.homeId)
+              && ongoingOpenAfter(n.ongoingId, o.homeId))
+      );
+    }
     match /ledger_home_requests/{rid} {
       allow read: if canSee(resource.data);
       // anyone at Home asks for themselves; an admin may also ask on someone's behalf.
@@ -327,80 +417,7 @@ service cloud.firestore {
                     && homeText(request.resource.data);
       allow update: if notDeleted(resource.data) && canSee(resource.data)
                     && request.resource.data.homeId == resource.data.homeId
-                    && (
-                      // the person who asked (or wrote it): wording and timing, while it waits
-                      ((request.auth.uid == resource.data.requesterUid || request.auth.uid == resource.data.createdByUid)
-                       && resource.data.status == 'requested'
-                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'note', 'why', 'requestedTiming', 'requestedDate', 'updatedAt'])
-                       && homeText(request.resource.data))
-                      // …or withdraw it, while it waits
-                      || ((request.auth.uid == resource.data.requesterUid || request.auth.uid == resource.data.createdByUid)
-                          && resource.data.status == 'requested' && request.resource.data.status == 'withdrawn'
-                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'].concat(summaryKeys()))
-                          && homeSummary(resource.data, request.resource.data))
-                      // the assignee: where it stands. Only the owner links a private Action,
-                      // and only its id ever lands here.
-                      || (request.auth.uid == resource.data.assigneeUid
-                          && resource.data.status in ['requested', 'planned', 'in_progress', 'done', 'cant_do', 'missed']
-                          && request.resource.data.status in ['requested', 'planned', 'in_progress', 'done', 'cant_do']
-                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'plannedDate', 'linkedActionId',
-                               'linkedByUid', 'processedAt', 'cantDoReason'].concat(summaryKeys()))
-                          && (request.resource.data.get('linkedActionId', null) == resource.data.get('linkedActionId', null)
-                              || request.resource.data.get('linkedActionId', null) == null
-                              || (isOwner() && request.resource.data.linkedActionId is string && request.resource.data.linkedByUid == request.auth.uid))
-                          && (request.resource.data.get('cantDoReason', null) == null
-                              || (request.resource.data.cantDoReason is string && request.resource.data.cantDoReason.size() <= 200))
-                          && homeSummary(resource.data, request.resource.data))
-                      // passing it on: the assignee, or an admin, to another active member. The
-                      // new assignee joins its participants; nobody leaves them.
-                      || ((request.auth.uid == resource.data.assigneeUid || homeAdmin(resource.data.homeId))
-                          && resource.data.status in ['requested', 'planned', 'in_progress', 'cant_do']
-                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['assigneeUid', 'participants', 'status',
-                               'plannedDate', 'linkedActionId', 'linkedByUid', 'cantDoReason', 'processedAt'].concat(summaryKeys()))
-                          && request.resource.data.assigneeUid != resource.data.assigneeUid
-                          && request.resource.data.assigneeUid != resource.data.requesterUid
-                          && activeIn(request.resource.data.assigneeUid, resource.data.homeId)
-                          && request.resource.data.participants.hasAll(resource.data.participants)
-                          && request.resource.data.participants.hasOnly(resource.data.participants.concat([request.resource.data.assigneeUid]))
-                          && request.resource.data.status == 'requested'
-                          && request.resource.data.get('plannedDate', null) == null
-                          && request.resource.data.get('linkedActionId', null) == null
-                          && homeSummary(resource.data, request.resource.data))
-                      // "I'll do it": anyone at Home takes an unclaimed recurring one, as themselves
-                      || (resource.data.get('recurringId', null) != null && resource.data.get('assigneeUid', null) == null
-                          && resource.data.status == 'requested'
-                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['assigneeUid', 'participants'].concat(summaryKeys()))
-                          && request.resource.data.assigneeUid == request.auth.uid
-                          && request.resource.data.participants.hasAll(resource.data.participants)
-                          && request.resource.data.participants.hasOnly(resource.data.participants.concat([request.auth.uid]))
-                          && homeSummary(resource.data, request.resource.data))
-                      // who can see it: its creator or an admin
-                      || ((request.auth.uid == resource.data.createdByUid || homeAdmin(resource.data.homeId))
-                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visibility'].concat(summaryKeys()))
-                          && request.resource.data.visibility in ['private', 'home']
-                          && homeSummary(resource.data, request.resource.data))
-                      // the people a checklist belongs to may give a request one
-                      || (listEditor(resource.data)
-                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hasChecklist', 'updatedAt'])
-                          && request.resource.data.hasChecklist == true)
-                      // anyone who can see it: an update's summary, and their own read mark
-                      || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(summaryKeys())
-                          && homeSummary(resource.data, request.resource.data))
-                      // deleting (soft), by whoever asked or wrote it: frozen from then on
-                      || ((request.auth.uid == resource.data.requesterUid || request.auth.uid == resource.data.createdByUid)
-                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedAt', 'deletedByUid', 'updatedAt'])
-                          && request.resource.data.deletedAt is string
-                          && request.resource.data.deletedByUid == request.auth.uid)
-                      // an admin files a request under an ongoing task (once; it stays there).
-                      // Last, and cheapest checks first: every branch above is evaluated before
-                      // it, and rules stop at 1,000 expressions.
-                      || (resource.data.get('ongoingId', null) == null
-                          && request.resource.data.get('ongoingId', null) != null
-                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ongoingId', 'updatedAt'])
-                          && resource.data.get('recurringId', null) == null
-                          && homeAdmin(resource.data.homeId)
-                          && ongoingOpenAfter(request.resource.data.ongoingId, resource.data.homeId))
-                    );
+                    && homeReqUpdate(resource.data, request.resource.data, request.resource.data.diff(resource.data).affectedKeys());
       allow delete: if false;
 
       // Its history: append-only. Every entry is written by the signed-in user at the
@@ -602,6 +619,7 @@ service cloud.firestore {
                     && (request.auth.uid == d.metadata.fromUid || homeAdmin(p.homeId)))
                 || (d.type == 'claimed' && updateId == 'claimed' && p.assigneeUid == request.auth.uid
                     && get(/databases/$(database)/documents/ledger_home_requests/$(rid)).data.get('assigneeUid', null) == null)
+                || (d.type == 'edited' && (homeAdmin(p.homeId) || request.auth.uid == p.requesterUid || request.auth.uid == p.createdByUid))
                 || (d.type == 'visibility' && d.metadata.visibility == p.visibility
                     && (request.auth.uid == p.createdByUid || homeAdmin(p.homeId)))))
           || (d.type == 'deleted' && updateId == 'deleted' && p.get('deletedAt', null) != null

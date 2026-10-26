@@ -4729,6 +4729,8 @@
   .og-actions { margin-top: var(--sp-4); }
   .og-part { margin-top: var(--sp-1); }
   .og-from { margin: 0 0 var(--sp-3); }
+  .he-onday { margin: 0 0 var(--sp-2); }                 /* Edit request: on Shaun's day already */
+  .he-trail { margin: 0 0 var(--sp-2); color: var(--text-3); }
   .og-done-toggle { margin-top: 4px; }
   .rc-row.paused .rc-mark { color: var(--text-3); }
   .hs-pill.warn { color: var(--danger); }
@@ -14671,6 +14673,7 @@
     else if (t === 'claimed') verb = 'took it on';
     else if (t === 'missed') return 'Missed · ' + shortDayLabel(r.occurrenceDate || r.requestedDate);
     else if (t === 'visibility') verb = r.visibility === 'home' ? 'shared it with Home' : 'made it private';
+    else if (t === 'edited') verb = 'edited it';
     else verb = 'updated it';
     return who + ' ' + verb + ' · ' + rqAgo(r.latestUpdateAt || r.createdAt);
   }
@@ -15340,8 +15343,11 @@
     sh.querySelector('#ogText').value = o ? o.title : (fromReq ? fromReq.text : '');
     sh.querySelector('#ogWhyIn').value = src.why || '';
     sh.querySelector('#ogNote').value = src.note || '';
-    if (fromReq) sh.querySelector('#ogFromNote').textContent = '“' + fromReq.text + '” becomes its first step' +
-      (fromReq.requesterUid !== me ? ' — still ' + homeNameOf(fromReq.requesterUid) + '’s request, and they see where it stands.' : '.') + ' Add the other steps next.';
+    var fromAction = fromReq && home.surface === 'owner' && fromReq.linkedActionId && fromReq.linkedByUid === me && fromReq.status !== 'done'
+      ? commitments.find(function(c){ return c.id === fromReq.linkedActionId; }) : null;
+    if (fromReq) sh.querySelector('#ogFromNote').textContent = '“' + fromReq.text + '” becomes its first step, with no date of its own' +
+      (fromAction ? ' (it comes off your day, ' + shortDayLabel(fromAction.date) + ')' : '') + ' — the steps you add carry the dates.' +
+      (fromReq.requesterUid !== me ? ' It’s still ' + homeNameOf(fromReq.requesterUid) + '’s request, and they see where it stands.' : '');
     var sw = sh.querySelector('#ogShare');
     sw.addEventListener('click', function(){ shared = !shared; sw.classList.toggle('on', shared); sw.setAttribute('aria-checked', shared ? 'true' : 'false'); });
     var save = sh.querySelector('#ogSave'), err = sh.querySelector('#ogErr');
@@ -15360,8 +15366,8 @@
         id = ref.id;
         b.set(ref, Object.assign({ homeId: home.me.homeId, createdByUid: me, participants: homeUids([me].concat(fromReq ? fromReq.participants || [] : [])),
           status: 'active', stepOrder: fromReq ? [fromReq.id] : [], fromRequestId: fromReq ? fromReq.id : null, createdAt: now, updatedAt: now, updatedByUid: me }, fields));
-        if (fromReq) b.update(homeRef(fromReq.id), { ongoingId: id, updatedAt: now });
-        write = b.commit();
+        if (fromReq) b.update(homeRef(fromReq.id), { ongoingId: id, requestedTiming: 'none', requestedDate: null, updatedAt: now });
+        write = b.commit().then(function(){ if (fromAction) return deleteCommitment(fromAction.id); });
       }
       write.then(function(){
         showPinToast(editing ? 'Saved' : (fromReq ? 'Moved to Ongoing' : 'Started — now add its steps'), false, CHECK_SVG);
@@ -15868,6 +15874,7 @@
     if (e.type === 'cant_do') return who + (who === 'You' ? ' can’t do it' : ' can’t do it') + (e.text ? ': “' + e.text + '”' : '');
     if (e.type === 'reassigned') return who + ' passed it to ' + (m.toUid === homeMe() ? 'you' : homeNameOf(m.toUid));
     if (e.type === 'visibility') return m.visibility === 'home' ? 'Shared with everyone at Home' : 'Made private to the people in it';
+    if (e.type === 'edited') return who + ' edited it' + (m.fromText ? ' — it said “' + m.fromText + '”' : (m.timing === 'none' ? ' — no date now' : ''));
     if (e.type === 'deleted') return 'Deleted';
     if (e.type === 'status'){
       if (m.status === 'done') return 'Done ✓';
@@ -16122,9 +16129,9 @@
       on('hdCant', function(){ openHomeCantDo(cur()); });
       on('hdPass', function(){ openHomePass(cur()); });
       var ownEl = sh.querySelector('#hdOwn');
-      ownEl.innerHTML = asker && r.status === 'requested'
-        ? '<button type="button" class="btn-link" id="hdEdit">' + (own ? 'Edit task' : 'Edit request') + '</button>' +
-          (own ? '' : '<button type="button" class="btn-link rq-withdraw" id="hdWithdraw">Withdraw</button>') : '';
+      var canEdit = (asker && r.status === 'requested') || (homeIsAdmin() && (hrOpen(r) || r.status === 'cant_do'));
+      ownEl.innerHTML = (canEdit ? '<button type="button" class="btn-link" id="hdEdit">' + (own ? 'Edit task' : 'Edit request') + '</button>' : '') +
+        (asker && r.status === 'requested' && !own ? '<button type="button" class="btn-link rq-withdraw" id="hdWithdraw">Withdraw</button>' : '');
       // something bigger than one request: an admin files it under an ongoing task, where its
       // other steps go
       if (homeIsAdmin() && hrOpen(r) && !r.ongoingId && !r.recurringId){
@@ -16186,19 +16193,35 @@
     });
     hrMarkRead(r0);
   }
+  // Edit: whoever asked (while it waits), or an admin while it's open at all — to correct a
+  // typo, change the date, or clear it. Each edit is in its updates, with what it said before.
   function openHomeEdit(r){
-    var timing = r.requestedTiming || 'none';
-    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Edit request', '', '') +
+    var me = homeMe(), own = hrOwnIdea(r), timing = r.requestedTiming || 'none', offDay = false;
+    // on Shaun's day already: his Action says when; it can come off his day here
+    var a = (home.surface === 'owner' && r.linkedActionId && r.linkedByUid === me && r.status !== 'done')
+      ? commitments.find(function(c){ return c.id === r.linkedActionId; }) : null;
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', own ? 'Edit task' : 'Edit request', '', '') +
       '<div class="field"><label for="heText">What’s needed?</label><textarea id="heText" rows="2" maxlength="280"></textarea></div>' +
-      '<div class="field"><label>When</label><div class="bk-filter-pop" id="heTiming" role="radiogroup">' +
-        [['today', 'Today'], ['week', 'This week'], ['date', 'Choose date'], ['none', 'No preference']].map(function(t){
+      (a ? '<p class="hn-note he-onday" id="heOnDay"></p>' +
+        '<button type="button" class="cz-opt" id="heOffDay" role="switch" aria-checked="false">' +
+          '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+          '<span class="cz-opt-text"><span class="cz-opt-title">Take it off my day</span>' +
+          '<span class="cz-opt-sub">Your Action goes, and the request waits here with the date below.</span></span></button>' : '') +
+      '<div class="field"><label>When</label><div class="bk-filter-pop" id="heTiming" role="radiogroup" aria-label="When">' +
+        [['today', 'Today'], ['week', 'This week'], ['date', 'Choose date'], ['none', 'No date']].map(function(t){
           return '<button type="button" class="bk-filter-chip' + (timing === t[0] ? ' sel' : '') + '" role="radio" aria-checked="' + (timing === t[0]) + '" data-he-timing="' + t[0] + '">' + t[1] + '</button>';
         }).join('') + '</div></div>' +
       '<div id="heDateField"' + (timing === 'date' ? '' : ' hidden') + '>' + fieldDate('heDate', 'Date', r.requestedDate || nextDateStr(todayStr())) + '</div>' +
       '<div class="field"><label for="heWhy">Why it matters <span class="pp-opt">optional</span></label><textarea id="heWhy" rows="2" maxlength="300"></textarea></div>' +
       '<div class="field"><label for="heNote">Note <span class="pp-opt">optional</span></label><textarea id="heNote" rows="2" maxlength="500"></textarea></div>' +
+      '<p class="hn-note he-trail">Saved changes show in its updates' + (r.requesterUid !== me && !own ? ', for ' + escHome(homeNameOf(r.requesterUid)) + ' to see' : '') + '.</p>' +
       '<p class="auth-error" id="heErr" role="alert"></p><button type="button" class="btn-primary" id="heSave">Save</button>');
     sh.querySelector('#heText').value = r.text; sh.querySelector('#heNote').value = r.note || ''; sh.querySelector('#heWhy').value = r.why || '';
+    if (a){
+      sh.querySelector('#heOnDay').textContent = 'On your day: ' + shortDayLabel(a.date) + '. Change its day from your Action, or take it off your day here.';
+      var off = sh.querySelector('#heOffDay');
+      off.addEventListener('click', function(){ offDay = !offDay; off.classList.toggle('on', offDay); off.setAttribute('aria-checked', offDay ? 'true' : 'false'); });
+    }
     sh.querySelectorAll('[data-he-timing]').forEach(function(b){
       b.addEventListener('click', function(){
         timing = b.dataset.heTiming;
@@ -16206,17 +16229,29 @@
         sh.querySelector('#heDateField').hidden = timing !== 'date';
       });
     });
-    sh.querySelector('#heSave').addEventListener('click', function(){
+    var save = sh.querySelector('#heSave');
+    save.addEventListener('click', function(){
       var t = sh.querySelector('#heText').value.trim(), n = sh.querySelector('#heNote').value.trim(), err = sh.querySelector('#heErr');
-      var why = sh.querySelector('#heWhy').value.trim();
+      var why = sh.querySelector('#heWhy').value.trim(), cur = homeReq(r.id);
       if (!t){ err.textContent = 'Say what’s needed.'; return; }
-      if (!homeReq(r.id)){ err.textContent = 'This request was deleted.'; return; }
+      if (!cur){ err.textContent = 'This request was deleted.'; return; }
       var d = timing === 'date' ? sh.querySelector('#heDate').value : null;
-      var upd = { text: t.slice(0, 280), note: n ? n.slice(0, 500) : null, requestedTiming: timing, requestedDate: d || null, updatedAt: new Date().toISOString() };
-      if (why || r.why) upd.why = why ? why.slice(0, 300) : null;
-      homeRef(r.id).update(upd)
-        .then(function(){ openHomeDetail(r.id); showPinToast('Request updated', false, CHECK_SVG); })
-        .catch(function(e){ console.error(e); err.textContent = 'It’s already been picked up, so it can’t be changed — add an update instead.'; });
+      if (timing === 'date' && !d){ err.textContent = 'Choose a date.'; return; }
+      var patch = { text: t.slice(0, 280), note: n ? n.slice(0, 500) : null, requestedTiming: timing, requestedDate: d || null };
+      if (why || cur.why) patch.why = why ? why.slice(0, 300) : null;
+      var changed = patch.text !== cur.text || patch.note !== (cur.note || null) || patch.requestedTiming !== (cur.requestedTiming || 'none')
+        || patch.requestedDate !== (cur.requestedDate || null) || ('why' in patch && patch.why !== (cur.why || null));
+      if (!changed && !offDay){ openHomeDetail(r.id); return; }
+      var meta = { timing: timing, date: d || null };
+      if (patch.text !== cur.text) meta.fromText = String(cur.text).slice(0, 280);
+      save.disabled = true; err.textContent = '';
+      (changed ? hrWrite(cur, patch, 'edited', null, meta) : Promise.resolve()).then(function(){
+        // its Action going takes the request off his day: it waits again (reconcileHome)
+        if (offDay && a) return deleteCommitment(a.id);
+      }).then(function(){
+        openHomeDetail(r.id);
+        showPinToast(offDay ? 'Saved — off your day' : 'Saved', false, CHECK_SVG);
+      }).catch(function(e){ console.error('home edit failed', e); save.disabled = false; err.textContent = 'Couldn’t save it — check your connection and try again.'; });
     });
   }
   function openHomeCantDo(r){
