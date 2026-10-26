@@ -14299,7 +14299,7 @@
     var patch = {}; patch['readAt.' + homeMe()] = at;
     homeRef(r.id).update(patch).catch(function(e){ console.warn('home read mark failed', e && e.code); });
   }
-  // "From Abi · for Maria", and who wrote it when that was someone else
+  // "From Abi · for Magda", and who wrote it when that was someone else
   function hrKicker(r){
     var me = homeMe();
     if (hrOwnIdea(r)) return r.assigneeUid === me ? 'Your task' : homeNameOf(r.assigneeUid) + '’s task';
@@ -14657,7 +14657,7 @@
     if (pill.textContent) row.appendChild(pill);
     return row;
   }
-  // "Maria completed it · 2h", from the request's own summary of its latest entry
+  // "Magda completed it · 2h", from the request's own summary of its latest entry
   function hrActivityLine(r){
     var who = homeWho(r.latestUpdateByUid || r.createdByUid), t = r.latestUpdateType || 'created', verb;
     if (t === 'created') verb = hrOwnIdea(r) ? 'added it' : 'asked';
@@ -15168,7 +15168,7 @@
     return { total: s.length, done: s.filter(function(r){ return r.status === 'done' || !!home.pendingDone[r.id]; }).length };
   }
   function ogStepsLabel(p){ return p.total ? p.done + ' of ' + p.total + (p.total === 1 ? ' step' : ' steps') : 'No steps yet'; }
-  // "2 of 5 steps · with you, Maria · next Thursday" for an admin, who sees every step;
+  // "2 of 5 steps · with you, Magda · next Thursday" for an admin, who sees every step;
   // anyone else sees only their part: "1 for you · next Thursday"
   function ogMeta(o){
     var open = ogSteps(o).filter(function(r){ return hrOpen(r) && !home.pendingDone[r.id]; });

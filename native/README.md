@@ -84,7 +84,7 @@ npm run sync         # writes the app's settings and the offline page into both 
 
 ## Getting the app to other phones
 
-Abi's and Maria's phones get release builds:
+Abi's iPhone and Magda's Android phone (and Shaun's own) get release builds:
 - **iPhone:** through **TestFlight** (external testers);
 - **Android:** through **Firebase App Distribution**.
 
@@ -125,7 +125,7 @@ it, the app can't be updated in place.
 3. In Firebase Console → **App Distribution** (under Run / Release & Monitor), choose
    **Ledger Android**:
    - drag the APK in;
-   - add testers by email (Maria, Abi) or a group;
+   - add testers by email (Magda, and yourself) or a group;
    - Distribute.
 4. **On their phone, first time:**
    - they open the email → **Get started** → install the **App Tester** app;

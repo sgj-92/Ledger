@@ -281,9 +281,9 @@ function createEngine(deps) {
   // again here — the request, and each person's membership of its Home — so a push only
   // ever goes to someone the request involves (or, if they chose to follow them, an admin
   // of that Home), never to anyone an entry claims. Who hears what:
-  //   created     → the assignee, said as from the requester ("Maria sent a request"), on
+  //   created     → the assignee, said as from the requester ("Magda sent a request"), on
   //                 all their devices — even when they wrote it themselves on someone's
-  //                 behalf (only the input differs). Admins following Home: "Abi asked Maria".
+  //                 behalf (only the input differs). Admins following Home: "Abi asked Magda".
   //   comment     → everyone in it but its author.
   //   planned, done, can't do → the requester, and its writer if someone else; never the
   //                 person who did it. Admins following Home also hear "done".

@@ -74,7 +74,7 @@ Ledger collection.
   - Only an admin may ask on someone else's behalf. The request then shows "Created by
     Shaun on <her name>'s behalf".
   - **A task of your own (since 2026-10-22):** anyone may add a task for themselves —
-    their own idea (requester, assignee and creator all them; shown as "Maria's task"),
+    their own idea (requester, assignee and creator all them; shown as "Magda's task"),
     or something another member asked of them in person (requester = that member,
     creator = them; it behaves exactly like a request from that member). It is shared
     with everyone at Home by default.
@@ -112,7 +112,7 @@ the server from the request and the people currently at Home.
 
 | Entry | Who hears |
 | --- | --- |
-| created | the assignee, "Abi sent a request", on all their devices — also when anyone recorded what someone asked them in person (as Phase A for Shaun). A task of their own idea: nobody (admins following Home hear "Maria added a task") |
+| created | the assignee, "Abi sent a request", on all their devices — also when anyone recorded what someone asked them in person (as Phase A for Shaun). A task of their own idea: nobody (admins following Home hear "Magda added a task") |
 | comment | everyone in it except its author |
 | planned, done, can't do | the requester, and its writer if different; never the person who did it |
 | reassigned | the new assignee, "Abi passed you a request" |

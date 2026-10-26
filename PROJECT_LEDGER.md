@@ -748,6 +748,12 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-26 — TestFlight internal testing for Abi (supersedes "external" below)
+The iPhone users are Shaun and Abi, both App Store Connect users, so both are
+**internal** testers: no Apple beta review, and no reviewer account. Magda uses Android,
+through App Distribution. The nanny is **Magda**: "Maria" was the test suites' made-up
+name, wrongly carried into docs and comments, and is now corrected.
+
 ### 2026-10-26 — The apps on other phones: TestFlight and Firebase App Distribution
 **Shaun's choice:**
 - **iPhone:** TestFlight with external testers. Apple reviews the first build, and it
@@ -799,7 +805,7 @@ Mac that builds the apps copies them in (`native/README.md`).
 ### 2026-10-26 — Home: ongoing tasks built (Shaun's answers)
 Shaun's answers:
 - **Name:** "Ongoing".
-- **Who sees what:** Maria sees the title and "Why" of a task she has a step in, and
+- **Who sees what:** Magda sees the title and "Why" of a task she has a step in, and
   only her own steps.
 - **Who starts them:** admins only.
 - **Finishing:** by hand.
@@ -913,14 +919,14 @@ links, so iOS has nothing to hand them to. That is not Ledger's to change.
 - **Who:** anyone at Home — Shaun, Abi or the nanny. It works for one task (with or
   without a checklist), several at once, and recurring ones.
 - **Whose idea:** "Asked by" says it.
-  - **Their own** (requester, assignee and creator all them): shown as "Maria's task" /
+  - **Their own** (requester, assignee and creator all them): shown as "Magda's task" /
     "Your task". It isn't news to them: no notification, no Home dot, never in Shaun's
-    Inbox, and no "Can't do" or Withdraw. Admins following Home hear "Maria added a
+    Inbox, and no "Can't do" or Withdraw. Admins following Home hear "Magda added a
     task".
   - **Asked in person** (requester = whoever asked; creator = them): this extends the
     2026-10-16 on-behalf decision to everyone, unchanged. It behaves exactly as if the
     asker had sent it ("Abi sent a request" to them; the asker hears nothing), and it
-    shows "added by Maria". Only for themselves: a non-admin still never writes a
+    shows "added by Magda". Only for themselves: a non-admin still never writes a
     request between two other people.
 - **Visible to everyone:** "Everyone at Home can see it" is on by default for a task of
   your own (one, several or recurring), and can be switched off.
@@ -2204,7 +2210,7 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Claude Code
-Status: **Getting the apps onto Abi's and Maria's phones** (2026-10-26). The project is
+Status: **Getting the apps onto Abi's iPhone (TestFlight) and Magda's Android (App Distribution)** (2026-10-26). Shaun uses both. The project is
 ready; Shaun does the account steps in `native/README.md`.
 - He sends the upload key's SHA-256, for `assetlinks.json`.
 
@@ -2213,7 +2219,7 @@ iPhone and merged into `main` (2026-10-26).
 - **Not started, each needs Shaun's go-ahead:**
   - Android widgets;
   - Phase 4, the widget refreshing without the app open;
-  - release builds and TestFlight for Abi and Maria, which bring a release key and its
+  - release builds and TestFlight for Abi and Magda, which bring a release key and its
     SHA-256 in `assetlinks.json`.
 - **Vercel's deployment-storage warning (75%):** Shaun to set "Only build production"
   and a short retention policy. The optional `.vercelignore` trim waits for his yes.
@@ -2876,8 +2882,8 @@ minutes before", recurring/accountability).
       - she ticks one done on her Home screen → it shows done at once, with Undo;
       - she adds "Shopping or checklist" for you → you tick items → she sees "2 of 5"
         live; Done with items left asks first;
-      - Abi: Add → Recurring responsibility → "School uniform …", Maria, weekly on
-        Sunday → on Sunday from 06:00 Maria gets "Today: School uniform …" and it is in
+      - Abi: Add → Recurring responsibility → "School uniform …", Magda, weekly on
+        Sunday → on Sunday from 06:00 Magda gets "Today: School uniform …" and it is in
         her Today; an "Anyone at Home" one shows "I'll do it";
       - the Me tab: Calendar / Progress / Focus switch; the Comms tab;
       - switch between all five tabs: the heading and the first content don't move;

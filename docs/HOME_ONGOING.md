@@ -32,7 +32,7 @@ parent's id. A step therefore already has everything a request has:
 - notifications.
 
 A step for Shaun goes to his Inbox, and **Today** or **Choose day** turns it into a
-private Action, exactly as now. A step for Maria reaches her as any request does. The
+private Action, exactly as now. A step for Magda reaches her as any request does. The
 ongoing task shows the steps together, with progress ("3 of 7 steps"), and stays in Home
 until someone marks it finished.
 
@@ -72,7 +72,7 @@ anyone's day.
 The proposal (Q2 below asks Shaun to confirm it):
 - **Admins** (Shaun, Abi) see every ongoing task and all its steps, as they see all of
   Home now.
-- **Someone with a step** (Maria) sees:
+- **Someone with a step** (Magda) sees:
   - the ongoing task's title and its "Why", so her step makes sense;
   - her own steps, and any steps shared with the whole Home.
 
@@ -90,7 +90,7 @@ by everyone when `home`.
   row shows:
   - the title;
   - progress ("3 of 7 steps");
-  - who the open steps are with ("You, Maria");
+  - who the open steps are with ("You, Magda");
   - the next dated step, if any.
 
 ### The ongoing task's sheet
@@ -99,10 +99,10 @@ by everyone when `home`.
 - **Steps** come in Shaun's order. Each row shows:
   - a completion circle;
   - the text;
-  - the person and when (e.g. "Maria · Thursday").
+  - the person and when (e.g. "Magda · Thursday").
 
   Done steps fold into "Done (3)", as completed Actions do.
-- **Add a step:** the text, then **For** (Me / Abi / Maria, as on a new request) and
+- **Add a step:** the text, then **For** (Me / Abi / Magda, as on a new request) and
   **When** (No rush / Today / This week / Choose date). Several steps can be pasted at
   once, one per line, using the "Several at once" parsing.
 - **Tapping a step** opens its request sheet, unchanged: Today / Choose day / Done /
@@ -115,7 +115,7 @@ by everyone when `home`.
   the ongoing task.
 - **Shaun's Inbox:** a step for him with "No rush" stays in the ongoing task, not the
   Inbox. A dated step behaves as any request does.
-- **Abi's portal and Maria's app:** the same Ongoing section and sheet, with the
+- **Abi's portal and Magda's app:** the same Ongoing section and sheet, with the
   visibility above.
 
 ## 5. Rules, server, notifications
@@ -128,14 +128,14 @@ by everyone when `home`.
   - `ongoingId` is immutable after that;
   - the rules suite gains cases for each.
 - **Notifications:** none for the parent. Steps notify exactly as requests do. Adding
-  five steps for Maria at once sends one summary, as "Several at once" does.
+  five steps for Magda at once sends one summary, as "Several at once" does.
 - **No new Cloud Function.** Progress is computed on the device from the steps it can
   see.
 
 ## 6. Shaun's answers (2026-10-26), and what was built
 
 1. **Name:** "Ongoing".
-2. **Visibility:** as in §3. Maria sees the title and "Why" of a task she has a step in,
+2. **Visibility:** as in §3. Magda sees the title and "Why" of a task she has a step in,
    and only her own steps. Her counts are her part ("1 for you", "Your part · 0 of 1
    done"), never a total she can't see.
 3. **Who starts one:** admins only (Shaun, Abi). Only admins add steps, reorder them, edit
@@ -160,7 +160,7 @@ Built differently from §4:
   - This also takes a moved request out of the Inbox.
   - Updates on a step still show there as updates.
 - **Steps on others' lists:** a step's row says which task it belongs to
-  ("Today · Kitchen refit · For Maria").
+  ("Today · Kitchen refit · For Magda").
 - **"Part of" links:**
   - a step's sheet opens its task;
   - an Action made from a step says "From … · part of Kitchen refit".
@@ -177,7 +177,7 @@ Built differently from §4:
 1. Rules and rules tests.
 2. Data helpers, then the Ongoing section and sheet for Shaun.
 3. Steps as requests: add, reorder, "Part of" on requests and Actions.
-4. Abi's portal and Maria's app.
-5. E2E: Shaun starts one with steps for himself and Maria, schedules his into Today, and
-   Maria completes hers. Then a UX review, then the ledger and deploy notes (rules
+4. Abi's portal and Magda's app.
+5. E2E: Shaun starts one with steps for himself and Magda, schedules his into Today, and
+   Magda completes hers. Then a UX review, then the ledger and deploy notes (rules
    only).

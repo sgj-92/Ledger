@@ -156,7 +156,7 @@ occurrence still exists (soft delete), so it is never recreated.
 | --- | --- |
 | an occurrence is created, `assigned` | its assignee: "Today: Wash the school uniform" · "Regular, from Abi" |
 | an occurrence is created, `anyone` | every active member except its creator: "Today at Home: …" · "Anyone can take it" |
-| claimed | its creator: "Maria will do “…”" |
+| claimed | its creator: "Magda will do “…”" |
 | done | as any request: its requester (the creator), and admins following Home |
 | missed | nobody |
 
@@ -171,7 +171,7 @@ A checklist tick never notifies anyone (§ checklists).
   - starts, optional end, optional time;
   - an optional checklist.
 - **Home → Recurring:** one quiet row per responsibility.
-  - "Every Sunday · Maria · next Sun 25 Oct".
+  - "Every Sunday · Magda · next Sun 25 Oct".
   - Paused and "Needs someone new" show as pills.
   - Tap it to see it, Edit, Pause / Resume or End.
 - **Occurrences** carry a small repeat mark (↻) and sit in Today and Upcoming like
