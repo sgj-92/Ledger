@@ -23,7 +23,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- App Links: Ledger's own links (https://ledger.sgj.luxe/?home=…) open the app,
+                 verified by /.well-known/assetlinks.json on the site -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="ledger.sgj.luxe" android:path="/" />
+                <data android:scheme="https" android:host="ledger.sgj.luxe" android:path="/index.html" />
+            </intent-filter>
+
         </activity>
+
+        <!-- notifications (Phase 2): Ledger's small icon and gold, and the channel for anything
+             that names none (the channels themselves are made by the page: focus, home,
+             partner, general) -->
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_ledger" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/ledger_gold" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="general" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

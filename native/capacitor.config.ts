@@ -27,7 +27,17 @@ const config: CapacitorConfig = {
     // the page itself handles the notch and home indicator (viewport-fit=cover + env())
     contentInset: 'never',
   },
+  // the messaging plugin's Swift package shares its identity with Firebase's own: link it
+  // by its path (the plugin's documented fix; Capacitor CLI 8.4+)
+  experimental: {
+    ios: { spm: { packageOptions: { '@capacitor-firebase/messaging': { symlink: true } } } },
+  },
   plugins: {
+    // Phase 2: notifications by Firebase Cloud Messaging (docs/NATIVE_MIGRATION.md §5).
+    // While Ledger is open, iOS still shows the banner and plays the sound.
+    FirebaseMessaging: {
+      presentationOptions: ['alert', 'badge', 'sound'],
+    },
     // Edge to edge: the page receives correct env(safe-area-inset-*) values, as on iOS
     SystemBars: {
       insetsHandling: 'css',

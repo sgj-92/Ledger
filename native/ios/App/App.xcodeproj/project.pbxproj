@@ -23,6 +23,7 @@
 		71DBB6EDC227E89E2DA65AE7 /* LedgerShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = B612D40DA027561BF03455AC /* LedgerShared.swift */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		9737977B100F4BD8B6DD0A28 /* LedgerWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B3727A83F86C5D437CDA38E9 /* LedgerWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9E5822DD9A8913957416A457 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 555D5E2885196520466374D9 /* GoogleService-Info.plist */; };
 		D3020623FFFB9C8D3DE1ABF5 /* LedgerWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCE4E883281A4D5A0B27D75A /* LedgerWidgetBundle.swift */; };
 		D79A6D7B6AB622AC90C3D691 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E02AE5DBAB2A1B989F6CE756 /* SwiftUI.framework */; };
 		E894555DBE129CDF59421B17 /* LedgerShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = B612D40DA027561BF03455AC /* LedgerShared.swift */; };
@@ -64,6 +65,7 @@
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
+		555D5E2885196520466374D9 /* GoogleService-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		B3727A83F86C5D437CDA38E9 /* LedgerWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LedgerWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -148,6 +150,7 @@
 				B372A24C5478738FEDA4E48D /* LedgerBridgeViewController.swift */,
 				F1998778898528DE4D65C5FF /* LedgerWidgetPlugin.swift */,
 				0E6E15106507F3A3DC665AAF /* App.entitlements */,
+				555D5E2885196520466374D9 /* GoogleService-Info.plist */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -203,6 +206,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 504EC3161FED79650016851F /* Build configuration list for PBXNativeTarget "App" */;
 			buildPhases = (
+				857C770D5E29826AEB14240F /* Check GoogleService-Info.plist */,
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
@@ -270,6 +274,7 @@
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
+				9E5822DD9A8913957416A457 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -281,6 +286,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		857C770D5E29826AEB14240F /* Check GoogleService-Info.plist */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Check GoogleService-Info.plist";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ ! -f \"${SRCROOT}/App/GoogleService-Info.plist\" ]; then\n  echo \"error: Copy GoogleService-Info.plist (Firebase Console > Project settings > Your apps > Ledger iOS) into native/ios/App/App/ - see native/README.md.\"\n  exit 1\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		203593141B4D87C2D79076D2 /* Sources */ = {
@@ -452,8 +479,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = W6S7LQWZY4;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = W6S7LQWZY4;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -476,8 +503,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = W6S7LQWZY4;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = W6S7LQWZY4;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -499,8 +526,8 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = LedgerWidget/LedgerWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = W6S7LQWZY4;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = W6S7LQWZY4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LedgerWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -527,8 +554,8 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = LedgerWidget/LedgerWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = W6S7LQWZY4;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = W6S7LQWZY4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LedgerWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
