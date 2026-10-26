@@ -4719,6 +4719,17 @@
   .rc-mark svg { width: 16px; height: 16px; display: block; }
   button.rc-row { width: 100%; text-align: left; font-family: var(--sans); color: inherit; border-left: none; border-right: none; border-top: none; }
   .rc-row.paused .commitment-title { color: var(--text-2); }
+  /* ongoing tasks: a row per task; its steps are request rows, in an order admins drag */
+  .og-row.og-finished .commitment-title { color: var(--text-2); }
+  .og-row.og-finished .og-mark { color: var(--text-3); }
+  .og-steps { border-top: 1px solid var(--line); }
+  .og-steps:empty { display: none; }
+  .og-step { background: var(--surface); }
+  .og-step.dragging { position: relative; z-index: 2; border-radius: 12px; border-bottom-color: transparent; box-shadow: 0 10px 24px rgba(0,0,0,0.28); }
+  .og-actions { margin-top: var(--sp-4); }
+  .og-part { margin-top: var(--sp-1); }
+  .og-from { margin: 0 0 var(--sp-3); }
+  .og-done-toggle { margin-top: 4px; }
   .rc-row.paused .rc-mark { color: var(--text-3); }
   .hs-pill.warn { color: var(--danger); }
   .hs-claim { flex-shrink: 0; min-height: 34px; padding: 0 14px; border-radius: 100px; border: 1px solid rgba(var(--gold-rgb),0.4);
@@ -9227,7 +9238,8 @@
     }
     var srcNote = document.getElementById('commitSourceNote');
     if (srcNote){
-      var srcText = 'From ' + (existing.sourceLabel || 'your partner') + (existing.sourceNote ? ' · “' + existing.sourceNote + '”' : '') +
+      var srcOg = existing.sourceType === 'home_request' ? hrOngoing(homeReq(existing.sourceRequestId)) : null;
+      var srcText = 'From ' + (existing.sourceLabel || 'your partner') + (srcOg ? ' · part of ' + srcOg.title : '') + (existing.sourceNote ? ' · “' + existing.sourceNote + '”' : '') +
         (deletedRequestIds[existing.sourceRequestId] || home.deletedIds[existing.sourceRequestId] ? ' · request deleted' : '');
       if (srcNote.tagName === 'BUTTON'){
         srcNote.querySelector('span').textContent = srcText + ' · Updates';
@@ -14213,6 +14225,24 @@
       listen(RC.where('homeId', '==', H).where('assigneeUid', '==', me), intoT(tFor), 'recurring');
       listen(RC.where('homeId', '==', H).where('visibility', '==', 'home'), intoT(tShared), 'recurring');
     }
+    // ongoing tasks: an admin reads them all; anyone else, the ones they have a step in and the shared
+    var oAll = {}, oParts = {}, oShared = {};
+    function intoO(target){
+      return function(snap){
+        Object.keys(target).forEach(function(k){ delete target[k]; });
+        snap.docs.forEach(function(d){ target[d.id] = Object.assign({ id: d.id }, d.data()); });
+        var byId = {};
+        [oAll, oParts, oShared].forEach(function(src){ Object.keys(src).forEach(function(k){ byId[k] = src[k]; }); });
+        home.ongoing = Object.keys(byId).map(function(k){ return byId[k]; }).filter(function(o){ return o.status !== 'archived'; });
+        homeChanged();
+      };
+    }
+    var OC = dbRef.collection(HOME_ONGOING);
+    if (home.me.role === 'admin') listen(OC.where('homeId', '==', H), intoO(oAll), 'ongoing');
+    else {
+      listen(OC.where('homeId', '==', H).where('participants', 'array-contains', me), intoO(oParts), 'ongoing');
+      listen(OC.where('homeId', '==', H).where('visibility', '==', 'home'), intoO(oShared), 'shared ongoing');
+    }
     if (home.me.role === 'admin'){
       listen(dbRef.collection(HOME_REQ).where('homeId', '==', H), into(all), 'requests');
     } else {
@@ -14224,7 +14254,7 @@
     Object.keys(home.itemStops || {}).forEach(function(k){ try { home.itemStops[k](); } catch(e){} });
     home.itemStops = {}; home.items = {};
     home.stops.forEach(function(f){ try { f(); } catch(e){} });
-    home.stops = []; home.members = []; home.requests = []; home.templates = []; home.reqLoaded = false; home.membersLoaded = false;
+    home.stops = []; home.members = []; home.requests = []; home.templates = []; home.ongoing = []; home.reqLoaded = false; home.membersLoaded = false;
   }
   function homeChanged(){
     if (home.detailRefresh) home.detailRefresh();
@@ -14464,22 +14494,31 @@
   }
   // hold the handle and drag: the row lifts and follows the finger; one write on drop
   function hlDrag(handle, row, r, it){
+    rowDrag(handle, row, '.hl-row', 'item', function(ids){
+      var at = ids.indexOf(it.id), byId = {};
+      hrItems(r.id).forEach(function(x){ byId[x.id] = x; });
+      hrMoveItem(homeReq(r.id) || r, it, at > 0 ? byId[ids[at - 1]] : null, at < ids.length - 1 ? byId[ids[at + 1]] : null);
+    });
+  }
+  // the same for any list of rows (checklist items, an ongoing task's steps): onDrop gets
+  // the rows' keys in their new order, only when the order changed
+  function rowDrag(handle, row, sel, key, onDrop){
     handle.addEventListener('pointerdown', function(e){
       if (e.button != null && e.button !== 0) return;
       e.preventDefault();
       var list = row.parentNode, grab = e.clientY - row.getBoundingClientRect().top, moved = false;
-      var before = [].slice.call(list.querySelectorAll('.hl-row')).map(function(x){ return x.dataset.item; }).join();
+      var before = [].slice.call(list.querySelectorAll(sel)).map(function(x){ return x.dataset[key]; }).join();
       row.classList.add('dragging');
       try { handle.setPointerCapture(e.pointerId); } catch(x){}
       function onMove(ev){
         var y = ev.clientY, target = null;
-        var sibs = [].slice.call(list.querySelectorAll('.hl-row')).filter(function(x){ return x !== row; });
+        var sibs = [].slice.call(list.querySelectorAll(sel)).filter(function(x){ return x !== row; });
         for (var i = 0; i < sibs.length; i++){
           var sr = sibs[i].getBoundingClientRect();
           if (y < sr.top + sr.height / 2){ target = sibs[i]; break; }
         }
         var next = row.nextElementSibling;
-        while (next && !next.classList.contains('hl-row')) next = next.nextElementSibling;
+        while (next && !next.matches(sel)) next = next.nextElementSibling;
         if (target !== next){ if (target) list.insertBefore(row, target); else list.appendChild(row); }
         row.style.transform = '';
         var natural = row.getBoundingClientRect().top;
@@ -14489,11 +14528,9 @@
       function onUp(){
         handle.removeEventListener('pointermove', onMove); handle.removeEventListener('pointerup', onUp); handle.removeEventListener('pointercancel', onUp);
         row.classList.remove('dragging'); row.style.transform = '';
-        var ids = [].slice.call(list.querySelectorAll('.hl-row')).map(function(x){ return x.dataset.item; });
+        var ids = [].slice.call(list.querySelectorAll(sel)).map(function(x){ return x.dataset[key]; });
         if (!moved || ids.join() === before) return;
-        var at = ids.indexOf(it.id), byId = {};
-        hrItems(r.id).forEach(function(x){ byId[x.id] = x; });
-        hrMoveItem(homeReq(r.id) || r, it, at > 0 ? byId[ids[at - 1]] : null, at < ids.length - 1 ? byId[ids[at + 1]] : null);
+        onDrop(ids);
       }
       handle.addEventListener('pointermove', onMove); handle.addEventListener('pointerup', onUp); handle.addEventListener('pointercancel', onUp);
     });
@@ -14551,7 +14588,7 @@
   function homeAttention(){
     if (!homeOn()) return 0;
     var me = homeMe();
-    return hrVisible().filter(function(r){ return (r.assigneeUid === me && r.status === 'requested' && !hrOwnIdea(r)) || hrUnread(r); }).length;
+    return hrVisible().filter(function(r){ return (r.assigneeUid === me && r.status === 'requested' && !hrOwnIdea(r) && !r.ongoingId) || hrUnread(r); }).length;
   }
   function hrCanTick(r){
     var me = homeMe();
@@ -14599,6 +14636,7 @@
       if (hrUnread(r)) bits.push(homeNameOf(r.latestCommentByUid) + ' updated');
       var due = hrDueLabel(r); if (due) bits.push(due);
       var pg = hrProgress(r); if (pg && pg.total) bits.push(pg.done + ' of ' + pg.total + (pg.total === 1 ? ' item' : ' items'));
+      var og = !opts.inOngoing && hrOngoing(r); if (og) bits.push(og.title);
       bits.push(hrKicker(r));
       m.textContent = bits.join(' · ');
     }
@@ -14773,7 +14811,8 @@
     } else {
       var vis = hrVisible();
       var todayList = vis.filter(hrForToday).sort(hrByDue);
-      var upcoming = vis.filter(function(r){ return hrOpen(r) && !hrForToday(r); }).sort(hrByDue);
+      // a step with no date waits in its ongoing task, not in Upcoming
+      var upcoming = vis.filter(function(r){ return hrOpen(r) && !hrForToday(r) && !(r.ongoingId && !hrDue(r)); }).sort(hrByDue);
       if (!vis.length){
         var empty = document.createElement('div'); empty.className = 'hs-empty-state';
         empty.innerHTML = '<p class="hs-empty-title">Nothing at Home yet</p><p class="hs-empty-sub">Requests between the people at Home appear here — what’s for you, what you’ve asked, and what’s coming up.</p>';
@@ -14781,6 +14820,7 @@
       }
       hsSection(wrap, 'Today', todayList, { keep: vis.some(hrOpen), empty: 'Nothing due today.' });
       hsSection(wrap, 'Upcoming', upcoming, { max: 8, moreLabel: function(n){ return n + ' more'; }, onShowMore: function(){ home.filter = 'all'; homeChanged(); } });
+      homeOngoingInto(wrap);
       homeRecurringInto(wrap, false);
       var recent = vis.filter(function(r){ return !hrOpen(r) || r.latestUpdateType === 'comment'; }).sort(hrNewest)
         .filter(function(r){ return (r.latestUpdateAt || r.updatedAt || '') >= fmtDate(addDays(todayStr(), -14)); });
@@ -15091,6 +15131,7 @@
         '<button type="button" class="act-row" id="hamSelf"><span class="act-ic">' + UI_ICON.user + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Something I’ll do</span><span class="lc-row-m">Your own idea, or something asked of you in person</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
         '<button type="button" class="act-row" id="hamList"><span class="act-ic">' + CHECK_SVG + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Shopping or checklist</span><span class="lc-row-m">One request with a list to tick off</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
         '<button type="button" class="act-row" id="hamRecur"><span class="act-ic">' + RC_ICON + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Recurring responsibility</span><span class="lc-row-m">Set it up once — it comes round by itself</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
+        (homeIsAdmin() ? '<button type="button" class="act-row" id="hamOngoing"><span class="act-ic">' + OG_ICON + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Ongoing task</span><span class="lc-row-m">Bigger than a day — steps for different people</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' : '') +
         '<button type="button" class="act-row" id="hamMany"><span class="act-ic">' + UI_ICON.list + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Add several tasks</span><span class="lc-row-m">Paste or type a list — each line becomes its own request</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
       '</div>');
     sh.querySelector('#hamOne').addEventListener('click', function(){ openHomeNew(); });
@@ -15098,6 +15139,287 @@
     sh.querySelector('#hamList').addEventListener('click', function(){ openHomeNew({ checklist: true }); });
     sh.querySelector('#hamMany').addEventListener('click', function(){ openHomeBulk(); });
     sh.querySelector('#hamRecur').addEventListener('click', function(){ openHomeRecurring(null); });
+    var og = sh.querySelector('#hamOngoing'); if (og) og.addEventListener('click', function(){ openOngoingForm(null, null); });
+  }
+
+  // ---- ongoing tasks (docs/HOME_ONGOING.md) ----
+  // Something bigger than one day: a small parent record, and steps that are ordinary
+  // requests carrying its id. So each step has its person, its date, a checklist, history
+  // and notifications, and Shaun's go to his day through Today / Choose day like any other
+  // request. Admins start and keep them; anyone with a step sees the task's title and why.
+  var HOME_ONGOING = 'ledger_home_ongoing';
+  var OG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 19.5h5v-5h5v-5h5v-5h2"/></svg>';
+  home.ongoing = []; home.ogShowDone = false;
+  function ogGet(id){ return (home.ongoing || []).find(function(o){ return o.id === id; }) || null; }
+  function hrOngoing(r){ return r && r.ongoingId ? ogGet(r.ongoingId) : null; }
+  // its steps that the viewer can see, in the order they were put in
+  function ogSteps(o){
+    var order = o.stepOrder || [];
+    return home.requests.filter(function(r){ return r.ongoingId === o.id && r.status !== 'withdrawn'; }).sort(function(a, b){
+      var ia = order.indexOf(a.id), ib = order.indexOf(b.id);
+      if (ia === -1) ia = 9999;
+      if (ib === -1) ib = 9999;
+      return ia - ib || ((a.createdAt || '') < (b.createdAt || '') ? -1 : 1);
+    });
+  }
+  function ogProgress(o){
+    var s = ogSteps(o);
+    return { total: s.length, done: s.filter(function(r){ return r.status === 'done' || !!home.pendingDone[r.id]; }).length };
+  }
+  function ogStepsLabel(p){ return p.total ? p.done + ' of ' + p.total + (p.total === 1 ? ' step' : ' steps') : 'No steps yet'; }
+  // "2 of 5 steps · with you, Maria · next Thursday" for an admin, who sees every step;
+  // anyone else sees only their part: "1 for you · next Thursday"
+  function ogMeta(o){
+    var open = ogSteps(o).filter(function(r){ return hrOpen(r) && !home.pendingDone[r.id]; });
+    if (!homeIsAdmin()){
+      var mine = open.filter(function(r){ return r.assigneeUid === homeMe(); });
+      var nx = mine.map(hrDue).filter(Boolean).sort()[0];
+      return [mine.length ? mine.length + ' for you' : 'Your part is done', nx ? (nx < todayStr() ? 'overdue' : 'next ' + rqDayWord(nx)) : ''].filter(Boolean).join(' · ');
+    }
+    var bits = [ogStepsLabel(ogProgress(o))];
+    var who = homeUids(open.map(function(r){ return r.assigneeUid; })).sort(function(a, b){ return (a === homeMe() ? -1 : 0) - (b === homeMe() ? -1 : 0); })
+      .map(function(u){ return u === homeMe() ? 'you' : homeNameOf(u); });
+    if (who.length) bits.push('with ' + who.join(', '));
+    var next = open.map(hrDue).filter(Boolean).sort()[0];
+    if (next) bits.push(next < todayStr() ? 'overdue' : 'next ' + rqDayWord(next));
+    return bits.join(' · ');
+  }
+  function homeOngoingInto(wrap){
+    var all = home.ongoing || [];
+    var active = all.filter(function(o){ return o.status === 'active'; }).sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1; });
+    var done = all.filter(function(o){ return o.status === 'done'; }).sort(function(a, b){ return (a.doneAt || '') > (b.doneAt || '') ? -1 : 1; });
+    if (!active.length && !done.length) return;
+    var sec = document.createElement('section'); sec.className = 'hs-sec og-sec';
+    var head = document.createElement('div'); head.className = 'hs-sec-head';
+    head.innerHTML = '<h3 class="cz-sec-title">Ongoing</h3><span class="cz-sec-count"></span>';
+    head.querySelector('.cz-sec-count').textContent = active.length ? String(active.length) : '';
+    sec.appendChild(head);
+    function row(o){
+      var b = document.createElement('button'); b.type = 'button';
+      b.className = 'commitment-item hs-row rc-row og-row' + (o.status === 'done' ? ' og-finished' : '');
+      b.dataset.og = o.id;
+      b.innerHTML = '<span class="rc-mark og-mark" aria-hidden="true">' + (o.status === 'done' ? CHECK_SVG : OG_ICON) + '</span>' +
+        '<span class="commitment-body hs-row-body"><span class="commitment-title"></span><span class="commitment-meta"></span></span>';
+      b.querySelector('.commitment-title').textContent = o.title;
+      b.querySelector('.commitment-meta').textContent = o.status === 'done' ? 'Finished · ' + ogStepsLabel(ogProgress(o)) : ogMeta(o);
+      b.addEventListener('click', function(){ openHomeOngoing(o.id); });
+      return b;
+    }
+    var box = document.createElement('div'); box.className = 'hs-list';
+    active.forEach(function(o){ box.appendChild(row(o)); });
+    if (!active.length){ var p = document.createElement('p'); p.className = 'hs-empty'; p.textContent = 'Nothing ongoing right now.'; box.appendChild(p); }
+    sec.appendChild(box);
+    if (done.length){
+      var tog = document.createElement('button'); tog.type = 'button'; tog.className = 'hl-done-toggle og-done-toggle'; tog.id = 'ogDoneToggle';
+      tog.setAttribute('aria-expanded', home.ogShowDone ? 'true' : 'false');
+      tog.innerHTML = '<span></span>' + TSEC_CHEV_DOWN;
+      tog.querySelector('span').textContent = 'Finished · ' + done.length;
+      tog.addEventListener('click', function(){ home.ogShowDone = !home.ogShowDone; homeChanged(); });
+      sec.appendChild(tog);
+      if (home.ogShowDone){
+        var db = document.createElement('div'); db.className = 'hs-list';
+        done.forEach(function(o){ db.appendChild(row(o)); });
+        sec.appendChild(db);
+      }
+    }
+    wrap.appendChild(sec);
+  }
+  function ogWrite(o, patch){
+    return dbRef.collection(HOME_ONGOING).doc(o.id).update(Object.assign({}, patch, { updatedAt: new Date().toISOString(), updatedByUid: homeMe() }));
+  }
+
+  // one ongoing task: why, how far along, its steps (theirs, in order), and — for an admin —
+  // adding steps, putting them in order, finishing it
+  function openHomeOngoing(oid){
+    if (!ogGet(oid)) return;
+    var sh = homeHost().open('<div class="sheet-handle"></div>' +
+      '<div class="sheet-head rq-head"><div class="sheet-title-wrap"><p class="rq-kicker" id="ogKicker"></p><div class="sheet-title rq-title" id="ogTitle"></div></div>' +
+      '<button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<p class="rq-why" id="ogWhy" hidden></p>' +
+      '<p class="rq-state" id="ogState"></p><p class="rq-meta" id="ogMeta"></p>' +
+      '<h3 class="cz-sec-title rq-upd-title" id="ogStepsHead">Steps</h3>' +
+      '<div class="hs-list og-steps" id="ogSteps"></div>' +
+      '<div id="ogDoneWrap"></div>' +
+      '<div id="ogAct"></div>' +
+      '<div class="rq-own" id="ogOwn"></div>');
+    var mark = sh.querySelector('#ogState'), doneOpen = false;
+    function paint(){
+      var o = ogGet(oid);
+      if (!o || !document.body.contains(mark) || !mark.closest('.sheet-backdrop.open')) return false;
+      var me = homeMe(), admin = homeIsAdmin(), active = o.status === 'active';
+      sh.querySelector('#ogKicker').textContent = 'Ongoing · ' + (o.createdByUid === me ? 'started by you' : 'from ' + homeNameOf(o.createdByUid)) + (o.visibility === 'home' ? ' · everyone at Home' : '');
+      sh.querySelector('#ogTitle').textContent = o.title;
+      hrWhyInto(sh.querySelector('#ogWhy'), o.why);
+      var p = ogProgress(o);
+      mark.textContent = o.status === 'done' ? 'Finished' + (o.doneAt ? ' · ' + shortDayLabel(fmtDate(new Date(o.doneAt))) : '')
+        : (!p.total ? 'No steps yet' : (admin ? p.done + ' of ' + p.total + (p.total === 1 ? ' step' : ' steps') + ' done' : 'Your part · ' + p.done + ' of ' + p.total + ' done'));
+      mark.className = 'rq-state' + (o.status === 'done' ? ' st-done' : '');
+      sh.querySelector('#ogMeta').textContent = o.note ? '“' + o.note + '”' : '';
+      sh.querySelector('#ogStepsHead').textContent = admin ? 'Steps' : 'Your steps';
+      var list = sh.querySelector('#ogSteps');
+      if (!list.querySelector('.dragging')){
+        var s = ogSteps(o), open = s.filter(function(r){ return r.status !== 'done' && !home.pendingDone[r.id]; }), done = s.filter(function(r){ return r.status === 'done' || !!home.pendingDone[r.id]; });
+        list.innerHTML = '';
+        open.forEach(function(r){
+          var row = hrRowEl(r, { inOngoing: true }); row.classList.add('og-step'); row.dataset.step = r.id;
+          if (admin && active && open.length > 1){
+            var g = document.createElement('span'); g.className = 'hl-grip'; g.setAttribute('aria-hidden', 'true'); g.innerHTML = UI_ICON.grip;
+            rowDrag(g, row, '.og-step', 'step', function(ids){ ogReorder(ogGet(oid), ids); });
+            row.appendChild(g);
+          }
+          list.appendChild(row);
+        });
+        if (!open.length){
+          var e = document.createElement('p'); e.className = 'hs-empty';
+          e.textContent = s.length ? 'Every step is done.' : (admin ? 'No steps yet. Add the first — each one is for someone, with a date if it has one.' : 'No steps for you yet.');
+          list.appendChild(e);
+        }
+        var dw = sh.querySelector('#ogDoneWrap'); dw.innerHTML = '';
+        if (done.length){
+          var tog = document.createElement('button'); tog.type = 'button'; tog.className = 'hl-done-toggle'; tog.id = 'ogStepsDone';
+          tog.setAttribute('aria-expanded', doneOpen ? 'true' : 'false');
+          tog.innerHTML = '<span></span>' + TSEC_CHEV_DOWN;
+          tog.querySelector('span').textContent = 'Done · ' + done.length;
+          tog.addEventListener('click', function(){ doneOpen = !doneOpen; paint(); });
+          dw.appendChild(tog);
+          if (doneOpen){
+            var dl = document.createElement('div'); dl.className = 'hs-list';
+            done.forEach(function(r){ dl.appendChild(hrRowEl(r, { inOngoing: true })); });
+            dw.appendChild(dl);
+          }
+        }
+      }
+      var act = sh.querySelector('#ogAct'), own = sh.querySelector('#ogOwn');
+      act.innerHTML = ''; own.innerHTML = '';
+      if (admin){
+        act.innerHTML = '<div class="ib-actions og-actions">' + (active
+          ? '<button type="button" class="bk-btn gold" id="ogAdd">' + BK_PLUS_SVG + 'Add steps</button><button type="button" class="bk-btn" id="ogFinish">' + CHECK_SVG + 'Mark finished</button>'
+          : '<button type="button" class="bk-btn" id="ogReopen">Reopen</button>') + '</div>';
+        own.innerHTML = '<button type="button" class="btn-link" id="ogEdit">Edit</button>';
+        var on = function(id, fn){ var el = sh.querySelector('#' + id); if (el) el.addEventListener('click', fn); };
+        on('ogAdd', function(){ openOngoingSteps(ogGet(oid)); });
+        on('ogFinish', function(){
+          var x = ogGet(oid), left = ogSteps(x).filter(hrOpen).length;
+          if (left && !confirm(left + (left === 1 ? ' step is' : ' steps are') + ' still open. Mark “' + x.title + '” finished anyway? Open steps stay as they are.')) return;
+          ogWrite(x, { status: 'done', doneAt: new Date().toISOString() }).then(function(){ showPinToast('Finished — it moves to Finished in Ongoing', false, CHECK_SVG); }).catch(hrFail('finish it'));
+        });
+        on('ogReopen', function(){ ogWrite(ogGet(oid), { status: 'active', doneAt: null }).then(function(){ showPinToast('Reopened', false, CHECK_SVG); }).catch(hrFail('reopen it')); });
+        on('ogEdit', function(){ openOngoingForm(ogGet(oid), null); });
+      }
+      return true;
+    }
+    paint();
+    home.listRefresh = null;
+    home.detailRefresh = function(){ if (!paint()) home.detailRefresh = null; };
+  }
+  // the open steps in the order an admin dragged them; done or unseen steps keep their place after
+  function ogReorder(o, ids){
+    if (!o) return;
+    var rest = (o.stepOrder || []).filter(function(id){ return ids.indexOf(id) === -1; });
+    ogWrite(o, { stepOrder: ids.concat(rest).slice(0, 100) }).catch(hrFail('reorder the steps'));
+  }
+
+  // start one, edit one, or move a request into one ("Move to Ongoing": the request
+  // becomes its first step, still the asker's request)
+  function openOngoingForm(o, fromReq){
+    var me = homeMe(), editing = !!o, shared = editing ? o.visibility === 'home' : (fromReq ? fromReq.visibility === 'home' : false);
+    var title = editing ? 'Edit ongoing task' : (fromReq ? 'Move to Ongoing' : 'New ongoing task');
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', title, '', '') +
+      (fromReq ? '<p class="hn-note og-from" id="ogFromNote"></p>' : '') +
+      '<div class="field"><label for="ogText">What is it?</label><textarea id="ogText" rows="2" maxlength="280" placeholder="e.g. Kitchen refit"></textarea></div>' +
+      '<div class="field"><label for="ogWhyIn">Why it matters <span class="pp-opt">optional</span></label><textarea id="ogWhyIn" rows="2" maxlength="300" placeholder="Everyone with a step sees this"></textarea></div>' +
+      '<div class="field"><label for="ogNote">Note <span class="pp-opt">optional</span></label><textarea id="ogNote" rows="2" maxlength="500"></textarea></div>' +
+      '<button type="button" class="cz-opt' + (shared ? ' on' : '') + '" id="ogShare" role="switch" aria-checked="' + shared + '">' +
+        '<span class="cz-opt-box" aria-hidden="true">' + CHECK_SVG + '</span>' +
+        '<span class="cz-opt-text"><span class="cz-opt-title">Everyone at Home can see it</span>' +
+        '<span class="cz-opt-sub">Otherwise admins and the people with a step.</span></span></button>' +
+      '<p class="auth-error" id="ogErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="ogSave">' + (editing ? 'Save' : (fromReq ? 'Move to Ongoing' : 'Start it')) + '</button>');
+    var src = o || fromReq || {};
+    sh.querySelector('#ogText').value = o ? o.title : (fromReq ? fromReq.text : '');
+    sh.querySelector('#ogWhyIn').value = src.why || '';
+    sh.querySelector('#ogNote').value = src.note || '';
+    if (fromReq) sh.querySelector('#ogFromNote').textContent = '“' + fromReq.text + '” becomes its first step' +
+      (fromReq.requesterUid !== me ? ' — still ' + homeNameOf(fromReq.requesterUid) + '’s request, and they see where it stands.' : '.') + ' Add the other steps next.';
+    var sw = sh.querySelector('#ogShare');
+    sw.addEventListener('click', function(){ shared = !shared; sw.classList.toggle('on', shared); sw.setAttribute('aria-checked', shared ? 'true' : 'false'); });
+    var save = sh.querySelector('#ogSave'), err = sh.querySelector('#ogErr');
+    save.addEventListener('click', function(){
+      var t = sh.querySelector('#ogText').value.trim(), why = sh.querySelector('#ogWhyIn').value.trim(), n = sh.querySelector('#ogNote').value.trim();
+      if (!t){ err.textContent = 'Say what it is.'; return; }
+      if (!dbRef || !homeOn()){ err.textContent = 'You’re offline — try again when you’re connected.'; return; }
+      save.disabled = true; err.textContent = '';
+      var now = new Date().toISOString(), fields = { title: t.slice(0, 280), note: n ? n.slice(0, 500) : null, why: why ? why.slice(0, 300) : null, visibility: shared ? 'home' : 'private' };
+      var write, id;
+      if (editing){
+        id = o.id;
+        write = ogWrite(o, fields);
+      } else {
+        var ref = dbRef.collection(HOME_ONGOING).doc(), b = dbRef.batch();
+        id = ref.id;
+        b.set(ref, Object.assign({ homeId: home.me.homeId, createdByUid: me, participants: homeUids([me].concat(fromReq ? fromReq.participants || [] : [])),
+          status: 'active', stepOrder: fromReq ? [fromReq.id] : [], fromRequestId: fromReq ? fromReq.id : null, createdAt: now, updatedAt: now, updatedByUid: me }, fields));
+        if (fromReq) b.update(homeRef(fromReq.id), { ongoingId: id, updatedAt: now });
+        write = b.commit();
+      }
+      write.then(function(){
+        showPinToast(editing ? 'Saved' : (fromReq ? 'Moved to Ongoing' : 'Started — now add its steps'), false, CHECK_SVG);
+        if (ogGet(id)) openHomeOngoing(id); else homeCloseAll();
+      }).catch(function(e){ console.error('ongoing save failed', e); save.disabled = false; err.textContent = 'Couldn’t save it — check your connection and try again.'; });
+    });
+    setTimeout(function(){ try { if (!editing && !fromReq) sh.querySelector('#ogText').focus(); } catch(e){} }, 60);
+  }
+
+  // add steps: one per line, each for someone, with a date if it has one. Each is an
+  // ordinary request; several for someone else reach them as one notification.
+  function openOngoingSteps(o){
+    if (!o) return;
+    var me = homeMe(), people = homeMeFirst(homeActiveMembers());
+    var st = { forUid: home.ogLastFor && homeMember(home.ogLastFor) && homeMember(home.ogLastFor).status === 'active' ? home.ogLastFor : me, when: { kind: 'none' } };
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Add steps', '<span id="ogsSub"></span>', '') +
+      '<div class="field"><label for="ogsText">Steps <span class="pp-opt">one per line</span></label><textarea id="ogsText" rows="3" maxlength="4000" placeholder="Get three quotes&#10;Choose the worktop"></textarea></div>' +
+      '<div class="field"><label>For</label><div class="bk-filter-pop" id="ogsFor" role="radiogroup" aria-label="For"></div></div>' +
+      '<div class="field"><label>When</label><div class="bk-filter-pop" id="ogsWhen" role="radiogroup" aria-label="When"></div></div>' +
+      '<div id="ogsDateField" hidden>' + fieldDate('ogsDate', 'Date', nextDateStr(todayStr())) + '</div>' +
+      '<p class="auth-error" id="ogsErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="ogsSave">Add step</button>' +
+      '<button type="button" class="btn-quiet" id="ogsBack">Back</button>');
+    sh.querySelector('#ogsSub').textContent = o.title;
+    var ta = sh.querySelector('#ogsText'), save = sh.querySelector('#ogsSave'), err = sh.querySelector('#ogsErr');
+    function count(){ var n = hbParse(ta.value).length; save.textContent = n > 1 ? 'Add ' + Math.min(n, 40) + ' steps' : 'Add step'; }
+    ta.addEventListener('input', count);
+    hbChips(sh.querySelector('#ogsFor'), people, function(){ return st.forUid; }, function(u){ st.forUid = u; });
+    hbWhenChips(sh.querySelector('#ogsWhen'), sh.querySelector('#ogsDateField'), sh.querySelector('#ogsDate'), function(){ return st.when; }, function(w){ st.when = w; });
+    sh.querySelector('#ogsBack').addEventListener('click', function(){ openHomeOngoing(o.id); });
+    save.addEventListener('click', function(){
+      var lines = hbParse(ta.value).slice(0, 40), x = ogGet(o.id);
+      if (!lines.length){ err.textContent = 'Write a step.'; ta.focus(); return; }
+      if (!x || x.status !== 'active'){ err.textContent = 'This ongoing task is finished — reopen it first.'; return; }
+      if (!dbRef || !homeOn()){ err.textContent = 'You’re offline — try again when you’re connected.'; return; }
+      save.disabled = true; err.textContent = '';
+      var now = new Date().toISOString(), to = st.forUid, tm = hbTiming(st.when), b = dbRef.batch(), ids = [];
+      var batchId = to !== me && lines.length > 1 ? dbRef.collection(HOME_REQ).doc().id : null;
+      lines.forEach(function(t){
+        var ref = dbRef.collection(HOME_REQ).doc(), readAt = {}; readAt[me] = now;
+        ids.push(ref.id);
+        b.set(ref, { homeId: home.me.homeId, text: t.slice(0, 280), note: null, requestedTiming: tm.requestedTiming, requestedDate: tm.requestedDate,
+          requesterUid: me, assigneeUid: to, createdByUid: me, participants: homeUids([me, to]), visibility: x.visibility === 'home' ? 'home' : 'private',
+          status: 'requested', plannedDate: null, linkedActionId: null, createdAt: now, updatedAt: now,
+          latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created', readAt: readAt, ongoingId: x.id });
+        var meta = { timing: tm.requestedTiming, date: tm.requestedDate, ongoingId: x.id };
+        if (batchId) meta.batchId = batchId;
+        b.set(ref.collection('updates').doc('created'), hrEntry('created', null, meta));
+      });
+      b.update(dbRef.collection(HOME_ONGOING).doc(x.id), { stepOrder: (x.stepOrder || []).concat(ids).slice(-100), participants: homeUids((x.participants || []).concat([to])),
+        updatedAt: now, updatedByUid: me });
+      b.commit().then(function(){
+        home.ogLastFor = to;
+        if (batchId) hbAnnounce({ batchId: batchId, rows: ids.map(function(id){ return { id: id, saved: true }; }) });
+        showPinToast(lines.length === 1 ? (to === me ? 'Step added' : 'Step added for ' + homeNameOf(to)) : lines.length + ' steps added' + (to === me ? '' : ' for ' + homeNameOf(to)), false, CHECK_SVG);
+        openHomeOngoing(x.id);
+      }).catch(function(e){ console.error('ongoing steps failed', e); save.disabled = false; err.textContent = 'Couldn’t add them — check your connection and try again.'; });
+    });
+    setTimeout(function(){ try { ta.focus(); } catch(e){} }, 60);
   }
 
   // ---- several at once: a list in, one request per line out ----
@@ -15448,7 +15770,12 @@
     var parts = (r.participants || []).slice(); if (parts.indexOf(toUid) === -1) parts.push(toUid);
     return hrWrite(r, { assigneeUid: toUid, participants: parts, status: 'requested', plannedDate: null, linkedActionId: null, linkedByUid: null, cantDoReason: null },
       'reassigned', null, { fromUid: r.assigneeUid, toUid: toUid })
-      .then(function(){ showPinToast('Passed to ' + homeNameOf(toUid), false, CHECK_SVG); }).catch(hrFail('pass it on'));
+      .then(function(){
+        showPinToast('Passed to ' + homeNameOf(toUid), false, CHECK_SVG);
+        // a step: its new person sees the ongoing task it's part of (an admin keeps that list)
+        var o = hrOngoing(r);
+        if (o && homeIsAdmin() && (o.participants || []).indexOf(toUid) === -1) ogWrite(o, { participants: homeUids((o.participants || []).concat([toUid])) }).catch(function(e){ console.warn('ongoing people', e && e.code); });
+      }).catch(hrFail('pass it on'));
   }
   function hrWithdraw(r){
     return hrWrite(r, { status: 'withdrawn' }, 'withdrawn', null, {}, 'withdrawn')
@@ -15728,6 +16055,7 @@
         '<p class="rq-kicker" id="hdKicker"></p><div class="sheet-title rq-title" id="hdTitle"></div>' +
       '</div><button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
       '<p class="rq-why" id="hdWhy" hidden></p>' +
+      '<div id="hdPart"></div>' +
       '<p class="rq-state" id="hdState"></p>' +
       '<p class="rq-meta" id="hdMeta"></p>' +
       '<div class="rq-act" id="hdAct"></div>' +
@@ -15796,6 +16124,24 @@
       ownEl.innerHTML = asker && r.status === 'requested'
         ? '<button type="button" class="btn-link" id="hdEdit">' + (own ? 'Edit task' : 'Edit request') + '</button>' +
           (own ? '' : '<button type="button" class="btn-link rq-withdraw" id="hdWithdraw">Withdraw</button>') : '';
+      // something bigger than one request: an admin files it under an ongoing task, where its
+      // other steps go
+      if (homeIsAdmin() && hrOpen(r) && !r.ongoingId && !r.recurringId){
+        var mv = document.createElement('button'); mv.type = 'button'; mv.className = 'btn-link'; mv.id = 'hdOngoing'; mv.textContent = 'Move to Ongoing';
+        ownEl.appendChild(mv);
+      }
+      on('hdOngoing', function(){ openOngoingForm(null, cur()); });
+      // a step: the ongoing task it's part of, and a way back to it
+      var part = sh.querySelector('#hdPart'), og = hrOngoing(r);
+      part.innerHTML = '';
+      if (og){
+        var pl = document.createElement('button'); pl.type = 'button'; pl.className = 'rq-action og-part'; pl.id = 'hdPartOf';
+        pl.innerHTML = '<span class="rq-action-k">Part of</span><span class="rq-action-t"></span><span class="rq-action-m"></span><span class="rq-action-chev">' + UI_ICON.chevronRight + '</span>';
+        pl.querySelector('.rq-action-t').textContent = og.title;
+        pl.querySelector('.rq-action-m').textContent = og.status === 'done' ? 'Finished' : (homeIsAdmin() ? ogStepsLabel(ogProgress(og)) : 'Ongoing');
+        pl.addEventListener('click', function(){ openHomeOngoing(og.id); });
+        part.appendChild(pl);
+      }
       on('hdEdit', function(){ openHomeEdit(cur()); });
       on('hdWithdraw', function(){ if (confirm('Withdraw this request?')) hrWithdraw(cur()); });
       var shareWrap = sh.querySelector('#hdShareWrap');
@@ -15913,9 +16259,9 @@
   function homeInboxItems(){
     if (!homeOn()) return [];
     var me = homeMe();
-    var fresh = home.requests.filter(function(r){ return r.assigneeUid === me && r.status === 'requested' && !hrOwnIdea(r); })
+    var fresh = home.requests.filter(function(r){ return r.assigneeUid === me && r.status === 'requested' && !hrOwnIdea(r) && !r.ongoingId; })
       .sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1; });
-    var upd = home.requests.filter(function(r){ return !(r.assigneeUid === me && r.status === 'requested' && !hrOwnIdea(r)) && hrUnread(r) && (r.participants || []).indexOf(me) > -1; });
+    var upd = home.requests.filter(function(r){ return !(r.assigneeUid === me && r.status === 'requested' && !hrOwnIdea(r) && !r.ongoingId) && hrUnread(r) && (r.participants || []).indexOf(me) > -1; });
     return fresh.map(function(r){ return { r: r, kind: 'new' }; }).concat(upd.map(function(r){ return { r: r, kind: 'update' }; }));
   }
 

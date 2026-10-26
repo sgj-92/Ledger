@@ -292,8 +292,10 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(['homeId', 'text', 'note', 'why', 'requestedTiming', 'requestedDate',
                          'requesterUid', 'assigneeUid', 'createdByUid', 'participants', 'visibility', 'status',
                          'plannedDate', 'linkedActionId', 'createdAt', 'updatedAt', 'latestUpdateAt', 'latestUpdateByUid',
-                         'latestUpdateType', 'readAt', 'hasChecklist'])
+                         'latestUpdateType', 'readAt', 'hasChecklist', 'ongoingId'])
                     && request.resource.data.get('hasChecklist', true) == true
+                    && (request.resource.data.get('ongoingId', null) == null
+                        || (homeAdmin(request.resource.data.homeId) && ongoingOpenAfter(request.resource.data.ongoingId, request.resource.data.homeId)))
                     && request.resource.data.createdByUid == request.auth.uid
                     && (request.resource.data.requesterUid != request.resource.data.assigneeUid
                         || request.resource.data.assigneeUid == request.auth.uid)
@@ -376,6 +378,15 @@ service cloud.firestore {
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedAt', 'deletedByUid', 'updatedAt'])
                           && request.resource.data.deletedAt is string
                           && request.resource.data.deletedByUid == request.auth.uid)
+                      // an admin files a request under an ongoing task (once; it stays there).
+                      // Last, and cheapest checks first: every branch above is evaluated before
+                      // it, and rules stop at 1,000 expressions.
+                      || (resource.data.get('ongoingId', null) == null
+                          && request.resource.data.get('ongoingId', null) != null
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ongoingId', 'updatedAt'])
+                          && resource.data.get('recurringId', null) == null
+                          && homeAdmin(resource.data.homeId)
+                          && ongoingOpenAfter(request.resource.data.ongoingId, resource.data.homeId))
                     );
       allow delete: if false;
 
@@ -489,6 +500,49 @@ service cloud.firestore {
                     && (request.resource.data.mode == 'anyone'
                         || request.resource.data.assigneeUid == resource.data.get('assigneeUid', null)
                         || activeIn(request.resource.data.assigneeUid, resource.data.homeId));
+      allow delete: if false;
+    }
+
+    // ---- Ongoing tasks at Home (docs/HOME_ONGOING.md) ----
+    // A small parent record; its steps are ordinary requests carrying its id. Started and
+    // kept by admins; read by admins, the people with a step in it, or everyone when
+    // shared. Never deleted: finished (done) or archived.
+    function ongoingPath(oid) {
+      return /databases/$(database)/documents/ledger_home_ongoing/$(oid);
+    }
+    function ongoingOpenAfter(oid, homeId) {
+      return oid is string && oid.matches('^[A-Za-z0-9]{1,40}$') && existsAfter(ongoingPath(oid))
+          && getAfter(ongoingPath(oid)).data.homeId == homeId && getAfter(ongoingPath(oid)).data.status == 'active';
+    }
+    function ongoingShape(d) {
+      return d.keys().hasOnly(['homeId', 'title', 'note', 'why', 'createdByUid', 'visibility', 'participants', 'status',
+                               'stepOrder', 'fromRequestId', 'createdAt', 'updatedAt', 'updatedByUid', 'doneAt'])
+          && d.title is string && d.title.size() > 0 && d.title.size() <= 280
+          && (d.get('note', null) == null || (d.note is string && d.note.size() <= 500))
+          && homeWhy(d)
+          && d.visibility in ['private', 'home']
+          && d.participants is list && d.participants.size() <= 20
+          && d.status in ['active', 'done', 'archived']
+          && d.get('stepOrder', []) is list && d.get('stepOrder', []).size() <= 100
+          && (d.get('fromRequestId', null) == null || d.fromRequestId is string)
+          && d.updatedByUid == request.auth.uid;
+    }
+    match /ledger_home_ongoing/{oid} {
+      allow read: if inHome(resource.data.homeId)
+                  && (me().role == 'admin' || request.auth.uid in resource.data.participants || resource.data.visibility == 'home');
+      allow create: if oid.matches('^[A-Za-z0-9]{1,40}$')
+                    && homeAdmin(request.resource.data.homeId)
+                    && request.resource.data.createdByUid == request.auth.uid
+                    && request.resource.data.participants.hasAll([request.auth.uid])
+                    && request.resource.data.status == 'active'
+                    && ongoingShape(request.resource.data);
+      allow update: if homeAdmin(resource.data.homeId)
+                    && request.resource.data.homeId == resource.data.homeId
+                    && request.resource.data.createdByUid == resource.data.createdByUid
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && request.resource.data.get('fromRequestId', null) == resource.data.get('fromRequestId', null)
+                    && request.resource.data.participants.hasAll(resource.data.participants)
+                    && ongoingShape(request.resource.data);
       allow delete: if false;
     }
 

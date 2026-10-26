@@ -1,7 +1,11 @@
-# Home — ongoing tasks with steps: design for review
+# Home — ongoing tasks with steps
 
-Status: **proposed, 2026-10-25. Not built.** Shaun's request of 2026-10-25. As with
-recurring responsibilities, this is written first and built only once Shaun approves it.
+Status: **designed 2026-10-25, approved and built 2026-10-26.**
+- **Code:** `index.html` ("ongoing tasks").
+- **Rules:** `ledger_home_ongoing`, and `ongoingId` on requests, in `firestore.rules`.
+- **Tests:** the rules suite ("ongoing:", "step:") and Home e2e H20.
+- **Deploy:** the rules and indexes, through "Deploy Firebase" (`docs/DEPLOY_FROM_GITHUB.md`).
+  There is no new Cloud Function.
 
 > "We have tasks/things to complete but they are more than a single task that I can
 > achieve on a given day. They're ongoing tasks with multiple steps involved. Currently
@@ -128,21 +132,47 @@ by everyone when `home`.
 - **No new Cloud Function.** Progress is computed on the device from the steps it can
   see.
 
-## 6. Questions for Shaun
+## 6. Shaun's answers (2026-10-26), and what was built
 
-1. **Name.** "Ongoing" (proposed), or "Projects"?
-2. **Visibility:** confirm §3, where Maria sees the title and "Why" of an ongoing task
-   she has a step in, but not other people's private steps.
-3. **Who can start one:** admins only (Shaun, Abi; proposed), or Maria too?
-4. **Finishing:** by hand (proposed). Alternatively, it could suggest "Finish?" when the
-   last step is done.
-5. **Steps for nobody yet:** every step is for someone (proposed), even if that is you
-   for now; it can be passed on later. The alternative is an unassigned step, which
-   requests don't support today.
-6. **Your Inbox items today:** add "Move to Home as an ongoing task" to an Inbox
-   Action? Not proposed for the first build; you'd re-enter them once.
+1. **Name:** "Ongoing".
+2. **Visibility:** as in §3. Maria sees the title and "Why" of a task she has a step in,
+   and only her own steps. Her counts are her part ("1 for you", "Your part · 0 of 1
+   done"), never a total she can't see.
+3. **Who starts one:** admins only (Shaun, Abi). Only admins add steps, reorder them, edit
+   the task or finish it.
+4. **Finishing:** by hand. "Mark finished" asks first while steps are open; open steps
+   stay as they are. Finished tasks fold under "Finished" and can be reopened.
+5. **Every step is for someone:** yes, and that may be you.
+6. **Move to Home:** yes. Any open request an admin can see (from the Inbox or Home)
+   offers **Move to Ongoing**:
+   - it starts an ongoing task prefilled from the request, and the request becomes its
+     first step;
+   - the request is still the asker's, and they see where it stands;
+   - it is filed once and stays there.
 
-## 7. Build order once approved
+Built differently from §4:
+- **The Ongoing section** sits after Upcoming, before Recurring, and uses the same row
+  as Recurring.
+- **A step with no date** uses the existing "No date" timing (`none`). It shows in its
+  task, not in Upcoming.
+- **The Inbox:** a step never arrives there as new, whatever its date. It is decided in
+  its task, and the person still gets the request's notification.
+  - This also takes a moved request out of the Inbox.
+  - Updates on a step still show there as updates.
+- **Steps on others' lists:** a step's row says which task it belongs to
+  ("Today · Kitchen refit · For Maria").
+- **"Part of" links:**
+  - a step's sheet opens its task;
+  - an Action made from a step says "From … · part of Kitchen refit".
+- **Several steps for someone else at once** reach them as one notification, using the
+  same list summary as "Several at once".
+- **Passing a step on:** when an admin passes one to someone new, that person is added
+  to the task's people.
+- **Rules:** the branch that files a request under a task is the last in the request
+  update rule, with its cheapest checks first. Firestore stops at 1,000 expressions, and
+  placed earlier it pushed an ordinary soft-delete over that limit.
+
+## 7. Build order (as followed)
 
 1. Rules and rules tests.
 2. Data helpers, then the Ongoing section and sheet for Shaun.

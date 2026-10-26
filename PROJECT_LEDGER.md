@@ -601,6 +601,14 @@ never a view of Ledger. Model, rules, notifications and migration:
     and "n of m items" on its Today row;
   - a request may carry an optional **"Why it matters"** (new, several at once,
     recurring). It has been live since 2026-10-26.
+- **Ongoing tasks (2026-10-26, `docs/HOME_ONGOING.md`):**
+  - **What:** something bigger than a day, with steps for different people. Each step
+    is an ordinary request carrying `ongoingId`.
+  - **Who:** admins start, add steps, reorder (drag), edit and finish them by hand.
+    Others see the task's title and why, and only their own steps.
+  - **Move to Ongoing:** turns an open request, e.g. from the Inbox, into one, with the
+    request as its first step.
+  - **Live once** the rules and indexes are deployed.
 
 ---
 
@@ -739,6 +747,26 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-26 — Home: ongoing tasks built (Shaun's answers)
+Shaun's answers:
+- **Name:** "Ongoing".
+- **Who sees what:** Maria sees the title and "Why" of a task she has a step in, and
+  only her own steps.
+- **Who starts them:** admins only.
+- **Finishing:** by hand.
+- **Steps:** every step is for someone.
+- **Move to Home:** yes.
+
+Decided in the build (`docs/HOME_ONGOING.md` §6):
+- A step never lands in the Inbox as new; it is decided in its task. Notifications
+  are unchanged.
+- An undated step stays out of Upcoming.
+- "Move to Ongoing" files an existing request under a new task once, and the request
+  stays the asker's.
+
+Also 2026-10-26: the Today widget's web side (1423dfc) is on `main` (6781ce2). It is
+inert on the web, and a no-op in an app build without the widget.
 
 ### 2026-10-26 — Firebase deploys from GitHub, started by hand (Shaun's request)
 Shaun wanted to deploy rules and functions from his phone.
@@ -2128,12 +2156,15 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Claude Code
-Status: **Home requests of 2026-10-25.**
+Status: **Ongoing tasks built (2026-10-26).** They wait on Shaun's "Deploy Firebase"
+(Rules and indexes). Native push (Phase 2) waits on the Firebase and Apple setup Shaun
+was sent.
+
+Earlier: **Home requests of 2026-10-25.**
 - A request's checklist now shows in its Action, and "Why it matters" is built
   (87c3122). It is deployed: the rules and functions went out on 2026-10-26, through
   "Deploy Firebase".
-- Ongoing tasks: `docs/HOME_ONGOING.md` waits for Shaun's answers. **Not authorised to
-  build until approved.**
+- Ongoing tasks: approved 2026-10-26 and built (`docs/HOME_ONGOING.md`).
 
 Before that: **native apps.** Phase 1 was merged into `main` on 2026-10-25.
 - **Shaun approved Phase 3, iOS only first:** a read-only home-screen widget for
@@ -2266,6 +2297,20 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-26) — **Home: ongoing tasks.**
+  - **What was built:**
+    - the rules (`ledger_home_ongoing`, `ongoingId` on requests), plus an index;
+    - in the app: the Ongoing section, the task sheet, Add steps, drag to reorder,
+      Mark finished / Reopen, Move to Ongoing, and "Part of" on steps and Actions.
+  - **Tests:**
+    - rules 593;
+    - Home e2e 240 (H20);
+    - Partner 209 (a fixed-pause race in check 9 now polls), Quick capture 24, native
+      shell 39, settings sync 9, functions 47 / 37 / 49, push 76.
+  - **Deploy:** Shaun runs "Deploy Firebase" (Rules and indexes).
+- (2026-10-26) — **The Today widget's web side is on `main`** (6781ce2). It is inert on
+  the web; native shell 39, Home 201.
 
 - (2026-10-26) — **"Deploy Firebase": a manual GitHub workflow.**
   - `.github/workflows/deploy-firebase.yml`: tests, then deploys everything, rules and

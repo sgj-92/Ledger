@@ -755,6 +755,56 @@ async function check(name, fn){
   await check('recurring: ending it', () => assertSucceeds(partner.doc(RT + '/t2').update({ status: 'ended', endedAt: 'now', updatedAt: 'now', updatedByUid: 'partner1' })));
   await check('recurring: once ended, it stays ended', () => assertFails(partner.doc(RT + '/t2').update({ status: 'active', updatedAt: 'now', updatedByUid: 'partner1' })));
   await check('recurring: someone not at Home reads nothing', () => assertFails(nanny2.doc(RT + '/t1').get()));
+  // ongoing tasks: a parent record kept by admins; its steps are ordinary requests carrying its id
+  const OG = 'ledger_home_ongoing';
+  const og = (by, o) => Object.assign({ homeId: 'owner1', title: 'Kitchen refit', note: null, why: 'Before the baby comes', createdByUid: by, visibility: 'private',
+    participants: [by], status: 'active', stepOrder: [], fromRequestId: null, createdAt: 'now', updatedAt: 'now', updatedByUid: by }, o || {});
+  await check('ongoing: Shaun (admin) starts one', () => assertSucceeds(owner.doc(OG + '/og1').set(og('owner1'))));
+  await check('ongoing: Abi (admin) starts one', () => assertSucceeds(partner.doc(OG + '/og2').set(og('partner1', { visibility: 'home' }))));
+  await check('ongoing: the nanny (member) cannot start one', () => assertFails(nanny.doc(OG + '/og3').set(og('nanny1'))));
+  await check('ongoing: never as someone else', () => assertFails(partner.doc(OG + '/og4').set(og('owner1', { updatedByUid: 'partner1', participants: ['owner1', 'partner1'] }))));
+  await check('ongoing: never started already finished', () => assertFails(owner.doc(OG + '/og5').set(og('owner1', { status: 'done' }))));
+  await check('ongoing: never into another Home', () => assertFails(owner.doc(OG + '/og6').set(og('owner1', { homeId: 'owner2' }))));
+  await check('ongoing: only its own fields', () => assertFails(owner.doc(OG + '/og7').set(og('owner1', { linkedActionId: 'a1' }))));
+  await check('ongoing: why at most 300', () => assertFails(owner.doc(OG + '/og8').set(og('owner1', { why: 'x'.repeat(301) }))));
+  // steps
+  const step = (by, to, oid, o) => ask(Object.assign({ requesterUid: by, assigneeUid: to, createdByUid: by, participants: by === to ? [by] : [by, to], ongoingId: oid, requestedTiming: 'later' }, o || {}));
+  await check('step: Shaun adds one for the nanny', () => assertSucceeds(asks(owner, 'st1', step('owner1', 'nanny1', 'og1'), 'owner1')));
+  await check('step: …and one for himself', () => assertSucceeds(asks(owner, 'st2', step('owner1', 'owner1', 'og1'), 'owner1')));
+  await check('step: the nanny cannot add steps', () => assertFails(asks(nanny, 'st3', step('nanny1', 'owner1', 'og1'), 'nanny1')));
+  await check('step: never to an ongoing task that does not exist', () => assertFails(asks(owner, 'st4', step('owner1', 'nanny1', 'nope'), 'owner1')));
+  await check('step: a new task and its first step in one go', async () => {
+    const b = owner.batch();
+    b.set(owner.doc(OG + '/og9'), og('owner1', { participants: ['owner1', 'nanny1'] }));
+    b.set(owner.doc(HR + '/st5'), step('owner1', 'nanny1', 'og9')); b.set(owner.doc(HR + '/st5/updates/created'), created('owner1'));
+    return assertSucceeds(b.commit());
+  });
+  await check('ongoing: the nanny reads one she has a step in', () => assertSucceeds(nanny.doc(OG + '/og9').get()));
+  await check('ongoing: …and lists hers', () => assertSucceeds(nanny.collection(OG).where('homeId', '==', 'owner1').where('participants', 'array-contains', 'nanny1').get()));
+  await check('ongoing: …and the shared ones', () => assertSucceeds(nanny.collection(OG).where('homeId', '==', 'owner1').where('visibility', '==', 'home').get()));
+  await check('ongoing: …but not one she is not in', () => assertFails(nanny.doc(OG + '/og1').get()));
+  await check('ongoing: …nor all of them', () => assertFails(nanny.collection(OG).where('homeId', '==', 'owner1').get()));
+  await check('ongoing: someone not at Home reads nothing', () => assertFails(nanny2.doc(OG + '/og2').get()));
+  await check('ongoing: Abi (admin) reads Shaun\'s', () => assertSucceeds(partner.doc(OG + '/og1').get()));
+  await check('ongoing: an admin reorders steps and adds people', () => assertSucceeds(owner.doc(OG + '/og1').update({ stepOrder: ['st2', 'st1'], participants: ['owner1', 'nanny1'], updatedAt: 'now', updatedByUid: 'owner1' })));
+  await check('ongoing: nobody drops out of it', () => assertFails(owner.doc(OG + '/og1').update({ participants: ['owner1'], updatedAt: 'now', updatedByUid: 'owner1' })));
+  await check('ongoing: the nanny cannot change it', () => assertFails(nanny.doc(OG + '/og9').update({ title: 'Mine now', updatedAt: 'now', updatedByUid: 'nanny1' })));
+  await check('ongoing: who started it never changes', () => assertFails(partner.doc(OG + '/og1').update({ createdByUid: 'partner1', updatedAt: 'now', updatedByUid: 'partner1' })));
+  await check('ongoing: never deleted', () => assertFails(owner.doc(OG + '/og1').delete()));
+  // filing an existing request under one ("Move to Home"), once
+  await check('step: an admin files a waiting request under it', () => assertSucceeds(owner.doc(HR + '/n1').update({ ongoingId: 'og1', updatedAt: 'now' })));
+  await check('step: …once: it stays there', () => assertFails(owner.doc(HR + '/n1').update({ ongoingId: 'og2', updatedAt: 'now' })));
+  await check('step: the nanny files nothing', () => assertFails(nanny.doc(HR + '/hr1').update({ ongoingId: 'og9', updatedAt: 'now' })));
+  await check('step: never with other changes', () => assertFails(owner.doc(HR + '/hr2').update({ ongoingId: 'og1', text: 'Changed', updatedAt: 'now' })));
+  await check('delete: the nanny deletes one she wrote (with its entry)', async () => {
+    const b = nanny.batch(); b.update(nanny.doc(HR + '/n4b'), { deletedAt: 'now', deletedByUid: 'nanny1', updatedAt: 'now' });
+    b.set(nanny.doc(HR + '/n4b/updates/deleted'), { type: 'deleted', actorUid: 'nanny1', text: null, createdAt: NOW(), metadata: { hadAction: false } });
+    return assertSucceeds(b.commit());
+  });
+  // finished: no more steps
+  await check('ongoing: Shaun marks it finished', () => assertSucceeds(owner.doc(OG + '/og1').update({ status: 'done', doneAt: 'now', updatedAt: 'now', updatedByUid: 'owner1' })));
+  await check('step: never added to a finished one', () => assertFails(asks(owner, 'st6', step('owner1', 'nanny1', 'og1'), 'owner1')));
+  await check('ongoing: …and it can be reopened', () => assertSucceeds(owner.doc(OG + '/og1').update({ status: 'active', doneAt: null, updatedAt: 'now', updatedByUid: 'owner1' })));
   // occurrences: made by the server (Admin SDK); here, what people may do with them
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
