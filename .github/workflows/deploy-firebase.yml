@@ -1,0 +1,118 @@
+# Deploy Firestore rules, indexes and Cloud Functions to ledger-6aec3, by hand.
+#
+# Run it from the GitHub app or github.com: Actions → Deploy Firebase → Run workflow.
+# It never runs by itself. The rules and functions tests run first, and nothing deploys
+# if they fail.
+#
+# Sign-in is keyless (Workload Identity Federation), set up once by
+# scripts/setup-github-deploy.sh. Google accepts only this repository's "firebase"
+# environment on main. Runbook: docs/DEPLOY_FROM_GITHUB.md.
+name: Deploy Firebase
+
+on:
+  workflow_dispatch:
+    inputs:
+      what:
+        description: What to deploy
+        type: choice
+        options:
+          - Everything (rules, indexes, functions)
+          - Rules and indexes
+          - Functions
+        default: Everything (rules, indexes, functions)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+env:
+  FIREBASE_TOOLS: firebase-tools@14.27.0
+  PROJECT_ID: ledger-6aec3
+
+jobs:
+  test:
+    name: Rules and functions tests
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install
+        run: |
+          npm ci --prefix functions
+          npm install --prefix tests/firestore-rules --no-audit --no-fund
+      - name: Rules tests
+        working-directory: tests/firestore-rules
+        run: npx --yes "$FIREBASE_TOOLS" emulators:exec --only firestore --project demo-ledger --config ../../firebase.json "node rules.test.js"
+      - name: Functions tests
+        working-directory: functions
+        run: npx --yes "$FIREBASE_TOOLS" emulators:exec --only firestore --project demo-ledger --config ../firebase.json "node ../tests/functions/home.test.js && node ../tests/functions/recur.test.js && node ../tests/functions/push.test.js"
+
+  deploy:
+    name: Deploy
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: firebase
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install the functions' dependencies
+        run: npm ci --prefix functions
+      - name: The functions' settings (functions/.env, from the environment's variables)
+        env:
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+          VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
+          APP_URL: ${{ vars.APP_URL }}
+          FUNCTIONS_REGION: ${{ vars.FUNCTIONS_REGION }}
+        run: |
+          for k in VAPID_PUBLIC_KEY VAPID_SUBJECT FUNCTIONS_REGION; do
+            if [ -z "${!k}" ]; then echo "::error::Missing variable $k in the \"firebase\" environment (docs/DEPLOY_FROM_GITHUB.md)"; exit 1; fi
+          done
+          {
+            echo "VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY"
+            echo "VAPID_SUBJECT=$VAPID_SUBJECT"
+            echo "FUNCTIONS_REGION=$FUNCTIONS_REGION"
+            if [ -n "$APP_URL" ]; then echo "APP_URL=$APP_URL"; fi
+          } > functions/.env
+      - name: Sign in to Google (keyless)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/607695857530/locations/global/workloadIdentityPools/github/providers/ledger
+          service_account: github-deploy@ledger-6aec3.iam.gserviceaccount.com
+      - name: Deploy
+        env:
+          WHAT: ${{ inputs.what }}
+        run: |
+          case "$WHAT" in
+            "Rules and indexes") ONLY="firestore:rules,firestore:indexes" ;;
+            "Functions")         ONLY="functions" ;;
+            *)                   ONLY="firestore:rules,firestore:indexes,functions" ;;
+          esac
+          echo "Deploying $ONLY from $(git rev-parse --short HEAD)"
+          # --non-interactive, no --force: it never deletes indexes or functions missing
+          # from the repo. It stops and says so instead.
+          npx --yes "$FIREBASE_TOOLS" deploy --only "$ONLY" --project "$PROJECT_ID" --non-interactive
+      - name: Summary
+        if: always()
+        env:
+          WHAT: ${{ inputs.what }}
+          OUTCOME: ${{ job.status }}
+        run: |
+          echo "**$WHAT** from \`$(git rev-parse --short HEAD)\`: $OUTCOME" >> "$GITHUB_STEP_SUMMARY"

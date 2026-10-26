@@ -269,6 +269,11 @@ These are observed facts about this repo, useful before making changes.
   note. Cloud Functions take it from the `APP_URL` param, which defaults to it.
   Deep links are query strings on the root (`?openAction=`, `?request=`, `?view=`),
   so there are no routes and nothing to 404.
+- **Firebase (rules, indexes, functions) is deployed by hand**, never by a push:
+  from Shaun's Mac (`npx firebase-tools deploy …`) or the manual GitHub Actions
+  workflow `.github/workflows/deploy-firebase.yml` (keyless, `firebase` environment,
+  `main` only; `docs/DEPLOY_FROM_GITHUB.md`). Claude Code sessions have no Firebase
+  credentials. Never add a trigger that deploys on push.
 - `vercel.json` only sets the build command, `node scripts/vercel-build-info.js`.
   That script writes `buildInfo.js` from Vercel's build metadata
   (`VERCEL_GIT_COMMIT_SHA`). No framework, rewrites or routes. Keep it that way.

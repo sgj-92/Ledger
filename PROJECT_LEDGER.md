@@ -740,6 +740,20 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-26 — Firebase deploys from GitHub, started by hand (Shaun's request)
+Shaun wanted to deploy rules and functions from his phone.
+- **How:** the GitHub Actions workflow "Deploy Firebase", run by hand only. It runs
+  the rules and functions tests first, and deploys `main`.
+- **Signing in:** keyless Workload Identity Federation. Google accepts only this
+  repository's id, in its `firebase` environment, on `main`. No key exists anywhere,
+  and none is in a Claude Code session.
+- **What the deploy account may do:** deploy and read settings, but not read
+  Firestore data directly.
+- **Guardrails:**
+  - no deploy on push;
+  - no `--force`, so it never deletes an index or a function.
+- Runbook: `docs/DEPLOY_FROM_GITHUB.md`.
+
 ### 2026-10-25 — Home: checklists follow the Action; "Why it matters"; ongoing tasks designed first
 Shaun's requests and answers:
 - **A request's checklist follows its Action.** An Action taken on from a Home request
@@ -2252,6 +2266,14 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-26) — **"Deploy Firebase": a manual GitHub workflow.**
+  - `.github/workflows/deploy-firebase.yml`: tests, then deploys everything, rules and
+    indexes, or functions.
+  - `scripts/setup-github-deploy.sh`: a one-time Cloud Shell setup (service account,
+    roles, Workload Identity pool).
+  - Runbook: `docs/DEPLOY_FROM_GITHUB.md`.
+  - **Not yet run:** it waits for Shaun's one-time setup, Next 1.
+
 - (2026-10-25) — **Home: checklists in the Action; "Why it matters"** (87c3122).
   - **Checklists:** an Action from a checklist request shows and ticks the list in its
     sheet, with "n of m items" on Today.
@@ -2680,6 +2702,9 @@ minutes before", recurring/accountability).
 ## Next
 
 1. **Shaun: deploy Home and set it up.**
+   0. **Since 2026-10-26, also from the phone:** once
+      `docs/DEPLOY_FROM_GITHUB.md` is set up, Actions → Deploy Firebase → Run workflow
+      does the deploy below. Indexes that aren't in the file are never deleted.
    1. From `~/Ledger` after `git pull`:
       `npx firebase-tools deploy --only firestore:rules,firestore:indexes,functions --project ledger-6aec3`
       If it asks to delete indexes that aren't in the file, answer **No**. (Since
