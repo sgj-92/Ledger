@@ -600,7 +600,7 @@ never a view of Ledger. Model, rules, notifications and migration:
   - an Action made from a request with a checklist shows that checklist in its sheet,
     and "n of m items" on its Today row;
   - a request may carry an optional **"Why it matters"** (new, several at once,
-    recurring). It needs the rules and functions deployed.
+    recurring). It has been live since 2026-10-26.
 
 ---
 
@@ -2130,7 +2130,8 @@ wider exposure — see Open Questions.
 Owner: Claude Code
 Status: **Home requests of 2026-10-25.**
 - A request's checklist now shows in its Action, and "Why it matters" is built
-  (87c3122). The "Why" needs Shaun's deploy (Next 1).
+  (87c3122). It is deployed: the rules and functions went out on 2026-10-26, through
+  "Deploy Firebase".
 - Ongoing tasks: `docs/HOME_ONGOING.md` waits for Shaun's answers. **Not authorised to
   build until approved.**
 
@@ -2272,7 +2273,12 @@ minutes before", recurring/accountability).
   - `scripts/setup-github-deploy.sh`: a one-time Cloud Shell setup (service account,
     roles, Workload Identity pool).
   - Runbook: `docs/DEPLOY_FROM_GITHUB.md`.
-  - **Not yet run:** it waits for Shaun's one-time setup, Next 1.
+  - **Live, 2026-10-26:**
+    - Shaun ran the setup;
+    - run #2 deployed everything from `600554a` (tests passed, then rules, indexes
+      and functions).
+  - **Run #1 failed:** a region pasted with a terminal's trailing "%". The workflow
+    now names a mistyped setting instead of deploying it.
 
 - (2026-10-25) — **Home: checklists in the Action; "Why it matters"** (87c3122).
   - **Checklists:** an Action from a checklist request shows and ticks the list in its
