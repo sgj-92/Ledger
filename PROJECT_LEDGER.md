@@ -2180,9 +2180,19 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Claude Code
-Status: **Ongoing tasks built (2026-10-26).** They wait on Shaun's "Deploy Firebase"
-(Rules and indexes). Native push (Phase 2) waits on the Firebase and Apple setup Shaun
-was sent.
+Status: **Native apps Phase 2 built (2026-10-26).**
+- The web and server side is on `main`.
+- The native side is on `feature/native-push`, which includes the widget.
+
+**Waiting on Shaun:**
+1. "Deploy Firebase", Everything. This deploys the push rules, the FCM sender, and the
+   Ongoing rules and indexes.
+2. Copy the two Firebase files into `native/`, build on his iPhone and Pixel, and try
+   notifications, links and the widget (`native/README.md`).
+
+**Then:** merge `feature/native-push` into `main`.
+
+Ongoing tasks (built 2026-10-26) wait on the same deploy.
 
 Earlier: **Home requests of 2026-10-25.**
 - A request's checklist now shows in its Action, and "Why it matters" is built
@@ -2282,7 +2292,14 @@ No active handoff.
 
 ### Claude Code
 
-**Active: native apps Phase 3, iOS** — the "Today" widget (`docs/NATIVE_MIGRATION.md`
+**Built, waiting on Shaun's device check:**
+- Phase 2, notifications and app links: `feature/native-push`, §12c;
+- Phase 3, iOS, the "Today" widget: included in that branch, §12b.
+
+**Next, after his check:** merge `feature/native-push` into `main`, then add the release
+key's SHA-256 to `assetlinks.json` once there is a release build.
+
+**Earlier:** native apps Phase 3, iOS — the "Today" widget (`docs/NATIVE_MIGRATION.md`
 §4).
 - Read-only, showing today's open Actions in Ledger's order. A tap opens that Action.
 - Built from the web app's own snapshot (`buildWidgetSnapshot`), through an App Group.
