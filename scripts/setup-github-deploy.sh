@@ -60,9 +60,16 @@ else
 fi
 
 echo "5/5 Let that repository act as the deploy account"
-gcloud iam service-accounts add-iam-policy-binding "$SA" --role=roles/iam.workloadIdentityUser \
-  --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/$POOL/attribute.repository_id/$REPO_ID" \
-  --quiet >/dev/null
+# a service account made a moment ago can take a minute to be visible to its own IAM
+# policy ("Permission denied … or it may not exist"), so try for a couple of minutes
+for TRY in 1 2 3 4 5 6 7 8; do
+  if gcloud iam service-accounts add-iam-policy-binding "$SA" --role=roles/iam.workloadIdentityUser \
+       --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/$POOL/attribute.repository_id/$REPO_ID" \
+       --quiet >/dev/null 2>/tmp/ledger-wif.err; then break; fi
+  if [ "$TRY" = 8 ]; then cat /tmp/ledger-wif.err; exit 1; fi
+  echo "   the new account isn't visible yet; trying again in 15s"
+  sleep 15
+done
 
 echo
 echo "Done. GitHub also needs the functions' settings (from functions/.env on your Mac)."
