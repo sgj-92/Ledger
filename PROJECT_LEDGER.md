@@ -2375,7 +2375,7 @@ Status: **Deployed 2026-10-27** (Deploy Firebase, everything, green).
   - a monthly spend limit in the Anthropic Console (set by Shaun).
 - **Not yet seen working on a device:** a real Claude reply. It was never called from
   the build session.
-- Also with Shaun: iPhone build 4 (key-task stars, the Flow widget).
+- iPhone build 4 (key-task stars, the Flow widget) is on Shaun's iPhone (2026-10-27).
 
 **Before that:** Claude in Ledger designed and answered (2026-10-27).
 
