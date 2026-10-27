@@ -4004,6 +4004,11 @@
     font-family: var(--sans); font-size: 14.5px; color: var(--text); -webkit-tap-highlight-color: transparent;
   }
   .sp-item:last-child { border-bottom: none; }
+  .sp-row { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .sp-row:last-child { border-bottom: none; }
+  .sp-row .sp-item { flex: 1; min-width: 0; border-bottom: none; }
+  .sp-row .drag-handle { width: 36px; height: 44px; margin-right: -8px; }
+  .sp-row.dragging { position: relative; z-index: 4; border-radius: var(--r-md); box-shadow: var(--shadow-lift); transition: none; }
   .sp-list.readonly .sp-item { cursor: default; }
   .sp-tick {
     flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line-2); box-sizing: border-box;
@@ -19437,6 +19442,17 @@
       b.commit().catch(function(e){ console.error('sprint save failed', e); });
     }
   }
+  // A new order for the sprint's things. Next follows it; the focus stays where it is.
+  function reorderSprintItems(s, ids){
+    var byId = {};
+    sprintItems(s).forEach(function(it){ byId[it.id] = it; });
+    var items = ids.map(function(id){ return byId[id]; }).filter(Boolean);
+    sprintItems(s).forEach(function(it){ if (items.indexOf(it) === -1) items.push(it); });   // anything added meanwhile
+    var next = Object.assign({}, s, { items: items });
+    var nx = sprintNext(next);
+    next.currentItemId = nx ? nx.id : null;
+    commitExec(next, null);
+  }
   function addSprintItems(s, lines){
     if (!lines.length) return;
     var next = Object.assign({}, s, { items: sprintItems(s).concat(lines.map(function(t){ return { id: uid(), text: t, completed: false, completedAt: null }; })) });
@@ -19636,6 +19652,7 @@
   // No sprint running: one quiet entry beside the Overview / Flow switch. Running: the
   // sprint leads the working day — next item, the list, time left — and nothing else.
   // Finished: one quiet history line under the Actions.
+  var sprintAddAgain = false;     // a redraw right after adding: keep the add field open
   function renderSprintEntry(){
     var b = document.getElementById('sprintEntry');
     if (!b) return;
@@ -19659,9 +19676,13 @@
                      : (s.state === 'active' ? '<button type="button" class="sp-focus" data-sp-focus>Make it my focus</button>' : '')) + '</div>'
         : '<div class="sp-next all"><span class="sp-next-title">All clear</span>' +
             '<button type="button" class="btn-primary sp-finish" data-sp-finish>Finish sprint</button></div>') +
-      '<div class="sp-list">' + sprintItems(s).map(function(it, i){
-        return '<button type="button" class="sp-item' + (it.completed ? ' done' : '') + (nx && it.id === nx.id ? ' next' : '') + '" data-sp-item="' + i + '" aria-pressed="' + (it.completed ? 'true' : 'false') + '">' +
-          '<span class="sp-tick" aria-hidden="true">' + CHECK_SVG + '</span><span class="sp-text"></span></button>';
+      // each thing can be dragged into place, so one added later can go where it belongs
+      '<div class="sp-list sort-list" data-sp-list>' + sprintItems(s).map(function(it, i){
+        return '<div class="sp-row" data-sort-item="' + i + '">' +
+          '<button type="button" class="sp-item' + (it.completed ? ' done' : '') + (nx && it.id === nx.id ? ' next' : '') + '" data-sp-item="' + i + '" aria-pressed="' + (it.completed ? 'true' : 'false') + '">' +
+            '<span class="sp-tick" aria-hidden="true">' + CHECK_SVG + '</span><span class="sp-text"></span></button>' +
+          (sprintItems(s).length > 1 ? '<button type="button" class="drag-handle" data-drag-handle aria-label="Drag to reorder">' + UI_ICON.grip + '</button>' : '') +
+        '</div>';
       }).join('') + '</div>' +
       '<div class="sp-foot">' +
         '<button type="button" class="sp-add" data-sp-add>' + BK_PLUS_SVG + 'Add</button>' +
@@ -19680,6 +19701,13 @@
         toggleSprintItem(sprintById(s.id) || s, it.id);
       });
     });
+    var list = root.querySelector('[data-sp-list]');
+    if (list && items.length > 1) makeSortable(list, function(order){
+      // a drag means the typing is over: let the card redraw with Next in its new place
+      var a = document.activeElement;
+      if (a && a.classList.contains('sp-addinput')) a.blur();
+      reorderSprintItems(sprintById(s.id) || s, order.map(function(k){ return items[Number(k)].id; }));
+    });
     var nt = root.querySelector('[data-sp-next]');
     if (nt && nx) nt.textContent = nx.text;
     root.querySelectorAll('[data-sp-wrap]').forEach(function(b){ b.addEventListener('click', function(){ openSprintWrapUp(sprintById(s.id) || s); }); });
@@ -19691,23 +19719,34 @@
     if (fb && nx) fb.addEventListener('click', function(){ setCurrentFocus(focusForSprintItem(s, nx)); });
     var addBtn = root.querySelector('[data-sp-add]'), addRow = root.querySelector('.sp-addrow'), addIn = root.querySelector('.sp-addinput');
     addBtn.addEventListener('click', function(){ addRow.hidden = false; addIn.focus(); });
+    // what was added shows at once (so it can be dragged into place), and the field stays
+    // open for the next one; the redraw happens inside the keypress, so the keyboard stays up
+    function addAndRedraw(lines){
+      if (!lines.length) return;
+      sprintAddAgain = true;
+      addSprintItems(sprintById(s.id) || s, lines);
+      if (root === sheetEl){ if (activeSheetRefresh) activeSheetRefresh(); } else renderSprintSection();
+      sprintAddAgain = false;
+    }
     addIn.addEventListener('keydown', function(e){
-      if (e.key === 'Enter'){ e.preventDefault(); var l = sprintLines(addIn.value); addIn.value = ''; addSprintItems(sprintById(s.id) || s, l); }
+      if (e.key === 'Enter'){ e.preventDefault(); var l = sprintLines(addIn.value); addIn.value = ''; addAndRedraw(l); }
       else if (e.key === 'Escape'){ addRow.hidden = true; }
     });
     addIn.addEventListener('paste', function(e){
       var text = (e.clipboardData && e.clipboardData.getData('text')) || '';
       if (text.indexOf('\n') === -1) return;
       e.preventDefault();
-      addSprintItems(sprintById(s.id) || s, sprintLines(text));
+      addAndRedraw(sprintLines(text));
     });
+    if (sprintAddAgain){ addRow.hidden = false; addIn.focus(); }
   }
   function renderSprintSection(){
     var el = document.getElementById('sprintSection');
     if (!el) return;
     var s = viewedDate === todayStr() ? activeSprint() : null;
-    // never rebuild under someone typing an extra item
-    if (s && el.contains(document.activeElement) && document.activeElement.classList.contains('sp-addinput')) return;
+    if (sortDragActive) return;               // never replace the row being dragged
+    // never rebuild under someone typing an extra item (unless it has just been added)
+    if (s && !sprintAddAgain && el.contains(document.activeElement) && document.activeElement.classList.contains('sp-addinput')) return;
     if (!s){ el.innerHTML = ''; return; }
     el.innerHTML = sprintPanelHtml(s, false);
     wireSprintPanel(el, s);
@@ -19733,7 +19772,8 @@
       var s = sprintById(id);
       if (!s){ closeSheet(); return; }
       if (s.state === 'active'){
-        if (sheetEl.contains(document.activeElement) && document.activeElement.classList.contains('sp-addinput')) return;
+        if (sortDragActive) return;
+        if (!sprintAddAgain && sheetEl.contains(document.activeElement) && document.activeElement.classList.contains('sp-addinput')) return;
         sheetEl.innerHTML = '<div class="sheet-handle"></div>' + sheetHead('', 'Reset sprint', 'Clear your head.', '') + sprintPanelHtml(s, true);
         wireSprintPanel(sheetEl, s);
       } else {

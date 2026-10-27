@@ -2474,6 +2474,11 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Reset Sprint: drag to reorder.** (Shaun's request.)
+  - Each thing has a drag handle; Next follows the new order, and the focus stays put.
+  - Something added shows at once, with the field kept open for the next one. Before,
+    it appeared only after leaving the field.
+  - Checked in the browser; execution e2e 76, native shell 67.
 - (2026-10-27) — **Strength: exercises by name alone.** (Shaun's request.)
   - Each row is the name, with **Sets** to open sets, reps and weight when wanted; a row
     that already has numbers shows them.
