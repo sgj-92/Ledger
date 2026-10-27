@@ -2443,6 +2443,15 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Widget: status in Settings, and a refused update is retried.** Shaun's
+  widget stopped showing new Actions (a Home request's Action was missing) though the app
+  was open. The cause isn't found yet. Two changes:
+  - **Retry:** a send the app refuses is no longer remembered as sent; the next render
+    tries again.
+  - **Settings → Home Screen widgets** (iPhone app only) shows "Updated 09:51 · 4
+    Actions", or "Not updated at …" with the reason. Tapping it sends today again.
+
+  Tests: native shell 62.
 - (2026-10-27) — **Flow's now line follows what is done.** (Logged in Decisions.)
   Checked in the browser; native shell 58 and Home 256 pass.
 - (2026-10-27) — **Flow: Actions stay where they are dragged around a Reset Sprint and

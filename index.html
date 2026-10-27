@@ -8183,14 +8183,46 @@
     clearTimeout(widgetTimer);
     widgetTimer = setTimeout(nativeWidgetPublish, 700);
   }
-  function nativeWidgetPublish(){
+  // What the last send did, for Settings: { at, ok, total, why }. A send that fails is
+  // tried again on the next render instead of being remembered as sent.
+  var widgetStatus = null;
+  function widgetWaitingFor(){
+    if (authRole !== 'owner' || !ownerDataStarted || !dbReady) return 'signing in';
+    if (!czLoaded.commitments) return 'today\u2019s Actions';
+    if (!czLoaded.plans) return 'today\u2019s plan';
+    return '';
+  }
+  function nativeWidgetPublish(force){
     clearTimeout(widgetTimer);
-    if (!widgetReady()) return;
-    var snap = buildWidgetSnapshot(), key = JSON.stringify(snap);
-    if (key === widgetLast) return;
+    if (!widgetReady()) return Promise.resolve(false);
+    var snap;
+    try { snap = buildWidgetSnapshot(); }
+    catch(e){
+      console.error('widget snapshot failed', e);
+      widgetStatus = { at: new Date(), ok: false, why: 'Ledger couldn\u2019t build it (' + String(e && e.message || e).slice(0, 80) + ')' };
+      return Promise.resolve(false);
+    }
+    var key = JSON.stringify(snap);
+    if (key === widgetLast && !force) return Promise.resolve(true);
     widgetLast = key;
     snap.generatedAt = new Date().toISOString();
-    nativeCall('LedgerWidget', 'publish', { snapshot: JSON.stringify(snap) });
+    var total = snap.total;
+    if (typeof window.Capacitor.nativePromise !== 'function') return Promise.resolve(false);
+    return window.Capacitor.nativePromise('LedgerWidget', 'publish', { snapshot: JSON.stringify(snap) })
+      .then(function(){ widgetStatus = { at: new Date(), ok: true, total: total }; return true; })
+      .catch(function(e){
+        if (widgetLast === key) widgetLast = '';
+        console.warn('native LedgerWidget.publish failed', e && e.message);
+        widgetStatus = { at: new Date(), ok: false, why: String(e && e.message || 'the app refused it').slice(0, 120) };
+        return false;
+      });
+  }
+  function widgetStatusText(){
+    var w = widgetWaitingFor();
+    if (!widgetStatus) return w ? 'Waiting for ' + w : 'Not updated yet';
+    var at = minToTime(widgetStatus.at.getHours() * 60 + widgetStatus.at.getMinutes());
+    if (!widgetStatus.ok) return 'Not updated at ' + at + ': ' + widgetStatus.why;
+    return 'Updated ' + at + ' \u00b7 ' + widgetStatus.total + (widgetStatus.total === 1 ? ' Action' : ' Actions');
   }
   function nativeWidgetClear(){
     if (!nativeWidgetOn()) return Promise.resolve();
@@ -20127,6 +20159,9 @@
         (LOCAL_ONLY ? '' : settingsRow('setPassword', 'Password', 'Set or change')) +
         (LOCAL_ONLY ? '' : settingsRow('setNotifications', 'Notifications', '')) +
         settingsRow('setClaudeUrl', 'Claude conversation', claudeUrl() ? 'Set' : 'Not set') +
+        // the iPhone app's Home Screen widgets: when they were last given today, and a tap
+        // to send it again
+        (nativeWidgetOn() ? settingsRow('setWidget', 'Home Screen widgets', '<span id="setWidgetStatus"></span>') : '') +
         '</div>' +
         (LOCAL_ONLY ? '<p class="set-note">This copy of Ledger has no account and keeps everything on this device.</p>' : '') +
       '</div>' +
@@ -20213,6 +20248,17 @@
     var ntBtn = document.getElementById('setNotifications');
     if (ntBtn) ntBtn.addEventListener('click', openNotificationsSheet);
     document.getElementById('setClaudeUrl').addEventListener('click', function(){ openClaudeUrlSheet(true); });
+    var widgetRow = document.getElementById('setWidget');
+    if (widgetRow){
+      var paintWidget = function(){ var el = document.getElementById('setWidgetStatus'); if (el) el.textContent = widgetStatusText(); };
+      paintWidget();
+      widgetRow.addEventListener('click', function(){
+        nativeWidgetPublish(true).then(function(ok){
+          paintWidget();
+          showPinToast(ok ? 'Widgets updated' : 'Widgets not updated', !ok, ok ? CHECK_SVG : null);
+        });
+      });
+    }
     var signOutBtn = document.getElementById('setSignOut');
     if (signOutBtn) signOutBtn.addEventListener('click', function(){
       if (confirm('Sign out of Ledger on this device?')) signOutLedger();

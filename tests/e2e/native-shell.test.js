@@ -72,7 +72,11 @@ function fakeBridge(platform){
       window.__nat.calls.push(entry);
       // kept across a reload (signing out reloads the page)
       try { var log = JSON.parse(sessionStorage.getItem('__natlog') || '[]'); log.push(plugin + '.' + method); sessionStorage.setItem('__natlog', JSON.stringify(log)); } catch(e){}
-      if (plugin === 'LedgerWidget' && method === 'publish') (window.__nat.snapshots = window.__nat.snapshots || []).push(JSON.parse(options.snapshot));
+      if (plugin === 'LedgerWidget' && method === 'publish'){
+        (window.__nat.snapshots = window.__nat.snapshots || []).push(JSON.parse(options.snapshot));
+        // the app refusing a snapshot, as a build without the App Group would
+        if (localStorage.getItem('__widgetfail') === '1') return Promise.reject(new Error('The App Group isn\u2019t available to this build'));
+      }
       if (plugin === 'App' && method === 'getInfo') return Promise.resolve({ name: 'Ledger', id: 'luxe.sgj.ledger', version: '1.0', build: '7' });
       if (plugin === 'FirebaseMessaging'){
         if (method === 'checkPermissions') return Promise.resolve({ receive: localStorage.getItem('__fmperm') || 'prompt' });
@@ -222,6 +226,22 @@ function fakeBridgeWhenAsked(){
   for (const v of ['plan', 'log', 'me', 'log']){ await I.click(`.tab-btn[data-view="${v}"]`); await sleep(250); }
   await sleep(1200);
   check(await I.evaluate(n => (window.__nat.snapshots || []).length === n, sent), 'iOS widget: re-rendering Today sends nothing new when nothing changed');
+  // Settings says when the widgets were last updated; a tap sends today again, and a
+  // refused send is reported and tried again rather than remembered as sent
+  await openSettings(I); await I.waitForSelector('#setWidgetStatus');
+  check(/^Updated \d\d:\d\d \u00b7 2 Actions$/.test(await I.textContent('#setWidgetStatus')), 'iOS widget: Settings shows when the widgets were last updated, and with what', await I.textContent('#setWidgetStatus'));
+  await I.evaluate(() => localStorage.setItem('__widgetfail', '1'));
+  await I.click('#setWidget');
+  check(await until(I, () => /^Not updated at \d\d:\d\d: The App Group/.test((document.getElementById('setWidgetStatus') || {}).textContent || ''), null, 5000),
+    'iOS widget: a send the app refuses is shown in Settings, with its reason', await I.textContent('#setWidgetStatus'));
+  await I.evaluate(() => localStorage.removeItem('__widgetfail'));
+  const retryFrom = await I.evaluate(() => (window.__nat.snapshots || []).length);
+  await I.click('#sheetCloseBtn'); await sleep(300);
+  for (const v of ['plan', 'log']){ await I.click(`.tab-btn[data-view="${v}"]`); await sleep(250); }
+  check(await until(I, n => (window.__nat.snapshots || []).length > n, retryFrom, 5000), 'iOS widget: after a refused send, the next render of Today tries again');
+  await openSettings(I); await I.waitForSelector('#setWidgetStatus');
+  check(/^Updated /.test(await I.textContent('#setWidgetStatus')), 'iOS widget: …and Settings then shows it updated', await I.textContent('#setWidgetStatus'));
+  await I.click('#sheetCloseBtn'); await sleep(300);
   // the Focus widget: setting a focus (on another device) reaches it
   const focusBefore = await I.evaluate(() => (window.__nat.snapshots || []).length);
   // (k1 was ticked done on Android above: a focus on a finished Action is never shown)
