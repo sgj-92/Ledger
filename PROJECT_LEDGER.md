@@ -2372,7 +2372,7 @@ Status: **Deployed 2026-10-27** (Deploy Firebase, everything, green).
 - **Set up once:**
   - the key `ANTHROPIC_API_KEY` is in Secret Manager;
   - the functions may read it, granted in Cloud Shell (`docs/DEPLOY_FROM_GITHUB.md`);
-  - a monthly spend limit in the Anthropic Console (Shaun to confirm it is set).
+  - a monthly spend limit in the Anthropic Console (set by Shaun).
 - **Not yet seen working on a device:** a real Claude reply. It was never called from
   the build session.
 - Also with Shaun: iPhone build 4 (key-task stars, the Flow widget).
