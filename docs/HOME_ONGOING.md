@@ -1,6 +1,6 @@
 # Home — ongoing tasks with steps
 
-Status: **designed 2026-10-25, approved and built 2026-10-26.**
+Status: **designed 2026-10-25, approved and built 2026-10-26. Updates and "Waiting on" added 2026-10-27 (§8).**
 - **Code:** `index.html` ("ongoing tasks").
 - **Rules:** `ledger_home_ongoing`, and `ongoingId` on requests, in `firestore.rules`.
 - **Tests:** the rules suite ("ongoing:", "step:") and Home e2e H20.
@@ -181,3 +181,47 @@ Built differently from §4:
 5. E2E: Shaun starts one with steps for himself and Magda, schedules his into Today, and
    Magda completes hers. Then a UX review, then the ledger and deploy notes (rules
    only).
+
+## 8. Updates, and waiting on someone (2026-10-27)
+
+> "We should be able to add updates to ongoing tasks too and have status updates
+> especially if we're waiting for someone else."
+
+Shaun's answers:
+- **Where waiting lives:** on the ongoing task, not on each step.
+- **Who posts updates:** admins and anyone with a step.
+- **Who hears:** everyone on the task. Admins not on it hear only if they follow Home.
+- **Chase date:** yes, optional.
+
+**Updates:** `ledger_home_ongoing/{id}/updates/{id}`.
+- Each update is `{ type, actorUid, text, createdAt, metadata }`, and is never changed
+  or removed.
+- `type` is one of:
+  - `comment`: admins, and anyone in `participants`;
+  - `waiting` and `waiting_cleared`: admins only.
+- Updates are read by whoever can see the task.
+- The task keeps a summary of the latest update: `latestUpdateAt`, `latestUpdateByUid`,
+  `latestUpdateType` and `latestUpdateText` (at most 140 characters).
+- Someone with a step may change only those summary fields, as themselves.
+
+**Waiting:** `waiting` on the task is `{ on, since, chaseBy, byUid }` or null.
+- An admin sets it, signed as themselves. Any admin may clear it.
+- **The task sheet** shows a "Waiting on" card with:
+  - since when, and when to chase;
+  - **They replied**, which clears it;
+  - **Change**;
+  - for Shaun, **Chase today**, which adds "Chase … — task" to his day once.
+- **On the chase date** the task:
+  - shows in Home's **Today**, for admins, as "Chase Tara at NAS";
+  - goes to the top of Ongoing, with its row marked.
+
+**Notifications:** `onOngoingUpdateCreated` → `handleOngoingUpdate` in `functions/push.js`.
+A tap opens `?home=og-<id>`.
+
+**Pass it on:** it now offers **Me** to whoever asked for the request.
+- That is the only way a request goes back to its asker. The rule allows it only when
+  the asker takes it on themselves.
+- The history reads "You took it on from Abi".
+- This applies to every request, so it covers steps too.
+
+**Deploy:** "Deploy Firebase", everything (rules and the new function).

@@ -4830,6 +4830,23 @@
   /* ongoing tasks: a row per task; its steps are request rows, in an order admins drag */
   .og-row.og-finished .commitment-title { color: var(--text-2); }
   .og-row.og-finished .og-mark { color: var(--text-3); }
+  .og-row.og-waiting .commitment-meta { color: var(--text-2); }
+  .og-row.og-due .commitment-meta, .og-row.og-due .og-mark { color: var(--gold); }
+  /* waiting on someone: a quiet card under the state, with what to do about it */
+  .og-wait { display: flex; gap: 12px; margin: 10px 0 var(--sp-3); padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+  .og-wait.due { border-color: rgba(var(--gold-rgb),0.45); }
+  .og-wait-ic { flex-shrink: 0; width: 18px; height: 18px; margin-top: 1px; color: var(--text-3); }
+  .og-wait.due .og-wait-ic { color: var(--gold); }
+  .og-wait-ic svg { width: 18px; height: 18px; display: block; }
+  .og-wait-body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .og-wait-k { font-size: 10.5px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); }
+  .og-wait-on { font-size: 15px; color: var(--text); overflow-wrap: anywhere; }
+  .og-wait-m { font-size: 12.5px; color: var(--text-2); }
+  .og-wait.due .og-wait-m { color: var(--gold); }
+  .og-wait-btns { margin: 10px 0 0; }
+  .og-wait { flex-wrap: wrap; }
+  .og-wait-btns { flex-basis: 100%; }
+  .og-ev-state { margin: 2px 0 0; font-size: 13px; color: var(--gold); overflow-wrap: anywhere; }
   .og-steps { border-top: 1px solid var(--line); }
   .og-steps:empty { display: none; }
   .og-step { background: var(--surface); }
@@ -15018,6 +15035,7 @@
         [oAll, oParts, oShared].forEach(function(src){ Object.keys(src).forEach(function(k){ byId[k] = src[k]; }); });
         home.ongoing = Object.keys(byId).map(function(k){ return byId[k]; }).filter(function(o){ return o.status !== 'archived'; });
         homeChanged();
+        if (DEEP.home && /^og-/.test(DEEP.home)) homeHandleDeepLink();
       };
     }
     var OC = dbRef.collection(HOME_ONGOING);
@@ -15448,7 +15466,7 @@
     else if (t === 'planned') verb = 'planned it';
     else if (t === 'moved') verb = 'moved it';
     else if (t === 'cant_do') verb = 'can’t do it';
-    else if (t === 'reassigned') verb = 'passed it to ' + homeWho(r.assigneeUid).replace('You', 'you');
+    else if (t === 'reassigned') verb = r.assigneeUid === r.latestUpdateByUid ? 'took it on' : 'passed it to ' + homeWho(r.assigneeUid).replace('You', 'you');
     else if (t === 'withdrawn') verb = 'withdrew it';
     else if (t === 'claimed') verb = 'took it on';
     else if (t === 'missed') return 'Missed · ' + shortDayLabel(r.occurrenceDate || r.requestedDate);
@@ -15459,19 +15477,21 @@
   }
   function hsSection(el, title, list, opts){
     opts = opts || {};
-    if (!list.length && !opts.keep) return;
+    var lead = opts.lead || [];
+    if (!list.length && !lead.length && !opts.keep) return;
     var sec = document.createElement('section'); sec.className = 'hs-sec' + (opts.cls ? ' ' + opts.cls : '');
     var head = document.createElement(opts.onMore ? 'button' : 'div');
     head.className = 'hs-sec-head';
     if (opts.onMore){ head.type = 'button'; head.addEventListener('click', opts.onMore); }
     head.innerHTML = '<h3 class="cz-sec-title"></h3><span class="cz-sec-count"></span>' + (opts.onMore ? '<span class="chev">' + UI_ICON.chevronRight + '</span>' : '');
     head.querySelector('h3').textContent = title;
-    head.querySelector('.cz-sec-count').textContent = opts.count != null ? opts.count : (list.length ? String(list.length) : '');
+    head.querySelector('.cz-sec-count').textContent = opts.count != null ? opts.count : (list.length + lead.length ? String(list.length + lead.length) : '');
     sec.appendChild(head);
     var box = document.createElement('div'); box.className = 'hs-list';
     var max = opts.max || list.length;
+    lead.forEach(function(x){ box.appendChild(x); });
     list.slice(0, max).forEach(function(r){ box.appendChild(hrRowEl(r, opts)); });
-    if (!list.length && opts.empty){ var p = document.createElement('p'); p.className = 'hs-empty'; p.textContent = opts.empty; box.appendChild(p); }
+    if (!list.length && !lead.length && opts.empty){ var p = document.createElement('p'); p.className = 'hs-empty'; p.textContent = opts.empty; box.appendChild(p); }
     sec.appendChild(box);
     if (list.length > max && opts.moreLabel){
       var more = document.createElement('button'); more.type = 'button'; more.className = 'btn-link hs-more';
@@ -15602,7 +15622,7 @@
         empty.innerHTML = '<p class="hs-empty-title">Nothing at Home yet</p><p class="hs-empty-sub">Requests between the people at Home appear here — what’s for you, what you’ve asked, and what’s coming up.</p>';
         wrap.appendChild(empty);
       }
-      hsSection(wrap, 'Today', todayList, { keep: vis.some(hrOpen), empty: 'Nothing due today.' });
+      hsSection(wrap, 'Today', todayList, { keep: vis.some(hrOpen), empty: 'Nothing due today.', lead: ogChaseRows() });
       hsSection(wrap, 'Upcoming', upcoming, { max: 8, moreLabel: function(n){ return n + ' more'; }, onShowMore: function(){ home.filter = 'all'; homeChanged(); } });
       homeOngoingInto(wrap);
       homeRecurringInto(wrap, false);
@@ -15954,6 +15974,11 @@
   // "2 of 5 steps · with you, Magda · next Thursday" for an admin, who sees every step;
   // anyone else sees only their part: "1 for you · next Thursday"
   function ogMeta(o){
+    var wait = o.waiting && o.status === 'active' ? 'Waiting on ' + o.waiting.on + (o.waiting.chaseBy ? ' · ' + ogChaseWord(o.waiting.chaseBy) : '') : '';
+    var rest = ogMetaSteps(o);
+    return wait ? wait + (rest ? ' · ' + rest : '') : rest;
+  }
+  function ogMetaSteps(o){
     var open = ogSteps(o).filter(function(r){ return hrOpen(r) && !home.pendingDone[r.id]; });
     if (!homeIsAdmin()){
       var mine = open.filter(function(r){ return r.assigneeUid === homeMe(); });
@@ -15968,9 +15993,25 @@
     if (next) bits.push(next < todayStr() ? 'overdue' : 'next ' + rqDayWord(next));
     return bits.join(' · ');
   }
+  // an ongoing task whose chase date has come: in Home's Today, for the admins who keep it
+  function ogChaseRows(){
+    if (!homeIsAdmin()) return [];
+    return (home.ongoing || []).filter(ogChaseDue).map(function(o){
+      var b = document.createElement('button'); b.type = 'button';
+      b.className = 'commitment-item hs-row rc-row og-row og-waiting og-due og-chase-row'; b.dataset.ogChase = o.id;
+      b.innerHTML = '<span class="rc-mark og-mark" aria-hidden="true">' + UI_ICON.clock + '</span>' +
+        '<span class="commitment-body hs-row-body"><span class="commitment-title"></span><span class="commitment-meta"></span></span>';
+      b.querySelector('.commitment-title').textContent = 'Chase ' + o.waiting.on;
+      b.querySelector('.commitment-meta').textContent = o.title + (o.waiting.chaseBy < todayStr() ? ' · ' + ogChaseWord(o.waiting.chaseBy) : '');
+      b.addEventListener('click', function(){ openHomeOngoing(o.id); });
+      return b;
+    });
+  }
   function homeOngoingInto(wrap){
     var all = home.ongoing || [];
-    var active = all.filter(function(o){ return o.status === 'active'; }).sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1; });
+    var active = all.filter(function(o){ return o.status === 'active'; }).sort(function(a, b){
+      return (ogChaseDue(b) ? 1 : 0) - (ogChaseDue(a) ? 1 : 0) || ((a.createdAt || '') < (b.createdAt || '') ? -1 : 1);
+    });
     var done = all.filter(function(o){ return o.status === 'done'; }).sort(function(a, b){ return (a.doneAt || '') > (b.doneAt || '') ? -1 : 1; });
     if (!active.length && !done.length) return;
     var sec = document.createElement('section'); sec.className = 'hs-sec og-sec';
@@ -15980,7 +16021,7 @@
     sec.appendChild(head);
     function row(o){
       var b = document.createElement('button'); b.type = 'button';
-      b.className = 'commitment-item hs-row rc-row og-row' + (o.status === 'done' ? ' og-finished' : '');
+      b.className = 'commitment-item hs-row rc-row og-row' + (o.status === 'done' ? ' og-finished' : '') + (o.waiting && o.status === 'active' ? ' og-waiting' : '') + (ogChaseDue(o) ? ' og-due' : '');
       b.dataset.og = o.id;
       b.innerHTML = '<span class="rc-mark og-mark" aria-hidden="true">' + (o.status === 'done' ? CHECK_SVG : OG_ICON) + '</span>' +
         '<span class="commitment-body hs-row-body"><span class="commitment-title"></span><span class="commitment-meta"></span></span>';
@@ -16020,12 +16061,15 @@
       '<div class="sheet-head rq-head"><div class="sheet-title-wrap"><p class="rq-kicker" id="ogKicker"></p><div class="sheet-title rq-title" id="ogTitle"></div></div>' +
       '<button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
       '<p class="rq-why" id="ogWhy" hidden></p>' +
-      '<p class="rq-state" id="ogState"></p><p class="rq-meta" id="ogMeta"></p>' +
+      '<p class="rq-state" id="ogState"></p><div id="ogWait"></div><p class="rq-meta" id="ogMeta"></p>' +
       '<h3 class="cz-sec-title rq-upd-title" id="ogStepsHead">Steps</h3>' +
       '<div class="hs-list og-steps" id="ogSteps"></div>' +
       '<div id="ogDoneWrap"></div>' +
       '<div id="ogAct"></div>' +
-      '<div class="rq-own" id="ogOwn"></div>');
+      '<div class="rq-own" id="ogOwn"></div>' +
+      '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
+      '<div class="rq-tl" id="ogTimeline"><p class="rq-empty">Loading…</p></div>' +
+      (ogCanPost(ogGet(oid)) ? rqComposerHtml() : ''));
     var mark = sh.querySelector('#ogState'), doneOpen = false;
     function paint(){
       var o = ogGet(oid);
@@ -16039,6 +16083,7 @@
         : (!p.total ? 'No steps yet' : (admin ? p.done + ' of ' + p.total + (p.total === 1 ? ' step' : ' steps') + ' done' : 'Your part · ' + p.done + ' of ' + p.total + ' done'));
       mark.className = 'rq-state' + (o.status === 'done' ? ' st-done' : '');
       sh.querySelector('#ogMeta').textContent = o.note ? '“' + o.note + '”' : '';
+      ogWaitInto(sh.querySelector('#ogWait'), o);
       sh.querySelector('#ogStepsHead').textContent = admin ? 'Steps' : 'Your steps';
       var list = sh.querySelector('#ogSteps');
       if (!list.querySelector('.dragging')){
@@ -16077,11 +16122,14 @@
       act.innerHTML = ''; own.innerHTML = '';
       if (admin){
         act.innerHTML = '<div class="ib-actions og-actions">' + (active
-          ? '<button type="button" class="bk-btn gold" id="ogAdd">' + BK_PLUS_SVG + 'Add steps</button><button type="button" class="bk-btn" id="ogFinish">' + CHECK_SVG + 'Mark finished</button>'
+          ? '<button type="button" class="bk-btn gold" id="ogAdd">' + BK_PLUS_SVG + 'Add steps</button>' +
+            (o.waiting ? '' : '<button type="button" class="bk-btn" id="ogWaitBtn">' + UI_ICON.clock + 'Waiting on…</button>') +
+            '<button type="button" class="bk-btn" id="ogFinish">' + CHECK_SVG + 'Mark finished</button>'
           : '<button type="button" class="bk-btn" id="ogReopen">Reopen</button>') + '</div>';
         own.innerHTML = '<button type="button" class="btn-link" id="ogEdit">Edit</button>';
         var on = function(id, fn){ var el = sh.querySelector('#' + id); if (el) el.addEventListener('click', fn); };
         on('ogAdd', function(){ openOngoingSteps(ogGet(oid)); });
+        on('ogWaitBtn', function(){ openOngoingWaiting(ogGet(oid)); });
         on('ogFinish', function(){
           var x = ogGet(oid), left = ogSteps(x).filter(hrOpen).length;
           if (left && !confirm(left + (left === 1 ? ' step is' : ' steps are') + ' still open. Mark “' + x.title + '” finished anyway? Open steps stay as they are.')) return;
@@ -16095,6 +16143,153 @@
     paint();
     home.listRefresh = null;
     home.detailRefresh = function(){ if (!paint()) home.detailRefresh = null; };
+    ogWatchTimeline(oid, sh.querySelector('#ogTimeline'));
+    var ta = sh.querySelector('#rqText'), send = sh.querySelector('#rqSend');
+    if (ta && send){
+      ta.placeholder = 'Add an update…';
+      var size = function(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 140) + 'px'; };
+      ta.addEventListener('input', function(){ send.disabled = !ta.value.trim(); size(); });
+      send.addEventListener('click', function(){
+        var t = ta.value.trim().slice(0, 500), o = ogGet(oid);
+        if (!t || !o) return;
+        send.disabled = true; ta.disabled = true;
+        ogPost(o, 'comment', t, {}, null).then(function(){ ta.value = ''; ta.disabled = false; size(); })
+          .catch(function(e){ console.error('ongoing update failed', e); ta.disabled = false; send.disabled = false; showPinToast('Couldn’t send the update — try again.', true); });
+      });
+    }
+  }
+
+  // ---- an ongoing task's updates, and waiting on someone ----
+  // Updates are a history under the task (…/updates), written by admins and anyone with a
+  // step; everyone who can see the task reads them. "Waiting on" is an admin's note on the
+  // task itself: who, since when, and (optionally) when to chase — with its own entries.
+  function ogCanPost(o){ return !!o && homeOn() && (homeIsAdmin() || (o.participants || []).indexOf(homeMe()) > -1); }
+  function ogPost(o, type, text, meta, patch){
+    var now = new Date().toISOString(), me = homeMe(), ref = dbRef.collection(HOME_ONGOING).doc(o.id), b = dbRef.batch();
+    var sum = type === 'comment' ? text : (type === 'waiting' ? 'Waiting on ' : 'No longer waiting on ') + (meta.on || '');
+    b.update(ref, Object.assign({}, patch || {}, { latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: type,
+      latestUpdateText: String(sum).slice(0, 140), updatedAt: now, updatedByUid: me }));
+    b.set(ref.collection('updates').doc(), { type: type, actorUid: me, text: text || null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(), metadata: meta || {} });
+    return b.commit();
+  }
+  // "chase today", "chase Thursday", "chase was due Mon 26 Oct"
+  function ogChaseWord(d){
+    var t = todayStr();
+    return d < t ? 'chase was due ' + rqDayWord(d) : 'chase ' + rqDayWord(d);
+  }
+  function ogChaseDue(o){ return !!(o && o.status === 'active' && o.waiting && o.waiting.chaseBy && o.waiting.chaseBy <= todayStr()); }
+  function ogWaitInto(el, o){
+    el.innerHTML = '';
+    var w = o.waiting;
+    if (!w || o.status !== 'active') return;
+    var due = ogChaseDue(o);
+    var box = document.createElement('div'); box.className = 'og-wait' + (due ? ' due' : '');
+    box.innerHTML = '<span class="og-wait-ic" aria-hidden="true">' + UI_ICON.clock + '</span><div class="og-wait-body">' +
+      '<span class="og-wait-k">Waiting on</span><span class="og-wait-on"></span><span class="og-wait-m"></span></div>';
+    box.querySelector('.og-wait-on').textContent = w.on;
+    box.querySelector('.og-wait-m').textContent = ['since ' + rqDayWord(w.since), w.chaseBy ? ogChaseWord(w.chaseBy) : '', w.byUid !== homeMe() ? 'set by ' + homeNameOf(w.byUid) : '']
+      .filter(Boolean).join(' · ').replace(/^s/, 'S');
+    if (homeIsAdmin()){
+      var btns = document.createElement('div'); btns.className = 'ib-actions og-wait-btns';
+      btns.innerHTML = '<button type="button" class="bk-btn" id="ogWaitDone">' + CHECK_SVG + 'They replied</button>' +
+        (home.surface === 'owner' ? '<button type="button" class="bk-btn" id="ogChase">Chase today</button>' : '') +
+        '<button type="button" class="bk-btn" id="ogWaitEdit">Change</button>';
+      btns.querySelector('#ogWaitDone').addEventListener('click', function(e){
+        var x = ogGet(o.id); if (!x || !x.waiting) return;
+        e.currentTarget.disabled = true;
+        ogPost(x, 'waiting_cleared', null, { on: x.waiting.on }, { waiting: null })
+          .then(function(){ showPinToast('No longer waiting — add an update if there’s news', false, CHECK_SVG); }).catch(hrFail('update it'));
+      });
+      btns.querySelector('#ogWaitEdit').addEventListener('click', function(){ openOngoingWaiting(ogGet(o.id)); });
+      var ch = btns.querySelector('#ogChase');
+      if (ch) ch.addEventListener('click', function(){ ogChaseToday(ogGet(o.id)); });
+      box.appendChild(btns);
+    }
+    el.appendChild(box);
+  }
+  // Shaun: "Chase Tara" as an Action on today, once
+  function ogChaseToday(o){
+    if (!o || !o.waiting) return;
+    var t = todayStr(), title = ('Chase ' + o.waiting.on + ' — ' + o.title).slice(0, 280);
+    if (commitments.some(function(c){ return c.date === t && c.title === title && c.status !== 'completed'; })){ showPinToast('Already on your day', false, CHECK_SVG); return; }
+    var item = { id: uid(), date: t, originalDate: t, title: title, priorityId: null, minVersion: null, status: 'planned',
+      disruptionReason: null, category: 'family', createdAt: new Date().toISOString() };
+    commitments.push(item);
+    saveCommitment(item);
+    renderAll();
+    showPinToast('On your day: ' + 'Chase ' + o.waiting.on, false, CHECK_SVG);
+  }
+  function openOngoingWaiting(o){
+    if (!o) return;
+    var w = o.waiting, when = w && w.chaseBy ? { kind: 'date', date: w.chaseBy, chosen: true } : { kind: 'none' };
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', w ? 'Waiting on' : 'Waiting on someone', '<span id="owSub"></span>', '') +
+      '<div class="field"><label for="owOn">Who, or what</label><input type="text" id="owOn" maxlength="80" autocomplete="off" placeholder="e.g. Tara at NAS to reply"></div>' +
+      '<div class="field"><label>Chase by <span class="pp-opt">optional</span></label><div class="bk-filter-pop" id="owWhen" role="radiogroup" aria-label="Chase by"></div></div>' +
+      '<div id="owDateField" hidden>' + fieldDate('owDate', 'Date', nextDateStr(todayStr())) + '</div>' +
+      '<div class="field"><label for="owNote">Note <span class="pp-opt">optional</span></label><textarea id="owNote" rows="2" maxlength="500" placeholder="e.g. Sent the email on Monday"></textarea></div>' +
+      '<p class="hn-note">Everyone on the task sees this, and hears about it.</p>' +
+      '<p class="auth-error" id="owErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="owSave">' + (w ? 'Save' : 'Mark as waiting') + '</button>' +
+      '<button type="button" class="btn-quiet" id="owBack">Back</button>');
+    sh.querySelector('#owSub').textContent = o.title;
+    var on = sh.querySelector('#owOn'), save = sh.querySelector('#owSave'), err = sh.querySelector('#owErr');
+    on.value = w ? w.on : '';
+    if (when.kind === 'date') sh.querySelector('#owDate').value = when.date;
+    hbWhenChips(sh.querySelector('#owWhen'), sh.querySelector('#owDateField'), sh.querySelector('#owDate'), function(){ return when; }, function(x){ when = x; });
+    sh.querySelector('#owBack').addEventListener('click', function(){ openHomeOngoing(o.id); });
+    save.addEventListener('click', function(){
+      var who = on.value.trim().slice(0, 80), note = sh.querySelector('#owNote').value.trim().slice(0, 500), x = ogGet(o.id);
+      if (!who){ err.textContent = 'Say who or what it’s waiting on.'; on.focus(); return; }
+      if (!x || x.status !== 'active'){ err.textContent = 'This ongoing task is finished — reopen it first.'; return; }
+      if (!dbRef || !homeOn()){ err.textContent = 'You’re offline — try again when you’re connected.'; return; }
+      var chase = when.kind === 'today' ? todayStr() : (when.kind === 'date' ? (sh.querySelector('#owDate').value || when.date) : null);
+      if (when.kind === 'date' && !chase){ err.textContent = 'Choose a date.'; return; }
+      var prev = x.waiting;
+      if (prev && prev.on === who && (prev.chaseBy || null) === chase && !note){ openHomeOngoing(o.id); return; }
+      save.disabled = true; err.textContent = '';
+      var waiting = { on: who, since: prev && prev.on === who ? prev.since : todayStr(), chaseBy: chase, byUid: homeMe() };
+      ogPost(x, 'waiting', note || null, { on: who, chaseBy: chase }, { waiting: waiting }).then(function(){
+        showPinToast('Waiting on ' + who + (chase ? ' · ' + ogChaseWord(chase) : ''), false, CHECK_SVG);
+        openHomeOngoing(o.id);
+      }).catch(function(e){ console.error('ongoing waiting failed', e); save.disabled = false; err.textContent = 'Couldn’t save it — check your connection and try again.'; });
+    });
+    setTimeout(function(){ try { if (!w) on.focus(); } catch(e){} }, 60);
+  }
+  function ogEventText(e){
+    var m = e.metadata || {};
+    if (e.type === 'waiting') return 'Waiting on ' + (m.on || 'someone') + (m.chaseBy ? ' · ' + ogChaseWord(m.chaseBy).replace('chase was due', 'chase by') : '');
+    if (e.type === 'waiting_cleared') return 'No longer waiting on ' + (m.on || 'them');
+    return '';
+  }
+  function ogWatchTimeline(oid, el){
+    if (rqTimelineStop){ rqTimelineStop(); rqTimelineStop = null; }
+    var stop = dbRef.collection(HOME_ONGOING).doc(oid).collection('updates').onSnapshot(function(snap){
+      var shown = document.body.contains(el) && !!el.closest('.sheet-backdrop.open');
+      if (!shown){ stop(); if (rqTimelineStop === stop) rqTimelineStop = null; return; }
+      var evs = snap.docs.map(function(d){
+        var x = d.data({ serverTimestamps: 'estimate' }) || {};
+        x.at = x.createdAt && x.createdAt.toDate ? x.createdAt.toDate() : new Date(x.createdAt || Date.now());
+        return x;
+      }).sort(function(a, b){ return a.at - b.at; });
+      el.innerHTML = '';
+      if (!evs.length){ var em = document.createElement('p'); em.className = 'rq-empty'; em.textContent = 'No updates yet — say where it stands, or what you’re waiting on.'; el.appendChild(em); }
+      evs.forEach(function(e){
+        var item = document.createElement('div');
+        var when = document.createElement('span'); when.className = 'rq-when'; when.textContent = rqWhen(e.at);
+        var head = document.createElement('div'); head.className = 'rq-ev-head';
+        var w = document.createElement('span'); w.className = 'rq-who'; w.textContent = homeWho(e.actorUid);
+        item.className = 'rq-ev human' + (e.type !== 'comment' ? ' og-ev-wait' : '') + (e.actorUid === homeMe() ? ' self' : '');
+        head.appendChild(w); head.appendChild(when); item.appendChild(head);
+        if (e.type !== 'comment'){ var st = document.createElement('p'); st.className = 'og-ev-state'; st.textContent = ogEventText(e); item.appendChild(st); }
+        if (e.text){ var p = document.createElement('p'); p.className = 'rq-text'; p.textContent = e.text; item.appendChild(p); }
+        el.appendChild(item);
+      });
+    }, function(err){
+      console.warn('ongoing updates unavailable', err && err.code);
+      if (document.body.contains(el)){ el.innerHTML = ''; var p = document.createElement('p'); p.className = 'rq-empty'; p.textContent = 'Updates aren’t available right now.'; el.appendChild(p); }
+    });
+    rqTimelineStop = stop;
   }
   // the open steps in the order an admin dragged them; done or unseen steps keep their place after
   function ogReorder(o, ids){
@@ -16558,7 +16753,7 @@
     return hrWrite(r, { assigneeUid: toUid, participants: parts, status: 'requested', plannedDate: null, linkedActionId: null, linkedByUid: null, cantDoReason: null },
       'reassigned', null, { fromUid: r.assigneeUid, toUid: toUid })
       .then(function(){
-        showPinToast('Passed to ' + homeNameOf(toUid), false, CHECK_SVG);
+        showPinToast(toUid === homeMe() ? 'It’s yours now' : 'Passed to ' + homeNameOf(toUid), false, CHECK_SVG);
         // a step: its new person sees the ongoing task it's part of (an admin keeps that list)
         var o = hrOngoing(r);
         if (o && homeIsAdmin() && (o.participants || []).indexOf(toUid) === -1) ogWrite(o, { participants: homeUids((o.participants || []).concat([toUid])) }).catch(function(e){ console.warn('ongoing people', e && e.code); });
@@ -16652,7 +16847,8 @@
     if (e.type === 'dismissed') return 'Set aside';
     if (e.type === 'withdrawn') return who + (who === 'You' ? ' withdrew it' : ' withdrew it');
     if (e.type === 'cant_do') return who + (who === 'You' ? ' can’t do it' : ' can’t do it') + (e.text ? ': “' + e.text + '”' : '');
-    if (e.type === 'reassigned') return who + ' passed it to ' + (m.toUid === homeMe() ? 'you' : homeNameOf(m.toUid));
+    if (e.type === 'reassigned') return m.toUid === e.actorUid ? who + ' took it on from ' + (m.fromUid === homeMe() ? 'you' : homeNameOf(m.fromUid))
+      : who + ' passed it to ' + (m.toUid === homeMe() ? 'you' : homeNameOf(m.toUid));
     if (e.type === 'visibility') return m.visibility === 'home' ? 'Shared with everyone at Home' : 'Made private to the people in it';
     if (e.type === 'edited') return who + ' edited it' + (m.fromText ? ' — it said “' + m.fromText + '”' : (m.timing === 'none' ? ' — no date now' : ''));
     if (e.type === 'deleted') return 'Deleted';
@@ -17048,7 +17244,8 @@
   }
   function escHome(t){ return String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function openHomePass(r){
-    var people = homeActiveMembers().filter(function(m){ return m.uid !== r.assigneeUid && m.uid !== r.requesterUid; });
+    // anyone else at Home; back to whoever asked only when that's you, taking it on yourself
+    var people = homeMeFirst(homeActiveMembers().filter(function(m){ return m.uid !== r.assigneeUid && (m.uid !== r.requesterUid || m.uid === homeMe()); }));
     var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'Pass it on', '<span id="hpWhat"></span>', '') +
       (people.length ? '<div class="act-rows" id="hpPassList"></div>' : '<p class="rq-empty">There’s nobody else to pass it to.</p>') +
       '<button type="button" class="btn-quiet" id="hpBack">Back</button>');
@@ -17287,6 +17484,10 @@
     if (deepLinkHandled || !DEEP.home || !home.reqLoaded) return;
     var id = DEEP.home; DEEP.home = null;
     if (id === 'all') openHomeSheet();          // several at once: the Home screen itself
+    else if (/^og-/.test(id)){                    // an ongoing task: wait for it to arrive
+      if (!ogGet(id.slice(3))){ DEEP.home = id; startDeepLinkClock(); return; }
+      openHomeOngoing(id.slice(3));
+    }
     else if (homeReq(id)) openHomeDetail(id);
     deepLinkDone();
   }
@@ -27114,6 +27315,7 @@
   //   ?request=<id>      a Partner Request and its Updates (owner or partner)
   //   ?view=today|week   the partner's shared view
   //   ?home=<id>|all     a Home request, or the Home screen (a list sent in one go)
+  //   ?home=og-<id>      an ongoing task at Home (an update on it)
   // Query strings on the root page, so a link opened cold, refreshed, or followed from a
   // notification is always the same static file on every host — there is no route to
   // 404. Each waits for sign-in and its data, then opens once and leaves the address bar

@@ -1,4 +1,4 @@
-// Ledger — Home: the push engine's handleHomeUpdate and the migration (functions/migrate.js),
+// Ledger — Home: the push engine's handleHomeUpdate, handleOngoingUpdate and the migration (functions/migrate.js),
 // against the Firestore emulator.
 //
 //   cd functions && npm install
@@ -208,6 +208,31 @@ const fire = (rid, u) => engine.handleHomeUpdate({ update: u, requestId: rid, up
   reset();
   for (const e of hist) await engine.handleHomeUpdate({ update: e, requestId: 'old1', updateId: 'mig_' + e.id, appUrl: APP });
   check(sent.length === 0, 'history copied in by the move notifies nobody');
+
+  // ---- an ongoing task's updates (handleOngoingUpdate) ----
+  await db.doc('ledger_notification_prefs/shaun').set({ homeOversight: false });
+  await db.doc('ledger_notification_prefs/abi').set({ homeOversight: false });
+  await db.doc('ledger_home_ongoing/og1').set({ homeId: 'shaun', title: 'Kitchen refit', createdByUid: 'shaun', participants: ['shaun', 'maria'], visibility: 'private', status: 'active' });
+  const og = (u, id) => engine.handleOngoingUpdate({ update: u, ongoingId: 'og1', updateId: id || 'o' + (++n), appUrl: APP, vapidPublicKey: KEY });
+  reset(); await og({ type: 'comment', actorUid: 'maria', text: 'Measured the worktop' });
+  check(who() === 'shaun' && to('shaun').length === 2 && to('shaun')[0].payload.title === 'Maria updated “Kitchen refit”' && to('shaun')[0].payload.body === 'Measured the worktop'
+    && to('shaun')[0].payload.url === APP + '?home=og-og1' && to('shaun')[0].payload.tag === 'ledger-ongoing-og1',
+    'ongoing: Maria adds an update → Shaun (both devices), opening the task; never Maria', sent.map((s) => s.payload));
+  reset(); await og({ type: 'waiting', actorUid: 'shaun', text: 'Sent the email', metadata: { on: 'Tara at NAS', chaseBy: '2026-10-30' } });
+  check(who() === 'maria' && to('maria')[0].payload.body === 'Waiting on Tara at NAS · chase Fri 30 Oct — Sent the email', 'ongoing: Shaun: waiting on Tara, chase Friday → Maria', sent.map((s) => s.payload.body));
+  reset(); await og({ type: 'waiting_cleared', actorUid: 'shaun', text: null, metadata: { on: 'Tara at NAS' } });
+  check(to('maria')[0] && to('maria')[0].payload.body === 'No longer waiting on Tara at NAS', 'ongoing: …and when it no longer is', sent.map((s) => s.payload.body));
+  reset(); await og({ type: 'comment', actorUid: 'shaun', text: 'Quotes in' });
+  check(who() === 'maria', 'ongoing: Abi (admin, not on it, not following) hears nothing');
+  await db.doc('ledger_notification_prefs/abi').set({ homeOversight: true });
+  reset(); await og({ type: 'comment', actorUid: 'shaun', text: 'Quotes in' });
+  check(who() === 'abi,maria', 'ongoing: …until she follows Home', who());
+  reset(); await og({ type: 'waiting', actorUid: 'maria', metadata: { on: 'x' } });
+  check(sent.length === 0, 'ongoing: a waiting entry from someone not an admin is ignored');
+  reset(); await og({ type: 'comment', actorUid: 'ex', text: 'hi' });
+  check(sent.length === 0, 'ongoing: someone no longer at Home is ignored');
+  reset(); await og({ type: 'comment', actorUid: 'maria', text: 'once' }, 'same'); await og({ type: 'comment', actorUid: 'maria', text: 'once' }, 'same');
+  check(to('shaun').length === 2, 'ongoing: a retried trigger sends once', to('shaun').length);
   console.log('\n' + passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

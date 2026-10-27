@@ -689,6 +689,14 @@ async function check(name, fn){
   await check('pass: nobody drops out of it', () => assertFails(act(owner, 'hr2', pass('owner1', 'nanny1', ['owner1', 'nanny1']))));
   await check('pass: the nanny cannot pass on what is not hers', () => assertFails(act(nanny, 'hr3', pass('nanny1', 'nanny1', ['partner1', 'owner1', 'nanny1']))));
   await check('pass: an admin passes work on (Shaun → Abi takes the nanny\'s)', () => assertSucceeds(act(owner, 'n1', pass('owner1', 'partner1', ['nanny1', 'owner1', 'partner1']), entry('owner1', 'reassigned', { fromUid: 'owner1', toUid: 'partner1' }))));
+  // taking back what you asked: only yourself, never handing it back to someone else's asker
+  await check('pass: setup — Shaun asks Abi, and the nanny something', async () => {
+    await asks(owner, 'tk1', ask({ requesterUid: 'owner1', assigneeUid: 'partner1', createdByUid: 'owner1', participants: ['owner1', 'partner1'] }), 'owner1');
+    await asks(owner, 'tk2', ask({ requesterUid: 'owner1', assigneeUid: 'nanny1', createdByUid: 'owner1', participants: ['owner1', 'nanny1'] }), 'owner1');
+  });
+  await check('pass: Shaun (who asked) takes it on himself', () => assertSucceeds(act(owner, 'tk1', pass('owner1', 'owner1', ['owner1', 'partner1']), entry('owner1', 'reassigned', { fromUid: 'partner1', toUid: 'owner1' }))));
+  await check('pass: the nanny never hands it back to whoever asked', () => assertFails(act(nanny, 'tk2', pass('nanny1', 'owner1', ['owner1', 'nanny1']))));
+  await check('pass: an admin never hands it back to someone else who asked', () => assertFails(act(partner, 'tk2', pass('partner1', 'owner1', ['owner1', 'nanny1']))));
   await check('pass: a "reassigned" entry only in the write that passes it', () => assertFails(nanny.collection(HR + '/n1/updates').add(entry('nanny1', 'reassigned', { fromUid: 'nanny1', toUid: 'partner1' }))));
   // who can see it, comments, read marks
   await check('visibility: its creator shares it with the whole Home', () => assertSucceeds(act(nanny, 'hr4', Object.assign({ visibility: 'home' }, sumBy('nanny1', 'visibility')), entry('nanny1', 'visibility', { visibility: 'home' }))));
@@ -831,6 +839,38 @@ async function check(name, fn){
   await check('ongoing: Shaun marks it finished', () => assertSucceeds(owner.doc(OG + '/og1').update({ status: 'done', doneAt: 'now', updatedAt: 'now', updatedByUid: 'owner1' })));
   await check('step: never added to a finished one', () => assertFails(asks(owner, 'st6', step('owner1', 'nanny1', 'og1'), 'owner1')));
   await check('ongoing: …and it can be reopened', () => assertSucceeds(owner.doc(OG + '/og1').update({ status: 'active', doneAt: null, updatedAt: 'now', updatedByUid: 'owner1' })));
+  // waiting on someone, and updates
+  const W = (by, o) => Object.assign({ on: 'Tara at NAS', since: '2026-10-27', chaseBy: '2026-10-30', byUid: by }, o || {});
+  const ogSum = (by, type, text) => ({ latestUpdateAt: 'now', latestUpdateByUid: by, latestUpdateType: type, latestUpdateText: text, updatedAt: 'now', updatedByUid: by });
+  async function ogAct(db, id, patch, e){ const b = db.batch(); b.update(db.doc(OG + '/' + id), patch); if (e) b.set(db.collection(OG + '/' + id + '/updates').doc(), e); return b.commit(); }
+  await check('ongoing: never started waiting', () => assertFails(owner.doc(OG + '/og10').set(og('owner1', { waiting: W('owner1') }))));
+  await check('ongoing: a private one, just Shaun\'s', () => assertSucceeds(owner.doc(OG + '/og10').set(og('owner1'))));
+  await check('waiting: Shaun says it\'s waiting on Tara, chase Thursday', () => assertSucceeds(ogAct(owner, 'og1', Object.assign({ waiting: W('owner1') }, ogSum('owner1', 'waiting', 'Waiting on Tara at NAS')), entry('owner1', 'waiting', { on: 'Tara at NAS', chaseBy: '2026-10-30' }, 'Sent the email'))));
+  await check('waiting: never as someone else', () => assertFails(owner.doc(OG + '/og1').update(Object.assign({ waiting: W('partner1', { on: 'Tara' }) }, ogSum('owner1', 'waiting', 'x')))));
+  await check('waiting: who, at most 80', () => assertFails(owner.doc(OG + '/og1').update({ waiting: W('owner1', { on: 'x'.repeat(81) }), updatedAt: 'now', updatedByUid: 'owner1' })));
+  await check('waiting: a real date to chase by', () => assertFails(owner.doc(OG + '/og1').update({ waiting: W('owner1', { chaseBy: 'Thursday' }), updatedAt: 'now', updatedByUid: 'owner1' })));
+  await check('waiting: only its own fields', () => assertFails(owner.doc(OG + '/og1').update({ waiting: W('owner1', { extra: 1 }), updatedAt: 'now', updatedByUid: 'owner1' })));
+  await check('waiting: Abi edits the task while Shaun\'s waiting stands', () => assertSucceeds(partner.doc(OG + '/og1').update({ note: 'Quotes by Friday', updatedAt: 'now', updatedByUid: 'partner1' })));
+  await check('waiting: the nanny cannot set it', () => assertFails(ogAct(nanny, 'og9', Object.assign({ waiting: W('nanny1') }, ogSum('nanny1', 'comment', 'x')))));
+  await check('waiting: …nor write a waiting entry', () => assertFails(nanny.collection(OG + '/og9/updates').add(entry('nanny1', 'waiting', { on: 'Tara' }))));
+  await check('waiting: Abi clears it — they replied', () => assertSucceeds(ogAct(partner, 'og1', Object.assign({ waiting: null }, ogSum('partner1', 'waiting_cleared', 'No longer waiting on Tara at NAS')), entry('partner1', 'waiting_cleared', { on: 'Tara at NAS' }, 'She replied'))));
+  await check('update: the nanny (with a step) adds an update', () => assertSucceeds(ogAct(nanny, 'og9', ogSum('nanny1', 'comment', 'Measured the worktop'), entry('nanny1', 'comment', {}, 'Measured the worktop'))));
+  await check('update: …never signed as someone else', () => assertFails(nanny.doc(OG + '/og9').update(ogSum('owner1', 'comment', 'x'))));
+  await check('update: …and changes nothing else on the task', () => assertFails(nanny.doc(OG + '/og9').update(Object.assign({ title: 'Mine now' }, ogSum('nanny1', 'comment', 'x')))));
+  await check('update: …its summary at most 140', () => assertFails(nanny.doc(OG + '/og9').update(ogSum('nanny1', 'comment', 'x'.repeat(141)))));
+  await check('update: …never an empty one', () => assertFails(nanny.collection(OG + '/og9/updates').add(entry('nanny1', 'comment', {}, ''))));
+  await check('update: …never as someone else', () => assertFails(nanny.collection(OG + '/og9/updates').add(entry('owner1', 'comment', {}, 'hi'))));
+  await check('update: a shared task she has no step in: she reads, but does not post', () => assertFails(nanny.collection(OG + '/og2/updates').add(entry('nanny1', 'comment', {}, 'hi'))));
+  await check('update: …and reads its updates', () => assertSucceeds(nanny.collection(OG + '/og2/updates').get()));
+  await check('update: she reads the updates of one she is in', () => assertSucceeds(nanny.collection(OG + '/og9/updates').get()));
+  await check('update: …never of one she cannot see', () => assertFails(nanny.collection(OG + '/og10/updates').get()));
+  await check('update: someone not at Home reads none', () => assertFails(nanny2.collection(OG + '/og9/updates').get()));
+  await check('update: Abi (admin) posts on any', () => assertSucceeds(ogAct(partner, 'og10', ogSum('partner1', 'comment', 'Called the plumber'), entry('partner1', 'comment', {}, 'Called the plumber'))));
+  await check('update: never changed or removed', async () => {
+    const q = await owner.collection(OG + '/og9/updates').get();
+    await assertFails(owner.doc(OG + '/og9/updates/' + q.docs[0].id).update({ text: 'Changed' }));
+    return assertFails(owner.doc(OG + '/og9/updates/' + q.docs[0].id).delete());
+  });
   // occurrences: made by the server (Admin SDK); here, what people may do with them
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();

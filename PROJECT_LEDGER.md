@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-27 (Claude in Ledger phase 1 built; live once the key is saved and Firebase deployed)
+Last updated: 2026-10-27 (Home: pass to yourself, ongoing updates and Waiting on; Claude in Ledger phase 1 built)
 
 ---
 
@@ -747,6 +747,20 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-27 — Home: pass to yourself; updates and "Waiting on" for ongoing tasks (Shaun's answers)
+- **Pass it on** offers **Me** to whoever asked. This is the only way a request goes back
+  to its asker; the rule allows it only when the asker takes it on themselves.
+- **Ongoing tasks have Updates:**
+  - admins and anyone with a step post them;
+  - everyone who can see the task reads them;
+  - everyone on the task hears them; admins not on it hear only if they follow Home.
+- **"Waiting on"** lives on the ongoing task, not on its steps. It holds who, since when,
+  and an optional chase date.
+  - Admins set it and clear it ("They replied").
+  - On the chase date the task shows in Home's Today for admins, and Shaun can put
+    "Chase …" on his day.
+- See `docs/HOME_ONGOING.md` §8.
 
 ### 2026-10-27 — Claude in Ledger phase 1: how it is built
 - **The + button** is on every tab and offers **Ask Claude** and **Quick add**. Quick add
@@ -2349,7 +2363,11 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (switch on and try)
+Owner: Shaun (deploy and try)
+**Newest, 2026-10-27:** Home, built and tested; needs "Deploy Firebase", everything.
+- Pass it on → Me.
+- Ongoing tasks: Updates, Waiting on, and a chase date.
+
 Status: **Claude in Ledger phase 1 built 2026-10-27** (`docs/CLAUDE_ASSISTANT.md` §11).
 It covers Actions and the Food Plan, via + → Ask Claude, with review and Undo.
 - **Shaun:**
@@ -2533,6 +2551,17 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Home: pass to yourself; ongoing Updates and "Waiting on".**
+  (Logged in Decisions.)
+  - **Tests, all passing:**
+    - rules: 651;
+    - functions: Home 55, push 59;
+    - Home e2e: 287 (new H22);
+    - Partner: 209;
+    - native shell: 67;
+    - Ask Claude: 33;
+    - execution: 81.
+  - **Deploy:** rules and the new `onOngoingUpdateCreated` function.
 - (2026-10-27) — **Claude in Ledger, phase 1.** (Logged in Decisions.)
   - **What:** the `assistant` function, its rules, the + menu, the Ask Claude sheet, and
     the review card with Apply, held rows and Undo.

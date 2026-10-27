@@ -9,6 +9,7 @@
 //   ledger_pins/{id} (created)                    → the owner's devices (Pin now)
 //   ledger_home_requests/{id}/updates/{u} (created) → the people the request involves
 //   ledger_home_batches/{id} (created)            → each person a list was for, once
+//   ledger_home_ongoing/{id}/updates/{u} (created) → everyone on the ongoing task
 //
 // And three that are not pushes: ledger_meta/homeMigration, written by the owner, moves his
 // Partner Sharing requests into Home (migrate.js); and recurring responsibilities at Home
@@ -124,6 +125,17 @@ exports.onHomeUpdateCreated = onDocumentCreated(
       update: event.data.data() || {}, requestId: event.params.requestId, updateId: event.params.updateId
     }, common()));
     report('home request push', result);
+  }
+);
+
+exports.onOngoingUpdateCreated = onDocumentCreated(
+  { document: 'ledger_home_ongoing/{ongoingId}/updates/{updateId}', secrets: [VAPID_PRIVATE_KEY] },
+  async (event) => {
+    if (!event.data) return;
+    const result = await engine().handleOngoingUpdate(Object.assign({
+      update: event.data.data() || {}, ongoingId: event.params.ongoingId, updateId: event.params.updateId
+    }, common()));
+    report('ongoing update push', result);
   }
 );
 

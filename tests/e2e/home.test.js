@@ -948,6 +948,97 @@ async function oobLink(email){
     check(S.errs.length === 0, 'H21 no page errors (Shaun)', S.errs.join(' | '));
   }
 
+  // H22 — passing a step to yourself; an ongoing task's updates; waiting on someone, with a chase date
+  {
+    const OG = 'ledger_home_ongoing';
+    const sheetOpen = (p, sel) => until(p, (sel) => { const e = document.querySelector(sel); return !!e && !!e.closest('.sheet-backdrop.open'); }, sel);
+    const closeS = () => S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
+    const openGarden = async () => { await goHome(S); await S.evaluate(() => [...document.querySelectorAll('#view-home .og-row')].find(r => /Sort out the garden/.test(r.innerText)).click()); return sheetOpen(S, '#ogSteps'); };
+    const garden = (await all(OG)).find(o => o.title === 'Sort out the garden');
+    // a step Shaun wrote for Abi; he takes it on himself
+    check(await openGarden(), 'H22 Shaun opens Sort out the garden');
+    await S.click('#ogAdd'); await S.waitForSelector('#ogsText');
+    await S.fill('#ogsText', 'Call the landscaper'); check(await chip(S, '#ogsFor', 'Abi'), 'H22 a step for Abi');
+    await S.click('#ogsSave');
+    check(await until(S, () => [...document.querySelectorAll('#ogSteps .og-step')].some(r => /Call the landscaper/.test(r.innerText))), 'H22 …in the task');
+    await S.evaluate(() => [...document.querySelectorAll('#ogSteps .og-step .hs-row-body')].find(b => /Call the landscaper/.test(b.innerText)).click());
+    await until(S, () => !!document.getElementById('hdPass')); await S.click('#hdPass');
+    check(await until(S, () => { const r = [...document.querySelectorAll('#hpPassList .act-label')].map(e => e.textContent); return r[0] === 'Me' && r.indexOf('Abi') === -1; }),
+      'H22 Pass it on offers Me first (he asked for it, so only he may take it back), never Abi again');
+    await S.screenshot({ path: `${shots}/${tag}-H22-pass-me.png` });
+    await S.evaluate(() => [...document.querySelectorAll('#hpPassList .act-row')].find(b => b.textContent === 'Me' || /Me/.test(b.innerText)).click());
+    let land = null;
+    for (let k = 0; k < 30 && !(land && land.assigneeUid === owner); k++){ await sleep(300); land = await reqByText('Call the landscaper'); }
+    check(land && land.assigneeUid === owner && land.requesterUid === owner && land.status === 'requested', 'H22 stored: his now, still waiting to be done');
+    check(await until(S, () => /You took it on from Abi/.test((document.getElementById('hdTimeline') || {}).innerText || '') && !!document.getElementById('hdToday')),
+      'H22 its history: "You took it on from Abi"; Today is offered');
+    await closeS(); await sleep(300);
+    // waiting on someone, chase today
+    check(await openGarden(), 'H22 back to the task');
+    check(await until(S, () => !!document.getElementById('ogWaitBtn')), 'H22 an admin has "Waiting on…"');
+    await S.click('#ogWaitBtn'); await S.waitForSelector('#owOn');
+    await S.fill('#owOn', 'Tara at NAS'); check(await chip(S, '#owWhen', 'Today'), 'H22 chase today');
+    await S.fill('#owNote', 'Sent the email on Monday');
+    await S.screenshot({ path: `${shots}/${tag}-H22-waiting-form.png` });
+    await S.click('#owSave');
+    check(await sheetOpen(S, '.og-wait'), 'H22 the task shows what it\'s waiting on');
+    check(await S.evaluate(() => /Tara at NAS/.test(document.querySelector('.og-wait-on').textContent) && /Since today · chase today/.test(document.querySelector('.og-wait-m').textContent) && document.querySelector('.og-wait').classList.contains('due') && !document.getElementById('ogWaitBtn')),
+      'H22 "Waiting on Tara at NAS · Since today · chase today", marked due');
+    await sleep(500);
+    let g = (await all(OG)).find(o => o.id === garden.id);
+    check(g.waiting && g.waiting.on === 'Tara at NAS' && g.waiting.since === TODAY && g.waiting.chaseBy === TODAY && g.waiting.byUid === owner && g.latestUpdateType === 'waiting',
+      'H22 stored on the task: who, since, chase, by Shaun', JSON.stringify(g.waiting));
+    let ents = await all(`${OG}/${garden.id}/updates`);
+    check(ents.some(e => e.type === 'waiting' && e.actorUid === owner && e.text === 'Sent the email on Monday' && e.metadata.on === 'Tara at NAS'), 'H22 …and in its updates, with the note');
+    check(await until(S, () => /Waiting on Tara at NAS · chase today/.test(document.getElementById('ogTimeline').innerText) && /Sent the email on Monday/.test(document.getElementById('ogTimeline').innerText)),
+      'H22 its Updates: "Waiting on Tara at NAS · chase today" and the note');
+    // an update
+    await S.fill('#rqText', 'Two quotes are in'); await S.click('#rqSend');
+    check(await until(S, () => /Two quotes are in/.test(document.getElementById('ogTimeline').innerText)), 'H22 Shaun adds an update');
+    await S.screenshot({ path: `${shots}/${tag}-H22-ongoing.png`, fullPage: true });
+    // chase today → an Action on his day
+    await S.click('#ogChase');
+    let chase = null;
+    for (let k = 0; k < 20 && !chase; k++){ await sleep(300); chase = (await all('ledger_commitments')).find(c => c.title === 'Chase Tara at NAS — Sort out the garden'); }
+    check(chase && chase.date === TODAY && chase.status === 'planned', 'H22 Chase today → "Chase Tara at NAS — Sort out the garden" on today');
+    await S.click('#ogChase'); await sleep(500);
+    check((await all('ledger_commitments')).filter(c => c.title === 'Chase Tara at NAS — Sort out the garden').length === 1, 'H22 …once');
+    await closeS(); await sleep(300);
+    // Home: due in Today, and the task row says so
+    check(await until(S, () => [...document.querySelectorAll('#view-home .og-chase-row')].some(r => /Chase Tara at NAS/.test(r.innerText) && /Sort out the garden/.test(r.innerText))), 'H22 Home → Today: "Chase Tara at NAS · Sort out the garden"');
+    check(await until(S, () => [...document.querySelectorAll('#view-home .og-sec .og-row')].some(r => /Sort out the garden/.test(r.innerText) && /Waiting on Tara at NAS · chase today/.test(r.innerText) && r.classList.contains('og-due'))),
+      'H22 …and in Ongoing: "Waiting on Tara at NAS · chase today"');
+    await S.screenshot({ path: `${shots}/${tag}-H22-home.png`, fullPage: true });
+    // Abi (admin, on the task) sees it all and adds an update
+    await goHome(A);
+    await until(A, () => [...document.querySelectorAll('#ppHomeScreen .og-row')].some(r => /Sort out the garden/.test(r.innerText)), null, 15000);
+    await A.evaluate(() => [...document.querySelectorAll('#ppHomeScreen .og-sec .og-row')].find(r => /Sort out the garden/.test(r.innerText)).click());
+    check(await sheetOpen(A, '.og-wait'), 'H22 Abi sees it\'s waiting on Tara');
+    check(await until(A, () => /Two quotes are in/.test(document.getElementById('ogTimeline').innerText) && /Shaun/.test(document.getElementById('ogTimeline').innerText) && /Waiting on Tara/.test(document.getElementById('ogTimeline').innerText)), 'H22 …and Shaun\'s updates');
+    check(!(await A.$('#ogChase')), 'H22 "Chase today" is only on Shaun\'s day, not in Abi\'s portal');
+    await A.fill('#rqText', 'I can call her tomorrow'); await A.click('#rqSend');
+    check(await until(S, () => true) && await (async () => { for (let k = 0; k < 20; k++){ await sleep(300); g = (await all(OG)).find(o => o.id === garden.id); if (g.latestUpdateText === 'I can call her tomorrow') return true; } return false; })(),
+      'H22 Abi\'s update reaches the task');
+    await A.evaluate(() => { const x = document.querySelector('#ppBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    // they replied
+    check(await openGarden(), 'H22 Shaun opens it again');
+    check(await until(S, () => /I can call her tomorrow/.test(document.getElementById('ogTimeline').innerText)), 'H22 Abi\'s update is there');
+    await S.click('#ogWaitDone');
+    check(await until(S, () => !document.querySelector('#ogWait .og-wait') && !!document.getElementById('ogWaitBtn')), 'H22 They replied → no longer waiting; "Waiting on…" is back');
+    check(await until(S, () => /No longer waiting on Tara at NAS/.test(document.getElementById('ogTimeline').innerText)), 'H22 its Updates say so');
+    await sleep(400);
+    g = (await all(OG)).find(o => o.id === garden.id);
+    check(g.waiting === null && g.latestUpdateType === 'waiting_cleared', 'H22 stored: waiting cleared');
+    await closeS(); await sleep(300);
+    check(await until(S, () => ![...document.querySelectorAll('#view-home .og-chase-row')].length), 'H22 …and it leaves Today');
+    // a notification's link opens the task
+    await S.goto(APP + '?home=og-' + garden.id);
+    check(await until(S, () => { const e = document.getElementById('ogSteps'); return !!e && !!e.closest('.sheet-backdrop.open') && /Sort out the garden/.test(document.getElementById('ogTitle').textContent); }, null, 25000),
+      'H22 ?home=og-<id> (a notification) opens the ongoing task');
+    await closeS(); await sleep(300);
+    check(S.errs.length === 0 && A.errs.length === 0, 'H22 no page errors', S.errs.concat(A.errs).join(' | '));
+  }
+
   // H11 — the partner portal still does what it did
   await A.click('[data-pp-tab="today"]'); await sleep(300);
   check(await A.evaluate(() => /Nothing shared for today yet/.test(document.getElementById('partnerApp').innerText)), 'H11 Abi\'s shared day is untouched');

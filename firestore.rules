@@ -352,7 +352,8 @@ service cloud.firestore {
               && keys.hasOnly(['assigneeUid', 'participants', 'status',
                    'plannedDate', 'linkedActionId', 'linkedByUid', 'cantDoReason', 'processedAt'].concat(summaryKeys()))
               && n.assigneeUid != o.assigneeUid
-              && n.assigneeUid != o.requesterUid
+              // back to whoever asked only when they take it on themselves
+              && (n.assigneeUid != o.requesterUid || n.assigneeUid == request.auth.uid)
               && activeIn(n.assigneeUid, o.homeId)
               && n.participants.hasAll(o.participants)
               && n.participants.hasOnly(o.participants.concat([n.assigneeUid]))
@@ -559,7 +560,10 @@ service cloud.firestore {
     }
     function ongoingShape(d) {
       return d.keys().hasOnly(['homeId', 'title', 'note', 'why', 'createdByUid', 'visibility', 'participants', 'status',
-                               'stepOrder', 'fromRequestId', 'createdAt', 'updatedAt', 'updatedByUid', 'doneAt'])
+                               'stepOrder', 'fromRequestId', 'createdAt', 'updatedAt', 'updatedByUid', 'doneAt',
+                               'waiting', 'latestUpdateAt', 'latestUpdateByUid', 'latestUpdateType', 'latestUpdateText'])
+          && ongoingWaiting(d.get('waiting', null))
+          && (d.get('latestUpdateText', null) == null || (d.latestUpdateText is string && d.latestUpdateText.size() <= 140))
           && d.title is string && d.title.size() > 0 && d.title.size() <= 280
           && (d.get('note', null) == null || (d.note is string && d.note.size() <= 500))
           && homeWhy(d)
@@ -570,23 +574,64 @@ service cloud.firestore {
           && (d.get('fromRequestId', null) == null || d.fromRequestId is string)
           && d.updatedByUid == request.auth.uid;
     }
+    // waiting on someone outside the task: who (in words), since when, and when to chase
+    function ongoingWaiting(w) {
+      return w == null
+          || (w is map && w.keys().hasOnly(['on', 'since', 'chaseBy', 'byUid'])
+              && w.on is string && w.on.size() > 0 && w.on.size() <= 80
+              && w.since is string && w.since.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+              && (w.get('chaseBy', null) == null || (w.chaseBy is string && w.chaseBy.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
+              && w.byUid is string);
+    }
+    function ongoingSeen(d) {
+      return inHome(d.homeId) && (me().role == 'admin' || request.auth.uid in d.participants || d.visibility == 'home');
+    }
     match /ledger_home_ongoing/{oid} {
-      allow read: if inHome(resource.data.homeId)
-                  && (me().role == 'admin' || request.auth.uid in resource.data.participants || resource.data.visibility == 'home');
+      allow read: if ongoingSeen(resource.data);
       allow create: if oid.matches('^[A-Za-z0-9]{1,40}$')
                     && homeAdmin(request.resource.data.homeId)
                     && request.resource.data.createdByUid == request.auth.uid
                     && request.resource.data.participants.hasAll([request.auth.uid])
                     && request.resource.data.status == 'active'
+                    && request.resource.data.get('waiting', null) == null
                     && ongoingShape(request.resource.data);
-      allow update: if homeAdmin(resource.data.homeId)
-                    && request.resource.data.homeId == resource.data.homeId
-                    && request.resource.data.createdByUid == resource.data.createdByUid
-                    && request.resource.data.createdAt == resource.data.createdAt
-                    && request.resource.data.get('fromRequestId', null) == resource.data.get('fromRequestId', null)
-                    && request.resource.data.participants.hasAll(resource.data.participants)
-                    && ongoingShape(request.resource.data);
+      allow update: if (homeAdmin(resource.data.homeId)
+                        && request.resource.data.homeId == resource.data.homeId
+                        && request.resource.data.createdByUid == resource.data.createdByUid
+                        && request.resource.data.createdAt == resource.data.createdAt
+                        && request.resource.data.get('fromRequestId', null) == resource.data.get('fromRequestId', null)
+                        && request.resource.data.participants.hasAll(resource.data.participants)
+                        // waiting: left as it is, cleared, or set by this admin as themselves
+                        && (request.resource.data.get('waiting', null) == resource.data.get('waiting', null)
+                            || request.resource.data.get('waiting', null) == null
+                            || request.resource.data.waiting.byUid == request.auth.uid)
+                        && ongoingShape(request.resource.data))
+                    // anyone with a step: the summary of the update they just wrote, nothing else
+                    || (inHome(resource.data.homeId) && request.auth.uid in resource.data.participants
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['latestUpdateAt', 'latestUpdateByUid', 'latestUpdateType', 'latestUpdateText', 'updatedAt', 'updatedByUid'])
+                        && request.resource.data.latestUpdateByUid == request.auth.uid
+                        && request.resource.data.updatedByUid == request.auth.uid
+                        && request.resource.data.latestUpdateType == 'comment'
+                        && request.resource.data.latestUpdateText is string && request.resource.data.latestUpdateText.size() <= 140);
       allow delete: if false;
+      // its updates: what anyone on it says, and (admins) waiting on someone and done waiting.
+      // Read by whoever can see the task; never changed or removed.
+      match /updates/{updateId} {
+        allow read: if ongoingSeen(get(ongoingPath(oid)).data);
+        allow create: if request.resource.data.keys().hasOnly(['type', 'actorUid', 'text', 'createdAt', 'metadata'])
+                      && request.resource.data.actorUid == request.auth.uid
+                      && request.resource.data.createdAt == request.time
+                      && (request.resource.data.get('text', null) == null
+                          || (request.resource.data.text is string && request.resource.data.text.size() <= 500))
+                      && request.resource.data.get('metadata', {}) is map
+                      && existsAfter(ongoingPath(oid))
+                      && ((request.resource.data.type == 'comment' && request.resource.data.text is string && request.resource.data.text.size() > 0
+                           && (homeAdmin(getAfter(ongoingPath(oid)).data.homeId)
+                               || (inHome(getAfter(ongoingPath(oid)).data.homeId) && request.auth.uid in getAfter(ongoingPath(oid)).data.participants)))
+                          || (request.resource.data.type in ['waiting', 'waiting_cleared'] && homeAdmin(getAfter(ongoingPath(oid)).data.homeId)));
+        allow update, delete: if false;
+      }
     }
 
     // A list sent in one go: a note to the server that these requests went out together, so

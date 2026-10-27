@@ -55,6 +55,15 @@ function fcmGone(err) {
   return code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token';
 }
 
+// "Thu 30 Oct" from a YYYY-MM-DD date, for a notification
+function dayLabel(d) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d || ''));
+  if (!m) return '';
+  const t = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][t.getUTCDay()] + ' ' + (+m[3]) + ' ' +
+    ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+m[2] - 1];
+}
+
 function clip(text, n) {
   const s = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
   return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s;
@@ -377,6 +386,61 @@ function createEngine(deps) {
     return Object.assign(sum, { results });
   }
 
+  // ---- Home: an update on an ongoing task (ledger_home_ongoing/{id}/updates/{id}) ----
+  // What someone on it says, or (an admin) that it's waiting on someone, or no longer is.
+  // Everyone on the task hears it but whoever wrote it; admins not on it hear it only if
+  // they follow Home. The writer must still be at that Home and able to post there.
+  async function handleOngoingUpdate(ev) {
+    const u = ev.update || {};
+    const oid = ev.ongoingId;
+    if (!oid || typeof oid !== 'string') return { skipped: 'no task' };
+    if (['comment', 'waiting', 'waiting_cleared'].indexOf(u.type) === -1) return { skipped: 'quiet' };
+    const snap = await db.collection('ledger_home_ongoing').doc(oid).get();
+    if (!snap.exists) return { skipped: 'no task' };
+    const o = snap.data() || {};
+    const memberCache = {};
+    async function member(uid) {
+      if (!uid || typeof uid !== 'string') return null;
+      if (!(uid in memberCache)) {
+        const d = await db.collection('ledger_home_members').doc(uid).get();
+        const m = d.exists ? (d.data() || {}) : null;
+        memberCache[uid] = m && m.homeId === o.homeId && m.status === 'active' ? m : null;
+      }
+      return memberCache[uid];
+    }
+    const actor = await member(u.actorUid);
+    if (!actor) return { skipped: 'not at Home' };
+    const people = o.participants || [];
+    if (actor.role !== 'admin' && (u.type !== 'comment' || people.indexOf(u.actorUid) === -1)) return { skipped: 'not on it' };
+    const name = clip(actor.displayName || 'Someone', 40);
+    const md = u.metadata || {};
+    const title = name + ' updated “' + clip(o.title, 60) + '”';
+    let body;
+    if (u.type === 'comment') body = clip(u.text, 140);
+    else if (u.type === 'waiting') body = clip('Waiting on ' + (md.on || 'someone') + (md.chaseBy ? ' · chase ' + dayLabel(md.chaseBy) : '') + (u.text ? ' — ' + u.text : ''), 140);
+    else body = clip('No longer waiting on ' + (md.on || 'them') + (u.text ? ' — ' + u.text : ''), 140);
+    const plan = [];
+    for (const to of new Set(people)) if (to !== u.actorUid) plan.push({ to });
+    const admins = await db.collection('ledger_home_members').where('homeId', '==', o.homeId).where('role', '==', 'admin').get();
+    admins.docs.forEach((d) => {
+      const m = d.data() || {};
+      if (m.status === 'active' && d.id !== u.actorUid && people.indexOf(d.id) === -1) plan.push({ to: d.id, optIn: true });
+    });
+    if (!plan.length) return { skipped: 'quiet' };
+    const eventId = 'ongoing_' + oid + '_' + ev.updateId;
+    if (!(await claimEvent(eventId, { kind: 'ongoing_' + u.type, ongoingId: oid }))) return { skipped: 'duplicate' };
+    const results = [];
+    for (const p of plan) {
+      if (!(await member(p.to)) || !(await userRole(p.to))) continue;
+      if (!(await wants(p.to, p.optIn ? 'homeOversight' : 'partner', !!p.optIn))) continue;
+      const payload = { title, body, url: appLink(ev.appUrl, { home: 'og-' + oid }), tag: 'ledger-ongoing-' + oid, renotify: true, kind: 'home' };
+      results.push(await sendPushToUser(p.to, payload, { urgency: 'normal', ttl: 24 * 3600, vapidPublicKey: ev.vapidPublicKey }));
+    }
+    const sum = { recipients: results.map((x) => x.recipientUid), sent: results.reduce((n, x) => n + x.sent, 0), failed: results.reduce((n, x) => n + x.failed, 0) };
+    await recordEvent(eventId, Object.assign({ status: 'done' }, sum));
+    return Object.assign(sum, { results });
+  }
+
   // ---- Home: a list sent in one go ----
   // ledger_home_batches/{id} names the requests that went out together. Nothing in it is
   // trusted on its own: each id must be a live request at the same Home, created by the
@@ -470,7 +534,7 @@ function createEngine(deps) {
     return result;
   }
 
-  return { sendPushToUser, handleFocusWrite, handleRequestUpdate, handleHomeUpdate, handleHomeBatch, handlePinCreated, claimEvent };
+  return { sendPushToUser, handleFocusWrite, handleRequestUpdate, handleHomeUpdate, handleOngoingUpdate, handleHomeBatch, handlePinCreated, claimEvent };
 }
 
 module.exports = { createEngine, appLink, clip, fcmMessage, channelFor, FOCUS_TAG };
