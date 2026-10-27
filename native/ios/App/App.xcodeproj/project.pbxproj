@@ -21,6 +21,7 @@
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		71334CD1267CF52647C2D176 /* LedgerWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1998778898528DE4D65C5FF /* LedgerWidgetPlugin.swift */; };
 		71DBB6EDC227E89E2DA65AE7 /* LedgerShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = B612D40DA027561BF03455AC /* LedgerShared.swift */; };
+		806AFB240ED33805CC2F83E5 /* FocusWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D3CE9BF6D3DA9F28E70144F /* FocusWidget.swift */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		9737977B100F4BD8B6DD0A28 /* LedgerWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B3727A83F86C5D437CDA38E9 /* LedgerWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9E5822DD9A8913957416A457 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 555D5E2885196520466374D9 /* GoogleService-Info.plist */; };
@@ -68,6 +69,7 @@
 		555D5E2885196520466374D9 /* GoogleService-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		9D3CE9BF6D3DA9F28E70144F /* FocusWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FocusWidget.swift; sourceTree = "<group>"; };
 		B3727A83F86C5D437CDA38E9 /* LedgerWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LedgerWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B372A24C5478738FEDA4E48D /* LedgerBridgeViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LedgerBridgeViewController.swift; sourceTree = "<group>"; };
 		B612D40DA027561BF03455AC /* LedgerShared.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LedgerShared.swift; sourceTree = "<group>"; };
@@ -109,6 +111,7 @@
 				ECABE33D323297D0093DB56B /* TodayWidget.swift */,
 				DE9D5B19369947875FA76EC0 /* Info.plist */,
 				2BC8AB89D7285082D65FEA64 /* LedgerWidget.entitlements */,
+				9D3CE9BF6D3DA9F28E70144F /* FocusWidget.swift */,
 			);
 			name = LedgerWidget;
 			path = LedgerWidget;
@@ -317,6 +320,7 @@
 				D3020623FFFB9C8D3DE1ABF5 /* LedgerWidgetBundle.swift in Sources */,
 				08D25B923685E01177AFFC44 /* TodayWidget.swift in Sources */,
 				E894555DBE129CDF59421B17 /* LedgerShared.swift in Sources */,
+				806AFB240ED33805CC2F83E5 /* FocusWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -479,7 +483,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = W6S7LQWZY4;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -503,7 +507,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = W6S7LQWZY4;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -526,7 +530,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = LedgerWidget/LedgerWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = W6S7LQWZY4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LedgerWidget/Info.plist;
@@ -554,7 +558,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = LedgerWidget/LedgerWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = W6S7LQWZY4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LedgerWidget/Info.plist;

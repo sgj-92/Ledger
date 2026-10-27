@@ -5,5 +5,6 @@ import SwiftUI
 struct LedgerWidgetBundle: WidgetBundle {
     var body: some Widget {
         TodayWidget()
+        FocusWidget()
     }
 }

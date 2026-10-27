@@ -748,6 +748,21 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-27 — Widget snapshot version 3: the Focus widget; Morning Prime's full name
+Shaun approved this through a Claude Chat handoff. The `ledger-focus-widget.patch` it
+named never reached the repository, so it was rebuilt here to the same description.
+- **Morning Prime:** the Today widget's row keeps the whole name, with short counts
+  beside it (`prime.short`, e.g. "P 0/4 M 0/5"). It no longer cuts to "Morning P…".
+- **A new iOS "Focus" widget,** small and medium:
+  - **What it shows:** the Current Focus and nothing else, under a gold "FOCUS NOW"
+    label, with what it is ("Action · 10:00" or "Reset sprint · …") and the time it was
+    set.
+  - **Where it comes from:** snapshot version 3's `focus`. Only a focus that still
+    points at something live (`focusTarget`) is shown.
+  - **Tapping it** opens that Action or sprint. With no focus, it opens Today and the
+    focus picker (`?view=focus`).
+- **Build:** 3 (`npm run bump`).
+
 ### 2026-10-26 — Admins edit any open request; Move to Ongoing clears the date; the widget's version 2
 Shaun's requests:
 - **Editing:**
@@ -2397,6 +2412,17 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-10-27) — **Focus widget, Morning Prime's full name, snapshot version 3.**
+  - `index.html`: `widgetFocus`, `prime.short`, and `?view=focus` opens the picker.
+  - New `FocusWidget.swift`, added to the LedgerWidget target
+    (`native/scripts/add-ios-focus-widget.rb`).
+  - Build 3.
+  - **Tests:** native shell 58 (a focus set on the Mac reaches the widget; a focus on a
+    finished Action never does; short counts; the picker link), Home 256, settings 9.
+  - **Not verified here:** Swift isn't compiled, and the UX pass on device is Shaun's.
+- (2026-10-26) — **Requests: admins edit any open request; Move to Ongoing clears the
+  date; Today widget version 2.** (Logged in Decisions.)
 
 - (2026-10-26) — **Native notifications, app links and the iOS Today widget merged**
   (`feature/native-push` → `main`), after Shaun verified them on his iPhone.

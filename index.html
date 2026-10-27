@@ -8083,7 +8083,17 @@
     }
     // its Communications line
     if (p.get('view') === 'comms' && authRole === 'owner'){ goView('comms'); return; }
+    // the Focus widget with no focus: choose one (once today's Actions have loaded)
+    if (p.get('view') === 'focus'){ nativeFocusPicker(0); return; }
     openLedgerLink(url);
+  }
+
+  function nativeFocusPicker(tries){
+    if (authRole === 'owner' && ownerDataStarted && czLoaded.commitments && execLoaded.sprints){
+      viewedDate = todayStr(); goView('log'); renderAll(); openFocusPicker();
+      return;
+    }
+    if (tries < 40) setTimeout(function(){ nativeFocusPicker(tries + 1); }, 400);
   }
 
   // ---- the Today widget (iOS; docs/NATIVE_MIGRATION.md §4) ----
@@ -8101,7 +8111,28 @@
   function widgetPrime(date){
     var st = mpState(date);
     if (!st.total || st.completedAt) return null;
-    return { label: mpProgressLabel(st) || (st.resolvedCount + ' of ' + st.total) };
+    // "P 0/4 M 0/5": short enough to sit beside the full name on the widget's row
+    var short = [];
+    if (st.planSec.total) short.push('P ' + (st.planSec.complete ? '\u2713' : st.planSec.resolved + '/' + st.planSec.total));
+    if (st.moveSec.total) short.push('M ' + (st.moveSec.complete ? '\u2713' : st.moveSec.resolved + '/' + st.moveSec.total));
+    return { label: mpProgressLabel(st) || (st.resolvedCount + ' of ' + st.total), short: short.join(' ') || (st.resolvedCount + '/' + st.total) };
+  }
+  // Version 3: the Current Focus, for the Focus widget. Only a focus that still points at
+  // something being done now (focusTarget); a tap opens it.
+  function widgetFocus(){
+    var f = focusActive();
+    if (!f) return null;
+    var t = focusTarget(f);
+    if (!t && f.type === 'sprint_item' && !execLoaded.sprints)
+      t = { kind: 'sprint_item', s: null, it: { text: f.title } };      // its sprint hasn't loaded yet
+    if (!t) return null;
+    if (t.kind === 'action'){
+      var tm = actionTime(t.c);
+      return { title: String(t.c.title || f.title || '').slice(0, 160), context: 'Action' + (tm ? ' \u00b7 ' + tm : ''),
+        setAt: f.setAt || null, link: 'luxe.sgj.ledger://open?openAction=' + encodeURIComponent(t.c.id) };
+    }
+    return { title: String(t.it.text || f.title || '').slice(0, 160), context: 'Reset sprint' + (t.s && t.s.title ? ' \u00b7 ' + String(t.s.title).slice(0, 40) : ''),
+      setAt: f.setAt || null, link: 'luxe.sgj.ledger://open?sprint=' + encodeURIComponent(f.sourceId) };
   }
   function widgetExercise(date){
     var plan = getPlanForDate(date);
@@ -8123,8 +8154,8 @@
     var date = todayStr();
     var acts = dayFlowItems(date).filter(function(it){ return it.kind === 'action'; }).map(function(it){ return it.c; });
     return {
-      v: 2, date: date, dayLabel: shortDayLabel(date), total: acts.length,
-      prime: widgetPrime(date), exercise: widgetExercise(date), comms: widgetComms(),
+      v: 3, date: date, dayLabel: shortDayLabel(date), total: acts.length,
+      prime: widgetPrime(date), exercise: widgetExercise(date), comms: widgetComms(), focus: widgetFocus(),
       done: acts.filter(function(c){ return c.status === 'completed'; }).length,
       items: acts.slice(0, WIDGET_MAX).map(function(c){
         return {

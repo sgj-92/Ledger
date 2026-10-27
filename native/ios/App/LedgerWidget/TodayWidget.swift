@@ -61,9 +61,9 @@ struct TodayProvider: AppIntentTimelineProvider {
     }
 }
 
-// MARK: - Ledger's palette (index.html :root, dark and light)
+// MARK: - Ledger's palette (index.html :root, dark and light); the Focus widget uses it too
 
-private extension Color {
+extension Color {
     init(hex: UInt32) {
         self.init(.sRGB,
                   red: Double((hex >> 16) & 0xFF) / 255,
@@ -76,7 +76,7 @@ private extension Color {
     }
 }
 
-private enum Palette {
+enum Palette {
     static let ground = Color.ledger(0x0E0B08, 0xF2EADD)
     static let text = Color.ledger(0xF0E9DD, 0x261D16)
     static let text2 = Color.ledger(0xA89B88, 0x5A4D3E)
@@ -147,7 +147,8 @@ struct TodayWidgetView: View {
     // what to list, in order: Morning Prime (until it's done), exercise, then open Actions
     private func rows(_ s: TodaySnapshot) -> [Row] {
         var out: [Row] = []
-        if entry.showPrime, let p = s.prime { out.append(.prime(p.label)) }
+        // the row keeps the whole name, so its counts are the short form ("P 0/4 M 0/5")
+        if entry.showPrime, let p = s.prime { out.append(.prime(p.short ?? p.label)) }
         if entry.showExercise, let ex = s.exercise {
             for (i, e) in ex.enumerated() { out.append(.exercise(e, i)) }
         }
@@ -491,9 +492,12 @@ extension TodaySnapshot {
             item("e", "Book the plumber", "14:00", "personal"),
             item("f", "Padel", "18:30", "training")
         ], generatedAt: nil,
-        prime: Prime(label: "Plan ✓ · Move 2/5"),
+        prime: Prime(label: "Plan ✓ · Move 2/5", short: "P ✓ M 2/5"),
         exercise: [Exercise(title: "Strength", done: false)],
-        comms: Comms(needs: 2, due: 1, waiting: 3))
+        comms: Comms(needs: 2, due: 1, waiting: 3),
+        focus: Focus(title: "Finish the quarterly plan for the board", context: "Action · 10:00",
+                     setAt: ISO8601DateFormatter().string(from: Date().addingTimeInterval(-1500)),
+                     link: "\(LedgerShared.appScheme)://open?openAction=c"))
     }
 }
 

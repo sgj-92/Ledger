@@ -642,6 +642,12 @@ at a preview with `LEDGER_APP_URL`.
   - titles take the full width;
   - its Communications line opens Communications (`?view=comms`).
 
+**Version 3 (2026-10-27):**
+- The snapshot adds `prime.short` ("P 0/4 M 0/5") and `focus` (`title`, `context`,
+  `setAt`, `link`).
+- **The Focus widget** (`FocusWidget.swift`, small and medium) shows only the Current
+  Focus. A tap opens it; with none set, it opens the focus picker (`?view=focus`).
+
 ## 12c. Phase 2: notifications and app links, as built (`feature/native-push`, 2026-10-26)
 
 Shaun approved Phase 2 on 2026-10-26, including the push rules change and the

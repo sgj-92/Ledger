@@ -202,12 +202,14 @@ function fakeBridgeWhenAsked(){
   const lastSnap = p => p.evaluate(() => { const a = window.__nat.snapshots || []; return a.length ? a[a.length - 1] : null; });
   check(await until(I, () => (window.__nat.snapshots || []).length > 0, null, 10000), 'iOS widget: Today is published to the widget once his data has loaded');
   let snap = await lastSnap(I);
-  check(snap && snap.v === 2 && snap.date === new Date().toLocaleDateString('en-CA') && snap.total === 1 && snap.items[0].title === 'Finish the quarterly plan'
+  check(snap && snap.v === 3 && snap.date === new Date().toLocaleDateString('en-CA') && snap.total === 1 && snap.items[0].title === 'Finish the quarterly plan'
     && snap.items[0].link === 'luxe.sgj.ledger://open?openAction=k1' && typeof snap.generatedAt === 'string',
-    'iOS widget: version 2, today, his Action with its link', JSON.stringify(snap));
+    'iOS widget: version 3, today, his Action with its link', JSON.stringify(snap));
   check(snap && snap.prime && /Plan|Move|of/.test(snap.prime.label) && Array.isArray(snap.exercise) && 'comms' in snap,
     'iOS widget: Morning Prime while it isn\'t done, today\'s exercise, and Communications (counts only)', JSON.stringify(snap && { p: snap.prime, e: snap.exercise, c: snap.comms }));
   check(snap && (!snap.comms || Object.keys(snap.comms).sort().join() === 'due,needs,waiting'), 'iOS widget: Communications are counts — never names');
+  check(snap && snap.prime && /^P (\u2713|\d+\/\d+)( M (\u2713|\d+\/\d+))?$/.test(snap.prime.short), 'iOS widget: Morning Prime\'s short counts for its row ("P 0/4 M 0/5")', snap && snap.prime && snap.prime.short);
+  check(snap && snap.focus === null, 'iOS widget: no Current Focus yet → none in the snapshot');
   check(snap && Object.keys(snap.items[0]).sort().join() === 'category,done,id,link,open,time,title', 'iOS widget: titles, times and categories only — nothing else crosses', snap && Object.keys(snap.items[0]).join());
   const published = await I.evaluate(() => (window.__nat.snapshots || []).length);
   await put('ledger_commitments/k2', { date: TODAY, originalDate: TODAY, title: 'Call the plumber', category: 'personal', status: 'planned', time: '09:15', priorityId: null, minVersion: null, disruptionReason: null, createdAt: '2026-10-20T10:00:00.000Z' });
@@ -220,6 +222,15 @@ function fakeBridgeWhenAsked(){
   for (const v of ['plan', 'log', 'me', 'log']){ await I.click(`.tab-btn[data-view="${v}"]`); await sleep(250); }
   await sleep(1200);
   check(await I.evaluate(n => (window.__nat.snapshots || []).length === n, sent), 'iOS widget: re-rendering Today sends nothing new when nothing changed');
+  // the Focus widget: setting a focus (on another device) reaches it
+  const focusBefore = await I.evaluate(() => (window.__nat.snapshots || []).length);
+  // (k1 was ticked done on Android above: a focus on a finished Action is never shown)
+  await put('ledger_meta/currentFocus', { ownerUid: owner, type: 'action', sourceId: 'k2', childId: null, title: 'Call the plumber', date: TODAY,
+    setAt: new Date().toISOString(), updatedAt: new Date().toISOString(), sourceDeviceId: 'mac', status: 'active' });
+  check(await until(I, n => (window.__nat.snapshots || []).length > n && !!window.__nat.snapshots[window.__nat.snapshots.length - 1].focus, focusBefore, 12000), 'Focus widget: a focus set on the Mac is published to the phone\'s widgets');
+  snap = await lastSnap(I);
+  check(snap.focus && snap.focus.title === 'Call the plumber' && snap.focus.link === 'luxe.sgj.ledger://open?openAction=k2' && snap.focus.context === 'Action \u00b7 09:15' && typeof snap.focus.setAt === 'string',
+    'Focus widget: its title, "Action", since when, and a link that opens it', JSON.stringify(snap.focus));
   // its links open Ledger at the right place — and only Ledger's own links
   const openLink = (p, url) => p.evaluate(u => (window.__nat.listeners['App.appUrlOpen'] || []).forEach(cb => cb({ url: u })), url);
   await I.click('.tab-btn[data-view="plan"]');
@@ -236,6 +247,10 @@ function fakeBridgeWhenAsked(){
   check(await until(I, () => document.querySelector('.view.active').id === 'view-log'), 'iOS widget tap elsewhere: opens Today');
   await openLink(I, 'luxe.sgj.ledger://open?view=comms');
   check(await until(I, () => document.querySelector('.view.active').id === 'view-comms'), 'iOS widget: its Communications line opens Communications');
+  await openLink(I, 'luxe.sgj.ledger://open?view=focus');
+  check(await until(I, () => document.getElementById('sheetBackdrop').classList.contains('open') && /Current focus/.test(document.getElementById('sheetBackdrop').innerText)
+      && document.querySelector('.view.active').id === 'view-log'), 'Focus widget with no focus: a tap opens Today and the focus picker');
+  await I.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
   // notifications in the app (Phase 2): FCM, from a tap, the device his alone
   const subs = async () => {
     const r = await fetch(`${FS}/ledger_push_subscriptions?pageSize=50`, { headers: ADMIN });

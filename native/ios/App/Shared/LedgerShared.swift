@@ -45,8 +45,8 @@ enum LedgerShared {
 }
 
 /// The snapshot (docs/NATIVE_MIGRATION.md §4.1). Version 2 adds Morning Prime (while it's
-/// not done), today's exercise and Communications counts; all optional, so either side
-/// reads the other's older snapshots.
+/// not done), today's exercise and Communications counts; version 3 the Current Focus.
+/// All optional, so either side reads the other's older snapshots.
 struct TodaySnapshot: Codable, Equatable {
     struct Item: Codable, Identifiable, Equatable {
         let id: String
@@ -59,6 +59,13 @@ struct TodaySnapshot: Codable, Equatable {
     }
     struct Prime: Codable, Equatable {
         let label: String        // "Plan ✓ · Move 2/5"
+        let short: String?       // "P ✓ M 2/5", beside the name on a row (version 3)
+    }
+    struct Focus: Codable, Equatable {
+        let title: String        // what Shaun is focusing on now
+        let context: String?     // "Action · 10:00", "Reset sprint · Inbox zero"
+        let setAt: String?       // ISO 8601, when it was set
+        let link: String         // opens it in Ledger
     }
     struct Exercise: Codable, Equatable {
         let title: String        // "Strength", "Padel", "Rest day"
@@ -79,4 +86,5 @@ struct TodaySnapshot: Codable, Equatable {
     let prime: Prime?            // nil once it's done (or there's no Morning Prime)
     let exercise: [Exercise]?
     let comms: Comms?            // counts only, never names
+    let focus: Focus?            // the Current Focus, if one is set and still live
 }
