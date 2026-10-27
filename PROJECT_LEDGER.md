@@ -2474,6 +2474,13 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Strength: exercises by name alone.** (Shaun's request.)
+  - Each row is the name, with **Sets** to open sets, reps and weight when wanted; a row
+    that already has numbers shows them.
+  - Return adds the next exercise, and a pasted list becomes one exercise per line.
+  - The form edits copies, so the stored session changes only on Save.
+  - Checked in the browser (names only saved; one with 3 × 8 at 60 kg kept); native
+    shell 67.
 - (2026-10-27) — **Key-task stars and a Flow widget (build 4); "Move what's left after
   this" in Flow.** (Logged in Decisions.)
   - **Tests:** native shell 67, and the bulk move checked in the browser.

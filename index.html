@@ -2267,11 +2267,19 @@
   .nutrition-summary-value { font-family: var(--serif); font-size: 30px; font-weight: 400; }
 
   /* ---------- exercise / simple rows ---------- */
-  .exercise-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .exercise-row { margin-bottom: 8px; }
+  .exercise-row .ex-main, .exercise-row .ex-nums { display: flex; gap: 8px; align-items: center; }
+  .exercise-row .ex-nums { margin-top: 8px; }
+  .exercise-row .ex-nums[hidden] { display: none; }
   .exercise-row input { flex: 1; min-width: 0; }
-  .exercise-row input.ex-name { flex-basis: 100%; }
   .exercise-row select.ex-unit { flex: 0 0 74px; font-size: 13px; padding: 12px 6px; }
-  .exercise-row .ex-rm { background: none; border: none; color: var(--text-3); font-size: 17px; cursor: pointer; padding: 0 4px; }
+  .exercise-row .ex-more {
+    flex-shrink: 0; min-height: 44px; padding: 0 12px; border-radius: 10px; cursor: pointer;
+    background: none; border: 1px solid var(--line); color: var(--text-2);
+    font-family: var(--sans); font-size: 12.5px;
+  }
+  .exercise-row .ex-more[aria-expanded="true"] { border-color: rgba(var(--gold-rgb),0.45); color: var(--gold); }
+  .exercise-row .ex-rm { flex-shrink: 0; min-width: 32px; min-height: 44px; background: none; border: none; color: var(--text-3); font-size: 17px; cursor: pointer; padding: 0 4px; }
   .exercise-row input, .exercise-row select {
     background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
     color: var(--text); padding: 12px 9px; font-family: var(--sans); font-size: 13px;
@@ -25906,7 +25914,8 @@
     var outlineEl = document.getElementById('f_outline');
     if (outlineEl) outlineEl.value = d.outline || '';
 
-    var exerciseState = (d.exercises && d.exercises.length) ? d.exercises.slice() : (type==='resistance' ? [{name:'',sets:'',reps:'',value:'',unit:'kg'}] : []);
+    // copies, so editing here never changes the stored record until it is saved
+    var exerciseState = (d.exercises && d.exercises.length) ? d.exercises.map(function(e){ return Object.assign({}, e); }) : (type==='resistance' ? [{name:'',sets:'',reps:'',value:'',unit:'kg'}] : []);
     var pendingPhotoDataUrl = d.photoDataUrl || null;
 
     if (type === 'padel'){
@@ -26068,35 +26077,80 @@
       var dlEl = document.getElementById(dlId);
       dlEl.innerHTML = presets.exercises.map(function(e){ return '<option value="'+e.name.replace(/"/g,'&quot;')+'">'; }).join('');
 
-      function renderRows(){
+      // An exercise is its name; sets, reps and weight are there when wanted, never asked
+      // for. Return in a name adds the next one, and a pasted list becomes one each.
+      function blankExercise(){ return { name: '', sets: '', reps: '', value: '', unit: 'kg' }; }
+      function hasNumbers(ex){ return !!(ex.sets || ex.reps || ex.value); }
+      function renderRows(focusIndex){
         rowsWrap.innerHTML = '';
         exerciseState.forEach(function(ex, i){
           var row = document.createElement('div');
           row.className = 'exercise-row';
+          var open = ex._open || hasNumbers(ex);
           var unitOptsHtml = UNIT_OPTIONS.map(function(u){ return '<option value="'+u+'"'+(ex.unit===u?' selected':'')+'>'+u+'</option>'; }).join('');
           row.innerHTML =
-            '<input class="ex-name" list="'+dlId+'" placeholder="Exercise name" value="'+(ex.name||'').replace(/"/g,'&quot;')+'">' +
-            '<input placeholder="Sets" type="number" value="'+(ex.sets||'')+'" style="max-width:56px">' +
-            '<input placeholder="Reps" type="number" value="'+(ex.reps||'')+'" style="max-width:56px">' +
-            '<input placeholder="Value" type="number" value="'+(ex.value||'')+'" style="max-width:64px">' +
-            '<select class="ex-unit" data-picker-title="Unit">'+unitOptsHtml+'</select>' +
-            '<button type="button" class="ex-rm">✕</button>';
-          var inputs = row.querySelectorAll('input');
-          inputs[0].addEventListener('input', function(){ exerciseState[i].name = inputs[0].value; });
-          inputs[1].addEventListener('input', function(){ exerciseState[i].sets = inputs[1].value; });
-          inputs[2].addEventListener('input', function(){ exerciseState[i].reps = inputs[2].value; });
-          inputs[3].addEventListener('input', function(){ exerciseState[i].value = inputs[3].value; });
+            '<div class="ex-main">' +
+              '<input class="ex-name" list="'+dlId+'" placeholder="Exercise name" enterkeyhint="next" autocomplete="off" aria-label="Exercise">' +
+              '<button type="button" class="ex-more" aria-expanded="'+(open?'true':'false')+'">Sets</button>' +
+              '<button type="button" class="ex-rm" aria-label="Remove exercise">✕</button>' +
+            '</div>' +
+            '<div class="ex-nums"'+(open?'':' hidden')+'>' +
+              '<input class="ex-sets" placeholder="Sets" type="number" inputmode="numeric" aria-label="Sets">' +
+              '<input class="ex-reps" placeholder="Reps" type="number" inputmode="numeric" aria-label="Reps">' +
+              '<input class="ex-value" placeholder="Weight" type="number" inputmode="decimal" aria-label="Weight">' +
+              '<select class="ex-unit" data-picker-title="Unit">'+unitOptsHtml+'</select>' +
+            '</div>';
+          // what was typed goes in as values, never as markup
+          var nameEl = row.querySelector('.ex-name');
+          nameEl.value = ex.name || '';
+          row.querySelector('.ex-sets').value = ex.sets || '';
+          row.querySelector('.ex-reps').value = ex.reps || '';
+          row.querySelector('.ex-value').value = ex.value || '';
+          nameEl.addEventListener('input', function(){ exerciseState[i].name = nameEl.value; });
+          nameEl.addEventListener('keydown', function(e){
+            if (e.key !== 'Enter' || e.isComposing) return;
+            e.preventDefault();
+            if (!nameEl.value.trim()) return;
+            exerciseState.splice(i + 1, 0, blankExercise());
+            renderRows(i + 1);
+          });
+          nameEl.addEventListener('paste', function(e){
+            var lines = hbParse(e.clipboardData && e.clipboardData.getData('text'));
+            if (lines.length < 2) return;
+            e.preventDefault();
+            var add = lines.slice(0, 30).map(function(l){ var x = blankExercise(); x.name = l.slice(0, 80); return x; });
+            // into an empty row, the list takes its place; after a named one, it follows it
+            var keep = !!nameEl.value.trim(), at = keep ? i + 1 : i;
+            if (!keep) exerciseState.splice(i, 1);
+            Array.prototype.splice.apply(exerciseState, [at, 0].concat(add));
+            renderRows(at + add.length - 1);
+          });
+          row.querySelector('.ex-sets').addEventListener('input', function(e){ exerciseState[i].sets = e.target.value; });
+          row.querySelector('.ex-reps').addEventListener('input', function(e){ exerciseState[i].reps = e.target.value; });
+          row.querySelector('.ex-value').addEventListener('input', function(e){ exerciseState[i].value = e.target.value; });
           row.querySelector('.ex-unit').addEventListener('change', function(e){ exerciseState[i].unit = e.target.value; });
+          var more = row.querySelector('.ex-more'), nums = row.querySelector('.ex-nums');
+          more.addEventListener('click', function(){
+            var on = nums.hidden;
+            nums.hidden = !on;
+            exerciseState[i]._open = on;
+            more.setAttribute('aria-expanded', on ? 'true' : 'false');
+            if (on) row.querySelector('.ex-sets').focus();
+          });
           row.querySelector('.ex-rm').addEventListener('click', function(){
             exerciseState.splice(i,1); renderRows();
           });
           rowsWrap.appendChild(row);
         });
+        if (focusIndex != null && rowsWrap.children[focusIndex]){
+          var f = rowsWrap.children[focusIndex].querySelector('.ex-name');
+          if (f) f.focus();
+        }
       }
       renderRows();
       document.getElementById('addExerciseBtn').addEventListener('click', function(){
-        exerciseState.push({name:'',sets:'',reps:'',value:'',unit:'kg'});
-        renderRows();
+        exerciseState.push(blankExercise());
+        renderRows(exerciseState.length - 1);
       });
     }
 
