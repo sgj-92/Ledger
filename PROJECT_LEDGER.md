@@ -2363,19 +2363,18 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy and try)
-**Newest, 2026-10-27:** Home, built and tested; needs "Deploy Firebase", everything.
-- Pass it on → Me.
-- Ongoing tasks: Updates, Waiting on, and a chase date.
-
-Status: **Claude in Ledger phase 1 built 2026-10-27** (`docs/CLAUDE_ASSISTANT.md` §11).
-It covers Actions and the Food Plan, via + → Ask Claude, with review and Undo.
-- **Shaun:**
-  1. Set a spend limit in the Anthropic Console.
-  2. Save `ANTHROPIC_API_KEY` with `functions:secrets:set`. This must come first.
-  3. Run "Deploy Firebase", everything.
-  4. Try it.
-- **Never called for real:** the Claude API (no key or network in the build session).
+Owner: Shaun (try on the phone)
+Status: **Deployed 2026-10-27** (Deploy Firebase, everything, green).
+- **Claude in Ledger phase 1:** + → Ask Claude, for Actions and the Food Plan, with
+  review and Undo (`docs/CLAUDE_ASSISTANT.md` §11).
+- **Home:** Pass it on → Me, and Updates and Waiting on for ongoing tasks
+  (`docs/HOME_ONGOING.md` §8).
+- **Set up once:**
+  - the key `ANTHROPIC_API_KEY` is in Secret Manager;
+  - the functions may read it, granted in Cloud Shell (`docs/DEPLOY_FROM_GITHUB.md`);
+  - a monthly spend limit in the Anthropic Console (Shaun to confirm it is set).
+- **Not yet seen working on a device:** a real Claude reply. It was never called from
+  the build session.
 - Also with Shaun: iPhone build 4 (key-task stars, the Flow widget).
 
 **Before that:** Claude in Ledger designed and answered (2026-10-27).

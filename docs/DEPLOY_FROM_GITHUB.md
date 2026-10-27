@@ -95,6 +95,15 @@ changed.
   - Artifact Registry Reader
   - Service Usage Consumer
   - Firebase Viewer
+- **A new secret** (e.g. `ANTHROPIC_API_KEY`, 2026-10-27):
+  - "have no value for the secret" means it isn't saved yet. Run
+    `npx firebase-tools functions:secrets:set NAME --project ledger-6aec3` from the Mac
+    or Cloud Shell.
+  - "`secretmanager.secrets.setIamPolicy` denied" means the functions can't read it
+    yet. The deploy account deliberately can't grant that, so grant it once yourself,
+    in Cloud Shell:
+    `gcloud secrets add-iam-policy-binding NAME --project ledger-6aec3 --member="serviceAccount:607695857530-compute@developer.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"`.
+    Then re-run.
 - **"would delete functions" / indexes:** that is on purpose. Deploy from the Mac,
   where it asks first.
 

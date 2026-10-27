@@ -1,6 +1,6 @@
 # Claude in Ledger — design
 
-Status: **design agreed 2026-10-27 (§10 answered by Shaun). Phase 1 built 2026-10-27 (§11); it goes live once the key is saved and Firebase is deployed.**
+Status: **design agreed 2026-10-27 (§10 answered by Shaun). Phase 1 built and deployed 2026-10-27 (§11).**
 
 > "I want to look at connecting Claude to ledger via api. So we can amend things in the
 > app, clean data, add new etc." — "I want to add it into ledger app too." — "I want to
@@ -273,7 +273,11 @@ Anthropic).
 2. Save the key from the Mac or Cloud Shell:
    `npx firebase-tools functions:secrets:set ANTHROPIC_API_KEY --project ledger-6aec3`.
    Do this first: deploying functions fails without it.
-3. GitHub → Actions → Deploy Firebase → everything (rules, indexes, functions).
-4. In Ledger, tap + → Ask Claude.
+3. Once only: let the functions read the key, from Cloud Shell
+   (`docs/DEPLOY_FROM_GITHUB.md`, "A new secret").
+4. GitHub → Actions → Deploy Firebase → everything (rules, indexes, functions).
+5. In Ledger, tap + → Ask Claude.
+
+All of this was done on 2026-10-27.
 
 **Next (phase 2):** health, Comms, Home, settings, duplicates and merging.
