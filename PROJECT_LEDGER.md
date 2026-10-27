@@ -2502,6 +2502,13 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Vercel storage cleared.** (Shaun, with the CLI.)
+  - Ledger is down from 135 deployments to the one in production.
+  - mp-dashboard-beta-v2's old deployments are removed.
+  - The merged branches `feature/native-apps`, `-push` and `-widgets` are deleted.
+  - Settings now: Ignored Build Step "Only build production"; retention 1 day
+    (canceled, errored, pre-production) and 1 week (production).
+  - `.vercelignore` trims each deployment to what the site serves.
 - (2026-10-27) — **Exercise names: suggestions, near-miss check, merge in Settings.**
   (Logged in Decisions.) Checked in the browser end to end; native shell 67, Home 256,
   settings 9.
