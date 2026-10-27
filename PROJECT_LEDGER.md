@@ -748,6 +748,18 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-27 — One name per exercise (Shaun approved)
+**Decision:** exercise names are matched loosely, by a key that ignores case,
+punctuation, word order, plurals and the short forms DB/BB/KB/OHP/RDL (`exKey`).
+- **Suggestions** while typing are Ledger's own (the datalist is gone). An empty row
+  offers the most-used exercises not already in the session.
+- **Written another way** ("Squats"): saved silently under the usual spelling.
+- **A letter or two out** ("Dedlift"): Ledger asks "Did you mean Deadlift?", with
+  **Use** or **Keep mine**.
+- **New names** join the list without the old `confirm()` pop-ups.
+- **Settings → Exercises:** merge or rename. Past sessions and plans are renamed, and the
+  old spelling is remembered as an alias (`presets.exerciseAliases`).
+
 ### 2026-10-27 — Claude in Ledger: full access, with review before and Undo after (Shaun)
 **Decision (Shaun):** Claude may read and change everything Shaun can, as long as he
 reviews each change right before it runs and can undo it.
@@ -2474,6 +2486,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Exercise names: suggestions, near-miss check, merge in Settings.**
+  (Logged in Decisions.) Checked in the browser end to end; native shell 67, Home 256,
+  settings 9.
 - (2026-10-27) — **Reset Sprint: drag to reorder.** (Shaun's request.)
   - Each thing has a drag handle; Next follows the new order, and the focus stays put.
   - Something added shows at once, with the field kept open for the next one. Before,

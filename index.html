@@ -2279,6 +2279,27 @@
     font-family: var(--sans); font-size: 12.5px;
   }
   .exercise-row .ex-more[aria-expanded="true"] { border-color: rgba(var(--gold-rgb),0.45); color: var(--gold); }
+  .exercise-row .ex-suggest { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .exercise-row .ex-suggest[hidden], .exercise-row .ex-hint[hidden] { display: none; }
+  .exercise-row .ex-chip {
+    min-height: 36px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+    font-family: var(--sans); font-size: 13px;
+  }
+  .exercise-row .ex-hint {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px;
+    font-size: 13px; color: var(--text-2);
+  }
+  .exercise-row .ex-hint-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+  .exercise-row .ex-hint button {
+    min-height: 36px; padding: 0 12px; border-radius: 10px; cursor: pointer; font-family: var(--sans); font-size: 13px;
+    background: none; border: 1px solid var(--line); color: var(--text-2);
+  }
+  .exercise-row .ex-hint .ex-hint-use { border-color: rgba(var(--gold-rgb),0.45); color: var(--gold); }
+  .ex-rename-row { display: flex; gap: 8px; align-items: center; }
+  .ex-rename-row input { flex: 1; min-width: 0; }
+  .btn-primary.ex-rename-btn { width: auto; margin: 0; flex-shrink: 0; padding-left: 18px; padding-right: 18px; }
+  .set-note.ex-merge-note { margin: 0 0 8px; }
   .exercise-row .ex-rm { flex-shrink: 0; min-width: 32px; min-height: 44px; background: none; border: none; color: var(--text-3); font-size: 17px; cursor: pointer; padding: 0 4px; }
   .exercise-row input, .exercise-row select {
     background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
@@ -5766,6 +5787,88 @@
     {name:'Overhead press', unit:'kg'}, {name:'Pull-up', unit:'reps'}, {name:'Plank', unit:'sec'}
   ];
   var presets = { cardioTypes: DEFAULT_CARDIO_TYPES.slice(), exercises: DEFAULT_EXERCISES.slice(), targetWeightKg: null, prioritiesSeeded: false, routines: null };
+
+  // ---- exercise names: one name per exercise, however it's typed ----
+  // "bench Press", "Bench presses" and "press bench" are all Bench press, and DB, BB and KB
+  // mean dumbbell, barbell and kettlebell. A name merged away in Settings → Exercises is
+  // remembered as another way of saying the one kept (presets.exerciseAliases, by key).
+  var EX_ABBR = { db: 'dumbbell', dbs: 'dumbbell', bb: 'barbell', kb: 'kettlebell', kbs: 'kettlebell',
+                  ohp: 'overhead press', rdl: 'romanian deadlift' };
+  function exWords(name){
+    return String(name || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(Boolean)
+      .map(function(w){ return EX_ABBR[w] || w; }).join(' ').split(' ').filter(Boolean)
+      .map(function(w){ return w.length > 3 && /s$/.test(w) && !/ss$/.test(w) ? w.slice(0, -1) : w; });
+  }
+  // word order and spaces don't count: "pull-ups" and "pullup" are the same key
+  function exKey(name){ return exWords(name).sort().join(''); }
+  function exAliases(){ return presets.exerciseAliases || {}; }
+  function exEditDistance(a, b){
+    var prev = [], i, j;
+    for (j = 0; j <= b.length; j++) prev[j] = j;
+    for (i = 1; i <= a.length; i++){
+      var cur = [i];
+      for (j = 1; j <= b.length; j++){
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1));
+      }
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  // every exercise Ledger knows — from the list, sessions and plans — under its usual
+  // spelling (the one used most), with how often it has been used
+  function exerciseLibrary(){
+    var by = {}, al = exAliases();
+    function add(name, n){
+      name = String(name || '').trim();
+      var k = exKey(name);
+      if (!k) return;
+      var e = by[k] || (by[k] = { names: {}, count: 0 });
+      e.names[name] = (e.names[name] || 0) + n;
+      e.count += n;
+    }
+    (presets.exercises || []).forEach(function(e){ add(e.name, 0); });
+    sessions.forEach(function(x){ if (x.type === 'resistance') (x.exercises || []).forEach(function(e){ add(e.name, 1); }); });
+    plans.forEach(function(p){
+      var d = p.trainingDetails && p.trainingDetails.resistance;
+      if (d && d.exercises) d.exercises.forEach(function(e){ add(e.name, 1); });
+    });
+    return Object.keys(by).filter(function(k){ return !al[k]; }).map(function(k){
+      var e = by[k];
+      var name = Object.keys(e.names).sort(function(a, b){ return e.names[b] - e.names[a]; })[0];
+      return { key: k, name: name, count: e.count };
+    }).sort(function(a, b){ return b.count - a.count || a.name.localeCompare(b.name); });
+  }
+  // the name to store when it's an exercise Ledger already knows, written another way
+  function exResolve(name){
+    var k = exKey(name), al = exAliases();
+    if (!k) return null;
+    if (al[k]) return al[k];
+    var hit = exerciseLibrary().find(function(e){ return e.key === k; });
+    return hit ? hit.name : null;
+  }
+  // a near miss worth asking about: a letter or two out ("Bench pres")
+  function exClose(name){
+    var k = exKey(name);
+    if (k.length < 4) return null;
+    var best = null, bestD = 99, allow = k.length >= 9 ? 2 : 1;
+    exerciseLibrary().forEach(function(e){
+      if (e.key === k) return;
+      var d = exEditDistance(k, e.key);
+      if (d <= allow && d < bestD){ best = e; bestD = d; }
+    });
+    return best;
+  }
+  // suggestions: while typing, those where every word typed starts a word of the
+  // exercise; before typing, the most used. Never one already in the session (`skip`, keys).
+  function exMatches(text, limit, skip){
+    var words = exWords(text), typed = String(text || '').trim().toLowerCase();
+    return exerciseLibrary().filter(function(e){
+      if ((skip || []).indexOf(e.key) > -1 || e.name.toLowerCase() === typed) return false;
+      if (!words.length) return e.count > 0;
+      var ew = exWords(e.name);
+      return words.every(function(w){ return ew.some(function(x){ return x.indexOf(w) === 0; }); });
+    }).slice(0, limit || 3);
+  }
   var focusItems = [];
   var FOCUS_CATEGORY_LABEL = { technique: 'Technique', footwork: 'Footwork', physical: 'Physical', general: 'General' };
 
@@ -6913,6 +7016,7 @@
           // the Claude conversation link (Share with Claude) — every device, and never
           // lost when another device saves these presets
           presets.claudeUrl = data.claudeUrl || null;
+          presets.exerciseAliases = data.exerciseAliases || null;   // Settings → Exercises merges
           applyWeekPreference();
           if (currentView === 'calendar') renderCalendar();
           if (currentView === 'focus') renderFocus();
@@ -20336,6 +20440,7 @@
         '<div class="set-card">' +
           settingsRow('setTargetDays', 'Training day target', trainingFrequencySummary()) +
           settingsRow('setTargetTypes', 'Activities that count', trainingTypesSummary()) +
+          settingsRow('setExercises', 'Exercises', String(exerciseLibrary().length)) +
         '</div>' +
         '<p class="set-note">Counts training days, not sessions: two on one day make one day.</p>' +
       '</div>' +
@@ -20407,6 +20512,7 @@
       btn.addEventListener('click', function(){ setWeekStartsOn(btn.dataset.weekStart); });
     });
     document.getElementById('setTargetTypes').addEventListener('click', openTrainingTypesSheet);
+    document.getElementById('setExercises').addEventListener('click', function(){ openExercisesSheet(); });
     renderModalityTargets(null);
     document.getElementById('setTargetDays').addEventListener('click', function(){ openTrainingFrequencySheet(false); });
     activeSheetRefresh = null;
@@ -20501,6 +20607,109 @@
     var n = trainingTarget().daysPerWeek;
     return n ? n + (n === 1 ? ' day' : ' days') + ' per week' : 'Not set';
   }
+  // ---- Settings → Exercises: one name per exercise ----
+  // Merging "Bench pres" into "Bench press" renames it in every session and plan, and
+  // remembers it as another way of saying Bench press, so typing it again lands there.
+  function renameExercise(fromKey, toName){
+    var touched = 0;
+    function swap(list){
+      return (list || []).map(function(e){ return exKey(e.name) === fromKey ? Object.assign({}, e, { name: toName }) : e; });
+    }
+    function uses(list){ return (list || []).some(function(e){ return exKey(e.name) === fromKey; }); }
+    sessions.slice().forEach(function(x){
+      if (x.type !== 'resistance' || !uses(x.exercises)) return;
+      saveSession(Object.assign({}, x, { exercises: swap(x.exercises) }));
+      touched++;
+    });
+    plans.slice().forEach(function(p){
+      var d = p.trainingDetails && p.trainingDetails.resistance;
+      if (!d || !uses(d.exercises)) return;
+      var td = Object.assign({}, p.trainingDetails, { resistance: Object.assign({}, d, { exercises: swap(d.exercises) }) });
+      savePlanForDate(p.date, Object.assign({}, p, { trainingDetails: td }));
+      touched++;
+    });
+    var toKey = exKey(toName);
+    var keptUnit = (presets.exercises.find(function(e){ return exKey(e.name) === toKey; }) ||
+                    presets.exercises.find(function(e){ return exKey(e.name) === fromKey; }) || {}).unit || 'kg';
+    presets.exercises = presets.exercises.filter(function(e){ var k = exKey(e.name); return k !== fromKey && k !== toKey; })
+      .concat([{ name: toName, unit: keptUnit }]);
+    var al = Object.assign({}, exAliases());
+    if (fromKey !== toKey) al[fromKey] = toName;
+    Object.keys(al).forEach(function(k){ if (exKey(al[k]) === fromKey) al[k] = toName; });   // older merges follow
+    delete al[toKey];
+    presets.exerciseAliases = al;
+    savePresets();
+    return touched;
+  }
+  function openExercisesSheet(){
+    editingId = null;
+    activeSheetRefresh = null;
+    var lib = exerciseLibrary();
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(TRAINING_ICON_SVG.resistance, 'Exercises', 'One name for each. Tap one to rename it or merge it into another.', '') +
+      (lib.length
+        ? '<div class="set-card">' + lib.map(function(e, i){
+            return '<button type="button" class="set-row" data-ex="' + i + '"><span class="set-row-label"></span>' +
+              '<span class="set-row-val">' + (e.count ? e.count + (e.count === 1 ? ' time' : ' times') : 'Not used yet') + '</span>' +
+              '<span class="chev">' + UI_ICON.chevronRight + '</span></button>';
+          }).join('') + '</div>'
+        : '<p class="set-note">No exercises yet. They appear here as you add them to Strength sessions.</p>') +
+      '<button type="button" class="btn-quiet" id="exBackBtn">Back to settings</button>';
+    lib.forEach(function(e, i){
+      var b = sheetEl.querySelector('[data-ex="' + i + '"]');
+      b.querySelector('.set-row-label').textContent = e.name;            // user text
+      b.addEventListener('click', function(){ openExerciseSheet(e); });
+    });
+    document.getElementById('exBackBtn').addEventListener('click', openSettingsSheet);
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    backdrop.classList.add('open');
+  }
+  function openExerciseSheet(ex){
+    var others = exerciseLibrary().filter(function(e){ return e.key !== ex.key; });
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(TRAINING_ICON_SVG.resistance, '<span id="exTitle"></span>',
+        ex.count ? 'Used ' + ex.count + (ex.count === 1 ? ' time' : ' times') : 'Not used yet', '') +
+      '<div class="field"><label for="exRename">Name</label><div class="ex-rename-row">' +
+        '<input id="exRename" type="text" maxlength="80" autocomplete="off">' +
+        '<button type="button" class="btn-primary ex-rename-btn" id="exRenameBtn">Rename</button></div></div>' +
+      (others.length
+        ? '<div class="field"><label>Merge into</label><p class="set-note ex-merge-note">It takes that name everywhere, and typing this one again lands there.</p>' +
+            '<div class="set-card">' + others.map(function(e, i){
+              return '<button type="button" class="set-row" data-ex-into="' + i + '"><span class="set-row-label"></span>' +
+                '<span class="set-row-val">' + (e.count ? e.count + (e.count === 1 ? ' time' : ' times') : '') + '</span></button>';
+            }).join('') + '</div></div>'
+        : '') +
+      (!ex.count ? '<button type="button" class="btn-quiet ex-remove" id="exRemoveBtn">Remove from the list</button>' : '') +
+      '<button type="button" class="btn-quiet" id="exBack">Back to exercises</button>';
+    document.getElementById('exTitle').textContent = ex.name;
+    var input = document.getElementById('exRename');
+    input.value = ex.name;
+    function done(n, verb, name){
+      showPinToast(verb + ' ' + name + (n ? ' · ' + n + (n === 1 ? ' session or plan' : ' sessions and plans') + ' updated' : ''), false, CHECK_SVG);
+      openExercisesSheet();
+    }
+    document.getElementById('exRenameBtn').addEventListener('click', function(){
+      var name = input.value.replace(/\s+/g, ' ').trim().slice(0, 80);
+      if (!name || name === ex.name) return;
+      // a new name that is already another exercise is a merge into it
+      var target = others.find(function(e){ return e.key === exKey(name); });
+      done(renameExercise(ex.key, target ? target.name : name), target ? 'Merged into' : 'Renamed to', target ? target.name : name);
+    });
+    others.forEach(function(e, i){
+      var b = sheetEl.querySelector('[data-ex-into="' + i + '"]');
+      b.querySelector('.set-row-label').textContent = e.name;
+      b.addEventListener('click', function(){ done(renameExercise(ex.key, e.name), 'Merged into', e.name); });
+    });
+    var rm = document.getElementById('exRemoveBtn');
+    if (rm) rm.addEventListener('click', function(){
+      presets.exercises = presets.exercises.filter(function(e){ return exKey(e.name) !== ex.key; });
+      savePresets();
+      openExercisesSheet();
+    });
+    document.getElementById('exBack').addEventListener('click', openExercisesSheet);
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+  }
+
   // a checklist, not a select: tap to include or leave out; at least one stays in
   function openTrainingTypesSheet(){
     function render(){
@@ -26108,19 +26317,21 @@
 
     if (type === 'resistance'){
       var rowsWrap = document.getElementById('exerciseRows');
-      var dlId = 'exerciseSuggestions';
-      if (!document.getElementById(dlId)){
-        var dl = document.createElement('datalist');
-        dl.id = dlId;
-        document.body.appendChild(dl);
-      }
-      var dlEl = document.getElementById(dlId);
-      dlEl.innerHTML = presets.exercises.map(function(e){ return '<option value="'+e.name.replace(/"/g,'&quot;')+'">'; }).join('');
 
       // An exercise is its name; sets, reps and weight are there when wanted, never asked
       // for. Return in a name adds the next one, and a pasted list becomes one each.
       function blankExercise(){ return { name: '', sets: '', reps: '', value: '', unit: 'kg' }; }
       function hasNumbers(ex){ return !!(ex.sets || ex.reps || ex.value); }
+      // once a name is typed: written another way, it becomes the name already used; a
+      // letter or two out, Ledger asks ("Did you mean Bench press?") unless told to keep it
+      function settleName(ex){
+        var name = (ex.name || '').trim();
+        ex._hint = null;
+        if (!name) return;
+        var same = exResolve(name);
+        if (same){ ex.name = same; return; }
+        if (!ex._keep){ var c = exClose(name); if (c) ex._hint = c.name; }
+      }
       function renderRows(focusIndex){
         rowsWrap.innerHTML = '';
         exerciseState.forEach(function(ex, i){
@@ -26130,10 +26341,13 @@
           var unitOptsHtml = UNIT_OPTIONS.map(function(u){ return '<option value="'+u+'"'+(ex.unit===u?' selected':'')+'>'+u+'</option>'; }).join('');
           row.innerHTML =
             '<div class="ex-main">' +
-              '<input class="ex-name" list="'+dlId+'" placeholder="Exercise name" enterkeyhint="next" autocomplete="off" aria-label="Exercise">' +
+              '<input class="ex-name" placeholder="Exercise name" enterkeyhint="next" autocomplete="off" autocapitalize="sentences" aria-label="Exercise">' +
               '<button type="button" class="ex-more" aria-expanded="'+(open?'true':'false')+'">Sets</button>' +
               '<button type="button" class="ex-rm" aria-label="Remove exercise">✕</button>' +
             '</div>' +
+            '<div class="ex-suggest" hidden></div>' +
+            '<div class="ex-hint" hidden><span class="ex-hint-text"></span>' +
+              '<button type="button" class="ex-hint-use">Use</button><button type="button" class="ex-hint-keep">Keep mine</button></div>' +
             '<div class="ex-nums"'+(open?'':' hidden')+'>' +
               '<input class="ex-sets" placeholder="Sets" type="number" inputmode="numeric" aria-label="Sets">' +
               '<input class="ex-reps" placeholder="Reps" type="number" inputmode="numeric" aria-label="Reps">' +
@@ -26146,11 +26360,64 @@
           row.querySelector('.ex-sets').value = ex.sets || '';
           row.querySelector('.ex-reps').value = ex.reps || '';
           row.querySelector('.ex-value').value = ex.value || '';
-          nameEl.addEventListener('input', function(){ exerciseState[i].name = nameEl.value; });
+          var sug = row.querySelector('.ex-suggest'), hint = row.querySelector('.ex-hint');
+          // the name's hint and suggestions, drawn in place so focus never moves
+          function paintHint(){
+            var h = exerciseState[i]._hint;
+            hint.hidden = !h;
+            if (h) hint.querySelector('.ex-hint-text').textContent = 'Did you mean ' + h + '?';
+          }
+          function paintSuggest(){
+            var others = exerciseState.filter(function(x, j){ return j !== i && x.name; }).map(function(x){ return exKey(x.name); });
+            var list = document.activeElement === nameEl ? exMatches(nameEl.value, 3, others) : [];
+            sug.hidden = !list.length;
+            sug.innerHTML = '';
+            list.forEach(function(m){
+              var b = document.createElement('button');
+              b.type = 'button';
+              b.className = 'ex-chip';
+              b.textContent = m.name;                       // known names are still user text
+              b.addEventListener('pointerdown', function(e){ e.preventDefault(); });   // keep the keyboard
+              b.addEventListener('mousedown', function(e){ e.preventDefault(); });
+              b.addEventListener('click', function(){
+                exerciseState[i].name = m.name;
+                exerciseState[i]._hint = null;
+                nameEl.value = m.name;
+                paintSuggest(); paintHint();
+              });
+              sug.appendChild(b);
+            });
+          }
+          paintHint();
+          hint.querySelector('.ex-hint-use').addEventListener('click', function(){
+            if (!exerciseState[i]._hint) return;           // already taken
+            exerciseState[i].name = exerciseState[i]._hint;
+            nameEl.value = exerciseState[i].name;
+            exerciseState[i]._hint = null;
+            paintHint();
+          });
+          hint.querySelector('.ex-hint-keep').addEventListener('click', function(){
+            exerciseState[i]._keep = true;
+            exerciseState[i]._hint = null;
+            paintHint();
+          });
+          nameEl.addEventListener('input', function(){
+            exerciseState[i].name = nameEl.value;
+            exerciseState[i]._keep = false;
+            exerciseState[i]._hint = null;
+            paintHint(); paintSuggest();
+          });
+          nameEl.addEventListener('focus', paintSuggest);
+          nameEl.addEventListener('blur', function(){
+            settleName(exerciseState[i]);
+            nameEl.value = exerciseState[i].name || '';
+            paintSuggest(); paintHint();
+          });
           nameEl.addEventListener('keydown', function(e){
             if (e.key !== 'Enter' || e.isComposing) return;
             e.preventDefault();
             if (!nameEl.value.trim()) return;
+            settleName(exerciseState[i]);
             exerciseState.splice(i + 1, 0, blankExercise());
             renderRows(i + 1);
           });
@@ -26158,7 +26425,7 @@
             var lines = hbParse(e.clipboardData && e.clipboardData.getData('text'));
             if (lines.length < 2) return;
             e.preventDefault();
-            var add = lines.slice(0, 30).map(function(l){ var x = blankExercise(); x.name = l.slice(0, 80); return x; });
+            var add = lines.slice(0, 30).map(function(l){ var x = blankExercise(); x.name = l.slice(0, 80); settleName(x); return x; });
             // into an empty row, the list takes its place; after a named one, it follows it
             var keep = !!nameEl.value.trim(), at = keep ? i + 1 : i;
             if (!keep) exerciseState.splice(i, 1);
@@ -26245,22 +26512,22 @@
       }
       if (type === 'resistance'){
         out.venue = document.getElementById('f_venue').value;
-        var finalExercises = exerciseState.filter(function(e){ return e.name; }).map(function(e){
-          return { name: e.name, sets: e.sets ? Number(e.sets) : null, reps: e.reps ? Number(e.reps) : null,
+        var finalExercises = exerciseState.filter(function(e){ return e.name && e.name.trim(); }).map(function(e){
+          // the same exercise written another way is saved under the name already used
+          var name = e.name.trim(), same = exResolve(name);
+          return { name: same || name, sets: e.sets ? Number(e.sets) : null, reps: e.reps ? Number(e.reps) : null,
                    value: e.value ? Number(e.value) : null, unit: e.unit || 'kg' };
         });
         out.exercises = finalExercises;
         out.bodyweight = numOrNull('f_bodyweight');
         out.durationMin = numOrNull('f_durationMin');
 
-        // Offer to save any new exercise names as presets
-        var knownNames = presets.exercises.map(function(e){ return e.name.toLowerCase(); });
-        var newOnes = finalExercises.filter(function(e){ return knownNames.indexOf(e.name.toLowerCase()) === -1; });
+        // a new exercise joins the list for next time, without asking
+        var knownKeys = presets.exercises.map(function(e){ return exKey(e.name); });
+        var newOnes = finalExercises.filter(function(e){ return knownKeys.indexOf(exKey(e.name)) === -1; });
         newOnes.forEach(function(e){
-          if (confirm('Save "' + e.name + '" (' + e.unit + ') as a new exercise for quick access next time?')){
-            presets.exercises.push({ name: e.name, unit: e.unit });
-            knownNames.push(e.name.toLowerCase());
-          }
+          presets.exercises.push({ name: e.name, unit: e.unit });
+          knownKeys.push(exKey(e.name));
         });
         if (newOnes.length) savePresets();
       }
