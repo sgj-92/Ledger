@@ -389,7 +389,7 @@ async function oobLink(email){
   // H14 — a checklist: Maria's weekly groceries, for Abi
   await M.click('#hsAdd'); await M.waitForSelector('#hamList'); await M.click('#hamList');
   await M.waitForSelector('#hnList');
-  check(await M.evaluate(() => !document.getElementById('hnListField').hidden && document.getElementById('hnListOn').getAttribute('aria-checked') === 'true'), 'H14 "Shopping or checklist" opens a request with its list ready');
+  check(await M.evaluate(() => !document.getElementById('hnListField').hidden && document.getElementById('hnListOn').getAttribute('aria-checked') === 'true'), 'H14 "Today’s plan, shopping or checklist" opens a request with its list ready');
   check(await chip(M, '#hnFor', 'Abi'), 'chose For Abi');
   await M.fill('#hnText', 'Weekly groceries'); await M.fill('#hnList', 'Milk\nEggs\nRice\nChicken');
   await M.screenshot({ path: `${shots}/${tag}-H14-new-list.png` });

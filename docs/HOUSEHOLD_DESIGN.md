@@ -209,7 +209,7 @@ Updated 2026-10-22 (navigation redesign): Home is a place, not a sheet.
 - **Done is never automatic.** Ticking everything says "all ticked" and leaves the
   request open. Done with items left asks first ("2 items aren't ticked. Mark it done
   anyway?") and leaves them as they are. History is kept.
-- **Creating one:** Add → **Shopping or checklist** (or "With a checklist" on any new
+- **Creating one:** Add → **Today’s plan, shopping or checklist** (or "With a checklist" on any new
   request): items one per line, created with the request in one write. An existing
   request gains one by adding its first item.
 - **Notifications:** none for ticks or edits.
