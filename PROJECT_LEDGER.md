@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-25 (Native apps Phase 1 merged into `main`; Phase 3 — the first iOS widget — next)
+Last updated: 2026-10-27 (Claude in Ledger phase 1 built; live once the key is saved and Firebase deployed)
 
 ---
 
@@ -747,6 +747,27 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-27 — Claude in Ledger phase 1: how it is built
+- **The + button** is on every tab and offers **Ask Claude** and **Quick add**. Quick add
+  is the existing Quick add sheet's own name; the design said "Quick capture".
+  - It tucks away while scrolling down or typing, and comes back on scrolling up.
+  - Every phone screen has room at its foot, so the last row scrolls clear of it.
+  - Signed out, or as a partner, the + goes straight to Quick add.
+- **The endpoint:** one HTTPS function, `assistant`.
+  - The caller must have a Firebase ID token with the owner role.
+  - Only Ledger's own pages may call it.
+  - Limits: 200 requests a day.
+  - The Anthropic key is in Secret Manager.
+- **Where things are kept:**
+  - The conversation stays on the server (`ledger_assistant_threads`), and no client
+    can read it.
+  - Proposals are in `ledger_assistant_proposals`. Shaun may read his own and change
+    only their status and undo fields.
+- **Applying:** Ledger applies each change through its own save functions. A row that
+  changed since Claude read it is held back. Undo never overwrites a later edit.
+- **Not yet built:** the 30-day clean-up, which comes with History (phase 3).
+- See `docs/CLAUDE_ASSISTANT.md` §11.
 
 ### 2026-10-27 — Claude in Ledger: Shaun's answers; Vercel storage
 - **Claude in Ledger:**
@@ -2328,12 +2349,18 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (review)
-Status: **Claude in Ledger, designed 2026-10-27, awaiting approval.**
-- The design is `docs/CLAUDE_ASSISTANT.md`: Ask Claude inside Ledger, and a Ledger
-  connector for Claude's apps.
-- Shaun has answered all of its §10. Building starts at phase 1 when he says go.
+Owner: Shaun (switch on and try)
+Status: **Claude in Ledger phase 1 built 2026-10-27** (`docs/CLAUDE_ASSISTANT.md` §11).
+It covers Actions and the Food Plan, via + → Ask Claude, with review and Undo.
+- **Shaun:**
+  1. Set a spend limit in the Anthropic Console.
+  2. Save `ANTHROPIC_API_KEY` with `functions:secrets:set`. This must come first.
+  3. Run "Deploy Firebase", everything.
+  4. Try it.
+- **Never called for real:** the Claude API (no key or network in the build session).
 - Also with Shaun: iPhone build 4 (key-task stars, the Flow widget).
+
+**Before that:** Claude in Ledger designed and answered (2026-10-27).
 
 **Before that — built 2026-10-26:**
 - request editing and Move to Ongoing without a date. Deploy rules with "Deploy
@@ -2453,6 +2480,10 @@ No active handoff.
 
 ### Claude Code
 
+**Claude in Ledger phase 1: built 2026-10-27.** No active handoff.
+- **Phase 2** (health, Comms, Home, settings, duplicates) and **phase 3** (the
+  connector, History, the 30-day clean-up) wait for Shaun to try phase 1 and say go.
+
 **Done 2026-10-26:**
 - Phase 2, notifications and app links (§12c);
 - Phase 3, iOS, the "Today" widget (§12b).
@@ -2502,6 +2533,19 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Claude in Ledger, phase 1.** (Logged in Decisions.)
+  - **What:** the `assistant` function, its rules, the + menu, the Ask Claude sheet, and
+    the review card with Apply, held rows and Undo.
+  - **Tests, all passing:**
+    - functions (stand-in Claude): 29;
+    - rules: 623;
+    - Ask Claude e2e: 33;
+    - execution: 81;
+    - native shell: 67;
+    - Home: 256;
+    - Partner: 209;
+    - Quick capture: 24.
+  - **`privacy.html`** now says that requests go to Anthropic.
 - (2026-10-27) — **Vercel storage cleared.** (Shaun, with the CLI.)
   - Ledger is down from 135 deployments to the one in production.
   - mp-dashboard-beta-v2's old deployments are removed.

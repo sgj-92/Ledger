@@ -339,7 +339,8 @@
   .day-today-btn { color: var(--gold); background: rgba(var(--gold-rgb),0.08); border: 1px solid rgba(var(--gold-rgb),0.3); }
   .day-review-btn { color: var(--text-2); background: none; border: 1px solid var(--line-2); }
 
-  main { padding: var(--hdr-gap) 22px calc(104px + env(safe-area-inset-bottom)); flex: 1 0 auto; }
+  /* the foot keeps room for the + (84px up, 54px tall), so the last row scrolls clear of it */
+  main { padding: var(--hdr-gap) 22px calc(156px + env(safe-area-inset-bottom)); flex: 1 0 auto; }
   section.view { display: none; animation: fadein 0.2s ease; }
   section.view.active { display: block; }
   @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
@@ -1754,6 +1755,68 @@
   .global-fab[hidden] { display: none; }
   .global-fab svg { width: 21px; height: 21px; display: block; }
   .global-fab:active { transform: scale(0.92); }
+  /* it steps aside going down the page and while typing, so it never sits over what is read */
+  .global-fab.tucked, .global-fab.typing { transform: translateY(150%); opacity: 0; pointer-events: none; }
+  .global-fab { transition: transform 0.2s cubic-bezier(.2,.8,.3,1), opacity 0.2s ease; }
+
+  /* the + menu: Ask Claude and Quick capture */
+  .add-menu {
+    position: fixed; z-index: 24; display: flex; flex-direction: column; gap: 4px; padding: 6px;
+    min-width: 200px; border-radius: var(--r-lg); background: var(--surface);
+    border: 1px solid var(--line-2); box-shadow: var(--shadow-lift);
+  }
+  .add-menu[hidden] { display: none; }
+  .add-menu button {
+    display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border: none; border-radius: var(--r-md);
+    background: none; color: var(--text); font-family: var(--sans); font-size: 15px; text-align: left; cursor: pointer;
+  }
+  .add-menu button:active, .add-menu button:focus-visible { background: var(--surface-2); outline: none; }
+  .add-menu-ic { width: 20px; height: 20px; color: var(--gold); flex-shrink: 0; }
+  .add-menu-ic svg { width: 100%; height: 100%; display: block; }
+
+  /* ---------- Ask Claude ---------- */
+  .ac-thread { display: flex; flex-direction: column; gap: 10px; margin-bottom: var(--sp-4); }
+  .ac-empty { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--text-2); }
+  .ac-turn { font-size: 14.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .ac-you { align-self: flex-end; max-width: 85%; padding: 10px 14px; border-radius: 16px 16px 4px 16px; background: var(--surface-2); color: var(--text); }
+  .ac-claude { align-self: flex-start; max-width: 92%; color: var(--text); }
+  .ac-error { color: var(--danger); font-size: 13.5px; }
+  .ac-wait { display: flex; gap: 5px; padding: 8px 0; }
+  .ac-wait span { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); opacity: 0.35; animation: ac-dot 1.2s infinite ease-in-out; }
+  .ac-wait span:nth-child(2) { animation-delay: 0.15s; }
+  .ac-wait span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes ac-dot { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+  @media (prefers-reduced-motion: reduce) { .ac-wait span { animation: none; opacity: 0.6; } }
+  .ac-compose { position: sticky; bottom: calc(-24px - env(safe-area-inset-bottom)); display: flex; gap: 8px; align-items: flex-end;
+    margin: 0 -22px calc(-24px - env(safe-area-inset-bottom)); padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
+    background: var(--surface); border-top: 1px solid var(--line); }
+  .ac-compose textarea { flex: 1; min-width: 0; resize: none; min-height: 48px; max-height: 140px; line-height: 1.4; }
+  .btn-primary.ac-send { width: auto; margin: 0; flex-shrink: 0; min-height: 48px; padding: 0 20px; }
+  .ac-prop { border: 1px solid rgba(var(--gold-rgb),0.3); border-radius: var(--r-lg); padding: 14px 14px 12px; background: var(--surface); }
+  .ac-prop.is-replaced, .ac-prop.is-cancelled { opacity: 0.55; padding-bottom: 14px; }
+  .ac-prop-head { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+  .ac-prop-k { font-size: 10.5px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); }
+  .ac-prop-sum { font-size: 15px; color: var(--text); overflow-wrap: anywhere; }
+  .ac-prop-warn { margin: 0 0 10px; font-size: 13px; color: var(--danger); }
+  .ac-changes { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+  .ac-change { display: flex; gap: 12px; align-items: flex-start; width: 100%; padding: 11px 0; border: none; border-bottom: 1px solid var(--line);
+    background: none; text-align: left; font-family: var(--sans); color: var(--text); cursor: pointer; }
+  div.ac-change { cursor: default; }
+  .ac-change:last-child { border-bottom: none; }
+  .ac-tick { flex-shrink: 0; width: 22px; height: 22px; margin-top: 1px; border-radius: 6px; border: 1.5px solid var(--line-2); box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center; color: transparent; }
+  .ac-tick svg { width: 12px; height: 12px; display: block; }
+  .ac-change.on .ac-tick { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .ac-change.held .ac-tick { background: none; border-color: var(--line-2); }
+  .ac-ch-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .ac-ch-top { font-size: 14.5px; overflow-wrap: anywhere; }
+  .ac-ch-verb { font-weight: 600; margin-right: 2px; }
+  .ac-change.danger .ac-ch-verb { color: var(--danger); }
+  .ac-ch-line { font-size: 12.5px; color: var(--text-2); overflow-wrap: anywhere; }
+  .ac-change.held .ac-ch-line:last-child { color: var(--danger); }
+  .ac-prop-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .ac-prop-btns .btn-primary, .ac-prop-btns .btn-secondary { width: auto; margin: 0; flex: 1 1 auto; min-height: 44px; }
+  .ac-prop-btns .btn-quiet { width: auto; margin: 0; flex: 0 0 auto; }
 
   /* ---------- chips ---------- */
   .chip { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 500; padding: 5px 11px; border-radius: 100px; line-height: 1.3; }
@@ -2120,13 +2183,13 @@
     display: block; font-size: 10px; color: var(--text-3); margin-bottom: 9px;
     font-weight: 500; text-transform: uppercase; letter-spacing: 0.18em;
   }
-  .field input, .field select, .field textarea {
+  .field input, .field select, .field textarea, .ac-compose textarea {
     width: 100%; background: var(--surface-2);
     border: 1px solid var(--line); border-radius: 12px; color: var(--text);
     padding: 14px 14px; font-family: var(--sans); font-size: 15px;
     transition: border-color 0.12s ease;
   }
-  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: rgba(var(--gold-rgb),0.5); }
+  .field input:focus, .field select:focus, .field textarea:focus, .ac-compose textarea:focus { outline: none; border-color: rgba(var(--gold-rgb),0.5); }
   .field textarea { resize: vertical; min-height: 64px; line-height: 1.55; }
   .field textarea.food-diary { min-height: 190px; line-height: 1.6; font-size: 14.5px; }
   .field textarea.hiit-outline { min-height: 112px; line-height: 1.55; }
@@ -4280,6 +4343,8 @@
       right: auto; bottom: 96px; width: 48px; height: 48px; box-shadow: none;
       left: calc(max(0px, (100vw - var(--ws-max)) / 2) + (var(--side-w) - 48px) / 2);
     }
+    /* in the sidebar it covers nothing, so it stays put */
+    .global-fab.tucked, .global-fab.typing { transform: none; opacity: 1; pointer-events: auto; }
     .update-bar { bottom: 28px; }
     .pin-toast { bottom: 32px; }
 
@@ -4516,7 +4581,7 @@
       border: 1px solid rgba(var(--gold-rgb),0.28);
     }
     .global-fab svg { width: 17px; height: 17px; }
-    .global-fab::after { content: 'Quick add'; font-family: var(--sans); font-size: 13px; font-weight: 500; letter-spacing: 0.01em; }
+    .global-fab::after { content: 'Add'; font-family: var(--sans); font-size: 13px; font-weight: 500; letter-spacing: 0.01em; }
     .global-fab:active { transform: none; background: rgba(var(--gold-rgb),0.16); }
     .bk-compact .bk-body { display: flex; align-items: baseline; gap: 14px; }
     .bk-compact .bk-title { flex: 1; min-width: 0; }
@@ -5438,7 +5503,7 @@
   </button>
 </nav>
 
-<button type="button" class="global-fab" id="globalFabBtn" aria-label="Quick add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+<button type="button" class="global-fab" id="globalFabBtn" aria-label="Add" aria-haspopup="menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
 <div class="sheet-backdrop" id="sheetBackdrop">
   <div class="sheet" id="sheet"></div>
@@ -5693,6 +5758,7 @@
   // used for training types (Recorded Activity cards, Quick Log tiles).
   // shared line-icon vocabulary — one stroke weight, one geometry language
   var UI_ICON = {
+    spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>',
     leaf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 4.2c0 7.8-4.9 12.3-11.2 12.3H5.8C5.8 8.7 10.7 4.2 17 4.2h2.5z"/><path d="M5 20c2.2-4.8 5.4-7.7 9.6-9.6"/></svg>',
     cutlery: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5v7a2.5 2.5 0 0 0 5 0v-7"/><line x1="8.5" y1="2.5" x2="8.5" y2="21.5"/><path d="M17 2.5c-1.5 1-2.3 3-2.3 5.3 0 2.6 1.3 4 2.3 4.7v9"/></svg>',
     mountain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 19.5l6.2-9.6 3.6 5.2 2.4-3.4 6.8 7.8z"/><path d="M8.7 9.9l1.9-3"/></svg>',
@@ -9925,13 +9991,377 @@
     toPin.forEach(function(item){ pinNow(item.title, '', item.id, item.date); });
   }
 
-  document.getElementById('globalFabBtn').addEventListener('click', function(){ openQuickCaptureSheet(fabTargetDate()); });
-  // Today has its own Add action control; a floating duplicate would only cover content
+  // The + is on every tab (Shaun, 2026-10-27) and never hides anything: each screen keeps
+  // room at its foot for it, it tucks away while the page scrolls down or the keyboard is
+  // up, and it comes back on the way up. For the owner it offers Quick capture and Ask
+  // Claude; anywhere Ask Claude can't run, it is Quick capture straight away.
+  document.getElementById('globalFabBtn').addEventListener('click', function(e){
+    e.stopPropagation();
+    if (!askClaudeAvailable()){ openQuickCaptureSheet(fabTargetDate()); return; }
+    toggleAddMenu();
+  });
   function syncGlobalFab(){
     var fab = document.getElementById('globalFabBtn');
-    if (fab) fab.hidden = currentView === 'log' || currentView === 'comms' || currentView === 'home';
+    if (fab) fab.hidden = false;
+    closeAddMenu();
   }
   syncGlobalFab();
+  function addMenuEl(){
+    var m = document.getElementById('addMenu');
+    if (m) return m;
+    m = document.createElement('div');
+    m.id = 'addMenu';
+    m.className = 'add-menu';
+    m.setAttribute('role', 'menu');
+    m.hidden = true;
+    m.innerHTML =
+      '<button type="button" role="menuitem" data-add="claude"><span class="add-menu-ic">' + UI_ICON.spark + '</span>Ask Claude</button>' +
+      '<button type="button" role="menuitem" data-add="capture"><span class="add-menu-ic">' + BK_PLUS_SVG + '</span>Quick add</button>';
+    m.querySelector('[data-add="claude"]').addEventListener('click', function(){ closeAddMenu(); openAskClaudeSheet(); });
+    m.querySelector('[data-add="capture"]').addEventListener('click', function(){ closeAddMenu(); openQuickCaptureSheet(fabTargetDate()); });
+    document.body.appendChild(m);
+    return m;
+  }
+  function toggleAddMenu(){
+    var m = addMenuEl(), fab = document.getElementById('globalFabBtn');
+    if (!m.hidden){ closeAddMenu(); return; }
+    // beside the + wherever it sits: floating on a phone, in the sidebar on wider screens
+    var r = fab.getBoundingClientRect(), right = r.left + r.width / 2 > innerWidth / 2;
+    m.style.bottom = Math.round(innerHeight - r.top + 10) + 'px';
+    m.style.left = right ? 'auto' : Math.round(r.left) + 'px';
+    m.style.right = right ? Math.round(innerWidth - r.right) + 'px' : 'auto';
+    m.hidden = false;
+    fab.setAttribute('aria-expanded', 'true');
+    var first = m.querySelector('button'); if (first) first.focus();
+  }
+  function closeAddMenu(){
+    var m = document.getElementById('addMenu'), fab = document.getElementById('globalFabBtn');
+    if (m) m.hidden = true;
+    if (fab) fab.setAttribute('aria-expanded', 'false');
+  }
+  document.addEventListener('click', function(e){
+    var m = document.getElementById('addMenu');
+    if (m && !m.hidden && !m.contains(e.target)) closeAddMenu();
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAddMenu(); });
+  // tuck away going down the page, back on the way up (and always at the top)
+  (function(){
+    var lastY = window.scrollY || 0;
+    window.addEventListener('scroll', function(){
+      var y = window.scrollY || 0, fab = document.getElementById('globalFabBtn');
+      if (!fab) return;
+      // movement under an open sheet is not reading the page
+      if (document.getElementById('sheetBackdrop').classList.contains('open')){ lastY = y; return; }
+      if (y > lastY + 6 && y > 80){ fab.classList.add('tucked'); closeAddMenu(); }
+      else if (y < lastY - 6 || y <= 80) fab.classList.remove('tucked');
+      lastY = y;
+    }, { passive: true });
+    // out of the way while typing on the page itself (sheets cover it anyway)
+    document.addEventListener('focusin', function(e){
+      var t = e.target, fab = document.getElementById('globalFabBtn');
+      if (fab && t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && !(t.closest && t.closest('.sheet-backdrop'))) fab.classList.add('typing');
+    });
+    document.addEventListener('focusout', function(){
+      var fab = document.getElementById('globalFabBtn');
+      if (fab) fab.classList.remove('typing');
+    });
+  })();
+
+  // ============ Ask Claude (docs/CLAUDE_ASSISTANT.md) ============
+  // Claude reads the Ledger on the server and answers with a proposal; nothing changes
+  // until Shaun ticks it here and taps Apply. Ledger then makes each change itself, as him,
+  // through the same save functions as his own edits — after checking the record is still
+  // as Claude saw it — and keeps what each one was, for Undo.
+  var ASSISTANT_REGION = 'us-central1';
+  var ASSISTANT_PROPOSALS = 'ledger_assistant_proposals';
+  function assistantUrl(){
+    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && lsGet('ledger_emulator', '') === '1')
+      return 'http://127.0.0.1:5001/' + firebaseConfig.projectId + '/' + ASSISTANT_REGION + '/assistant';
+    return 'https://' + ASSISTANT_REGION + '-' + firebaseConfig.projectId + '.cloudfunctions.net/assistant';
+  }
+  function askClaudeAvailable(){ return !LOCAL_ONLY && authRole === 'owner' && dbReady && !!authUser; }
+  var acState = null;
+  function acNorm(v){ return v === undefined || v === '' ? null : v; }
+
+  // a change, in words: what it does, to what, and before → after
+  function acChangeView(c){
+    var lines = [], verb = 'Change', title = '', danger = false;
+    function day(d){ return d ? shortDayLabel(d) : 'no day'; }
+    if (c.kind === 'action_create'){
+      var a = c.after || {};
+      verb = 'Add'; title = a.title;
+      lines.push([day(a.date), a.time || '', a.durationMin ? fmtDuration(a.durationMin) : '', categoryLabel(a.category), a.isKeyTask ? 'Key task' : '']
+        .filter(Boolean).join(' \u00b7 '));
+    } else if (c.kind === 'action_update'){
+      var b = c.before || {}, pt = c.patch || {}, keys = Object.keys(pt);
+      title = b.title;
+      if (keys.length === 1 && keys[0] === 'date') verb = 'Move';
+      else if (keys.length === 1 && keys[0] === 'status') verb = pt.status === 'completed' ? 'Tick off' : 'Reopen';
+      if ('title' in pt) lines.push('Title: ' + (b.title || '') + ' \u2192 ' + pt.title);
+      if ('date' in pt) lines.push(day(b.date) + ' \u2192 ' + day(pt.date));
+      if ('time' in pt) lines.push('Time: ' + (acNorm(b.time) || 'none') + ' \u2192 ' + (pt.time || 'none'));
+      if ('durationMin' in pt) lines.push('Length: ' + (b.durationMin ? fmtDuration(b.durationMin) : 'none') + ' \u2192 ' + (pt.durationMin ? fmtDuration(pt.durationMin) : 'none'));
+      if ('category' in pt) lines.push(categoryLabel(b.category) + ' \u2192 ' + categoryLabel(pt.category));
+      if ('isKeyTask' in pt) lines.push(pt.isKeyTask ? 'Make it a key task' : 'No longer a key task');
+      if ('status' in pt && keys.length > 1) lines.push(pt.status === 'completed' ? 'Tick it off' : 'Reopen it');
+    } else if (c.kind === 'action_delete'){
+      var d0 = c.before || {};
+      verb = 'Remove'; title = d0.title; danger = true;
+      lines.push(day(d0.date) + (d0.status === 'completed' ? ' \u00b7 done' : ''));
+    } else if (c.kind === 'plan_meals_add'){
+      verb = 'Add meals'; title = day(c.id);
+      (c.add || []).forEach(function(m){ lines.push(m); });
+    }
+    return { verb: verb, title: title || '', lines: lines, danger: danger };
+  }
+
+  function openAskClaudeSheet(){
+    if (!askClaudeAvailable()) return;
+    editingId = null;
+    activeSheetRefresh = null;
+    acState = { threadId: null, turns: [], busy: false, picked: {} };
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.spark, 'Ask Claude', 'Plan and tidy your days. Nothing changes until you approve it.', '') +
+      '<div class="ac-thread" id="acThread" aria-live="polite"></div>' +
+      '<div class="ac-compose">' +
+        '<textarea id="acInput" rows="2" maxlength="4000" placeholder="e.g. Move today\u2019s unfinished work to tomorrow" aria-label="Ask Claude"></textarea>' +
+        '<button type="button" class="btn-primary ac-send" id="acSend">Send</button>' +
+      '</div>';
+    var input = document.getElementById('acInput');
+    document.getElementById('acSend').addEventListener('click', acSend);
+    input.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); acSend(); }
+    });
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    acRender();
+    backdrop.classList.add('open');
+    setTimeout(function(){ try { input.focus(); } catch(e){} }, 60);
+  }
+
+  function acSend(){
+    var input = document.getElementById('acInput');
+    if (!input || !acState || acState.busy) return;
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    acState.turns.push({ who: 'you', text: text });
+    acState.busy = true;
+    acRender();
+    var st = acState;
+    authUser.getIdToken().then(function(token){
+      return fetch(assistantUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ threadId: st.threadId, message: text, today: todayStr() })
+      });
+    }).then(function(r){
+      return r.json().then(function(b){ return { ok: r.ok, body: b || {} }; }, function(){ return { ok: false, body: {} }; });
+    }).then(function(res){
+      st.busy = false;
+      if (!res.ok){
+        st.turns.push({ who: 'error', text: res.body.error || 'Claude couldn\u2019t be reached. Try again.' });
+      } else {
+        st.threadId = res.body.threadId || st.threadId;
+        if (res.body.reply) st.turns.push({ who: 'claude', text: res.body.reply });
+        if (res.body.proposal && res.body.proposal.changes && res.body.proposal.changes.length){
+          // a newer proposal replaces the one before it
+          st.turns.forEach(function(t){ if (t.who === 'proposal' && t.state === 'open') t.state = 'replaced'; });
+          st.picked = {};
+          res.body.proposal.changes.forEach(function(c){ st.picked[c.n] = true; });
+          st.turns.push({ who: 'proposal', proposal: res.body.proposal, state: 'open' });
+        }
+      }
+      if (acState === st) acRender();
+    }).catch(function(){
+      st.busy = false;
+      st.turns.push({ who: 'error', text: 'Claude couldn\u2019t be reached. Check your connection and try again.' });
+      if (acState === st) acRender();
+    });
+  }
+
+  function acRender(){
+    var box = document.getElementById('acThread');
+    if (!box || !acState) return;
+    box.innerHTML = '';
+    if (!acState.turns.length){
+      var hint = document.createElement('p');
+      hint.className = 'ac-empty';
+      hint.textContent = 'Ask for anything on Today and your upcoming days: add or move Actions, tick things off, tidy the backlog, plan meals. You review every change before it happens.';
+      box.appendChild(hint);
+    }
+    acState.turns.forEach(function(t){
+      if (t.who === 'proposal'){ box.appendChild(acProposalCard(t)); return; }
+      var el = document.createElement('div');
+      el.className = 'ac-turn ac-' + t.who;
+      el.textContent = t.text;                           // what anyone typed is text, never markup
+      box.appendChild(el);
+    });
+    if (acState.busy){
+      var w = document.createElement('div');
+      w.className = 'ac-turn ac-claude ac-wait';
+      w.innerHTML = '<span></span><span></span><span></span>';
+      w.setAttribute('aria-label', 'Claude is working');
+      box.appendChild(w);
+    }
+    var send = document.getElementById('acSend');
+    if (send) send.disabled = acState.busy;
+    var last = box.lastElementChild;
+    if (last && last.scrollIntoView) try { last.scrollIntoView({ block: 'nearest' }); } catch(e){}
+  }
+
+  function acProposalCard(t){
+    var p = t.proposal, card = document.createElement('div');
+    card.className = 'ac-prop' + (t.state !== 'open' ? ' is-' + t.state : '');
+    var head = document.createElement('div');
+    head.className = 'ac-prop-head';
+    head.innerHTML = '<span class="ac-prop-k"></span><span class="ac-prop-sum"></span>';
+    head.firstChild.textContent = { applied: 'Applied', held: 'Not applied', undone: 'Undone', replaced: 'Replaced', cancelled: 'Cancelled' }[t.state] || 'Proposed';
+    head.lastChild.textContent = p.summary;
+    card.appendChild(head);
+    if (t.state === 'replaced' || t.state === 'cancelled') return card;
+    var removes = p.changes.filter(function(c){ return c.kind === 'action_delete'; }).length;
+    if (t.state === 'open' && (removes || p.changes.length > 10)){
+      var warn = document.createElement('p');
+      warn.className = 'ac-prop-warn';
+      warn.textContent = [removes ? 'Removes ' + removes + (removes === 1 ? ' Action.' : ' Actions.') : '',
+        p.changes.length > 10 ? 'Changes ' + p.changes.length + ' records.' : ''].filter(Boolean).join(' ');
+      card.appendChild(warn);
+    }
+    var list = document.createElement('div');
+    list.className = 'ac-changes';
+    p.changes.forEach(function(c){
+      var v = acChangeView(c), on = t.state === 'open' ? !!acState.picked[c.n] : !!(t.done && t.done[c.n]);
+      var row = document.createElement(t.state === 'open' ? 'button' : 'div');
+      row.className = 'ac-change' + (v.danger ? ' danger' : '') + (on ? ' on' : '') + (t.held && t.held[c.n] ? ' held' : '');
+      if (t.state === 'open'){
+        row.type = 'button';
+        row.setAttribute('role', 'checkbox');
+        row.setAttribute('aria-checked', on ? 'true' : 'false');
+        row.addEventListener('click', function(){ acState.picked[c.n] = !acState.picked[c.n]; acRender(); });
+      }
+      row.innerHTML = '<span class="ac-tick" aria-hidden="true">' + CHECK_SVG + '</span><span class="ac-ch-body"><span class="ac-ch-top"><span class="ac-ch-verb"></span> <span class="ac-ch-title"></span></span></span>';
+      row.querySelector('.ac-ch-verb').textContent = v.verb;
+      row.querySelector('.ac-ch-title').textContent = v.title;
+      var body = row.querySelector('.ac-ch-body');
+      v.lines.concat(t.held && t.held[c.n] ? ['Not applied: ' + t.held[c.n]] : []).forEach(function(l){
+        var ln = document.createElement('span'); ln.className = 'ac-ch-line'; ln.textContent = l; body.appendChild(ln);
+      });
+      list.appendChild(row);
+    });
+    card.appendChild(list);
+    var btns = document.createElement('div');
+    btns.className = 'ac-prop-btns';
+    if (t.state === 'open'){
+      var n = p.changes.filter(function(c){ return acState.picked[c.n]; }).length;
+      btns.innerHTML = '<button type="button" class="btn-primary" data-ac="apply"></button>' +
+        '<button type="button" class="btn-secondary" data-ac="change">Change it</button>' +
+        '<button type="button" class="btn-quiet" data-ac="cancel">Cancel</button>';
+      var ap = btns.querySelector('[data-ac="apply"]');
+      ap.textContent = n === p.changes.length ? 'Apply' : 'Apply ' + n + ' of ' + p.changes.length;
+      ap.disabled = !n;
+      ap.addEventListener('click', function(){ acApply(t); });
+      btns.querySelector('[data-ac="change"]').addEventListener('click', function(){
+        var i = document.getElementById('acInput'); if (i){ i.placeholder = 'What should be different?'; i.focus(); }
+      });
+      btns.querySelector('[data-ac="cancel"]').addEventListener('click', function(){
+        t.state = 'cancelled';
+        acRecord(p.id, { status: 'cancelled' });
+        acRender();
+      });
+    } else if (t.state === 'applied'){
+      btns.innerHTML = '<button type="button" class="btn-secondary" data-ac="undo">Undo</button>';
+      btns.querySelector('[data-ac="undo"]').addEventListener('click', function(){ acUndo(t); });
+    }
+    if (btns.children.length) card.appendChild(btns);
+    return card;
+  }
+
+  function acRecord(id, fields){
+    if (!dbReady || !dbRef || !id) return;
+    var now = new Date().toISOString();
+    dbRef.collection(ASSISTANT_PROPOSALS).doc(id).update(Object.assign({ updatedAt: now }, fields))
+      .catch(function(e){ console.warn('proposal not recorded', e && e.code); });
+  }
+
+  // Apply what is ticked. Each change is made through Ledger's own save functions, on the
+  // record as it stands — and only if the fields it touches are still as Claude saw them.
+  function acApply(t){
+    var p = t.proposal, undo = [], done = {}, held = {};
+    var chosen = p.changes.filter(function(c){ return acState.picked[c.n]; });
+    chosen.forEach(function(c){
+      var r = acApplyChange(c);
+      if (r.ok){ done[c.n] = true; undo.push(r.undo); } else held[c.n] = r.why;
+    });
+    var n = Object.keys(done).length, h = Object.keys(held).length;
+    // nothing made it: say so, and offer nothing to undo
+    t.state = n ? 'applied' : 'held'; t.done = done; t.held = held; t.undo = undo;
+    acRecord(p.id, { status: n === p.changes.length ? 'applied' : 'partial',
+      applied: Object.keys(done).map(function(k){ return { n: Number(k) }; }), appliedAt: new Date().toISOString() });
+    acRender();
+    var heldText = h ? (h === 1 ? '1 held back' : h + ' held back') : '';
+    if (!n){ showPinToast('Nothing applied \u00b7 ' + heldText, true); return; }
+    showActionToast((n === 1 ? '1 change applied' : n + ' changes applied') + (h ? ' \u00b7 ' + heldText : ''), 'Undo', function(){ acUndo(t); });
+  }
+  function acApplyChange(c){
+    var cur, i, k;
+    if (c.kind === 'action_create'){
+      if (commitments.some(function(x){ return x.id === c.id; })) return { ok: false, why: 'it\u2019s already there' };
+      var item = Object.assign({ id: c.id }, c.after);
+      commitments.push(item);
+      saveCommitment(item);
+      return { ok: true, undo: { kind: 'remove', id: c.id } };
+    }
+    if (c.kind === 'action_update' || c.kind === 'action_delete'){
+      cur = commitments.find(function(x){ return x.id === c.id; });
+      if (!cur) return { ok: false, why: 'it\u2019s no longer there' };
+      var watch = c.kind === 'action_delete' ? ['title', 'date', 'status', 'time'] : Object.keys(c.patch || {});
+      for (i = 0; i < watch.length; i++){
+        k = watch[i];
+        if (acNorm(cur[k]) !== acNorm(c.before[k])) return { ok: false, why: 'it changed since Claude looked' };
+      }
+      if (c.kind === 'action_delete'){
+        deleteCommitment(c.id);
+        return { ok: true, undo: { kind: 'recreate', record: Object.assign({}, cur) } };
+      }
+      var was = {};
+      Object.keys(c.patch).forEach(function(key){ was[key] = cur[key] === undefined ? null : cur[key]; });
+      if (c.patch.status === 'completed' && focusIsAction(c.id)) clearCurrentFocus();
+      saveCommitment(Object.assign({}, cur, c.patch));
+      return { ok: true, undo: { kind: 'restore', id: c.id, fields: was, expect: c.patch } };
+    }
+    if (c.kind === 'plan_meals_add'){
+      var plan = planBase(c.id), added = (c.add || []).map(function(text){
+        return { id: uid(), text: text, completed: false, completedAt: null, nutritionEntryId: null };
+      });
+      savePlanForDate(c.id, Object.assign({}, plan, { meals: getPlanMeals(plan).concat(added) }));
+      return { ok: true, undo: { kind: 'meals', date: c.id, ids: added.map(function(m){ return m.id; }) } };
+    }
+    return { ok: false, why: 'Ledger doesn\u2019t know this kind of change' };
+  }
+  // Undo puts each record back as it was — newest first, and never over a later edit.
+  function acUndo(t){
+    if (!t.undo || t.state !== 'applied') return;
+    var kept = 0;
+    t.undo.slice().reverse().forEach(function(u){
+      var cur;
+      if (u.kind === 'remove'){
+        if (commitments.some(function(x){ return x.id === u.id; })) deleteCommitment(u.id); else kept++;
+      } else if (u.kind === 'recreate'){
+        if (!commitments.some(function(x){ return x.id === u.record.id; })){ commitments.push(u.record); saveCommitment(Object.assign({}, u.record)); }
+      } else if (u.kind === 'restore'){
+        cur = commitments.find(function(x){ return x.id === u.id; });
+        var same = cur && Object.keys(u.expect).every(function(k){ return acNorm(cur[k]) === acNorm(u.expect[k]); });
+        if (same) saveCommitment(Object.assign({}, cur, u.fields)); else kept++;
+      } else if (u.kind === 'meals'){
+        var plan = getPlanForDate(u.date);
+        if (plan) savePlanForDate(u.date, Object.assign({}, plan, { meals: getPlanMeals(plan).filter(function(m){ return u.ids.indexOf(m.id) === -1; }) }));
+      }
+    });
+    t.state = 'undone';
+    acRecord(t.proposal.id, { status: 'undone', undoneAt: new Date().toISOString() });
+    acRender();
+    showPinToast(kept ? 'Undone \u00b7 ' + kept + ' left as you changed them since' : 'Undone', false, CHECK_SVG);
+  }
 
   function fabTargetDate(){
     if (currentView === 'log') return viewedDate;
@@ -25770,6 +26200,8 @@
 
   function closeSheet(){
     backdrop.classList.remove('open');
+    var fabEl = document.getElementById('globalFabBtn');
+    if (fabEl) fabEl.classList.remove('tucked', 'typing');     // back for what comes next
     editingId = null;
     activeSheetRefresh = null;
     rqStopDetail();

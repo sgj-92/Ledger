@@ -56,7 +56,7 @@ jobs:
         run: npx --yes "$FIREBASE_TOOLS" emulators:exec --only firestore --project demo-ledger --config ../../firebase.json "node rules.test.js"
       - name: Functions tests
         working-directory: functions
-        run: npx --yes "$FIREBASE_TOOLS" emulators:exec --only firestore --project demo-ledger --config ../firebase.json "node ../tests/functions/home.test.js && node ../tests/functions/recur.test.js && node ../tests/functions/push.test.js"
+        run: npx --yes "$FIREBASE_TOOLS" emulators:exec --only firestore --project demo-ledger --config ../firebase.json "node ../tests/functions/home.test.js && node ../tests/functions/recur.test.js && node ../tests/functions/push.test.js && node ../tests/functions/assistant.test.js"
 
   deploy:
     name: Deploy

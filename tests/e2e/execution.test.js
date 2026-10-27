@@ -535,6 +535,23 @@ async function swChecks(){
   const events = await all('ledger_push_events');
   check(events.length === 16 && events.every(e => e.status === 'done'), 'every push event logged once, done (' + events.length + ')');
 
+  // ---- Ask Claude's endpoint (functions/index.js → assistant): who may call it ----
+  const AS = `http://127.0.0.1:5001/${PID}/us-central1/assistant`;
+  const tokenFor = async (email) => (await (await fetch(`http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: 'pw-123456', returnSecureToken: true }) })).json()).idToken;
+  const ask = (headers, method) => fetch(AS, { method: method || 'POST', headers: Object.assign({ 'content-type': 'application/json', origin: 'https://ledger.sgj.luxe' }, headers || {}), body: method === 'GET' ? undefined : JSON.stringify({ message: 'hello', today: TODAY }) });
+  let r = await ask({});
+  check(r.status === 401, 'assistant: no sign-in is refused (' + r.status + ')');
+  r = await ask({ authorization: 'Bearer not-a-token' });
+  check(r.status === 401, 'assistant: a made-up token is refused (' + r.status + ')');
+  r = await ask({ authorization: 'Bearer ' + await tokenFor(ABI) });
+  check(r.status === 403 && /only for the owner/.test((await r.json()).error), 'assistant: a partner is refused (' + r.status + ')');
+  r = await ask({ authorization: 'Bearer ' + await tokenFor(SHAUN) }, 'GET');
+  check(r.status === 405, 'assistant: POST only (' + r.status + ')');
+  const pre = (origin) => fetch(AS, { method: 'OPTIONS', headers: { origin, 'access-control-request-method': 'POST', 'access-control-request-headers': 'authorization,content-type' } });
+  check((await pre('https://ledger.sgj.luxe')).headers.get('access-control-allow-origin') === 'https://ledger.sgj.luxe', 'assistant: Ledger\'s own page may call it');
+  // (the emulator opens CORS to every site, so the refusal of other sites is checked in tests/functions/assistant.test.js)
+
   for (const p of [mac, iphone, samsung, abiPhone]){
     const errs = p.errs.filter(e => !/permission|offline|network/i.test(e));
     check(!errs.length, p.name + ': no page errors ' + errs.join(' | '));

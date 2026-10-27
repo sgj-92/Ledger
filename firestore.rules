@@ -58,6 +58,19 @@ service cloud.firestore {
     // Life Context: circumstances that affected a day or a stretch of days. Private like
     // the rest of the Owner's record — never projected, never a partner's.
     match /ledger_life_context/{docId=**}       { allow read, write: if isOwner(); }
+    // Ask Claude (docs/CLAUDE_ASSISTANT.md): a proposal is written by the server (Admin SDK)
+    // and never by a client. The owner reads his own and records what he did with it —
+    // applied (all or part), cancelled or undone — and nothing else about it changes.
+    // The conversation (ledger_assistant_threads) and the daily count
+    // (ledger_assistant_usage) are server-only: unlisted, so no client reaches them.
+    match /ledger_assistant_proposals/{proposalId} {
+      allow read: if isOwner() && resource.data.ownerUid == request.auth.uid;
+      allow update: if isOwner() && resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['status', 'applied', 'appliedAt', 'undoneAt', 'updatedAt'])
+                    && request.resource.data.status in ['applied', 'partial', 'cancelled', 'undone'];
+      allow create, delete: if false;
+    }
     // An Action's Updates: what happened with it, in the owner's words, and quiet facts
     // (state changed, moved, done, reopened). Owner-private like the Action itself — never
     // projected, never a partner request's Updates. Each entry names its owner and author

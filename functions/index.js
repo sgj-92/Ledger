@@ -14,6 +14,10 @@
 // Partner Sharing requests into Home (migrate.js); and recurring responsibilities at Home
 // (recur.js) are generated hourly, and at once when one is set up or changed.
 //
+// One HTTPS endpoint: `assistant` (assistant.js), Ask Claude. The owner's Ledger posts a
+// request with his Firebase ID token; Claude answers with a proposal that Ledger itself
+// applies once he approves it. It never writes Ledger data.
+//
 // Recipients come from those trusted records, checked again here (the Admin SDK is not
 // subject to the security rules). Push is best effort: Firestore is already the truth.
 //
@@ -23,12 +27,15 @@
 //   VAPID_SUBJECT      functions/.env:   mailto:you@example.com (or an https: URL) — yours
 //   APP_URL            functions/.env:   https://ledger.sgj.luxe/ (the default)
 //   FUNCTIONS_REGION   functions/.env:   the region of the Firestore database
+//   ANTHROPIC_API_KEY  Secret Manager:   firebase functions:secrets:set ANTHROPIC_API_KEY
+//                                        (Ask Claude; the key never reaches a browser)
 // See docs/SECURITY.md, "Push notifications", for the exact steps.
 //
 // Deploy with: firebase deploy --only functions
 
 const { onDocumentCreated, onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onRequest } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const { defineSecret, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
@@ -40,11 +47,13 @@ const webpush = require('web-push');
 const { createEngine } = require('./push');
 const { createMigrator } = require('./migrate');
 const { createRecurrer } = require('./recur');
+const { createAssistant, ALLOWED_ORIGINS } = require('./assistant');
 
 admin.initializeApp();
 const db = admin.firestore();
 
 const VAPID_PRIVATE_KEY = defineSecret('VAPID_PRIVATE_KEY');
+const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
 const VAPID_PUBLIC_KEY = defineString('VAPID_PUBLIC_KEY');
 // No default: whoever runs Ledger chooses the contact push services may use.
 const VAPID_SUBJECT = defineString('VAPID_SUBJECT');
@@ -175,5 +184,35 @@ exports.onRecurringWritten = onDocumentWritten(
     if (before && sameApartFrom(before, after, RECUR_BOOKKEEPING)) return;
     const out = await recurrer().runTemplate(event.data.after.ref, { anyHour: true });
     logger.info('recurring written', out);
+  }
+);
+
+// ---- Ask Claude (assistant.js) ----
+// Only Ledger's own pages may call it (ALLOWED_ORIGINS: production, and a local build); the
+// signed-in user's ID token is checked, and assistant.js accepts only the owner.
+exports.assistant = onRequest(
+  {
+    secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 180, memory: '512MiB', maxInstances: 3,
+    cors: ALLOWED_ORIGINS
+  },
+  async (req, res) => {
+    if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+    const m = /^Bearer (.+)$/.exec(req.get('Authorization') || '');
+    let uid = null;
+    try { uid = m ? (await admin.auth().verifyIdToken(m[1])).uid : null; } catch (e) { uid = null; }
+    if (!uid) { res.status(401).json({ error: 'Sign in to Ledger first.' }); return; }
+    const Anthropic = require('@anthropic-ai/sdk');
+    const AnthropicClient = Anthropic.default || Anthropic;
+    const client = new AnthropicClient({ apiKey: ANTHROPIC_API_KEY.value() });
+    const body = req.body || {};
+    try {
+      const out = await createAssistant({ db, client, log: (...a) => logger.warn(...a) })
+        .handle({ uid, threadId: body.threadId, message: body.message, today: body.today });
+      res.status(out.status).json(out.body);
+    } catch (e) {
+      logger.error('assistant failed', e && e.message);
+      const busy = e && (e.status === 429 || e.status === 529);
+      res.status(502).json({ error: busy ? 'Claude is busy. Try again in a minute.' : 'Claude could not be reached. Try again.' });
+    }
   }
 );

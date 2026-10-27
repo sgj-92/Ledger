@@ -1,6 +1,6 @@
 # Claude in Ledger — design
 
-Status: **design, 2026-10-27; every question in §10 answered by Shaun. Nothing is built.**
+Status: **design agreed 2026-10-27 (§10 answered by Shaun). Phase 1 built 2026-10-27 (§11); it goes live once the key is saved and Firebase is deployed.**
 
 > "I want to look at connecting Claude to ledger via api. So we can amend things in the
 > app, clean data, add new etc." — "I want to add it into ledger app too." — "I want to
@@ -40,10 +40,11 @@ Why proposals rather than letting Claude write:
   - The + steps aside while the keyboard or a sheet is open.
 
   Ask Claude opens a sheet with a text field; the keyboard's microphone works for
-  dictation.
+  dictation. (Built as **Ask Claude** and **Quick add**, the existing Quick add sheet's
+  own name.)
 - **A conversation:** Claude can ask a question back ("which Thursday?") before
-  proposing. The conversation lasts for the sheet; nothing is kept unless Shaun applies
-  something.
+  proposing. The conversation lasts for the sheet; the server keeps it, and each
+  proposal, so it can carry on (§11).
 - **The proposal card,** in the sheet:
   - a one-line summary ("Move 3 Actions to Wed 28 Oct, add 2 meals");
   - each change as a row, before → after, with a tick to include or leave it out;
@@ -219,3 +220,60 @@ Answered 2026-10-27:
 
 - **Reviewing a connector proposal:** in Ledger only. Claude's reply links to the
   review card; there is no apply tool in the chat.
+
+## 11. Phase 1 — what is built
+
+**Scope:** Actions (create, change, move, tick off, reopen, remove) and the Food Plan's
+meals, for any date.
+
+**Server** (`functions/assistant.js`, wired as `assistant` in `functions/index.js`):
+- **Reading:** `get_day`, `search_actions` and `list_backlog`.
+- **Proposing:** `propose_create_action`, `propose_update_action` (a null field means
+  "unchanged"), `propose_delete_action`, `propose_add_meals`, then `present_proposal`.
+  The phase 1 tool names are per record type, unlike the generic names in §5.
+- **Refused at the tool:** an unknown id, a second change to the same Action, a change
+  that changes nothing, a bad date, time or category.
+- **Who may call it:** a Firebase ID token with the owner role, from Ledger's own pages
+  (`ALLOWED_ORIGINS`).
+- **Limits:** 200 requests a day (`ledger_assistant_usage`) and 200 changes in one
+  proposal.
+
+**Where things are kept** (`firestore.rules`):
+- **The conversation:** kept server-side in `ledger_assistant_threads`, so Claude can
+  ask a question back. No client can read it.
+- **Proposals:** in `ledger_assistant_proposals`. Shaun can read his own, and may
+  change only their status and applied/undo fields. The server alone creates them.
+- **Not yet built:** deleting either after 30 days. It comes with History in phase 3.
+
+**In the app** (`index.html`, "Ask Claude"):
+- **The + button:** on every tab, offering Ask Claude and Quick add.
+  - Every screen has room at its foot.
+  - The + tucks away while scrolling down or typing, and comes back on scrolling up.
+- **The sheet:** a conversation, then a review card. Every row has a tick. Removals and
+  more than 10 changes are called out.
+- **Apply:**
+  - each row is checked against what Claude saw; a row that has changed since is held
+    back, with the reason;
+  - the change is saved through Ledger's own save functions;
+  - the toast offers Undo.
+- **Undo** reverses in reverse order and never overwrites a later edit.
+
+**Tests:**
+- `tests/functions/assistant.test.js` runs a stand-in Claude on the Firestore emulator.
+- `tests/firestore-rules/` has the `assistant:` cases.
+- `tests/e2e/assistant.test.js` covers the + button, the sheet, Apply, the held row and
+  Undo.
+- `tests/e2e/execution.test.js` covers who may call the endpoint.
+
+The real Claude API was not called from the build session (no key, and no network to
+Anthropic).
+
+**To switch it on (Shaun):**
+1. Set a monthly spend limit in the Anthropic Console.
+2. Save the key from the Mac or Cloud Shell:
+   `npx firebase-tools functions:secrets:set ANTHROPIC_API_KEY --project ledger-6aec3`.
+   Do this first: deploying functions fails without it.
+3. GitHub → Actions → Deploy Firebase → everything (rules, indexes, functions).
+4. In Ledger, tap + → Ask Claude.
+
+**Next (phase 2):** health, Comms, Home, settings, duplicates and merging.

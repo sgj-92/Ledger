@@ -870,6 +870,26 @@ async function check(name, fn){
   await check('Abi: may follow requests between others', () => assertSucceeds(partner.doc('ledger_notification_prefs/partner1').set({ partner: true, homeOversight: true, updatedAt: 'now' })));
   await check('prefs: on/off only', () => assertFails(partner.doc('ledger_notification_prefs/partner1').set({ homeOversight: 'yes' })));
 
+  // ---- Ask Claude: proposals are the server's; the owner records what he did with his ----
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await ctx.firestore().doc('ledger_assistant_proposals/p1').set({ ownerUid: 'owner1', status: 'proposed', summary: 'Move 2', changes: [{ n: 1, kind: 'action_update' }], createdAt: 'x' });
+    await ctx.firestore().doc('ledger_assistant_proposals/p2').set({ ownerUid: 'owner2', status: 'proposed', summary: 'Other', changes: [], createdAt: 'x' });
+    await ctx.firestore().doc('ledger_assistant_threads/t1').set({ ownerUid: 'owner1', messagesJson: '[]' });
+  });
+  const AP = 'ledger_assistant_proposals/';
+  await check('assistant: the owner reads his proposal', () => assertSucceeds(owner.doc(AP + 'p1').get()));
+  await check('assistant: not another owner\'s', () => assertFails(owner.doc(AP + 'p2').get()));
+  await check('assistant: a partner cannot read a proposal', () => assertFails(partner.doc(AP + 'p1').get()));
+  await check('assistant: the owner records it applied', () => assertSucceeds(owner.doc(AP + 'p1').update({ status: 'applied', applied: [{ n: 1 }], appliedAt: 'now', updatedAt: 'now' })));
+  await check('assistant: …and undone', () => assertSucceeds(owner.doc(AP + 'p1').update({ status: 'undone', undoneAt: 'now', updatedAt: 'now' })));
+  await check('assistant: the changes themselves can\'t be rewritten', () => assertFails(owner.doc(AP + 'p1').update({ changes: [] })));
+  await check('assistant: nor its owner', () => assertFails(owner.doc(AP + 'p1').update({ ownerUid: 'partner1', status: 'applied' })));
+  await check('assistant: only a known outcome', () => assertFails(owner.doc(AP + 'p1').update({ status: 'proposed' })));
+  await check('assistant: no client creates a proposal', () => assertFails(owner.doc(AP + 'p3').set({ ownerUid: 'owner1', status: 'proposed', changes: [] })));
+  await check('assistant: nor deletes one', () => assertFails(owner.doc(AP + 'p1').delete()));
+  await check('assistant: the conversation is server-only', () => assertFails(owner.doc('ledger_assistant_threads/t1').get()));
+  await check('assistant: the daily count is server-only', () => assertFails(owner.doc('ledger_assistant_usage/owner1_2026-10-27').set({ count: 0 })));
+
   // ---- anything unlisted ----
   await check('unlisted collection: owner denied', () => assertFails(owner.collection('something_else').get()));
 
