@@ -748,6 +748,18 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-27 — Claude in Ledger: full access, with review before and Undo after (Shaun)
+**Decision (Shaun):** Claude may read and change everything Shaun can, as long as he
+reviews each change right before it runs and can undo it.
+
+**Proposed design (`docs/CLAUDE_ASSISTANT.md`, awaiting approval):**
+- **Claude only proposes.** Ledger applies the approved changes as Shaun, through its
+  existing save code and rules. The before-images kept at that moment make Undo possible.
+- **Two ways in:** Ask Claude inside Ledger (the `assistant` function) and a connector
+  for Claude's apps (MCP with OAuth, owner only).
+- **Never:** roles, membership, device and security records, or other people's private
+  data.
+
 ### 2026-10-27 — Key tasks and the Flow on widgets; bulk move in Flow (Shaun's answers)
 **Decisions:**
 - **Key tasks:** a gold star on the widgets, keeping the Flow order.
@@ -2288,8 +2300,14 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Claude Code
-Status: **Built 2026-10-26:**
+Owner: Shaun (review)
+Status: **Claude in Ledger, designed 2026-10-27, awaiting approval.**
+- The design is `docs/CLAUDE_ASSISTANT.md`: Ask Claude inside Ledger, and a Ledger
+  connector for Claude's apps.
+- Shaun answers the four questions in its §10. Nothing is built until he approves.
+- Also with Shaun: iPhone build 4 (key-task stars, the Flow widget).
+
+**Before that — built 2026-10-26:**
 - request editing and Move to Ongoing without a date. Deploy rules with "Deploy
   Firebase", Rules and indexes.
 - widget version 2. Rebuild the app in Xcode; on phones from TestFlight, upload a new
