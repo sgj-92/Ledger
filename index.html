@@ -8710,8 +8710,8 @@
     b.addEventListener('click', function(){ setTodayMode(b.dataset.todayMode); });
   });
 
-  // plan.dayFlow holds references only — { kind: 'action', id } and { kind: 'training',
-  // type }. Titles, status and details stay on the records. A ref to something no longer
+  // plan.dayFlow holds references only — { kind: 'action', id }, { kind: 'training',
+  // type } and { kind: 'sprint', id } once a sprint has been placed. Titles, status and details stay on the records. A ref to something no longer
   // on the day is skipped; anything on the day the stored flow has not seen joins the
   // end, so an unsaved flow is just the default: the actions in their day order, then
   // planned training. Actions keep one relative order across Ledger — the flow's action
@@ -8719,12 +8719,13 @@
   // agree, while training keeps the place it was given.
   function flowKey(item){ return item.kind === 'action' ? 'a:' + item.c.id : item.kind === 'sprint' ? 's:' + item.s.id : 't:' + item.type; }
   // Flow on screen: the day's flow, plus each Reset Sprint as one block at the time it ran —
-  // never its items. Sprints are not stored in the flow; they sit at their own time.
+  // never its items. Only the sprint's place is stored in the flow (flowItemsWithSprints).
   function sprintClock(s){ var d = new Date(s.startedAt); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
   function sprintFlowMin(s){ return s.state === 'active' ? (s.durationMinutes || Math.max(5, sprintElapsedMin(s))) : Math.max(1, sprintElapsedMin(s)); }
-  // Each sprint goes in just before the first timed item that starts after it, or else
-  // just after the last timed item. It never takes a timed item's place, so the order
-  // Shaun dragged the rest into stands.
+  // A sprint Shaun has placed keeps its place: the flow stores it as { kind: 'sprint', id }
+  // and it follows the item it was put after. A sprint not placed yet goes in just before
+  // the first timed item that starts after it, or else just after the last timed item.
+  // Timed items, sprints included, then stay in time order among themselves.
   function flowItemsWithSprints(dateStr){
     var items = dayFlowItems(dateStr);
     var act = activeSprint();
@@ -8736,7 +8737,31 @@
       if (it.kind === 'action') return actionTime(it.c);
       return hhmm(((plan && plan.trainingDetails && plan.trainingDetails[it.type]) || {}).activityTime);
     }
-    own.slice().sort(function(a, b){ return a.startedAt < b.startedAt ? -1 : a.startedAt > b.startedAt ? 1 : 0; })
+    var byId = {};
+    own.forEach(function(s){ byId[s.id] = s; });
+    var present = {};
+    items.forEach(function(it){ present[flowKey(it)] = true; });
+    // where each placed sprint goes: after the nearest earlier item still on the day
+    var placed = {}, after = null;
+    ((plan && plan.dayFlow) || []).forEach(function(ref){
+      if (!ref) return;
+      if (ref.kind === 'sprint'){
+        if (byId[ref.id] && !placed[ref.id]){
+          placed[ref.id] = true;
+          var it = { kind: 'sprint', s: byId[ref.id] };
+          var at = 0;
+          if (after){ for (var i = 0; i < items.length; i++){ if (flowKey(items[i]) === after){ at = i + 1; break; } } }
+          while (at < items.length && items[at].kind === 'sprint') at++;   // keep placed sprints in their stored order
+          items.splice(at, 0, it);
+          after = 's:' + ref.id;
+        }
+        return;
+      }
+      var k = ref.kind === 'action' ? 'a:' + ref.id : 't:' + ref.type;
+      if (present[k]) after = k;
+    });
+    own.filter(function(s){ return !placed[s.id]; })
+      .sort(function(a, b){ return a.startedAt < b.startedAt ? -1 : a.startedAt > b.startedAt ? 1 : 0; })
       .forEach(function(s){
         var t = sprintClock(s), at = -1, lastTimed = -1;
         items.forEach(function(it, i){
@@ -8748,7 +8773,7 @@
         if (at === -1) at = lastTimed > -1 ? lastTimed + 1 : items.length;
         items.splice(at, 0, { kind: 'sprint', s: s });
       });
-    return items;
+    return applyTimeOrder(items, timeOf);
   }
   function dayFlowItems(dateStr){
     var plan = getPlanForDate(dateStr);
@@ -8789,9 +8814,10 @@
   // so the day has one relative order of actions; moving training changes only the flow.
   function saveDayFlow(dateStr, keys){
     var plan = planBase(dateStr);
-    keys = keys.filter(function(k){ return k.charAt(0) !== 's'; });     // sprints sit at their own time
+    // a sprint is stored where it was put, so items placed after it stay after it
     var refs = keys.map(function(k){
-      return k.charAt(0) === 'a' ? { kind: 'action', id: k.slice(2) } : { kind: 'training', type: k.slice(2) };
+      var kind = k.charAt(0);
+      return kind === 'a' ? { kind: 'action', id: k.slice(2) } : kind === 's' ? { kind: 'sprint', id: k.slice(2) } : { kind: 'training', type: k.slice(2) };
     });
     var patch = { dayFlow: refs };
     var acts = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
@@ -8801,7 +8827,7 @@
     savePlanForDate(dateStr, Object.assign({}, plan, patch));
   }
   function moveFlowItem(dateStr, key, dir){
-    var keys = dayFlowItems(dateStr).map(flowKey);
+    var keys = flowItemsWithSprints(dateStr).map(flowKey);
     var i = keys.indexOf(key), j = i + dir;
     if (i < 0 || j < 0 || j >= keys.length) return;
     keys[i] = keys[j]; keys[j] = key;
@@ -9055,7 +9081,7 @@
   function openFlowItemSheet(dateStr, key, openItem){
     editingId = null;
     activeSheetRefresh = null;
-    var keys = dayFlowItems(dateStr).map(flowKey);
+    var keys = flowItemsWithSprints(dateStr).map(flowKey);
     var i = keys.indexOf(key);
     if (i < 0) return;
     var isAction = key.charAt(0) === 'a';

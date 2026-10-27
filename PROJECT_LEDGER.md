@@ -748,6 +748,17 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-27 — A Reset Sprint's place in Flow is stored
+**Decision:** `plan.dayFlow` may also hold `{ kind: 'sprint', id }`, written when the flow
+is saved after a drag or a move. A placed sprint follows the item it was put after. A
+sprint not yet placed goes just before the first timed item that starts after it, or
+else just after the last timed item. Timed items, sprints included, then stay in time
+order among themselves.
+**Why (Shaun's report):** sprints were not stored, so each redraw rebuilt their place,
+and Actions dropped below Strength, or between the sprint and Strength, jumped back.
+**Implications:** this supersedes "sprints are not stored in the flow". Everything else
+that reads the flow (the widget, the handoff, Overview) ignores sprint refs.
+
 ### 2026-10-27 — Morning Prime's plan step lands on Health & fitness; sheets never pan sideways
 **Decision (Shaun's report):** the plan step (Shaun's label: "Health & Fitness") opens
 the Day Plan with only Health & fitness expanded, scrolled until the whole section shows.
@@ -2425,11 +2436,10 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
-- (2026-10-27) — **Flow: an Action dragged below a timed item stays there.** A Reset
-  Sprint used to take the place of a timed item on the timeline, so the latest timed
-  item moved to the end and pulled dropped Actions back above it. Now a sprint goes in
-  just before the first timed item that starts after it (`flowItemsWithSprints`).
-  Reproduced and fixed in the browser; native shell 58 and Home 256 pass.
+- (2026-10-27) — **Flow: Actions stay where they are dragged around a Reset Sprint and
+  timed items.** (Logged in Decisions.) Reproduced and fixed in the browser: below
+  Strength, between the sprint and Strength, after a reload, and with Move up/down.
+  Native shell 58 and Home 256 pass.
 - (2026-10-27) — **Health & Fitness opens where it should; the Day Plan no longer slides
   sideways.** (Logged in Decisions.) Tests: native shell 58, Home 256, Partner 209,
   Quick capture 24, settings 9. The sideways drag needs Shaun's check on the iPhone.
