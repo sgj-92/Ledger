@@ -8722,17 +8722,33 @@
   // never its items. Sprints are not stored in the flow; they sit at their own time.
   function sprintClock(s){ var d = new Date(s.startedAt); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
   function sprintFlowMin(s){ return s.state === 'active' ? (s.durationMinutes || Math.max(5, sprintElapsedMin(s))) : Math.max(1, sprintElapsedMin(s)); }
+  // Each sprint goes in just before the first timed item that starts after it, or else
+  // just after the last timed item. It never takes a timed item's place, so the order
+  // Shaun dragged the rest into stands.
   function flowItemsWithSprints(dateStr){
     var items = dayFlowItems(dateStr);
     var act = activeSprint();
     var own = sprints.filter(function(s){ return s.date === dateStr || (s === act && dateStr === todayStr()); });
     if (!own.length) return items;
-    return applyTimeOrder(items.concat(own.map(function(s){ return { kind: 'sprint', s: s }; })), function(it){
+    var plan = getPlanForDate(dateStr);
+    function timeOf(it){
       if (it.kind === 'sprint') return sprintClock(it.s);
       if (it.kind === 'action') return actionTime(it.c);
-      var plan = getPlanForDate(dateStr);
       return hhmm(((plan && plan.trainingDetails && plan.trainingDetails[it.type]) || {}).activityTime);
-    });
+    }
+    own.slice().sort(function(a, b){ return a.startedAt < b.startedAt ? -1 : a.startedAt > b.startedAt ? 1 : 0; })
+      .forEach(function(s){
+        var t = sprintClock(s), at = -1, lastTimed = -1;
+        items.forEach(function(it, i){
+          var ti = timeOf(it);
+          if (!ti) return;
+          if (ti > t && at === -1) at = i;
+          if (ti <= t) lastTimed = i;
+        });
+        if (at === -1) at = lastTimed > -1 ? lastTimed + 1 : items.length;
+        items.splice(at, 0, { kind: 'sprint', s: s });
+      });
+    return items;
   }
   function dayFlowItems(dateStr){
     var plan = getPlanForDate(dateStr);

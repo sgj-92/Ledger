@@ -2425,6 +2425,11 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Flow: an Action dragged below a timed item stays there.** A Reset
+  Sprint used to take the place of a timed item on the timeline, so the latest timed
+  item moved to the end and pulled dropped Actions back above it. Now a sprint goes in
+  just before the first timed item that starts after it (`flowItemsWithSprints`).
+  Reproduced and fixed in the browser; native shell 58 and Home 256 pass.
 - (2026-10-27) — **Health & Fitness opens where it should; the Day Plan no longer slides
   sideways.** (Logged in Decisions.) Tests: native shell 58, Home 256, Partner 209,
   Quick capture 24, settings 9. The sideways drag needs Shaun's check on the iPhone.
