@@ -748,6 +748,20 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-27 — Claude in Ledger: Shaun's answers; Vercel storage
+- **Claude in Ledger:**
+  - Ask Claude uses Sonnet 5.5;
+  - it sits behind the floating + (Quick capture · Ask Claude);
+  - History keeps 30 days;
+  - still open: where connector proposals are approved (`docs/CLAUDE_ASSISTANT.md` §10).
+- **Vercel** reached its free plan's 10 GB of deployment storage. Every push to any
+  branch is a deployment of the whole root (`outputDirectory: "."`), about 5 MB each.
+  - `.vercelignore` now leaves out everything the site doesn't serve: tests, functions,
+    Firebase config, docs, the ledger and CLAUDE.md. These were also publicly readable at
+    ledger.sgj.luxe.
+  - Shaun sets Ignored Build Step → "Only build production", so branch pushes stop
+    making deployments, and deletes old deployments.
+
 ### 2026-10-27 — One name per exercise (Shaun approved)
 **Decision:** exercise names are matched loosely, by a key that ignores case,
 punctuation, word order, plurals and the short forms DB/BB/KB/OHP/RDL (`exKey`).

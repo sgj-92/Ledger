@@ -1,3 +1,29 @@
-# The website is the repository root, served as static files (vercel.json). The native
-# iOS and Android projects are not part of it: they are built on a Mac, never served.
+# The website is the repository root, served as static files (vercel.json): index.html,
+# sw.js, manifest.json, privacy.html, the icons, fonts/, avatars/, .well-known/ and the
+# build stamp (scripts/vercel-build-info.js writes buildInfo.js). Everything else is left
+# out, so each deployment is small (Vercel's free plan has 10 GB for all of them) and
+# nothing internal is served at ledger.sgj.luxe.
+
+# the iOS and Android projects: built on a Mac, never served
 native/
+
+# tests, the Cloud Functions and Firebase's config: deployed to Firebase by hand
+tests/
+functions/
+firebase.json
+.firebaserc
+firestore.rules
+firestore.indexes.json
+
+# documents and coordination notes
+docs/
+CLAUDE.md
+PROJECT_LEDGER.md
+.github/
+
+# GitHub Pages only (the legacy site)
+_config.yml
+buildInfo.pages.js
+
+# a one-off setup script; the build step it sits beside is kept
+scripts/setup-github-deploy.sh

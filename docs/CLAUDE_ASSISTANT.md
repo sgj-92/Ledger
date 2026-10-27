@@ -1,6 +1,6 @@
 # Claude in Ledger — design
 
-Status: **design, 2026-10-27, for Shaun's approval. Nothing is built.**
+Status: **design, 2026-10-27. Shaun answered §10 (Q2 open). Nothing is built.**
 
 > "I want to look at connecting Claude to ledger via api. So we can amend things in the
 > app, clean data, add new etc." — "I want to add it into ledger app too." — "I want to
@@ -32,8 +32,9 @@ Why proposals rather than letting Claude write:
 
 ## 2. Ask Claude, in Ledger
 
-- **Where:** an **Ask Claude** button in the Today header and in quick capture. It opens
-  a sheet with a text field; the keyboard's microphone works for dictation.
+- **Where:** the floating **+** button. Tapping it shows two choices, **Quick capture**
+  and **Ask Claude** (Shaun's answer). Ask Claude opens a sheet with a text field; the
+  keyboard's microphone works for dictation.
 - **A conversation:** Claude can ask a question back ("which Thursday?") before
   proposing. The conversation lasts for the sheet; nothing is kept unless Shaun applies
   something.
@@ -124,7 +125,7 @@ and he is told why, so nothing newer is overwritten.
   re-created with its own id. A record changed again since is held back and listed, so
   Undo never discards later work.
 - **History** in Settings shows the last 30 days of proposals: applied, part-applied,
-  cancelled and undone.
+  cancelled and undone. Older ones are deleted (Shaun's answer).
 
 ## 7. The server
 
@@ -144,8 +145,9 @@ Two Cloud Functions, in `functions/`:
 own tokens.
 
 **Claude API settings:**
-- **Model:** Claude Opus 5.5 (`claude-opus-5-5`), with effort set explicitly (`medium`
-  for everyday requests, raised for big cleanups); see Q1.
+- **Model:** Claude Sonnet 5.5 (`claude-sonnet-5-5`, Shaun's answer), with effort set
+  explicitly: `medium` for everyday requests, `high` for a big cleanup. It is one
+  setting, so Opus 5.5 can be switched in if Sonnet falls short.
 - **Thinking:** adaptive. Claude chooses how much to think.
 - **Server-side fallback:** on (`fallbacks: "default"`), so a declined request is retried
   on another model rather than failing.
@@ -201,8 +203,14 @@ separately from a Claude subscription.
 
 ## 10. Questions for Shaun
 
-1. **Model:** Opus 5.5 is the most capable and the default here. Sonnet 5.5 is faster
-   and costs half as much per request. Which for Ask Claude?
+Answered 2026-10-27:
+- **Model:** Sonnet 5.5.
+- **Where Ask Claude sits:** a choice behind the floating + button. It keeps the +,
+  which says "add something new"; a ⋯ reads as "more settings".
+- **History:** 30 days.
+
+Still open:
+
 2. **Reviewing a connector proposal:**
    - (a) **in Ledger only** (recommended): Claude replies with a link that opens the
      review card in Ledger, and Apply happens there;
@@ -210,6 +218,3 @@ separately from a Claude subscription.
      permission for each time.
 
    (a) keeps one review screen; (b) avoids switching apps.
-3. **Where Ask Claude sits:** Today's header and quick capture, or also every tab's
-   header?
-4. **History:** keep 30 days, or longer?
