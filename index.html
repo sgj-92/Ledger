@@ -2704,6 +2704,7 @@
     flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch; overflow-anchor: none;
     margin: 0 -22px; padding: 0 22px var(--sp-5);
+    scroll-padding-bottom: 16px;            /* a field scrolled into view clears the edge */
   }
   .kt-search-btn {
     flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: none; background: none;
@@ -2857,6 +2858,10 @@
   }
   .pm-row.done .pm-body { color: var(--text-2); }
   .pm-row .chev { flex-shrink: 0; }
+  /* the new-meal field and its Add, side by side: Add keeps the field (and keyboard) open */
+  .pm-new-row { display: flex; align-items: flex-end; gap: 8px; }
+  .pm-new-row textarea { flex: 1; min-width: 0; min-height: 48px; resize: none; line-height: 1.4; }
+  .btn-primary.pm-add { width: auto; flex-shrink: 0; margin: 0; padding-left: 20px; padding-right: 20px; min-height: 48px; }
 
   /* ============ Add action: one inline field ============
      The trigger lives in the Actions section header. What it opens reads as the next
@@ -17616,47 +17621,72 @@
   }
 
   // ---- step 1: meals. Thin view over the day's plan.meals — same records, same sync. ----
+  // Adding is one open field: type a meal and Add (or return), and the field stays open with
+  // the keyboard up for the next; paste several lines and each becomes a meal. The list
+  // above repaints in place, so a save never takes the field (or the keyboard) away.
   function openPlanMealsSheet(dateStr){
     editingId = null;
     var adding = false;
 
-    function build(){
+    function subText(){
       var meals = getPlanMeals(getPlanForDate(dateStr));
       var eaten = meals.filter(function(m){ return m.completed; }).length;
-      var sub = meals.length
-        ? meals.length + ' planned' + (eaten ? ' · ' + eaten + ' eaten' : '')
-        : 'Nothing planned yet';
+      return meals.length ? meals.length + ' planned' + (eaten ? ' · ' + eaten + ' eaten' : '') : 'Nothing planned yet';
+    }
+    function listHtml(){
+      var meals = getPlanMeals(getPlanForDate(dateStr));
+      return meals.length
+        ? meals.map(function(m){
+            return '<div class="pm-row' + (m.completed ? ' done' : '') + '">' +
+              '<button type="button" class="pm-check' + (m.completed ? ' done' : '') + '" data-pm-check="' + m.id + '"' +
+                ' aria-label="' + (m.completed ? 'Mark not eaten' : 'Mark eaten') + '">' + CHECK_SVG + '</button>' +
+              '<button type="button" class="pm-body" data-pm-open="' + m.id + '"></button>' +
+              '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
+            '</div>';
+          }).join('')
+        : '<div class="kt-empty">No meals planned for this day yet.</div>';
+    }
+    function build(){
+      var eaten = getPlanMeals(getPlanForDate(dateStr)).filter(function(m){ return m.completed; }).length;
       return '<div class="sheet-handle"></div>' +
-        sheetHead(UI_ICON.cutlery, 'Food Plan', sub, '') +
-        '<div class="pm-list">' +
-          (meals.length
-            ? meals.map(function(m){
-                return '<div class="pm-row' + (m.completed ? ' done' : '') + '">' +
-                  '<button type="button" class="pm-check' + (m.completed ? ' done' : '') + '" data-pm-check="' + m.id + '"' +
-                    ' aria-label="' + (m.completed ? 'Mark not eaten' : 'Mark eaten') + '">' + CHECK_SVG + '</button>' +
-                  '<button type="button" class="pm-body" data-pm-open="' + m.id + '"></button>' +
-                  '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
-                '</div>';
-              }).join('')
-            : '<div class="kt-empty">No meals planned for this day yet.</div>') +
-        '</div>' +
+        sheetHead(UI_ICON.cutlery, 'Food Plan', '<span id="pmSub"></span>', '') +
+        '<div class="pm-list" id="pmList"></div>' +
         (adding
-          ? '<div class="field"><label>New meal</label><input type="text" id="pmNewMeal" placeholder="e.g. Chicken and rice" autocomplete="off"></div>' +
-            '<button type="button" class="btn-primary" id="pmAddSaveBtn">Add meal</button>'
+          ? '<div class="field pm-new"><label for="pmNewMeal">New meal <span class="pp-opt">or paste several, one per line</span></label>' +
+              '<div class="pm-new-row"><textarea id="pmNewMeal" rows="1" maxlength="2000" placeholder="e.g. Chicken and rice" enterkeyhint="enter" autocomplete="off"></textarea>' +
+              '<button type="button" class="btn-primary pm-add" id="pmAddSaveBtn">Add</button></div></div>'
           : '<button type="button" class="add-exercise-btn" id="pmAddBtn">+ Add meal</button>') +
         (dateStr <= todayStr() ? '<button type="button" class="pm-diary-link" id="pmDiaryBtn">' +
           (eaten || diaryLinesOf(getNutritionForDate(dateStr)).length ? 'View food diary' : 'Open food diary') + UI_ICON.chevronRight + '</button>' : '') +
         '<button type="button" class="btn-quiet" id="pmDoneBtn">Done</button>' +
         '<button type="button" class="btn-link" id="pmNoneBtn">No meals to plan today</button>';
     }
+    // the list and its count only: everything else (the field, the keyboard) stays put
+    function paintList(){
+      var list = document.getElementById('pmList'), sub = document.getElementById('pmSub');
+      if (!list || !sub) return false;
+      sub.textContent = subText();
+      list.innerHTML = listHtml();
+      // meal text is user content — always set as text, never interpolated as markup
+      getPlanMeals(getPlanForDate(dateStr)).forEach(function(m){
+        var el = list.querySelector('[data-pm-open="' + m.id + '"]');
+        if (el) el.textContent = m.text;
+      });
+      list.querySelectorAll('[data-pm-check]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var fresh = getPlanForDate(dateStr);
+          if (fresh) togglePlannedMeal(fresh, el.dataset.pmCheck);
+        });
+      });
+      list.querySelectorAll('[data-pm-open]').forEach(function(el){
+        el.addEventListener('click', function(){ openPlannedMealSheet(dateStr, el.dataset.pmOpen); });
+      });
+      return true;
+    }
 
     function render(){
       sheetEl.innerHTML = build();
-      // meal text is user content — always set as text, never interpolated as markup
-      getPlanMeals(getPlanForDate(dateStr)).forEach(function(m){
-        var el = sheetEl.querySelector('[data-pm-open="' + m.id + '"]');
-        if (el) el.textContent = m.text;
-      });
+      paintList();
       document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
       document.getElementById('pmDoneBtn').addEventListener('click', closeSheet);
       var diaryBtn = document.getElementById('pmDiaryBtn');
@@ -17665,20 +17695,21 @@
         await patchMorningPrime(dateStr, { mealsAcknowledged: true });
         closeSheet();
       });
-      sheetEl.querySelectorAll('[data-pm-check]').forEach(function(el){
-        el.addEventListener('click', function(){
-          var fresh = getPlanForDate(dateStr);
-          if (fresh) togglePlannedMeal(fresh, el.dataset.pmCheck);
-        });
-      });
-      sheetEl.querySelectorAll('[data-pm-open]').forEach(function(el){
-        el.addEventListener('click', function(){ openPlannedMealSheet(dateStr, el.dataset.pmOpen); });
-      });
       if (adding){
-        var input = document.getElementById('pmNewMeal');
+        var input = document.getElementById('pmNewMeal'), add = document.getElementById('pmAddSaveBtn');
+        function size(){
+          input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+          var n = hbParse(input.value).length;
+          add.textContent = n > 1 ? 'Add ' + n : 'Add';
+        }
         setTimeout(function(){ input.focus(); }, 30);
-        input.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); commitNewMeal(); } });
-        document.getElementById('pmAddSaveBtn').addEventListener('click', commitNewMeal);
+        input.addEventListener('input', size);
+        // return adds (shift-return starts a new line, for typing a list)
+        input.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); commitNewMeal(); } });
+        // tapping Add keeps the field focused, so the keyboard stays up for the next meal
+        add.addEventListener('pointerdown', function(e){ e.preventDefault(); });
+        add.addEventListener('mousedown', function(e){ e.preventDefault(); });
+        add.addEventListener('click', commitNewMeal);
       } else {
         document.getElementById('pmAddBtn').addEventListener('click', function(){ adding = true; render(); });
       }
@@ -17686,19 +17717,23 @@
 
     async function commitNewMeal(){
       var input = document.getElementById('pmNewMeal');
-      var text = (input ? input.value : '').trim();
-      if (!text){ adding = false; render(); return; }
+      var lines = hbParse(input ? input.value : '').slice(0, 20);
+      if (!lines.length){ if (input) input.focus(); return; }
       var fresh = getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
       var next = Object.assign({}, fresh);
-      next.meals = getPlanMeals(fresh).concat([{ id: uid(), text: text, completed: false, completedAt: null, nutritionEntryId: null }]);
-      adding = false;
+      next.meals = getPlanMeals(fresh).concat(lines.map(function(t){
+        return { id: uid(), text: t.slice(0, 200), completed: false, completedAt: null, nutritionEntryId: null };
+      }));
+      input.value = ''; input.dispatchEvent(new Event('input'));
       await savePlanForDate(dateStr, next);
-      render();
+      paintList();
+      if (lines.length > 1) showPinToast(lines.length + ' meals added', false, CHECK_SVG);
     }
 
     render();
     backdrop.classList.add('open');
-    activeSheetRefresh = render;
+    // a save (here or on another device) repaints the list, never the field being typed in
+    activeSheetRefresh = function(){ if (!paintList()) render(); };
   }
 
   // A day has at most three key tasks. Morning Prime and Plan both go through here,
@@ -19036,6 +19071,25 @@
   // starting to type takes the offer away, so a tap can never land mid-edit
   document.addEventListener('focusin', function(e){
     if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) hideUpdateBar();
+  });
+  // In a sheet, the field being typed in stays in view once the keyboard is up. The
+  // keyboard shrinks the page (the app's web view; Safari's visual viewport) after the
+  // focus, so a scroll at the moment of focus can leave the field under it or under the
+  // sheet's own footer: scroll again when the view resizes, and once it has settled.
+  var fieldViewTimer = null;
+  function keepSheetFieldInView(){
+    clearTimeout(fieldViewTimer);
+    fieldViewTimer = setTimeout(function(){
+      var a = document.activeElement;
+      if (!a || !/^(INPUT|TEXTAREA)$/.test(a.tagName) || !a.closest('.sheet-backdrop.open')) return;
+      try { a.scrollIntoView({ block: 'nearest' }); } catch(e){}
+    }, 60);
+  }
+  window.addEventListener('resize', keepSheetFieldInView);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', keepSheetFieldInView);
+  document.addEventListener('focusin', function(e){
+    if (!e.target || !/^(INPUT|TEXTAREA)$/.test(e.target.tagName) || !e.target.closest('.sheet-backdrop.open')) return;
+    setTimeout(keepSheetFieldInView, 350);       // the keyboard's animation, where no resize is reported
   });
 
   // ============ The execution layer: Reset Sprint and Current Focus ============

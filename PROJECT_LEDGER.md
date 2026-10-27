@@ -2413,6 +2413,16 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Food Plan adds stay open; key-task field stays above the keyboard.**
+  (Shaun's report.)
+  - **Food Plan:** the new-meal field and **Add** sit on one row. After Add or Return,
+    the meal is saved, the field clears, and focus and keyboard stay for the next meal.
+    Several lines pasted or typed become several meals (up to 20), using the "Several
+    at once" parsing.
+  - **Any open sheet:** when the view shrinks (the keyboard opens), the focused field is
+    scrolled into view. Before this, the key-task field sat under the keyboard.
+  - **Tests:** reproduced in a 390×500 view (field at 692px before, 374px after). Home
+    256, native shell 58, Partner 209, Quick capture 24, settings 9.
 - (2026-10-27) — **Focus widget, Morning Prime's full name, snapshot version 3.**
   - `index.html`: `widgetFocus`, `prime.short`, and `?view=focus` opens the picker.
   - New `FocusWidget.swift`, added to the LedgerWidget target
