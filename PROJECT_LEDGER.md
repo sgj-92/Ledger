@@ -748,6 +748,19 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-27 — Key tasks and the Flow on widgets; bulk move in Flow (Shaun's answers)
+**Decisions:**
+- **Key tasks:** a gold star on the widgets, keeping the Flow order.
+- **The Flow widget:** the whole Flow (medium and large) — Actions, training and Reset
+  Sprints in order, with times, ticks and the now line. A long day shows the stretch
+  around now.
+- **Bulk reschedule:** "Move what's left after this", in a timed step's ⋯ sheet. Every
+  unfinished, untimed Action above it moves to just after it, in order. Done steps and
+  anything with its own time stay.
+
+**Implications:** widget snapshot version 4 and iPhone build 4
+(`docs/NATIVE_MIGRATION.md`).
+
 ### 2026-10-27 — Flow's now line follows what is done
 **Decision (Shaun's request):** the now line sits after the last timed item that has
 started, or the last item ticked off, whichever is later. It never goes past a timed
@@ -2443,6 +2456,10 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Key-task stars and a Flow widget (build 4); "Move what's left after
+  this" in Flow.** (Logged in Decisions.)
+  - **Tests:** native shell 67, and the bulk move checked in the browser.
+  - **Not verified here:** Swift isn't compiled, and the look is checked in Xcode.
 - (2026-10-27) — **Widget: status in Settings, and a refused update is retried.** Shaun's
   widget stopped showing new Actions (a Home request's Action was missing) though the app
   was open. The cause isn't found yet. Two changes:

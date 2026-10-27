@@ -45,7 +45,8 @@ enum LedgerShared {
 }
 
 /// The snapshot (docs/NATIVE_MIGRATION.md §4.1). Version 2 adds Morning Prime (while it's
-/// not done), today's exercise and Communications counts; version 3 the Current Focus.
+/// not done), today's exercise and Communications counts; version 3 the Current Focus;
+/// version 4 key tasks (`Item.key`) and the whole Flow (`flow`), for the Flow widget.
 /// All optional, so either side reads the other's older snapshots.
 struct TodaySnapshot: Codable, Equatable {
     struct Item: Codable, Identifiable, Equatable {
@@ -56,6 +57,19 @@ struct TodaySnapshot: Codable, Equatable {
         let done: Bool
         let open: Bool           // planned or partly done: still to do
         let link: String         // luxe.sgj.ledger://open?openAction=…
+        var key: Bool? = nil     // a key task (version 4)
+    }
+    /// One step of today's Flow, in Flow order: an Action, planned training or a Reset Sprint.
+    struct FlowItem: Codable, Equatable {
+        let kind: String         // "action", "training" or "sprint"
+        let id: String
+        let title: String
+        let time: String?        // "HH:MM" when it has a time
+        let end: String?         // "HH:MM" when it also has a length
+        let done: Bool
+        let key: Bool?           // a key task
+        let category: String?
+        let link: String         // an Action opens itself; anything else opens Flow
     }
     struct Prime: Codable, Equatable {
         let label: String        // "Plan ✓ · Move 2/5"
@@ -87,4 +101,5 @@ struct TodaySnapshot: Codable, Equatable {
     let exercise: [Exercise]?
     let comms: Comms?            // counts only, never names
     let focus: Focus?            // the Current Focus, if one is set and still live
+    var flow: [FlowItem]? = nil  // today's Flow, done steps included (version 4)
 }

@@ -3321,6 +3321,8 @@
   .flow-wd svg { width: 12px; height: 12px; display: block; }
   .flow-sheet-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
   .flow-sheet-btns button:disabled { opacity: 0.4; }
+  .flow-rest-btn { width: 100%; margin: 0 0 8px; }
+  .flow-sheet-note.flow-rest-note { font-size: 12.5px; margin-bottom: var(--sp-4); }
   .flow-ctx-sec { padding: 14px 0; border-bottom: 1px solid var(--line); }
   .flow-ctx-sec:first-child { padding-top: 4px; }
   .flow-ctx-sec:last-child { border-bottom: none; }
@@ -8098,6 +8100,7 @@
     // the widget itself: open Today (the owner's; a partner's view= is handled as a link)
     if (p.get('view') === 'today' && authRole === 'owner' && !p.get('openAction')){
       viewedDate = todayStr(); goView('log'); renderAll();
+      if (p.get('mode') === 'flow') setTodayMode('flow');     // the Flow widget
       return;
     }
     // its Communications line
@@ -8169,17 +8172,44 @@
     var n = commsCounts();
     return { needs: n.needs, due: n.due, waiting: n.waiting };
   }
+  // Version 4: `key` marks a key task, and `flow` is the whole of today's Flow — Actions,
+  // training and Reset Sprints in Flow order, done ones included — for the Flow widget,
+  // which places the now line itself from the times and ticks.
+  var WIDGET_FLOW_MAX = 24;
+  function widgetFlow(date){
+    var plan = getPlanForDate(date);
+    function end(start, dur){ return start && dur ? minToTime(timeToMin(start) + dur) : null; }
+    return flowItemsWithSprints(date).slice(0, WIDGET_FLOW_MAX).map(function(it){
+      var flowLink = 'luxe.sgj.ledger://open?view=today&mode=flow';
+      if (it.kind === 'action'){
+        var t = actionTime(it.c);
+        return { kind: 'action', id: String(it.c.id), title: String(it.c.title || '').slice(0, 120), time: t,
+          end: end(t, Number(it.c.durationMin) || 0), done: it.c.status === 'completed', key: !!it.c.isKeyTask,
+          category: it.c.category || null, link: 'luxe.sgj.ledger://open?openAction=' + encodeURIComponent(it.c.id) };
+      }
+      if (it.kind === 'sprint'){
+        var st = sprintClock(it.s);
+        return { kind: 'sprint', id: String(it.s.id), title: 'Reset sprint', time: st, end: end(st, sprintFlowMin(it.s)),
+          done: it.s.state !== 'active', key: false, category: null, link: flowLink };
+      }
+      var det = (plan && plan.trainingDetails && plan.trainingDetails[it.type]) || {};
+      var tt = hhmm(det.activityTime);
+      return { kind: 'training', id: it.type, title: SHORT_TYPE_LABEL[it.type] || TYPE_LABEL[it.type] || 'Training', time: tt,
+        end: end(tt, Number(det.durationMin) || 0), done: !!det.completed, key: false, category: 'training', link: flowLink };
+    });
+  }
   function buildWidgetSnapshot(){
     var date = todayStr();
     var acts = dayFlowItems(date).filter(function(it){ return it.kind === 'action'; }).map(function(it){ return it.c; });
     return {
-      v: 3, date: date, dayLabel: shortDayLabel(date), total: acts.length,
+      v: 4, date: date, dayLabel: shortDayLabel(date), total: acts.length,
       prime: widgetPrime(date), exercise: widgetExercise(date), comms: widgetComms(), focus: widgetFocus(),
+      flow: widgetFlow(date),
       done: acts.filter(function(c){ return c.status === 'completed'; }).length,
       items: acts.slice(0, WIDGET_MAX).map(function(c){
         return {
           id: String(c.id), title: String(c.title || '').slice(0, 120), time: actionTime(c), category: c.category || null,
-          done: c.status === 'completed', open: c.status !== 'completed' && c.status !== 'disrupted',
+          done: c.status === 'completed', open: c.status !== 'completed' && c.status !== 'disrupted', key: !!c.isKeyTask,
           link: 'luxe.sgj.ledger://open?openAction=' + encodeURIComponent(c.id)
         };
       })
@@ -9139,6 +9169,24 @@
     });
   }
 
+  // When the day has slipped: every unfinished, untimed Action above a timed item moves to
+  // just after it, keeping their order. Done ones, and anything with its own time, stay.
+  function flowLeftAbove(dateStr, key){
+    var items = flowItemsWithSprints(dateStr);
+    var i = items.map(flowKey).indexOf(key);
+    return i < 0 ? [] : items.slice(0, i).filter(function(it){
+      return it.kind === 'action' && !actionTime(it.c) && it.c.status !== 'completed';
+    });
+  }
+  function moveRestAfter(dateStr, key){
+    var moving = flowLeftAbove(dateStr, key).map(flowKey);
+    if (!moving.length) return 0;
+    var keys = flowItemsWithSprints(dateStr).map(flowKey).filter(function(k){ return moving.indexOf(k) === -1; });
+    var j = keys.indexOf(key);
+    saveDayFlow(dateStr, keys.slice(0, j + 1).concat(moving, keys.slice(j + 1)));
+    return moving.length;
+  }
+
   // The non-drag way to reorder, and a way in to the item itself.
   function openFlowItemSheet(dateStr, key, openItem){
     editingId = null;
@@ -9148,14 +9196,18 @@
     if (i < 0) return;
     var isAction = key.charAt(0) === 'a';
     var c = isAction ? commitments.find(function(x){ return x.id === key.slice(2); }) : null;
-    var title = isAction ? (c ? c.title : '') : TYPE_LABEL[key.slice(2)];
+    var title = isAction ? (c ? c.title : '') : (SHORT_TYPE_LABEL[key.slice(2)] || TYPE_LABEL[key.slice(2)]);
     // a timed item sits at its time; it moves when its time changes
     var pl = getPlanForDate(dateStr);
     var at = isAction ? actionTime(c) : hhmm(((pl && pl.trainingDetails && pl.trainingDetails[key.slice(2)]) || {}).activityTime);
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
       sheetHead('', 'Step ' + (i + 1) + ' of ' + keys.length, '<span id="flowSheetTitle"></span>', '') +
       (at
-        ? '<p class="flow-sheet-note">At ' + at + ' — change its time to move it.</p>'
+        ? '<p class="flow-sheet-note">At ' + at + ' — change its time to move it.</p>' +
+          (flowLeftAbove(dateStr, key).length
+            ? '<button type="button" class="btn-secondary flow-rest-btn" id="flowRestBtn">Move what\u2019s left after this</button>' +
+              '<p class="flow-sheet-note flow-rest-note" id="flowRestNote"></p>'
+            : '')
         : '<div class="flow-sheet-btns">' +
             '<button type="button" class="btn-secondary" id="flowUpBtn"' + (i === 0 ? ' disabled' : '') + '>Move up</button>' +
             '<button type="button" class="btn-secondary" id="flowDownBtn"' + (i === keys.length - 1 ? ' disabled' : '') + '>Move down</button>' +
@@ -9173,6 +9225,18 @@
     if (!at){
       document.getElementById('flowUpBtn').addEventListener('click', function(){ step(-1); });
       document.getElementById('flowDownBtn').addEventListener('click', function(){ step(1); });
+    }
+    var restBtn = document.getElementById('flowRestBtn');
+    if (restBtn){
+      var left = flowLeftAbove(dateStr, key).length;
+      document.getElementById('flowRestNote').textContent = left === 1
+        ? 'The 1 unfinished Action above it goes just after it.'
+        : 'The ' + left + ' unfinished Actions above it go just after it, in their order.';
+      restBtn.addEventListener('click', function(){
+        var n = moveRestAfter(dateStr, key);
+        closeSheet();
+        if (n) showPinToast((n === 1 ? '1 Action' : n + ' Actions') + ' moved after ' + title, false, CHECK_SVG);
+      });
     }
     document.getElementById('flowOpenBtn').addEventListener('click', function(){ closeSheet(); openItem(key); });
   }

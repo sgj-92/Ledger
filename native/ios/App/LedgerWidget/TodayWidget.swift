@@ -264,10 +264,21 @@ private struct RowView: View {
         if case .exercise(let e, _) = row { return e.done }
         return false
     }
+    // a key task wears its gold star, as it does in Ledger
+    private var isKey: Bool {
+        if case .action(let item) = row { return item.key == true }
+        return false
+    }
 
     var body: some View {
         HStack(spacing: 8) {
             mark.frame(width: 12)
+            if isKey {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(Palette.gold)
+                    .widgetAccentable()
+            }
             // the title takes all the width there is: only the time beside it keeps its size
             Text(title)
                 .font(.system(size: 13, weight: first ? .medium : .regular))
@@ -484,10 +495,16 @@ extension TodaySnapshot {
         func item(_ id: String, _ title: String, _ time: String?, _ cat: String, done: Bool = false) -> Item {
             Item(id: id, title: title, time: time, category: cat, done: done, open: !done, link: "\(LedgerShared.appScheme)://open?openAction=\(id)")
         }
-        return TodaySnapshot(v: 2, date: today, dayLabel: "Today", total: 6, done: 2, items: [
+        func step(_ kind: String, _ id: String, _ title: String, _ time: String?, _ end: String?, _ cat: String?, done: Bool = false, key: Bool = false) -> FlowItem {
+            FlowItem(kind: kind, id: id, title: title, time: time, end: end, done: done, key: key, category: cat,
+                     link: kind == "action" ? "\(LedgerShared.appScheme)://open?openAction=\(id)" : "\(LedgerShared.appScheme)://open?view=today&mode=flow")
+        }
+        var keyTask = item("c", "Finish the quarterly plan for the board", "10:00", "work")
+        keyTask.key = true
+        return TodaySnapshot(v: 4, date: today, dayLabel: "Today", total: 6, done: 2, items: [
             item("a", "Morning walk", "07:30", "training", done: true),
             item("b", "Reply to the accountant", nil, "work", done: true),
-            item("c", "Finish the quarterly plan for the board", "10:00", "work"),
+            keyTask,
             item("d", "Call Mum", nil, "family"),
             item("e", "Book the plumber", "14:00", "personal"),
             item("f", "Padel", "18:30", "training")
@@ -497,7 +514,15 @@ extension TodaySnapshot {
         comms: Comms(needs: 2, due: 1, waiting: 3),
         focus: Focus(title: "Finish the quarterly plan for the board", context: "Action · 10:00",
                      setAt: ISO8601DateFormatter().string(from: Date().addingTimeInterval(-1500)),
-                     link: "\(LedgerShared.appScheme)://open?openAction=c"))
+                     link: "\(LedgerShared.appScheme)://open?openAction=c"),
+        flow: [
+            step("sprint", "s", "Reset sprint", "07:41", "08:09", nil, done: true),
+            step("action", "b", "Reply to the accountant", nil, nil, "work", done: true),
+            step("training", "resistance", "Strength", "09:30", "10:30", "training"),
+            step("action", "c", "Finish the quarterly plan for the board", nil, nil, "work", key: true),
+            step("action", "d", "Call Mum", nil, nil, "family"),
+            step("action", "e", "Book the plumber", "14:00", nil, "personal")
+        ])
     }
 }
 

@@ -648,6 +648,24 @@ at a preview with `LEDGER_APP_URL`.
 - **The Focus widget** (`FocusWidget.swift`, small and medium) shows only the Current
   Focus. A tap opens it; with none set, it opens the focus picker (`?view=focus`).
 
+**Version 4 (2026-10-27, Shaun's request; build 4):**
+- The snapshot adds `items[].key` (a key task) and `flow`. `flow` is today's whole Flow
+  in Flow order (`flowItemsWithSprints`), up to 24 steps, done ones included. Each step
+  has `kind` (action, training or sprint), `id`, `title`, `time`, `end`, `done`, `key`,
+  `category` and `link`. Both are optional for older apps.
+- **The Today widget** puts a gold star on key tasks. The order stays the Flow order.
+- **The Flow widget** (`FlowWidget.swift`, medium and large) lists the steps with their
+  times, ticks and the now line:
+  - it places the line by Flow's own rule (after the last step started or ticked, never
+    past a timed step still to come);
+  - it adds a timeline entry at each start still to come, so the line moves on without
+    the app;
+  - a long day shows the stretch from just before now;
+  - an Action row opens that Action; anything else opens Today in Flow
+    (`?view=today&mode=flow`).
+- The file was added to the target with `native/scripts/add-ios-flow-widget.rb`.
+- **Not verified:** Swift compiles, and how it looks. Both are checked in Xcode.
+
 ## 12c. Phase 2: notifications and app links, as built (`feature/native-push`, 2026-10-26)
 
 Shaun approved Phase 2 on 2026-10-26, including the push rules change and the

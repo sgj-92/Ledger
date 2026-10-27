@@ -206,15 +206,15 @@ function fakeBridgeWhenAsked(){
   const lastSnap = p => p.evaluate(() => { const a = window.__nat.snapshots || []; return a.length ? a[a.length - 1] : null; });
   check(await until(I, () => (window.__nat.snapshots || []).length > 0, null, 10000), 'iOS widget: Today is published to the widget once his data has loaded');
   let snap = await lastSnap(I);
-  check(snap && snap.v === 3 && snap.date === new Date().toLocaleDateString('en-CA') && snap.total === 1 && snap.items[0].title === 'Finish the quarterly plan'
+  check(snap && snap.v === 4 && snap.date === new Date().toLocaleDateString('en-CA') && snap.total === 1 && snap.items[0].title === 'Finish the quarterly plan'
     && snap.items[0].link === 'luxe.sgj.ledger://open?openAction=k1' && typeof snap.generatedAt === 'string',
-    'iOS widget: version 3, today, his Action with its link', JSON.stringify(snap));
+    'iOS widget: version 4, today, his Action with its link', JSON.stringify(snap));
   check(snap && snap.prime && /Plan|Move|of/.test(snap.prime.label) && Array.isArray(snap.exercise) && 'comms' in snap,
     'iOS widget: Morning Prime while it isn\'t done, today\'s exercise, and Communications (counts only)', JSON.stringify(snap && { p: snap.prime, e: snap.exercise, c: snap.comms }));
   check(snap && (!snap.comms || Object.keys(snap.comms).sort().join() === 'due,needs,waiting'), 'iOS widget: Communications are counts — never names');
   check(snap && snap.prime && /^P (\u2713|\d+\/\d+)( M (\u2713|\d+\/\d+))?$/.test(snap.prime.short), 'iOS widget: Morning Prime\'s short counts for its row ("P 0/4 M 0/5")', snap && snap.prime && snap.prime.short);
   check(snap && snap.focus === null, 'iOS widget: no Current Focus yet → none in the snapshot');
-  check(snap && Object.keys(snap.items[0]).sort().join() === 'category,done,id,link,open,time,title', 'iOS widget: titles, times and categories only — nothing else crosses', snap && Object.keys(snap.items[0]).join());
+  check(snap && Object.keys(snap.items[0]).sort().join() === 'category,done,id,key,link,open,time,title', 'iOS widget: titles, times and categories only — nothing else crosses', snap && Object.keys(snap.items[0]).join());
   const published = await I.evaluate(() => (window.__nat.snapshots || []).length);
   await put('ledger_commitments/k2', { date: TODAY, originalDate: TODAY, title: 'Call the plumber', category: 'personal', status: 'planned', time: '09:15', priorityId: null, minVersion: null, disruptionReason: null, createdAt: '2026-10-20T10:00:00.000Z' });
   check(await until(I, n => (window.__nat.snapshots || []).length > n && window.__nat.snapshots[window.__nat.snapshots.length - 1].total === 2, published, 12000), 'iOS widget: a new Action today is published again');
@@ -222,6 +222,17 @@ function fakeBridgeWhenAsked(){
   // Ledger's Flow order: untimed Actions keep their place; a time orders only timed ones
   check(snap.items.map(i => i.title + ' ' + i.time).join(' | ') === 'Finish the quarterly plan null | Call the plumber 09:15',
     'iOS widget: in Ledger\'s own Flow order, with times', snap.items.map(i => i.title + ' ' + i.time).join(' | '));
+  // version 4: the whole Flow for the Flow widget, done steps included, and key tasks marked
+  const flowLine = sn => (sn.flow || []).map(f => [f.kind, f.id, f.time, f.end, f.done, f.key].join(' ')).join(' | ');
+  check(flowLine(snap) === 'action k1   true false | action k2 09:15  false false',
+    'Flow widget: today\'s Flow in order — the ticked Action too — with times', flowLine(snap));
+  check(snap.flow.every(f => Object.keys(f).sort().join() === 'category,done,end,id,key,kind,link,time,title'), 'Flow widget: titles, times and ticks only — nothing else crosses');
+  const keyFrom = await I.evaluate(() => (window.__nat.snapshots || []).length);
+  await put('ledger_commitments/k2', { date: TODAY, originalDate: TODAY, title: 'Call the plumber', category: 'personal', status: 'planned', time: '09:15', durationMin: 30, isKeyTask: true, priorityId: null, minVersion: null, disruptionReason: null, createdAt: '2026-10-20T10:00:00.000Z' });
+  check(await until(I, n => { const a = window.__nat.snapshots || []; const l = a[a.length - 1]; return a.length > n && l.items.some(i => i.id === 'k2' && i.key === true); }, keyFrom, 12000),
+    'iOS widget: a key task is marked as one');
+  snap = await lastSnap(I);
+  check(flowLine(snap) === 'action k1   true false | action k2 09:15 09:45 false true', 'Flow widget: …in the Flow too, with when it ends', flowLine(snap));
   const sent = await I.evaluate(() => (window.__nat.snapshots || []).length);
   for (const v of ['plan', 'log', 'me', 'log']){ await I.click(`.tab-btn[data-view="${v}"]`); await sleep(250); }
   await sleep(1200);
@@ -265,6 +276,9 @@ function fakeBridgeWhenAsked(){
   await I.click('.tab-btn[data-view="comms"]');
   await openLink(I, 'luxe.sgj.ledger://open?view=today');
   check(await until(I, () => document.querySelector('.view.active').id === 'view-log'), 'iOS widget tap elsewhere: opens Today');
+  await openLink(I, 'luxe.sgj.ledger://open?view=today&mode=flow');
+  check(await until(I, () => document.querySelector('.view.active').id === 'view-log' && !document.getElementById('todayFlow').hidden), 'Flow widget tap: opens Today in Flow');
+  await I.click('[data-today-mode="overview"]'); await sleep(200);
   await openLink(I, 'luxe.sgj.ledger://open?view=comms');
   check(await until(I, () => document.querySelector('.view.active').id === 'view-comms'), 'iOS widget: its Communications line opens Communications');
   await openLink(I, 'luxe.sgj.ledger://open?view=focus');
