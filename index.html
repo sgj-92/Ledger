@@ -8912,12 +8912,25 @@
       return '<div class="tl-now" aria-label="Now ' + minToTime(nowMin) + '"><span class="tl-time">' + minToTime(nowMin) + '</span>' +
         '<span class="tl-rail"><span class="tl-now-dot"></span></span><span class="tl-now-line"></span></div>';
     }
-    var parts = [], prevEnd = null, nowPlaced = !isToday || !shown.some(itemTime);
-    shown.forEach(function(it){
+    // Now sits after what is behind you: the last timed item that has started, or the
+    // last item ticked off, but never past a timed item still to come. An untimed item
+    // not yet done is still ahead, so it sits below the line; ticking it moves the line.
+    var nowAt = -1;
+    if (isToday && shown.some(itemTime)){
+      var limit = shown.length, behind = -1;
+      shown.some(function(it, i){ var ti = itemTime(it); if (ti && timeToMin(ti) > nowMin){ limit = i; return true; } return false; });
+      for (var ni = 0; ni < limit; ni++){
+        var tn = itemTime(shown[ni]);
+        if ((tn && timeToMin(tn) <= nowMin) || flowItemDone(shown[ni], plan)) behind = ni;
+      }
+      nowAt = behind + 1;
+    }
+    var parts = [], prevEnd = null;
+    shown.forEach(function(it, i){
       var t = itemTime(it);
+      if (i === nowAt) parts.push(nowHtml());
       if (t){
         var start = timeToMin(t);
-        if (!nowPlaced && nowMin < start){ parts.push(nowHtml()); nowPlaced = true; }
         if (prevEnd != null && start - prevEnd >= 30){
           parts.push('<div class="tl-gap"><span class="tl-time"></span><span class="tl-rail"></span>' +
             '<span class="tl-gap-text">' + fmtDuration(start - prevEnd) + ' free</span></div>');
@@ -8928,7 +8941,7 @@
       }
       parts.push(rowHtml(it));
     });
-    if (!nowPlaced) parts.push(nowHtml());
+    if (nowAt === shown.length) parts.push(nowHtml());
 
     var wd = isToday ? windDownState(dateStr) : null;
     var wdReady = !!(wd && wd.total && !wd.completedAt && new Date().getHours() >= windDownHour());

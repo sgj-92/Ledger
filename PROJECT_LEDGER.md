@@ -748,6 +748,13 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-27 — Flow's now line follows what is done
+**Decision (Shaun's request):** the now line sits after the last timed item that has
+started, or the last item ticked off, whichever is later. It never goes past a timed
+item still to come. An untimed Action not yet done sits below the line, as still
+ahead; ticking it off moves the line below it. The line used to sit just above the next
+timed item, which put every unfinished Action before that item into the past.
+
 ### 2026-10-27 — A Reset Sprint's place in Flow is stored
 **Decision:** `plan.dayFlow` may also hold `{ kind: 'sprint', id }`, written when the flow
 is saved after a drag or a move. A placed sprint follows the item it was put after. A
@@ -2436,6 +2443,8 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Flow's now line follows what is done.** (Logged in Decisions.)
+  Checked in the browser; native shell 58 and Home 256 pass.
 - (2026-10-27) — **Flow: Actions stay where they are dragged around a Reset Sprint and
   timed items.** (Logged in Decisions.) Reproduced and fixed in the browser: below
   Strength, between the sprint and Strength, after a reload, and with Move up/down.
