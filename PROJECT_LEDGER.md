@@ -753,7 +753,9 @@ Conventions that should not be casually changed.
   - Ask Claude uses Sonnet 5.5;
   - it sits behind the floating + (Quick capture · Ask Claude);
   - History keeps 30 days;
-  - still open: where connector proposals are approved (`docs/CLAUDE_ASSISTANT.md` §10).
+  - connector proposals are reviewed and applied in Ledger, never in the chat;
+  - the + is on every tab and must never hide content (room at each screen's foot; it
+    steps aside for the keyboard and sheets).
 - **Vercel** reached its free plan's 10 GB of deployment storage. Every push to any
   branch is a deployment of the whole root (`outputDirectory: "."`), about 5 MB each.
   - `.vercelignore` now leaves out everything the site doesn't serve: tests, functions,
@@ -2330,7 +2332,7 @@ Owner: Shaun (review)
 Status: **Claude in Ledger, designed 2026-10-27, awaiting approval.**
 - The design is `docs/CLAUDE_ASSISTANT.md`: Ask Claude inside Ledger, and a Ledger
   connector for Claude's apps.
-- Shaun answers the four questions in its §10. Nothing is built until he approves.
+- Shaun has answered all of its §10. Building starts at phase 1 when he says go.
 - Also with Shaun: iPhone build 4 (key-task stars, the Flow widget).
 
 **Before that — built 2026-10-26:**

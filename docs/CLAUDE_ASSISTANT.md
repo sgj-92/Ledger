@@ -1,6 +1,6 @@
 # Claude in Ledger — design
 
-Status: **design, 2026-10-27. Shaun answered §10 (Q2 open). Nothing is built.**
+Status: **design, 2026-10-27; every question in §10 answered by Shaun. Nothing is built.**
 
 > "I want to look at connecting Claude to ledger via api. So we can amend things in the
 > app, clean data, add new etc." — "I want to add it into ledger app too." — "I want to
@@ -33,8 +33,14 @@ Why proposals rather than letting Claude write:
 ## 2. Ask Claude, in Ledger
 
 - **Where:** the floating **+** button. Tapping it shows two choices, **Quick capture**
-  and **Ask Claude** (Shaun's answer). Ask Claude opens a sheet with a text field; the
-  keyboard's microphone works for dictation.
+  and **Ask Claude** (Shaun's answer).
+  - The + is on every tab.
+  - It must never hide anything: each screen keeps room at its foot, so the last row
+    scrolls clear of the button.
+  - The + steps aside while the keyboard or a sheet is open.
+
+  Ask Claude opens a sheet with a text field; the keyboard's microphone works for
+  dictation.
 - **A conversation:** Claude can ask a question back ("which Thursday?") before
   proposing. The conversation lasts for the sheet; nothing is kept unless Shaun applies
   something.
@@ -59,7 +65,9 @@ Ledger.
   Claude opens a Ledger sign-in page; Shaun signs in with his Ledger account; only the
   **owner** role is accepted. Ledger issues Claude a token, which Shaun can revoke in
   Settings → Claude. Ledger never sees a Claude password, and Claude never sees Shaun's.
-- **The same tools** as Ask Claude. Proposing works the same way. Reviewing: see Q2.
+- **The same tools** as Ask Claude, and proposing works the same way. **Reviewing
+  happens in Ledger** (Shaun's answer): Claude replies with a link that opens the review
+  card in Ledger, and Apply happens there.
 - **Claude Code** can use the same connector, for heavier cleanups from a computer.
 
 ## 4. What Claude can see and change
@@ -209,12 +217,5 @@ Answered 2026-10-27:
   which says "add something new"; a ⋯ reads as "more settings".
 - **History:** 30 days.
 
-Still open:
-
-2. **Reviewing a connector proposal:**
-   - (a) **in Ledger only** (recommended): Claude replies with a link that opens the
-     review card in Ledger, and Apply happens there;
-   - (b) **in the Claude chat too:** an `apply_proposal` tool, which Claude's apps ask
-     permission for each time.
-
-   (a) keeps one review screen; (b) avoids switching apps.
+- **Reviewing a connector proposal:** in Ledger only. Claude's reply links to the
+  review card; there is no apply tool in the chat.
