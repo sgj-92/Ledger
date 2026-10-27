@@ -6175,6 +6175,23 @@
   // was deleted by hand is not made again.
   var czLoaded = { commitments: false, plans: false, challenges: false };
   function czDataReady(){ return czLoaded.commitments && czLoaded.plans && czLoaded.challenges; }
+  // czLoaded[flag] means the server has confirmed what a listener holds. That can arrive on
+  // its own, as a change to the snapshot's metadata only: the app comes back from the
+  // background, reconnects, and nothing changed meanwhile. Firestore sends that only when
+  // asked, so ask, and use it only to set the flag (onConfirmed) — never to redraw the data.
+  function confirmedSnapshot(query, flag, onData, onConfirmed){
+    var seen = false;
+    return query.onSnapshot({ includeMetadataChanges: true }, function(snap){
+      var fresh = !snap.metadata || !snap.metadata.fromCache;
+      if (seen && !snap.docChanges().length){
+        if (fresh && !czLoaded[flag]){ czLoaded[flag] = true; onConfirmed(); }
+        return;
+      }
+      seen = true;
+      if (fresh) czLoaded[flag] = true;
+      onData(snap);
+    }, function(err){ console.error(flag + ' snapshot error', err); });
+  }
   function czActionId(c, t, dateStr){ return 'cz-' + c.id + '-' + t.id + '-' + dateStr; }
   function czActionTitle(t){
     var target = Number(t.target) > 0 ? Number(t.target) : null;
@@ -6896,14 +6913,12 @@
           focusItems = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
           if (currentView === 'focus') renderFocus();
         }, function(err){ console.error('focus snapshot error', err); });
-      dbRef.collection('ledger_plans')
-        .onSnapshot(function(snap){
+      confirmedSnapshot(dbRef.collection('ledger_plans'), 'plans', function(snap){
           plans = snap.docs.map(function(d){ var data = d.data() || {}; data.date = d.id; return data; });
-          if (!snap.metadata || !snap.metadata.fromCache) czLoaded.plans = true;
           keepPendingPlans();
           if (currentView === 'plan') renderPlan();
           renderLogView();
-        }, function(err){ console.error('plans snapshot error', err); });
+        }, renderLogView);
       dbRef.collection('ledger_meals').orderBy('createdAt','desc')
         .onSnapshot(function(snap){
           mealIdeas = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
@@ -6917,17 +6932,15 @@
           if (currentView === 'focus') renderFocus();
           if (currentView === 'stats') renderStats();
         }, function(err){ console.error('priorities snapshot error', err); });
-      dbRef.collection('ledger_commitments')
-        .onSnapshot(function(snap){
+      confirmedSnapshot(dbRef.collection('ledger_commitments'), 'commitments', function(snap){
           commitments = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
           actionsSeen(commitments);
-          if (!snap.metadata || !snap.metadata.fromCache) czLoaded.commitments = true;
           renderLogView();
           // Plan reads the same actions: its week rows and day pane follow them
           if (currentView === 'plan') renderPlan();
           if (currentView === 'comms') renderComms();
           tryHandleDeepLink();
-        }, function(err){ console.error('commitments snapshot error', err); });
+        }, renderLogView);
       ['ledger_matters', 'ledger_conversations'].forEach(function(coll){
         dbRef.collection(coll).onSnapshot(function(snap){
           var list = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
@@ -6936,11 +6949,10 @@
           commsChanged();
         }, function(err){ console.error(coll + ' snapshot error', err); });
       });
-      dbRef.collection('ledger_challenges').onSnapshot(function(snap){
+      confirmedSnapshot(dbRef.collection('ledger_challenges'), 'challenges', function(snap){
         challenges = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
-        if (!snap.metadata || !snap.metadata.fromCache) czLoaded.challenges = true;
         challengesChanged();
-      }, function(err){ console.error('challenges snapshot error', err); });
+      }, challengesChanged);
       dbRef.collection('ledger_day_status')
         .onSnapshot(function(snap){
           dayStatuses = snap.docs.map(function(d){ var data = d.data() || {}; data.date = d.id; return data; });
@@ -8173,8 +8185,13 @@
       })
     };
   }
+  // Ready once today's Actions and plans are in: confirmed by the server, or simply
+  // arrived (there is no offline cache, so anything held came from the server this
+  // session). An empty, unconfirmed list waits, so the widget is never blanked by a start.
+  function widgetHas(flag, list){ return czLoaded[flag] || list.length > 0; }
   function widgetReady(){
-    return nativeWidgetOn() && authRole === 'owner' && ownerDataStarted && dbReady && czLoaded.commitments && czLoaded.plans;
+    return nativeWidgetOn() && authRole === 'owner' && ownerDataStarted && dbReady &&
+      widgetHas('commitments', commitments) && widgetHas('plans', plans);
   }
   // after a render: once things settle, and only when what the widget shows has changed
   // (each reload counts against the widget's daily budget)
@@ -8188,8 +8205,8 @@
   var widgetStatus = null;
   function widgetWaitingFor(){
     if (authRole !== 'owner' || !ownerDataStarted || !dbReady) return 'signing in';
-    if (!czLoaded.commitments) return 'today\u2019s Actions';
-    if (!czLoaded.plans) return 'today\u2019s plan';
+    if (!widgetHas('commitments', commitments)) return 'today\u2019s Actions';
+    if (!widgetHas('plans', plans)) return 'today\u2019s plan';
     return '';
   }
   function nativeWidgetPublish(force){

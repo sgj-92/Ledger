@@ -2452,6 +2452,16 @@ minutes before", recurring/accountability).
     Actions", or "Not updated at …" with the reason. Tapping it sends today again.
 
   Tests: native shell 62.
+- (2026-10-27) — **Widget stuck on "Waiting for today's Actions": fixed.**
+  - **Cause:** Settings showed it. "Loaded" was set only by a snapshot the server had
+    confirmed. After the app comes back from the background and reconnects with nothing
+    changed, that confirmation arrives as a metadata-only change, which wasn't asked for.
+    Plans, Actions and challenges could stay unconfirmed for the whole session.
+  - **Fix:** those three listeners now use `includeMetadataChanges` (`confirmedSnapshot`),
+    only to set the flag, never to redraw. The widget also goes ahead once its data has
+    arrived at all: there is no offline cache, so anything held came from the server.
+  - **Tests:** the exact phone state couldn't be reproduced on the emulator. Native shell
+    62, Home 256, Partner 209, Quick capture 24, settings 9, push e2e 76.
 - (2026-10-27) — **Flow's now line follows what is done.** (Logged in Decisions.)
   Checked in the browser; native shell 58 and Home 256 pass.
 - (2026-10-27) — **Flow: Actions stay where they are dragged around a Reset Sprint and
