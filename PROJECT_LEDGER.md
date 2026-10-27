@@ -748,6 +748,18 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-27 — Morning Prime's plan step lands on Health & fitness; sheets never pan sideways
+**Decision (Shaun's report):** the plan step (Shaun's label: "Health & Fitness") opens
+the Day Plan with only Health & fitness expanded, scrolled until the whole section shows.
+Actions stay collapsed with their summary, because they are chosen in the key-task step.
+This supersedes "opens the Day Plan at Actions and Health & fitness" (2026-09-30). The
+other Health & fitness links (Today's card, Flow's Add training) land the same way.
+Every sheet is `overflow-x: hidden`: a sheet scrolls up and down only, and a strip meant
+to move sideways scrolls inside itself.
+**Why:** the Day Plan slid sideways on Shaun's iPhone. Chromium showed no overflow, at
+any phone width or with long text, so the cause on iOS is still unknown. The guard is
+on the sheet, never the page; the Mobile layout rule still applies to the page.
+
 ### 2026-10-27 — Widget snapshot version 3: the Focus widget; Morning Prime's full name
 Shaun approved this through a Claude Chat handoff. The `ledger-focus-widget.patch` it
 named never reached the repository, so it was rebuilt here to the same description.
@@ -2413,6 +2425,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Health & Fitness opens where it should; the Day Plan no longer slides
+  sideways.** (Logged in Decisions.) Tests: native shell 58, Home 256, Partner 209,
+  Quick capture 24, settings 9. The sideways drag needs Shaun's check on the iPhone.
 - (2026-10-27) — **Food Plan adds stay open; key-task field stays above the keyboard.**
   (Shaun's report.)
   - **Food Plan:** the new-meal field and **Add** sit on one row. After Add or Return,

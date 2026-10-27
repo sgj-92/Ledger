@@ -1826,6 +1826,9 @@
     border-radius: 28px 28px 0 0; border-top: 1px solid var(--line-2);
     padding: 12px 22px calc(24px + env(safe-area-inset-bottom));
     max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-raised);
+    /* a sheet scrolls up and down only. A strip meant to move sideways scrolls inside
+       itself; the sheet never pans, so a stray pixel can't make it slide under a thumb */
+    overflow-x: hidden;
     animation: sheet-up 0.24s cubic-bezier(.2,.9,.3,1);
     /* dvh tracks the iOS toolbar, so the sheet never extends under browser chrome */
     max-height: 90dvh;
@@ -1910,7 +1913,6 @@
   .l7-cell.explained, .l7-k.explained { border-style: dashed; border-color: var(--text-3); }
   .day-share-link.snap { color: var(--gold); }
   /* ---- snapshot sheet ---- */
-  .sheet:has(.snap-presets) { overflow-x: hidden; }
   .snap-presets { display: flex; gap: 8px; overflow-x: auto; margin: 0 -22px var(--sp-3); padding: 2px 22px 4px; scrollbar-width: none; }
   .snap-presets::-webkit-scrollbar { display: none; }
   .snap-presets .bk-filter-chip { flex-shrink: 0; white-space: nowrap; }
@@ -9017,7 +9019,7 @@
     if (flowBacklogBtn) flowBacklogBtn.addEventListener('click', function(){ openBacklogSheet(); });
     var addTraining = document.getElementById('flowAddTraining');
     if (addTraining) addTraining.addEventListener('click', function(){
-      openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'] });
+      openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'], focus: 'health' });
     });
     function toOverview(){ setTodayMode('overview'); window.scrollTo(0, 0); }
     var ov = document.getElementById('flowOpenOverview');
@@ -17314,7 +17316,8 @@
     var k = item.key;
     if (k === 'meals'){ openPlanMealsSheet(dateStr); return true; }
     if (k === 'keys'){ openKeyTasksSheet(dateStr); return true; }
-    if (k === 'plan'){ openPlanSheet(dateStr, getPlanForDate(dateStr), { returnToMorningPrime: true, sections: ['actions', 'health'] }); return true; }
+    // Actions are chosen in the key-task step; this one lands on Health & fitness
+    if (k === 'plan'){ openPlanSheet(dateStr, getPlanForDate(dateStr), { returnToMorningPrime: true, sections: ['health'], focus: 'health' }); return true; }
     if (k === 'intention'){ openIntentionSheet(dateStr); return true; }
     if (k === 'weighIn'){
       openSheet('weight', sessions.find(function(x){ return x.type === 'weight' && x.date === dateStr; }) || null, dateStr);
@@ -23446,7 +23449,7 @@
     }
 
     wrap.querySelector('[data-role="plan-edit"]').addEventListener('click', function(){
-      openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'] });
+      openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'], focus: 'health' });
     });
     var hfToggle = wrap.querySelector('#hfToggle');
     if (hfToggle) hfToggle.addEventListener('click', function(){
@@ -23460,7 +23463,7 @@
     wrap.querySelectorAll('[data-plan-edit]').forEach(function(el){
       el.addEventListener('click', function(e){
         e.stopPropagation();
-        openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'] });
+        openPlanSheet(dateStr, getPlanForDate(dateStr), { sections: ['health'], focus: 'health' });
       });
     });
     // training: the card records what actually happened, pre-filled from the plan
@@ -24140,7 +24143,8 @@
   }
 
   // ---- the Day Plan sheet (the inspector on desktop) ----
-  // opts.sections: which sections open expanded. Health & fitness keeps its explicit
+  // opts.sections: which sections open expanded; opts.focus: the one to land on.
+  // Health & fitness keeps its explicit
   // Save (it marks the plan reviewed for Morning Prime); the intention and Day Notes save
   // as you type, exactly as they do on Today; actions are records and save themselves.
   function openPlanSheet(dateStr, existing, opts){
@@ -24239,13 +24243,26 @@
     }
     render();
     backdrop.classList.add('open');
+    // land on the section asked for: scroll until all of it shows above the footer, and
+    // never so far that its header passes the top of the sheet
+    if (opts.focus && open[opts.focus]){
+      var focusSec = sheetEl.querySelector('[data-dp-sec="' + opts.focus + '"]');
+      var focusFoot = sheetEl.querySelector('.dp-footer');
+      if (focusSec){
+        var sheetBox = sheetEl.getBoundingClientRect(), secBox = focusSec.getBoundingClientRect();
+        var visibleBottom = (focusFoot ? focusFoot.getBoundingClientRect().top : sheetBox.bottom) - 12;
+        var by = Math.min(secBox.bottom - visibleBottom, secBox.top - sheetBox.top - 8);
+        if (by > 0) sheetEl.scrollTop += by;
+      }
+    }
     // actions and priorities are live records: when they change, refresh those parts in place
     activeSheetRefresh = refreshLive;
 
     // where a sub-editor comes back to: this day plan, same sections open, nothing lost
     function reopen(sections){
       openPlanSheet(dateStr, getPlanForDate(dateStr), Object.assign({}, opts, {
-        sections: sections || DP_SECTIONS.filter(function(k){ return open[k]; })
+        sections: sections || DP_SECTIONS.filter(function(k){ return open[k]; }),
+        focus: null
       }));
     }
     // before leaving for another editor, keep what has been typed here
