@@ -30,6 +30,22 @@ rendered page at 390×844 (iPhone-class viewport), not estimated.
 Dark is the default and the primary visual identity. Light is a deliberate
 warm parchment palette, not an inversion.
 
+**Colours (2026-10-27, Shaun's choice).** A second, independent choice in Settings →
+Appearance (and in the partner and household footers). It is stored per device as
+`ledger_palette` (`ledger | ocean | plum`) and lands on `<html data-palette>`.
+- Each colour has a dark and a light version:
+  - Ledger: gold, with Parchment in light;
+  - Ocean: navy and teal, with Sky in light;
+  - Plum: aubergine and rose, with Coral in light.
+- Light / Dark / System still chooses which version shows.
+- A colour overrides only these tokens:
+  - page, surface and text;
+  - hairlines;
+  - the accent (`--gold`, `--gold-rgb`, `--gold-2`, `--ink`);
+  - the bar, header fade and hero tint.
+- Category, status and day colours keep their meaning in every colour.
+- The share snapshot image and the native widgets keep Ledger's own colours.
+
 ### Surface tokens
 
 | Token | Dark | Light | Role |
@@ -42,6 +58,11 @@ warm parchment palette, not an inversion.
 | `--line-2` | `rgba(234,223,204,0.13)` | `rgba(74,56,36,0.23)` | Stronger divider |
 
 Structure is carried by hairlines and surface steps, not by shadows or boxes.
+**Except Today, since 2026-10-27:** each section (Inbox, Backlog, Actions,
+Communications, Health & fitness, Flow) sits on its own `--surface` card with a `--line-2`
+border and `--shadow-card`. Day notes, Quick log and Recorded activity share one card.
+On phones the cards reach 16px from the screen edge, and Morning Prime and Wind-down line
+up with them. This was Shaun's call: the sections blended into each other.
 The surface steps are deliberately small. Light values were refined on 2026-10-04 so a card separates from the page; in
 light only, the few true cards (Morning Prime, player card, Focus evidence, Backlog
 panel) also take `--shadow-card`, and the chosen Overview/Flow tab is a raised

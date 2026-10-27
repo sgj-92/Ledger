@@ -1058,6 +1058,15 @@ async function oobLink(email){
   await goHome(A); await A.click('#hsPeople'); await A.waitForSelector('#hpeList');
   check(await A.evaluate(() => !document.getElementById('hpeAdd') && [...document.querySelectorAll('#hpeList .act-row')].every(r => r.disabled)), 'H11 Abi sees who is at Home, but cannot add or remove');
   await A.click('#ppSheet .sheet-close');
+  // the colour choice is in Maria's app and Abi's portal too, and works there
+  for (const p of [M, A]){
+    if (p === A) await goHome(A);
+    check(await p.evaluate(() => document.querySelectorAll('#paletteSwitch [data-palette-set]').length === 3), p.name + ': Colour (Ledger · Ocean · Plum) in the footer');
+    await p.locator('[data-palette-set="ocean"]').scrollIntoViewIfNeeded(); await p.click('[data-palette-set="ocean"]');
+    check(await until(p, () => document.documentElement.dataset.palette === 'ocean' && localStorage.getItem('ledger_palette') === 'ocean' && document.querySelector('#paletteSwitch .sel .pal-name').textContent === 'Ocean'
+      && getComputedStyle(document.body).backgroundColor === 'rgb(10, 18, 27)'), p.name + ': choosing Ocean recolours the app at once');
+    await p.click('[data-palette-set="ledger"]');
+  }
   for (const p of [S, A, M]) check(!p.errs.length, p.name + ': no page errors ' + p.errs.slice(0, 3).join(' | ').slice(0, 500));
   await b.close(); server.close();
   console.log(`\n${ok.length} passed, ${bad.length} failed`);

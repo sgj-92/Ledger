@@ -748,6 +748,22 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-27 — Colours, and Today on cards (Shaun's answers)
+- **Colours:** Settings → Appearance has a **Colour** choice beside Light / Dark / System.
+  - The choices are Ledger (gold, with Parchment in light), Ocean (with Sky in light) and
+    Plum (with Coral in light).
+  - It is stored per device in `ledger_palette`; Ledger stays the default.
+  - Only page, surface, text, hairline and accent tokens change. Category and status
+    colours keep their meaning.
+  - Forest and Sage were offered and not chosen.
+  - **Playbook note:** §24 warns against "overly colourful". Each colour keeps one
+    accent, so it stays within §16.
+- **Today on cards:** each Today section sits on its own card, in every colour and mode.
+  - This **supersedes** "text-first; no cards" (2026-10-09) for Today only.
+  - Day notes, Quick log and Recorded activity share one card.
+  - On phones the cards reach 16px from the screen edge.
+- See `docs/DESIGN_SYSTEM.md` §1.
+
 ### 2026-10-27 — Home: pass to yourself; updates and "Waiting on" for ongoing tasks (Shaun's answers)
 - **Pass it on** offers **Me** to whoever asked. This is the only way a request goes back
   to its asker; the rule allows it only when the asker takes it on themselves.
@@ -2550,6 +2566,14 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-27) — **Colours (Ocean/Sky, Plum/Coral) and Today on cards.** (Logged in
+  Decisions.)
+  - **Checked at 390px:** Today and Flow, before and after, in all six versions; every
+    tab in Ocean and Coral; Settings → Appearance; wide Today and Flow at 1280px.
+  - **Tests:** Home 291 (adds the Colour choice in Abi's portal and Maria's app),
+    Partner 209, native shell 67, Ask Claude 33, settings 9, Comms capture 24,
+    execution 81.
+  - Website only. Nothing to deploy to Firebase, and no app build.
 - (2026-10-27) — **Home: pass to yourself; ongoing Updates and "Waiting on".**
   (Logged in Decisions.)
   - **Tests, all passing:**

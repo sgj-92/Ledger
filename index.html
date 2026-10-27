@@ -20,10 +20,14 @@
       ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
       : pref;
     var el = document.documentElement;
+    var pal = localStorage.getItem('ledger_palette');
+    if (pal !== 'ocean' && pal !== 'plum') pal = 'ledger';
     el.setAttribute('data-theme', resolved);
     el.setAttribute('data-theme-pref', pref);
+    el.setAttribute('data-palette', pal);
+    var bgs = { ledger: ['#0e0b08', '#f2eadd'], ocean: ['#0a121b', '#e9eff6'], plum: ['#130d16', '#f6ece6'] };
     var m = document.querySelector('meta[name="theme-color"]');
-    if (m) m.setAttribute('content', resolved === 'light' ? '#f2eadd' : '#0e0b08');
+    if (m) m.setAttribute('content', bgs[pal][resolved === 'light' ? 1 : 0]);
   } catch(e){ document.documentElement.setAttribute('data-theme', 'dark'); }
 })();
 </script>
@@ -2526,6 +2530,14 @@
     cursor: pointer; transition: background 0.16s ease, color 0.16s ease;
   }
   .theme-switch button.sel { background: var(--gold); color: var(--ink); }
+  /* the colour choice: a swatch of each palette's accent, as it is in the mode showing */
+  .pal-switch button { display: inline-flex; align-items: center; gap: 6px; }
+  .pal-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(255,255,255,0.18); }
+  .pal-ledger { background: #dcb878; } .pal-ocean { background: #5ec8dc; } .pal-plum { background: #f2a7c8; }
+  html[data-theme="light"] .pal-dot { box-shadow: 0 0 0 1px rgba(0,0,0,0.12); }
+  html[data-theme="light"] .pal-ledger { background: #866325; } html[data-theme="light"] .pal-ocean { background: #2a68aa; } html[data-theme="light"] .pal-plum { background: #b5462a; }
+  .pal-switch button.sel .pal-dot, html[data-theme="light"] .pal-switch button.sel .pal-dot { box-shadow: 0 0 0 2px var(--ink); }
+  .pp-foot .pal-switch { margin-top: 8px; }
   .appearance-note {
     margin: 10px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--text-3);
   }
@@ -2613,6 +2625,71 @@
       linear-gradient(180deg, rgba(242,234,221,0.35) 0%, rgba(242,234,221,0.15) 40%, rgba(242,234,221,0.74) 100%);
     color-scheme: light;
   }
+  /* ============ Colours (2026-10-27, Shaun's choice) ============
+     A colour is a palette with a dark and a light version; the Light / Dark / System
+     choice still picks which. Ledger (gold) is the default and is the two blocks above.
+     Only the page, surfaces, text and accent change: category, status and day colours
+     keep their meaning in every colour. Shown as: Ocean (dark) / Sky (light), and
+     Plum (dark) / Coral (light). */
+  html[data-palette="ocean"][data-theme="dark"] {
+    --bg: #0a121b; --surface: #111d2a; --surface-2: #172636; --surface-3: #1f3044; --panel-inset: #070d14;
+    --line: rgba(190,215,240,0.09); --line-2: rgba(190,215,240,0.17);
+    --text: #eaf1f8; --text-2: #a3b6ca; --text-3: #7f97ae;
+    --gold: #5ec8dc; --gold-rgb: 94,200,220; --gold-2: #47b1c6; --gold-soft: #8fd9e7; --ink: #04161c;
+    --bar: rgba(10,18,27,0.9); --header-fade: rgba(10,18,27,0.82); --header-fade-0: rgba(10,18,27,0);
+    --hero-filter: grayscale(0.7) sepia(0.4) hue-rotate(160deg) saturate(1.6) brightness(0.9);
+    --hero-scrim:
+      radial-gradient(120% 80% at 50% 34%, rgba(10,18,27,0.72) 0%, rgba(10,18,27,0.28) 55%, rgba(10,18,27,0) 100%),
+      linear-gradient(180deg, rgba(10,18,27,0.5) 0%, rgba(10,18,27,0.1) 40%, rgba(10,18,27,0.55) 100%);
+  }
+  html[data-palette="ocean"][data-theme="light"] {
+    --bg: #e9eff6; --surface: #fbfdff; --surface-2: #dce5ef; --surface-3: #cfdbe8;
+    --line: rgba(30,55,85,0.12); --line-2: rgba(30,55,85,0.24);
+    --text: #18263a; --text-2: #45566b; --text-3: #56687e;
+    --gold: #2a68aa; --gold-rgb: 42,104,170; --gold-2: #215a96; --gold-soft: #2a68aa; --ink: #f6faff;
+    --shadow-card: 0 1px 2px rgba(30,55,85,0.07), 0 6px 18px -12px rgba(30,55,85,0.24);
+    --shadow-raised: 0 -18px 50px -26px rgba(30,55,85,0.34);
+    --shadow-lift: 0 14px 30px -14px rgba(30,55,85,0.30);
+    --shadow-fab: 0 12px 26px -14px rgba(30,55,85,0.38);
+    --shadow-pop: 0 20px 46px -22px rgba(30,55,85,0.30);
+    --shadow-toast: 0 18px 38px -22px rgba(30,55,85,0.34);
+    --tint-raise: rgba(30,55,85,0.022); --backdrop: rgba(30,55,85,0.34);
+    --bar: rgba(251,253,255,0.94); --header-fade: rgba(233,239,246,0.82); --header-fade-0: rgba(233,239,246,0);
+    --hero-filter: grayscale(0.6) sepia(0.3) hue-rotate(180deg) saturate(1.3) brightness(1.15) contrast(0.82);
+    --hero-scrim:
+      radial-gradient(120% 80% at 50% 34%, rgba(233,239,246,0.6) 0%, rgba(233,239,246,0.3) 55%, rgba(233,239,246,0.08) 100%),
+      linear-gradient(180deg, rgba(233,239,246,0.35) 0%, rgba(233,239,246,0.15) 40%, rgba(233,239,246,0.74) 100%);
+  }
+  html[data-palette="plum"][data-theme="dark"] {
+    --bg: #130d16; --surface: #1d1422; --surface-2: #261b2d; --surface-3: #302338; --panel-inset: #0d0910;
+    --line: rgba(240,215,245,0.09); --line-2: rgba(240,215,245,0.17);
+    --text: #f4ecf6; --text-2: #bba8c2; --text-3: #95819d;
+    --gold: #f2a7c8; --gold-rgb: 242,167,200; --gold-2: #df90b4; --gold-soft: #f7c3da; --ink: #2a0d1c;
+    --bar: rgba(19,13,22,0.9); --header-fade: rgba(19,13,22,0.82); --header-fade-0: rgba(19,13,22,0);
+    --hero-filter: grayscale(0.6) sepia(0.5) hue-rotate(250deg) saturate(1.4) brightness(0.85);
+    --hero-scrim:
+      radial-gradient(120% 80% at 50% 34%, rgba(19,13,22,0.72) 0%, rgba(19,13,22,0.28) 55%, rgba(19,13,22,0) 100%),
+      linear-gradient(180deg, rgba(19,13,22,0.5) 0%, rgba(19,13,22,0.1) 40%, rgba(19,13,22,0.55) 100%);
+  }
+  html[data-palette="plum"][data-theme="light"] {
+    --bg: #f6ece6; --surface: #fffaf7; --surface-2: #efdfd5; --surface-3: #e6d0c3;
+    --line: rgba(90,45,30,0.12); --line-2: rgba(90,45,30,0.24);
+    --text: #2b1c17; --text-2: #664c43; --text-3: #7a6056;
+    --gold: #b5462a; --gold-rgb: 181,70,42; --gold-2: #963719; --gold-soft: #b5462a; --ink: #fff8f4;
+    --shadow-card: 0 1px 2px rgba(90,45,30,0.07), 0 6px 18px -12px rgba(90,45,30,0.24);
+    --shadow-raised: 0 -18px 50px -26px rgba(90,45,30,0.34);
+    --shadow-lift: 0 14px 30px -14px rgba(90,45,30,0.30);
+    --shadow-fab: 0 12px 26px -14px rgba(90,45,30,0.38);
+    --shadow-pop: 0 20px 46px -22px rgba(90,45,30,0.30);
+    --shadow-toast: 0 18px 38px -22px rgba(90,45,30,0.34);
+    --tint-raise: rgba(90,45,30,0.022); --backdrop: rgba(90,45,30,0.34);
+    --bar: rgba(255,250,247,0.94); --header-fade: rgba(246,236,230,0.82); --header-fade-0: rgba(246,236,230,0);
+    --hero-filter: grayscale(0.4) sepia(0.5) hue-rotate(-20deg) saturate(1.3) brightness(1.15) contrast(0.82);
+    --hero-scrim:
+      radial-gradient(120% 80% at 50% 34%, rgba(246,236,230,0.6) 0%, rgba(246,236,230,0.3) 55%, rgba(246,236,230,0.08) 100%),
+      linear-gradient(180deg, rgba(246,236,230,0.35) 0%, rgba(246,236,230,0.15) 40%, rgba(246,236,230,0.74) 100%);
+  }
+
   /* light-only legibility corrections: alpha-gold text is too faint on paper */
   html[data-theme="light"] .key-task .ord-num,
   html[data-theme="light"] .mp-card.done .mp-sub,
@@ -3956,7 +4033,8 @@
   #view-log .wd-wrap { margin-top: 0; }
   /* One section header shape down Today: the title, a quiet status, the chevron in the
      same column as Backlog's, Actions' and Health & fitness's (the extra slot is kept
-     clear), the same row height. Text-first; no cards. */
+     clear), the same row height. (Text-first until 2026-10-27; since then each section
+     sits on a card — see "Today on cards".) */
   #view-log #quickLogToggle, #view-log #recordedToggle, #view-log .dn-row {
     min-height: 46px; margin-top: var(--sp-1); border-top: none; padding-right: 38px;
   }
@@ -4220,6 +4298,46 @@
   .hf-line.rb > svg { width: 13px; height: 13px; flex-shrink: 0; margin-top: 3px; }
   .hf-rb-text { min-width: 0; overflow-wrap: anywhere; }
   .hf-rb-text.clamped { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ---- Today on cards (2026-10-27, Shaun: "the sections blend into each other") ----
+     Supersedes "text-first; no cards" for Today: each section sits on its own surface,
+     with the same header shape inside. Day notes, Quick log and Recorded activity share
+     one card as the day's utilities. Every colour and mode, phones and wide screens. */
+  #view-log .tcard,
+  #view-log #inboxSection:not(:empty), #view-log #backlogSection:not(:empty), #view-log #sprintSection:not(:empty),
+  #view-log #commsSummary:not(:empty), #view-log #todayPlanWidget:not(:empty),
+  #view-log #todayFlow:not([hidden]) {
+    background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-lg);
+    padding: 2px 13px 8px; margin: 0 0 var(--sp-3); box-shadow: var(--shadow-card);
+  }
+  /* Wind-down is a card already: the same surface as the rest */
+  #view-log .wd-card { background: var(--surface); border-color: var(--line-2); box-shadow: var(--shadow-card); }
+  /* on a phone the cards reach 16px from the screen's edge, as iOS's inset lists do, and
+     Morning Prime and Wind-down (cards already) line up with them */
+  @media (max-width: 767px) {
+    #view-log .tcard,
+    #view-log #inboxSection:not(:empty), #view-log #backlogSection:not(:empty), #view-log #sprintSection:not(:empty),
+    #view-log #commsSummary:not(:empty), #view-log #todayPlanWidget:not(:empty),
+    #view-log #todayFlow:not([hidden]), #view-log #todayPlanWidget.today-plan-widget:not(:empty),
+    #view-log .mp-card, #view-log .wd-card { margin-left: -6px; margin-right: -6px; }
+  }
+  #view-log .tcard .actions-head .view-switch button { padding-left: 6px; padding-right: 6px; }
+  #view-log #todayPlanWidget.today-plan-widget:not(:empty) { margin: 0 0 var(--sp-3); }
+  #view-log .tcard-utils { padding-top: 4px; padding-bottom: 4px; }
+  #view-log #todayFlow .flow-head { margin-top: var(--sp-3); }
+  /* a section's header sits at the top of its card */
+  #view-log .tcard > .tsec:first-child, #view-log #inboxSection .tsec, #view-log #backlogSection .tsec,
+  #view-log #commsSummary .tsec, #view-log #todayPlanWidget .tsec,
+  #view-log #todayPlanWidget .today-plan-widget-head { margin-top: 0; }
+  #view-log .tcard-utils #dayNotesSection .dn-row, #view-log .tcard-utils #quickLogToggle,
+  #view-log .tcard-utils #recordedToggle { margin-top: 0; }
+  #view-log .tcard-utils #dayNotesSection:not(:empty) + #quickLogToggle,
+  #view-log .tcard-utils #quickLogGrid + #recordedToggle { border-top: 1px solid var(--line); }
+  #view-log .today-mode-row + #todayFlow, #view-log .today-mode-row ~ .today-main > :first-child { margin-top: var(--sp-2); }
+  /* inside a card the rows run edge to edge of its padding; the last one needs no rule */
+  #view-log .tcard #commitmentsList > :last-child, #view-log #todayFlow .tl-row:last-child { border-bottom-color: transparent; }
+  /* Quick log's tiles are raised from the card, not the page */
+  #view-log .tcard .quicklog-card { background: var(--surface-2); }
 
   /* ==========================================================
      Wider screens — one app, one URL.
@@ -5241,6 +5359,8 @@
     <!-- Backlog first: a quick look at unfinished earlier work before the day itself -->
     <div id="backlogSection"></div>
 
+    <!-- Actions, on their own card (2026-10-27): header, list, the add field, finished sprints -->
+    <div class="tcard" id="actionsCard">
     <!-- one header shape for every Today section: title · status · chevron · optional extra -->
     <div class="tsec actions-head">
       <button type="button" class="tsec-title" id="actionsToggle" aria-expanded="true" aria-controls="actionsBody">Actions</button>
@@ -5268,6 +5388,7 @@
 
     <!-- finished sprints: one quiet line each -->
     <div id="sprintHistory"></div>
+    </div>
 
 
     </div>
@@ -5280,6 +5401,8 @@
     </div>
 
     <div class="today-extra">
+    <!-- the day's utilities, together on one card: Day notes, Quick log, Recorded activity -->
+    <div class="tcard tcard-utils" id="utilsCard">
     <!-- Home: requests between the people at home — one quiet row -->
     <div id="dayNotesSection"></div>
 
@@ -5343,6 +5466,7 @@
     <div class="recorded-body collapsed" id="recordedBody">
       <div id="todayList"></div>
       <button class="btn-link" id="viewHistoryBtn">View history in Calendar →</button>
+    </div>
     </div>
     <!-- the day's last ritual closes the page, after the evidence of the day -->
     <div class="wd-wrap" id="windDownSection"></div>
@@ -8482,7 +8606,23 @@
   // 'dark' | 'light' | 'system'. The resolved value lands on <html data-theme>, which is
   // the only thing any component reads — via tokens, never directly.
   var THEME_KEY = 'ledger_theme';
-  var THEME_COLOR = { dark: '#0e0b08', light: '#f2eadd' };
+  // the colour: a palette with a dark and a light version (Ledger · Ocean/Sky · Plum/Coral),
+  // also per device. It lands on <html data-palette>.
+  var PALETTE_KEY = 'ledger_palette';
+  var PALETTES = {
+    ledger: { dark: 'Ledger', light: 'Parchment', bg: { dark: '#0e0b08', light: '#f2eadd' }, note: 'Warm gold — Ledger’s own.' },
+    ocean: { dark: 'Ocean', light: 'Sky', bg: { dark: '#0a121b', light: '#e9eff6' }, note: 'Navy and teal at night, sky blue by day.' },
+    plum: { dark: 'Plum', light: 'Coral', bg: { dark: '#130d16', light: '#f6ece6' }, note: 'Plum and rose at night, warm coral by day.' }
+  };
+  function palettePref(){
+    var v;
+    try { v = localStorage.getItem(PALETTE_KEY); } catch(e){}
+    return PALETTES[v] ? v : 'ledger';
+  }
+  function setPalettePref(pal){
+    try { localStorage.setItem(PALETTE_KEY, pal); } catch(e){}
+    applyTheme();
+  }
   var lightMQ = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
 
   function themePref(){
@@ -8500,8 +8640,9 @@
     var el = document.documentElement;
     el.setAttribute('data-theme', resolved);
     el.setAttribute('data-theme-pref', pref);
+    el.setAttribute('data-palette', palettePref());
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', THEME_COLOR[resolved]);
+    if (meta) meta.setAttribute('content', PALETTES[palettePref()].bg[resolved]);
     renderThemeSwitch();
     nativeSyncBars();
   }
@@ -8515,7 +8656,28 @@
     if (lightMQ.addEventListener) lightMQ.addEventListener('change', onSchemeChange);
     else if (lightMQ.addListener) lightMQ.addListener(onSchemeChange);
   }
+  // the colour choice: a swatch and the name it has in the mode showing now
+  function paletteSwitchHtml(){
+    return '<div class="theme-switch pal-switch" id="paletteSwitch" role="radiogroup" aria-label="Colour">' +
+      Object.keys(PALETTES).map(function(k){
+        return '<button type="button" role="radio" data-palette-set="' + k + '"><span class="pal-dot pal-' + k + '" aria-hidden="true"></span><span class="pal-name"></span></button>';
+      }).join('') + '</div>';
+  }
+  function wirePaletteSwitch(root){
+    (root || document).querySelectorAll('[data-palette-set]').forEach(function(b){
+      b.addEventListener('click', function(){ setPalettePref(b.dataset.paletteSet); });
+    });
+    renderThemeSwitch();
+  }
   function renderThemeSwitch(){
+    var resolvedNow = resolveTheme(themePref()), pal = palettePref();
+    document.querySelectorAll('[data-palette-set]').forEach(function(b){
+      var on = b.dataset.paletteSet === pal;
+      b.classList.toggle('sel', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+      var n = b.querySelector('.pal-name'); if (n) n.textContent = PALETTES[b.dataset.paletteSet][resolvedNow];
+    });
+    var pn = document.getElementById('paletteNote');
+    if (pn) pn.textContent = PALETTES[pal].note;
     var wrap = document.getElementById('themeSwitch');
     if (!wrap) return;
     var pref = themePref();
@@ -17451,6 +17613,7 @@
         '<div class="theme-switch" id="themeSwitch" aria-label="Theme">' +
           '<button type="button" data-theme-set="dark">Dark</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="system">System</button>' +
         '</div>' +
+        paletteSwitchHtml() +
         '<p class="pp-who"><span id="ppWho"></span> · <button type="button" class="btn-link" id="ppNotify">Notifications</button> · <button type="button" class="btn-link" id="ppPassword">Password</button> · <button type="button" class="btn-link" id="ppSignOut">Sign out</button></p>' +
       '</footer></div>' +
       '<div class="sheet-backdrop pp-backdrop" id="ppBackdrop"><div class="sheet" id="ppSheet" role="dialog" aria-modal="true"></div></div>';
@@ -17466,6 +17629,7 @@
     });
     renderThemeSwitch();
     el.querySelectorAll('[data-theme-set]').forEach(function(b){ b.addEventListener('click', function(){ setThemePref(b.dataset.themeSet); }); });
+    wirePaletteSwitch(el);
     el.scrollTop = scroll;
   }
   // Abi's portal: Home beneath what Shaun shares with her
@@ -17688,6 +17852,7 @@
         '<div class="theme-switch" id="themeSwitch" aria-label="Theme">' +
           '<button type="button" data-theme-set="dark">Dark</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="system">System</button>' +
         '</div>' +
+        paletteSwitchHtml() +
         '<p class="pp-who"><span id="ppWho"></span> · <button type="button" class="btn-link" id="ppNotify">Notifications</button> · <button type="button" class="btn-link" id="ppPassword">Password</button> · <button type="button" class="btn-link" id="ppSignOut">Sign out</button></p>' +
       '</footer>' +
     '</div>' +
@@ -17732,6 +17897,7 @@
     });
     renderThemeSwitch();
     el.querySelectorAll('[data-theme-set]').forEach(function(b){ b.addEventListener('click', function(){ setThemePref(b.dataset.themeSet); }); });
+    wirePaletteSwitch(el);
     el.scrollTop = scroll;
   }
 
@@ -21046,6 +21212,12 @@
             '</div>' +
             '<p class="appearance-note" id="themeNote"></p>' +
           '</div>' +
+          '<div class="set-row static">' +
+            '<div class="appearance-row">' +
+              '<span class="appearance-label">Colour</span>' + paletteSwitchHtml() +
+            '</div>' +
+            '<p class="appearance-note" id="paletteNote"></p>' +
+          '</div>' +
         '</div>' +
       '</div>' +
 
@@ -21131,6 +21303,7 @@
     renderThemeSwitch();
     renderSharingSettings();
     renderHomeSettings();
+    wirePaletteSwitch(sheetEl);
     sheetEl.querySelectorAll('[data-theme-set]').forEach(function(btn){
       btn.addEventListener('click', function(){ setThemePref(btn.dataset.themeSet); });
     });
