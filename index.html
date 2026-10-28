@@ -4311,7 +4311,7 @@
     padding: 2px 13px 8px; margin: 0 0 var(--sp-3); box-shadow: var(--shadow-card);
   }
   /* Wind-down is a card already: the same surface as the rest */
-  #view-log .wd-card { background: var(--surface); border-color: var(--line-2); box-shadow: var(--shadow-card); }
+  #view-log .wd-card { background: var(--surface); border-color: var(--line-2); box-shadow: var(--shadow-card); margin-top: 0; }
   /* on a phone the cards reach 16px from the screen's edge, as iOS's inset lists do, and
      Morning Prime and Wind-down (cards already) line up with them */
   @media (max-width: 767px) {
@@ -4322,7 +4322,7 @@
     #view-log .mp-card, #view-log .wd-card { margin-left: -6px; margin-right: -6px; }
   }
   #view-log .tcard .actions-head .view-switch button { padding-left: 6px; padding-right: 6px; }
-  #view-log #todayPlanWidget.today-plan-widget:not(:empty) { margin: 0 0 var(--sp-3); }
+  #view-log #todayPlanWidget.today-plan-widget:not(:empty) { margin-top: 0; margin-bottom: var(--sp-3); }
   #view-log .tcard-utils { padding-top: 4px; padding-bottom: 4px; }
   #view-log #todayFlow .flow-head { margin-top: var(--sp-3); }
   /* a section's header sits at the top of its card */
@@ -10907,7 +10907,7 @@
       : '<p class="cs-tally-none">Nothing needs you</p>';
     wrap.innerHTML = '<div class="tsec">' +
       '<button type="button" class="tsec-main" id="commsToggle" aria-expanded="' + open + '" aria-controls="commsBody" aria-label="Communications' + (spoken ? ': ' + spoken : '') + '">' +
-        '<span class="tsec-title">Communications</span>' +
+        '<span class="tsec-title">Comms</span>' +
         '<span class="tsec-status">' + parts.join('<span class="cs-sep" aria-hidden="true"> · </span>') + '</span>' +
         '<span class="tsec-chev tsec-expand">' + TSEC_CHEV_DOWN + '</span>' +
       '</button>' +

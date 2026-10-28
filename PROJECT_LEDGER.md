@@ -2574,6 +2574,10 @@ minutes before", recurring/accountability).
     Partner 209, native shell 67, Ask Claude 33, settings 9, Comms capture 24,
     execution 81.
   - Website only. Nothing to deploy to Firebase, and no app build.
+  - **Follow-up (2026-10-28, Shaun):**
+    - every Today card now lines up: Health & fitness was set in by an older margin;
+    - Wind-down's gap matches the rest;
+    - the Today section is titled **Comms**, so "need you · waiting" fits.
 - (2026-10-27) — **Home: pass to yourself; ongoing Updates and "Waiting on".**
   (Logged in Decisions.)
   - **Tests, all passing:**
