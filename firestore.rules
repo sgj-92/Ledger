@@ -314,6 +314,17 @@ service cloud.firestore {
     // Firestore's limit of 1,000 expressions and refused writes it should allow.
     function homeReqUpdate(o, n, keys) {
       return (
+          // an admin ticks off someone else's request (2026-10-28), or reopens it; never one on
+          // someone's day as a private Action, so the Action and the request never disagree.
+          // First, cheapest check first: Firestore stops at 1,000 expressions per rule.
+          (keys.hasOnly(['status'].concat(summaryKeys()))
+              && o.get('linkedActionId', null) == null
+              && request.auth.uid != o.get('assigneeUid', null)
+              && ((o.status in ['requested', 'planned', 'in_progress', 'cant_do'] && n.status == 'done')
+                  || (o.status == 'done' && n.status == 'requested'))
+              && homeAdmin(o.homeId)
+              && homeSummary(o, n))
+          ||
           // an admin corrects any open request: wording, why, note and when (a typo, a
           // date, or no date). The history records it. First: placed after the other
           // branches it ran past the 1,000-expression limit; here it ends at its first
@@ -694,6 +705,8 @@ service cloud.firestore {
                 || (d.type == 'created' && updateId == 'created' && p.createdByUid == request.auth.uid && p.status == 'requested')
                 || (d.type == 'withdrawn' && updateId == 'withdrawn' && p.status == 'withdrawn'
                     && (request.auth.uid == p.requesterUid || request.auth.uid == p.createdByUid))
+                || (d.type == 'status' && d.metadata.status == p.status && p.status in ['done', 'requested']
+                    && homeAdmin(p.homeId))
                 || (request.auth.uid == p.assigneeUid
                     && ((d.type == 'planned' && p.status == 'planned')
                         || (d.type == 'moved' && d.metadata.toDate == p.get('plannedDate', null))

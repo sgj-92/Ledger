@@ -307,3 +307,20 @@ npx firebase-tools deploy --only firestore:rules,firestore:indexes,functions --p
   - push (`execution.test.js`, the real triggers and the migration through the Functions
     emulator): 72;
   - Partner Sharing: 201.
+
+### Admins tick off others' requests; titles open their edit (2026-10-28)
+
+- **Ticking off:** an admin (Shaun, Abi) may mark done, or reopen, a request someone
+  else is doing:
+  - from its row's circle, or "Mark done" on its sheet;
+  - the history says "Shaun marked it done for Magda" (`metadata.forUid`);
+  - the person it was for, and whoever asked, are told.
+- **Never one on someone's day as a private Action:** only they complete it, so the
+  Action and the request never disagree.
+- **Rules:** this branch comes first in `homeReqUpdate`, with its cheapest check first.
+  The rule sits at Firestore's 1,000-expression limit, so a new branch elsewhere broke
+  unrelated writes. Run the full rules suite after any change there.
+- **Editing:** a request's title, and an ongoing task's, opens its edit when tapped.
+  The ongoing task's link now says "Edit task".
+- **The request sheet:** who sees it and Delete come before the Updates, so the update
+  field ends the sheet and never covers them.

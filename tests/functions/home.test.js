@@ -260,6 +260,11 @@ const fire = (rid, u) => engine.handleHomeUpdate({ update: u, requestId: rid, up
   reset(); await fire('w1', { type: 'status', actorUid: 'maria', metadata: { status: 'done' } });
   check(who() === 'abi,shaun' && to('shaun')[0].payload.title === 'Maria completed “Main focus today”' && to('shaun')[0].payload.body === 'You asked to hear when it was done',
     'watch: the request done → Abi (who asked) and Shaun (who asked to hear)', sent.map((x) => x.endpoint + ' ' + x.payload.title));
+  // an admin ticks off a request between two others: its person and its asker hear
+  await db.doc('ledger_home_requests/ad1').set(R({ text: 'Fold the towels', requesterUid: 'abi', assigneeUid: 'maria', createdByUid: 'abi', participants: ['abi', 'maria'], status: 'done' }));
+  reset(); await fire('ad1', { type: 'status', actorUid: 'shaun', metadata: { status: 'done', forUid: 'maria' } });
+  check(who() === 'abi,maria' && to('maria')[0].payload.title === 'Shaun marked “Fold the towels” done' && to('abi')[0].payload.title === 'Shaun completed your request',
+    'admin done: Shaun ticks off Abi → Maria → Maria "Shaun marked … done", Abi "completed your request"', sent.map((x) => x.endpoint + ' ' + x.payload.title));
   console.log('\n' + passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

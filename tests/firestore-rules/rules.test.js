@@ -681,12 +681,20 @@ async function check(name, fn){
   await check('work: …and finishes it', () => assertSucceeds(act(nanny, 'hr1', Object.assign({ status: 'done' }, sumBy('nanny1', 'status')), entry('nanny1', 'status', { status: 'done' }))));
   await check('work: a "done" entry only when it is done', () => assertFails(nanny.collection(HR + '/hr4/updates').add(entry('nanny1', 'status', { status: 'done' }))));
   await check('work: the nanny never links an Action', () => assertFails(nanny.doc(HR + '/hr1').update({ linkedActionId: 'a9', linkedByUid: 'nanny1' })));
-  await check('work: an admin does not change someone else\'s work', () => assertFails(partner.doc(HR + '/hr1').update({ status: 'requested', updatedAt: 'now' })));
+  await check('work: an admin does not start or plan someone else\'s work', () => assertFails(partner.doc(HR + '/hr1').update({ status: 'in_progress', updatedAt: 'now' })));
   await check('work: Shaun plans what is his, linking his Action by id', () => assertSucceeds(act(owner, 'hr2', Object.assign({ status: 'planned', plannedDate: '2026-10-18', linkedActionId: 'actH2', linkedByUid: 'owner1', processedAt: 'now' }, sumBy('owner1', 'planned')), entry('owner1', 'planned', { toDate: '2026-10-18' }))));
   await check('work: "Can\'t do", with a reason', () => assertSucceeds(act(partner, 'hr4', Object.assign({ status: 'cant_do', cantDoReason: 'Out until Friday' }, sumBy('partner1', 'cant_do')), entry('partner1', 'cant_do', {}, null))));
   await check('work: nobody rewrites who asked', () => assertFails(owner.doc(HR + '/hr2').update({ requesterUid: 'owner1' })));
   await check('work: …who wrote it', () => assertFails(partner.doc(HR + '/hr4').update({ createdByUid: 'partner1' })));
   await check('work: …or which Home', () => assertFails(owner.doc(HR + '/hr2').update({ homeId: 'owner2' })));
+  // an admin ticks off a request between two others (2026-10-28)
+  await check('admin done: setup — Abi asks the nanny something', () => asks(partner, 'ad1', ask({ requesterUid: 'partner1', assigneeUid: 'nanny1', createdByUid: 'partner1', participants: ['partner1', 'nanny1'] }), 'partner1'));
+  await check('admin done: Shaun ticks it off for the nanny, and says so in its history', () => assertSucceeds(act(owner, 'ad1', Object.assign({ status: 'done' }, sumBy('owner1', 'status')), entry('owner1', 'status', { status: 'done', forUid: 'nanny1' }))));
+  await check('admin done: …and reopens it', () => assertSucceeds(act(owner, 'ad1', Object.assign({ status: 'requested' }, sumBy('owner1', 'status')), entry('owner1', 'status', { status: 'requested' }))));
+  await check('admin done: nothing else changes with it', () => assertFails(owner.doc(HR + '/ad1').update(Object.assign({ status: 'done', text: 'Changed' }, sumBy('owner1', 'status')))));
+  await check('admin done: never one on someone\'s day as a private Action', () => assertFails(partner.doc(HR + '/hr2').update(Object.assign({ status: 'done' }, sumBy('partner1', 'status')))));
+  await check('admin done: the nanny (not an admin) never ticks off others\' requests', () => assertFails(nanny.doc(HR + '/hr4').update(Object.assign({ status: 'done' }, sumBy('nanny1', 'status')))));
+  await check('admin done: a "done" entry only when it is done', () => assertFails(owner.collection(HR + '/ad1/updates').add(entry('owner1', 'status', { status: 'done' }))));
   // passing it on
   const pass = (from, to, parts) => ({ assigneeUid: to, participants: parts, status: 'requested', plannedDate: null, linkedActionId: null, linkedByUid: null, cantDoReason: null, latestUpdateAt: 'now', latestUpdateByUid: from, latestUpdateType: 'reassigned', updatedAt: 'now' });
   await check('pass: Abi passes the nanny\'s request on to Shaun', () => assertSucceeds(act(partner, 'hr4', pass('partner1', 'owner1', ['nanny1', 'partner1', 'owner1']), entry('partner1', 'reassigned', { fromUid: 'partner1', toUid: 'owner1' }))));

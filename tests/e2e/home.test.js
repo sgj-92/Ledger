@@ -1058,6 +1058,50 @@ async function oobLink(email){
     check(S.errs.length === 0 && A.errs.length === 0, 'H22 no page errors', S.errs.concat(A.errs).join(' | '));
   }
 
+  // H23 — the title opens the edit; an admin ticks off a request between two others
+  {
+    const closeS = () => S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
+    await goHome(S); await closeS(); await sleep(300);
+    const T = 'Wash and iron the school uniform';
+    if (!(await openRow(S, SH, T))){ await S.click('[data-hs-filter="others"]'); await sleep(300); await openRow(S, SH, T); }
+    check(await until(S, () => { const t = document.getElementById('hdTitle'); return !!t && t.classList.contains('rq-title-edit'); }), 'H23 Shaun opens Abi → Maria: its title can be tapped to edit');
+    check(await S.evaluate(() => { const a = document.getElementById('hdShareWrap'), u = document.querySelector('#sheetBackdrop .rq-upd-title'); return !!a && !!u && (a.compareDocumentPosition(u) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }),
+      'H23 who sees it comes before the Updates, so the update field ends the sheet');
+    await S.click('#hdTitle'); await S.waitForSelector('#heText');
+    await S.fill('#heText', 'Wash and iron the school uniform (both sets)'); await S.click('#heSave');
+    let ren = null;
+    for (let k = 0; k < 20 && !ren; k++){ await sleep(300); ren = await reqByText('Wash and iron the school uniform (both sets)'); }
+    check(ren && ren.latestUpdateType === 'edited' && ren.assigneeUid === maria, 'H23 renamed by Shaun (admin): stored, history says edited');
+    check(await until(S, () => !!document.getElementById('hdAdminDone')), 'H23 Shaun (admin, not doing it) has "Mark done"');
+    await S.screenshot({ path: `${shots}/${tag}-H23-admin-done.png` });
+    await S.click('#hdAdminDone');
+    let dn = null;
+    for (let k = 0; k < 20 && !(dn && dn.status === 'done'); k++){ await sleep(300); dn = await reqByText('Wash and iron the school uniform (both sets)'); }
+    check(dn && dn.status === 'done' && dn.latestUpdateByUid === owner, 'H23 Mark done: stored done, by Shaun');
+    const ents = await all(`${HR}/${dn.id}/updates`);
+    check(ents.some(e => e.type === 'status' && e.actorUid === owner && e.metadata && e.metadata.status === 'done' && e.metadata.forUid === maria), 'H23 its history: done by Shaun, for Maria');
+    check(await until(S, () => /You marked it done for Maria/.test((document.getElementById('hdTimeline') || {}).innerText || '')), 'H23 the timeline: "You marked it done for Maria ✓"',
+      await S.evaluate(() => ((document.getElementById('hdTimeline') || {}).innerText || 'no timeline') + ' || open: ' + document.getElementById('sheetBackdrop').classList.contains('open')) + ' || logs: ' + S.logs.slice(-6).join(' / ') + ' || entries: ' + JSON.stringify((await all(`${HR}/${dn.id}/updates`)).map(e => e.type)));
+    check(await until(M, () => [...document.querySelectorAll('#hpList .hs-row')].every(r => !/both sets/.test(r.innerText)) || [...document.querySelectorAll('#hpList .hs-row.done')].some(r => /both sets/.test(r.innerText))), 'H23 Maria sees it done');
+    await until(S, () => !!document.getElementById('hdAdminReopen')); await S.click('#hdAdminReopen');
+    let ro = null;
+    for (let k = 0; k < 20 && !(ro && ro.status === 'requested'); k++){ await sleep(300); ro = await reqByText('Wash and iron the school uniform (both sets)'); }
+    check(ro && ro.status === 'requested', 'H23 …and Reopen puts it back');
+    await closeS(); await sleep(300);
+    // an ongoing task's title opens its edit too
+    await goHome(S);
+    await S.evaluate(() => [...document.querySelectorAll('#view-home .og-row')].find(r => /Sort out the garden/.test(r.innerText)).click());
+    await until(S, () => { const t = document.getElementById('ogTitle'); return !!t && t.classList.contains('rq-title-edit'); });
+    check(await S.evaluate(() => document.getElementById('ogEdit').textContent === 'Edit task'), 'H23 the ongoing task says "Edit task"');
+    await S.click('#ogTitle'); await S.waitForSelector('#ogText');
+    await S.fill('#ogText', 'Sort out the garden before spring'); await S.click('#ogSave');
+    let gt = null;
+    for (let k = 0; k < 20 && !gt; k++){ await sleep(300); gt = (await all('ledger_home_ongoing')).find(o => o.title === 'Sort out the garden before spring'); }
+    check(!!gt, 'H23 tapping the ongoing task\'s title renames it');
+    await closeS(); await sleep(300);
+    check(S.errs.length === 0, 'H23 no page errors', S.errs.join(' | '));
+  }
+
   // H11 — the partner portal still does what it did
   await A.click('[data-pp-tab="today"]'); await sleep(300);
   check(await A.evaluate(() => /Nothing shared for today yet/.test(document.getElementById('partnerApp').innerText)), 'H11 Abi\'s shared day is untouched');

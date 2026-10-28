@@ -361,6 +361,9 @@ function createEngine(deps) {
       await tellAsker((await name(u.actorUid)) + ' planned your request', clip(r.text, 120));
     } else if (u.type === 'status' && u.metadata && u.metadata.status === 'done') {
       await tellAsker((await name(u.actorUid)) + ' completed your request', clip(r.text, 120));
+      // an admin ticked off someone else's: the person it was for hears it's done
+      if (r.assigneeUid && r.assigneeUid !== u.actorUid)
+        plan.push({ to: r.assigneeUid, title: (await name(u.actorUid)) + ' marked “' + what + '” done', body: 'No need to do it now' });
       // anyone who asked to hear when it's done (their own, private wish)
       for (const w of await watchers(rid, null)) if (w !== u.actorUid) plan.push({ to: w, title: (await name(u.actorUid)) + ' completed “' + what + '”', body: 'You asked to hear when it was done' });
       await follow((await name(u.actorUid)) + ' completed “' + what + '”', r.requesterUid === r.assigneeUid ? 'Own task' : 'Asked by ' + (await name(r.requesterUid)));

@@ -748,6 +748,17 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-28 — Admins tick off others' requests; tap a title to edit (Shaun)
+- **Ticking off:** you and Abi may mark done, or reopen, a request someone else is doing
+  (e.g. Abi → Magda). The person it was for is told.
+  - This **supersedes** "an admin does not change someone else's work" for done and
+    reopen only. Starting, planning and "Can't do" stay the assignee's.
+  - It never applies to a request on someone's day as a private Action.
+- **Editing:** a request's or ongoing task's title opens its edit when tapped. On the
+  request sheet, who sees it and Delete now come before the Updates.
+- **Rules:** `homeReqUpdate` is at Firestore's 1,000-expression limit (see
+  `docs/HOUSEHOLD_DESIGN.md`).
+
 ### 2026-10-28 — Focus on training, a focus timer, and Food Plan order (Shaun's answers)
 - **Food Plan:**
   - meals are dragged into order;
@@ -2608,6 +2619,18 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-28) — **Admins tick off others' Home requests; tap a title to edit; request
+  sheet order.** (Logged in Decisions.)
+  - **Tests:**
+    - rules: 681;
+    - functions: Home 63;
+    - Home e2e: 311 (new H23);
+    - Partner: 209;
+    - native shell: 74;
+    - execution: 81.
+  - **Renaming a request between Abi and Magda:** it already worked in the data rules
+    and end to end. The way in is now the title itself, which was the missing piece.
+  - **Deploy:** "Deploy Firebase", everything.
 - (2026-10-28) — **Food Plan order and delete; training in Focus; the focus timer.**
   (Logged in Decisions.)
   - **Tests:**

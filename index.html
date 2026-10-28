@@ -4837,6 +4837,17 @@
   .ib-why b { font-weight: 500; color: var(--gold); }
   .rq-act .ib-actions { margin: 0 0 var(--sp-2); }
   .rq-own { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: -4px 0 var(--sp-2); }
+  .rq-own:empty { display: none; }
+  /* an ongoing task's buttons, then its quiet Edit link: room between them */
+  .og-actions + .rq-own, #ogAct + .rq-own { margin-top: var(--sp-2); }
+  #ogAct .og-actions { margin-bottom: var(--sp-1); }
+  /* a title that can be edited opens the edit when tapped */
+  .rq-title-edit { cursor: pointer; }
+  .rq-title-edit:active { opacity: 0.7; }
+  /* Who sees it and Delete, before the Updates */
+  #hdShareWrap:not(:empty) { margin: var(--sp-3) 0 0; }
+  #hdDelWrap .rq-del-btn { margin-top: var(--sp-3); }
+  #hdDelWrap:not(:empty) { margin-bottom: var(--sp-4); }
   /* on-behalf: who asked and whose it is, stated once and fixed */
   .rq-ob-facts { margin: 0 0 var(--sp-4); padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
     display: grid; gap: 6px; font-size: 13px; }
@@ -15650,7 +15661,14 @@
   }
   function hrCanTick(r){
     var me = homeMe();
-    return r.assigneeUid === me && hrOpen(r) && !(r.linkedActionId && r.linkedByUid === me && home.surface === 'owner');
+    return (r.assigneeUid === me && hrOpen(r) && !(r.linkedActionId && r.linkedByUid === me && home.surface === 'owner'))
+      || hrAdminCanTick(r);
+  }
+  // an admin may tick off a request someone else is doing (2026-10-28) — never one that is
+  // on someone's day as a private Action, which only they complete
+  function hrAdminCanTick(r){
+    return homeIsAdmin() && !!r.assigneeUid && r.assigneeUid !== homeMe() && !r.linkedActionId
+      && ['requested', 'planned', 'in_progress', 'cant_do'].indexOf(r.status) > -1;
   }
   // Done from the row: it shows done at once, and is only written once Undo has passed
   function hrTickDone(r){
@@ -15662,7 +15680,8 @@
       else homeChanged();
     }, 5200);
     homeChanged();
-    showActionToast('Done — ' + (r.requesterUid === homeMe() ? 'ticked off' : homeNameOf(r.requesterUid) + ' will see it'), 'Undo', function(){
+    var forOther = r.assigneeUid && r.assigneeUid !== homeMe();
+    showActionToast(forOther ? 'Done for ' + homeNameOf(r.assigneeUid) + ' — they’ll see it' : 'Done — ' + (r.requesterUid === homeMe() ? 'ticked off' : homeNameOf(r.requesterUid) + ' will see it'), 'Undo', function(){
       clearTimeout(home.pendingDone[r.id]); delete home.pendingDone[r.id]; homeChanged();
     });
   }
@@ -16383,7 +16402,7 @@
             (o.waiting ? '' : '<button type="button" class="bk-btn" id="ogWaitBtn">' + UI_ICON.clock + 'Waiting on…</button>') +
             '<button type="button" class="bk-btn" id="ogFinish">' + CHECK_SVG + 'Mark finished</button>'
           : '<button type="button" class="bk-btn" id="ogReopen">Reopen</button>') + '</div>';
-        own.innerHTML = '<button type="button" class="btn-link" id="ogEdit">Edit</button>';
+        own.innerHTML = '<button type="button" class="btn-link" id="ogEdit">Edit task</button>';
         var on = function(id, fn){ var el = sh.querySelector('#' + id); if (el) el.addEventListener('click', fn); };
         on('ogAdd', function(){ openOngoingSteps(ogGet(oid)); });
         on('ogWaitBtn', function(){ openOngoingWaiting(ogGet(oid)); });
@@ -16395,6 +16414,12 @@
         on('ogReopen', function(){ ogWrite(ogGet(oid), { status: 'active', doneAt: null }).then(function(){ showPinToast('Reopened', false, CHECK_SVG); }).catch(hrFail('reopen it')); });
         on('ogEdit', function(){ openOngoingForm(ogGet(oid), null); });
       }
+      var ot = sh.querySelector('#ogTitle');
+      ot.classList.toggle('rq-title-edit', admin);
+      if (admin){ ot.setAttribute('role', 'button'); ot.tabIndex = 0; }
+      if (admin && !ot.dataset.wired){ ot.dataset.wired = '1';
+        ot.addEventListener('click', function(){ openOngoingForm(ogGet(oid), null); });
+        ot.addEventListener('keydown', function(e){ if (e.key === 'Enter') openOngoingForm(ogGet(oid), null); }); }
       return true;
     }
     paint();
@@ -16997,7 +17022,9 @@
   }
   function hrFail(what){ return function(e){ console.error('home ' + what + ' failed', e); showPinToast('Couldn’t ' + what + ' — check your connection and try again.', true); }; }
   function hrSetStatus(r, st, quiet){
-    return hrWrite(r, { status: st }, 'status', null, { status: st }).then(function(){
+    var meta = { status: st };
+    if (r.assigneeUid && r.assigneeUid !== homeMe()) meta.forUid = r.assigneeUid;     // an admin, for someone else
+    return hrWrite(r, { status: st }, 'status', null, meta).then(function(){
       if (!quiet) showPinToast(st === 'done' ? 'Done — ' + homeNameOf(r.requesterUid) + ' will see it' : (st === 'in_progress' ? 'Started' : 'Reopened'), false, CHECK_SVG);
     }).catch(hrFail('update it'));
   }
@@ -17110,6 +17137,8 @@
     if (e.type === 'edited') return who + ' edited it' + (m.fromText ? ' — it said “' + m.fromText + '”' : (m.timing === 'none' ? ' — no date now' : ''));
     if (e.type === 'deleted') return 'Deleted';
     if (e.type === 'status'){
+      // an admin ticking off someone else's: who did, and for whom
+      if (m.status === 'done' && m.forUid && m.forUid !== e.actorUid) return who + ' marked it done for ' + (m.forUid === homeMe() ? 'you' : homeNameOf(m.forUid)) + ' ✓';
       if (m.status === 'done') return 'Done ✓';
       if (m.status === 'in_progress') return 'Started';
       if (m.status === 'planned') return 'Reopened';
@@ -17302,11 +17331,13 @@
       '<div class="rq-act" id="hdAct"></div>' +
       '<div class="rq-own" id="hdOwn"></div>' +
       '<div class="hl-wrap" id="hdList"></div>' +
+      // who sees it and Delete come before the Updates, so the update field ends the sheet
+      // and never sits over them
+      '<div id="hdShareWrap"></div>' +
+      '<div id="hdDelWrap"></div>' +
       '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
       '<div class="rq-tl" id="hdTimeline"><p class="rq-empty">Loading…</p></div>' +
-      rqComposerHtml() +
-      '<div id="hdShareWrap"></div>' +
-      '<div id="hdDelWrap"></div>');
+      rqComposerHtml());
     var mark = sh.querySelector('#hdState');
     function cur(){ return homeReq(rid); }
     function open(){ return document.body.contains(mark) && !!mark.closest('.sheet-backdrop.open'); }
@@ -17340,6 +17371,10 @@
         html = btn('hdDone', 'Done', 'gold') + (own ? '' : btn('hdCant', 'Can’t do', 'ib-dismiss'));
       } else if (mine && (r.status === 'done' || r.status === 'cant_do')){
         html = btn('hdReopen', 'Reopen');
+      } else if (hrAdminCanTick(r)){
+        html = btn('hdAdminDone', CHECK_SVG + 'Mark done', 'ib-done');
+      } else if (homeIsAdmin() && r.assigneeUid && r.assigneeUid !== me && r.status === 'done' && !r.linkedActionId){
+        html = btn('hdAdminReopen', 'Reopen');
       }
       if (canPass) html += btn('hdPass', 'Pass on');
       act.innerHTML = html ? '<div class="ib-actions">' + html + '</div>' : '';
@@ -17361,6 +17396,10 @@
       on('hdReopen', function(){ var x = cur(); if (x.status === 'cant_do') hrWrite(x, { status: 'requested', cantDoReason: null }, 'status', null, { status: 'requested' }).catch(hrFail('reopen it')); else hrSetStatus(x, 'in_progress'); });
       on('hdCant', function(){ openHomeCantDo(cur()); });
       on('hdPass', function(){ openHomePass(cur()); });
+      on('hdAdminDone', function(){ var x = cur(); if (hrConfirmDone(x)) hrWrite(x, { status: 'done' }, 'status', null, { status: 'done', forUid: x.assigneeUid })
+        .then(function(){ showPinToast('Done for ' + homeNameOf(x.assigneeUid) + ' — they’ll see it', false, CHECK_SVG); }).catch(hrFail('mark it done')); });
+      on('hdAdminReopen', function(){ var x = cur(); hrWrite(x, { status: 'requested' }, 'status', null, { status: 'requested' })
+        .then(function(){ showPinToast('Reopened', false, CHECK_SVG); }).catch(hrFail('reopen it')); });
       var ownEl = sh.querySelector('#hdOwn');
       var canEdit = (asker && r.status === 'requested') || (homeIsAdmin() && (hrOpen(r) || r.status === 'cant_do'));
       ownEl.innerHTML = (canEdit ? '<button type="button" class="btn-link" id="hdEdit">' + (own ? 'Edit task' : 'Edit request') + '</button>' : '') +
@@ -17394,6 +17433,14 @@
         part.appendChild(pl);
       }
       on('hdEdit', function(){ openHomeEdit(cur()); });
+      // the title itself opens the edit, wherever editing is allowed
+      var ttl = sh.querySelector('#hdTitle');
+      ttl.classList.toggle('rq-title-edit', canEdit);
+      if (canEdit){ ttl.setAttribute('role', 'button'); ttl.tabIndex = 0; ttl.setAttribute('aria-label', 'Edit: ' + r.text); }
+      else { ttl.removeAttribute('role'); ttl.removeAttribute('tabindex'); ttl.removeAttribute('aria-label'); }
+      if (!ttl.dataset.wired){ ttl.dataset.wired = '1';
+        ttl.addEventListener('click', function(){ if (ttl.classList.contains('rq-title-edit')) openHomeEdit(cur()); });
+        ttl.addEventListener('keydown', function(e){ if (e.key === 'Enter' && ttl.classList.contains('rq-title-edit')) openHomeEdit(cur()); }); }
       on('hdWithdraw', function(){ if (confirm('Withdraw this request?')) hrWithdraw(cur()); });
       var shareWrap = sh.querySelector('#hdShareWrap');
       if (r.createdByUid === me || homeIsAdmin()){
