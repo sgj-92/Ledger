@@ -748,6 +748,19 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-28 — Home: admins edit any checklist; private "tell me when ticked / done" (Shaun)
+- **Admins edit any checklist:** you and Abi may tick, add and reorder any request's
+  checklist.
+  - This **supersedes** "an admin following Home sees the list but cannot tick, add or
+    reorder" (2026-10-22).
+  - It matches admins correcting any open request.
+- **Watching:**
+  - a bell on each checklist item, and "Tell me when it's done" on any request;
+  - each wish is private to the person who set it (`ledger_home_watches`), so they are
+    independent;
+  - the person doing it never gets the controls or the notification.
+- See `docs/HOUSEHOLD_DESIGN.md`.
+
 ### 2026-10-27 — Colours, and Today on cards (Shaun's answers)
 - **Colours:** Settings → Appearance has a **Colour** choice beside Light / Dark / System.
   - The choices are Ledger (gold, with Parchment in light), Ocean (with Sky in light) and
@@ -2379,7 +2392,11 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (try on the phone)
+Owner: Shaun (deploy, then try on the phone)
+**Newest (2026-10-28), built:** Home checklists. Admins can edit any checklist, and
+there are private "tell me when ticked / done" bells. It needs "Deploy Firebase",
+everything.
+
 Status: **Deployed 2026-10-27** (Deploy Firebase, everything, green).
 - **Claude in Ledger phase 1:** + → Ask Claude, for Actions and the Food Plan, with
   review and Undo (`docs/CLAUDE_ASSISTANT.md` §11).
@@ -2566,6 +2583,16 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-28) — **Home: admins edit any checklist; "tell me when ticked / done".**
+  (Logged in Decisions.)
+  - **Tests:**
+    - rules: 669;
+    - functions: Home 62, push 59;
+    - Home e2e: 299;
+    - Partner: 209;
+    - native shell: 67;
+    - execution: 81.
+  - **Deploy:** "Deploy Firebase", everything (rules, plus the new `onHomeItemWritten`).
 - (2026-10-27) — **Colours (Ocean/Sky, Plum/Coral) and Today on cards.** (Logged in
   Decisions.)
   - **Checked at 390px:** Today and Flow, before and after, in all six versions; every

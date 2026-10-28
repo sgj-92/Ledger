@@ -10,6 +10,7 @@
 //   ledger_home_requests/{id}/updates/{u} (created) → the people the request involves
 //   ledger_home_batches/{id} (created)            → each person a list was for, once
 //   ledger_home_ongoing/{id}/updates/{u} (created) → everyone on the ongoing task
+//   ledger_home_requests/{id}/items/{i} (ticked)  → whoever asked to hear about that item
 //
 // And three that are not pushes: ledger_meta/homeMigration, written by the owner, moves his
 // Partner Sharing requests into Home (migrate.js); and recurring responsibilities at Home
@@ -125,6 +126,19 @@ exports.onHomeUpdateCreated = onDocumentCreated(
       update: event.data.data() || {}, requestId: event.params.requestId, updateId: event.params.updateId
     }, common()));
     report('home request push', result);
+  }
+);
+
+exports.onHomeItemWritten = onDocumentWritten(
+  { document: 'ledger_home_requests/{requestId}/items/{itemId}', secrets: [VAPID_PRIVATE_KEY] },
+  async (event) => {
+    const before = event.data && event.data.before && event.data.before.exists ? event.data.before.data() : null;
+    const after = event.data && event.data.after && event.data.after.exists ? event.data.after.data() : null;
+    if (!after || after.done !== true || (before && before.done === true)) return;
+    const result = await engine().handleItemTicked(Object.assign({
+      before, after, requestId: event.params.requestId, itemId: event.params.itemId
+    }, common()));
+    report('home item push', result);
   }
 );
 

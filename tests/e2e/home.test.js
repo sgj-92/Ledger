@@ -437,7 +437,26 @@ async function oobLink(email){
   await goHome(S);
   await S.click('[data-hs-filter="others"]'); await sleep(300);
   await openRow(S, SH, 'Weekly groceries'); await S.waitForSelector('#hlList .hl-row');
-  check(await S.evaluate(() => !document.getElementById('hlAdd') && [...document.querySelectorAll('#hlList .commitment-status-dot')].every(b => b.disabled) && !document.querySelector('.hl-grip')), 'H14 Shaun (following, not in it) sees the list, but cannot tick, add or reorder');
+  // since 2026-10-28 an admin edits any checklist: Shaun can tick, add and reorder
+  check(await S.evaluate(() => !!document.getElementById('hlAdd') && [...document.querySelectorAll('#hlList .commitment-status-dot')].every(b => !b.disabled) && !!document.querySelector('.hl-grip')), 'H14 Shaun (admin, not in it) can tick, add and reorder');
+  // a bell on each item: Shaun asks to hear when "Butter" is ticked — his alone
+  const bellFor = (p, t) => p.evaluate(t => { const r = [...document.querySelectorAll('#hlList .hl-row')].find(x => x.querySelector('.hl-text').textContent === t); const b = r && r.querySelector('.hl-bell'); return b ? b.getAttribute('aria-pressed') : null; }, t);
+  check(await bellFor(S, 'Butter') === 'false', 'H14 each item has a quiet bell');
+  await S.evaluate(() => [...document.querySelectorAll('#hlList .hl-row')].find(x => x.querySelector('.hl-text').textContent === 'Butter').querySelector('.hl-bell').click());
+  check(await until(S, () => { const r = [...document.querySelectorAll('#hlList .hl-row')].find(x => x.querySelector('.hl-text').textContent === 'Butter'); return r && r.querySelector('.hl-bell').getAttribute('aria-pressed') === 'true'; }), 'H14 Shaun taps it: on');
+  const butter = (await items()).find(i => i.text === 'Butter');
+  let wdoc = null;
+  for (let k = 0; k < 20 && !wdoc; k++){ await sleep(250); wdoc = (await all('ledger_home_watches')).find(w => w.uid === owner && w.itemId === butter.id); }
+  check(wdoc && wdoc.id === owner + '_' + gro.id + '_' + butter.id && wdoc.requestId === gro.id && wdoc.homeId === owner, 'H14 stored as his own watch on that item', JSON.stringify(wdoc));
+  check(await until(M, () => { const r = [...document.querySelectorAll('#hlList .hl-row')].find(x => x.querySelector('.hl-text').textContent === 'Butter'); return r && r.querySelector('.hl-bell').getAttribute('aria-pressed') === 'false'; }), 'H14 Maria\'s bell for Butter stays off — Shaun\'s choice is his');
+  check(await A.evaluate(() => !document.querySelector('#hlList .hl-bell')), 'H14 Abi, who is doing the list, has no bells');
+  // and the whole request: "Tell me when it's done"
+  check(await until(S, () => !!document.getElementById('hdWatch') && /Tell me when it’s done/.test(document.getElementById('hdWatch').textContent)), 'H14 Shaun: "Tell me when it’s done"');
+  await S.click('#hdWatch');
+  check(await until(S, () => /You’ll hear when it’s done/.test(document.getElementById('hdWatch').textContent)), 'H14 …on: "You’ll hear when it’s done"');
+  for (let k = 0; k < 20 && !(await all('ledger_home_watches')).some(w => w.uid === owner && w.requestId === gro.id && !w.itemId); k++) await sleep(250);
+  check((await all('ledger_home_watches')).some(w => w.id === owner + '_' + gro.id + '_all'), 'H14 stored as his own watch on the request');
+  await S.screenshot({ path: `${shots}/${tag}-H14-shaun-bells.png` });
   await S.click('#sheetCloseBtn'); await S.click('[data-hs-filter="others"]');
   // all ticked never completes the request; Done with some left asks first
   for (const t of ['Chicken', 'Basmati rice', 'Butter']) { await tickItem(A, t); await sleep(250); }

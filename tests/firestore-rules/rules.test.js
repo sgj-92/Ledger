@@ -748,13 +748,35 @@ async function check(name, fn){
   await check('checklist: nothing else on an item', () => assertFails(nanny.doc(HR + '/G1/items/n5').set(item('nanny1', { price: 3 }))));
   await check('checklist: an item is removed by the people in it', () => assertSucceeds(nanny.doc(HR + '/G1/items/n1').delete()));
   await check('checklist: Shaun (admin, not in it) reads it — oversight', () => assertSucceeds(owner.collection(HR + '/G1/items').get()));
-  await check('checklist: …but cannot tick, add or remove', () => assertFails(owner.doc(HR + '/G1/items/i1').update({ done: true, doneByUid: 'owner1', doneAt: 'now', updatedByUid: 'owner1', updatedAt: 'now' })));
-  await check('checklist: …or add', () => assertFails(owner.doc(HR + '/G1/items/o1').set(item('owner1'))));
-  await check('checklist: …or remove', () => assertFails(owner.doc(HR + '/G1/items/i1').delete()));
+  // since 2026-10-28 an admin edits any checklist (as admins correct any open request)
+  await check('checklist: …and, as an admin, ticks one, as himself', () => assertSucceeds(owner.doc(HR + '/G1/items/i1').update({ done: true, doneByUid: 'owner1', doneAt: 'now', updatedByUid: 'owner1', updatedAt: 'now' })));
+  await check('checklist: …reorders', () => assertSucceeds(owner.doc(HR + '/G1/items/i2').update({ order: 0.25, updatedByUid: 'owner1', updatedAt: 'now' })));
+  await check('checklist: …adds', () => assertSucceeds(owner.doc(HR + '/G1/items/o1').set(item('owner1'))));
+  await check('checklist: …and removes', () => assertSucceeds(owner.doc(HR + '/G1/items/o1').delete()));
+  await check('checklist: the nanny (not an admin) edits only lists she is in', () => assertFails(nanny.collection(HR + '/hr2/items').doc('x2').set(item('nanny1'))));
   await check('checklist: the nanny cannot read a private one between Shaun and Abi', () => assertFails(nanny.collection(HR + '/hr2/items').get()));
   await check('checklist: someone not at Home reads nothing', () => assertFails(nanny2.collection(HR + '/G1/items').get()));
   await check('checklist: the asker gives an existing request one', () => assertSucceeds(partner.doc(HR + '/hr2').update({ hasChecklist: true, updatedAt: 'now' })));
-  await check('checklist: not someone outside it', () => assertFails(partner.doc(HR + '/hr1').update({ hasChecklist: true, updatedAt: 'now' })));
+  await check('checklist: an admin gives any request one', () => assertSucceeds(partner.doc(HR + '/hr1').update({ hasChecklist: true, updatedAt: 'now' })));
+  await check('checklist: not someone outside it who is not an admin', () => assertFails(nanny.doc(HR + '/hr2').update({ hasChecklist: true, updatedAt: 'now' })));
+  // "tell me when it's ticked / done": private to each person
+  const WT = 'ledger_home_watches';
+  const watch = (uid, rid, iid, o) => Object.assign({ uid, homeId: 'owner1', requestId: rid, itemId: iid, createdAt: 'now' }, o || {});
+  await check('watch: Shaun asks to hear when an item on Abi\'s list is ticked', () => assertSucceeds(owner.doc(WT + '/owner1_G1_i2').set(watch('owner1', 'G1', 'i2'))));
+  await check('watch: …and when the request itself is done', () => assertSucceeds(owner.doc(WT + '/owner1_G1_all').set(watch('owner1', 'G1', null))));
+  await check('watch: Abi watches the same item, separately', () => assertSucceeds(partner.doc(WT + '/partner1_G1_i2').set(watch('partner1', 'G1', 'i2'))));
+  await check('watch: never for someone else', () => assertFails(owner.doc(WT + '/partner1_G1_i3').set(watch('partner1', 'G1', 'i3'))));
+  await check('watch: its id says whose and what', () => assertFails(owner.doc(WT + '/whatever').set(watch('owner1', 'G1', 'i3'))));
+  await check('watch: only on a request you can see', () => assertFails(nanny.doc(WT + '/nanny1_hr2_all').set(watch('nanny1', 'hr2', null))));
+  await check('watch: never in another Home', () => assertFails(owner.doc(WT + '/owner1_G1_i4').set(watch('owner1', 'G1', 'i4', { homeId: 'owner2' }))));
+  await check('watch: nothing else on it', () => assertFails(owner.doc(WT + '/owner1_G1_i5').set(watch('owner1', 'G1', 'i5', { note: 'x' }))));
+  await check('watch: someone not at Home cannot', () => assertFails(nanny2.doc(WT + '/nanny2_G1_all').set(watch('nanny2', 'G1', null))));
+  await check('watch: Shaun reads his own', () => assertSucceeds(owner.collection(WT).where('uid', '==', 'owner1').get()));
+  await check('watch: Abi never sees Shaun\'s', () => assertFails(partner.doc(WT + '/owner1_G1_i2').get()));
+  await check('watch: …nor lists them', () => assertFails(partner.collection(WT).where('requestId', '==', 'G1').get()));
+  await check('watch: …nor removes them', () => assertFails(partner.doc(WT + '/owner1_G1_i2').delete()));
+  await check('watch: never changed, only removed', () => assertFails(owner.doc(WT + '/owner1_G1_i2').update({ itemId: 'i3' })));
+  await check('watch: Shaun stops watching', () => assertSucceeds(owner.doc(WT + '/owner1_G1_all').delete()));
 
   // recurring responsibilities: templates (written by people), occurrences (by the server)
   const RT = 'ledger_home_recurring';

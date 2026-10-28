@@ -194,9 +194,10 @@ Updated 2026-10-22 (navigation redesign): Home is a place, not a sheet.
 
   The request says `hasChecklist: true`.
 - **Who:** items are read by whoever can read the request, and changed by the people
-  it is between: who asked, who wrote it, whose it is now. An admin following Home
-  sees them but cannot tick, add or reorder. Who added or ticked an item is always the
-  signed-in user.
+  it is between: who asked, who wrote it, whose it is now. Since 2026-10-28 any admin
+  may change them too (tick, add, reorder), as admins already correct any open request;
+  before, an admin could only look. Who added or ticked an item is always the signed-in
+  user.
 - **Sync without overwrites:** one document per item means two people ticking or
   adding at once never overwrite each other. A reorder writes only the moved item's
   `order`, set between its new neighbours.
@@ -212,7 +213,30 @@ Updated 2026-10-22 (navigation redesign): Home is a place, not a sheet.
 - **Creating one:** Add → **Today’s plan, shopping or checklist** (or "With a checklist" on any new
   request): items one per line, created with the request in one write. An existing
   request gains one by adding its first item.
-- **Notifications:** none for ticks or edits.
+- **Notifications:** none for edits. Ticks notify only the people who asked to hear
+  about that item (below).
+
+### "Tell me when it's ticked / done" (2026-10-28)
+
+> "Can Abi and I mark certain tasks to be notified about when they're ticked? They should
+> be independent… Extend this to all Home tasks."
+
+- **What:**
+  - a bell on each open checklist item;
+  - "Tell me when it's done" on any open request, steps of ongoing tasks included.
+- **Who sees the controls:**
+  - everyone who can see the request, except the person doing it;
+  - the request's toggle is also hidden for whoever asked, who is already told.
+- **Private:**
+  - each wish is that person's own document,
+    `ledger_home_watches/{uid}_{requestId}_{itemId or "all"}`;
+  - only they can read or remove it, so Abi's never notify Shaun, and nobody else
+    sees them.
+- **The server:**
+  - `onHomeItemWritten` tells the watchers when an item goes from unticked to ticked;
+  - a request's "done" entry tells its watchers alongside the asker;
+  - never the person who did it;
+  - only people still at that Home who can still see the request.
 
 ### Recurring responsibilities (2026-10-22)
 

@@ -233,6 +233,33 @@ const fire = (rid, u) => engine.handleHomeUpdate({ update: u, requestId: rid, up
   check(sent.length === 0, 'ongoing: someone no longer at Home is ignored');
   reset(); await og({ type: 'comment', actorUid: 'maria', text: 'once' }, 'same'); await og({ type: 'comment', actorUid: 'maria', text: 'once' }, 'same');
   check(to('shaun').length === 2, 'ongoing: a retried trigger sends once', to('shaun').length);
+  // ---- "tell me when it's ticked / done" (handleItemTicked, and watchers on done) ----
+  await db.doc('ledger_notification_prefs/abi').set({ homeOversight: false });
+  await db.doc('ledger_home_requests/w1').set(R({ text: 'Main focus today', requesterUid: 'abi', assigneeUid: 'maria', createdByUid: 'abi', participants: ['abi', 'maria'] }));
+  const W = (uid, iid, o) => db.doc('ledger_home_watches/' + uid + '_w1_' + (iid || 'all')).set(Object.assign({ uid, homeId: 'shaun', requestId: 'w1', itemId: iid || null, createdAt: 'x' }, o || {}));
+  await W('shaun', 'k1'); await W('abi', 'k2'); await W('ex', 'k1'); await W('eve', 'k1', { homeId: 'elsewhere' });
+  const tick = (iid, by, text, at) => engine.handleItemTicked({ before: { done: false }, after: { text, done: true, doneByUid: by, doneAt: at || '2026-10-28T10:00:00Z' }, requestId: 'w1', itemId: iid, appUrl: APP, vapidPublicKey: KEY });
+  reset(); await tick('k1', 'maria', 'Clean kitchen');
+  check(who() === 'shaun' && to('shaun')[0].payload.title === 'Maria ticked “Clean kitchen”' && to('shaun')[0].payload.body === 'On “Main focus today”' && to('shaun')[0].payload.url === APP + '?home=w1',
+    'watch: Maria ticks Clean kitchen → only Shaun, who asked (not Abi, not someone removed, not another Home)', sent.map((x) => x.endpoint + ' ' + x.payload.title));
+  reset(); await tick('k2', 'maria', 'Clean air fryer');
+  check(who() === 'abi', 'watch: Abi\'s own item reaches only Abi', who());
+  reset(); await tick('k2', 'abi', 'Clean air fryer', '2026-10-28T11:00:00Z');
+  check(sent.length === 0, 'watch: ticking it yourself tells nobody');
+  reset(); await tick('k3', 'maria', 'Fold clothes');
+  check(sent.length === 0, 'watch: an item nobody watches is quiet');
+  reset(); await engine.handleItemTicked({ before: { done: true }, after: { text: 'Clean kitchen', done: true, doneByUid: 'maria', doneAt: 'y' }, requestId: 'w1', itemId: 'k1', appUrl: APP });
+  check(sent.length === 0, 'watch: an edit to a ticked item is not a tick');
+  reset(); await tick('k1', 'maria', 'Clean kitchen');
+  check(sent.length === 0, 'watch: a retried trigger sends once');
+  await db.doc('ledger_home_requests/w1').update({ visibility: 'private', participants: ['abi', 'maria'] });
+  await db.doc('ledger_home_members/maria2').set({ homeId: 'shaun', role: 'member', status: 'active', displayName: 'Maria2' });
+  // the request itself done: watchers too, alongside the asker
+  await W('shaun', null);
+  await db.doc('ledger_home_requests/w1').update({ status: 'done' });
+  reset(); await fire('w1', { type: 'status', actorUid: 'maria', metadata: { status: 'done' } });
+  check(who() === 'abi,shaun' && to('shaun')[0].payload.title === 'Maria completed “Main focus today”' && to('shaun')[0].payload.body === 'You asked to hear when it was done',
+    'watch: the request done → Abi (who asked) and Shaun (who asked to hear)', sent.map((x) => x.endpoint + ' ' + x.payload.title));
   console.log('\n' + passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

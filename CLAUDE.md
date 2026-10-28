@@ -204,7 +204,7 @@ These are observed facts about this repo, useful before making changes.
 - `functions/` is the only separate codebase: the push sender and Home's server
   jobs. `push.js` is the one notification engine (`sendPushToUser`); `index.js`
   wires the Firestore triggers (Current Focus, Partner request Updates, Pin now,
-  Home request updates and lists, ongoing-task updates, the Home migration) and the hourly
+  Home request updates and lists, ongoing-task updates, watched checklist ticks, the Home migration) and the hourly
   `onRecurringTick`. `recur.js` generates recurring Home responsibilities
   (`docs/HOME_RECURRENCE.md`); `migrate.js` moves Partner Sharing into Home.
   It has its own `package.json`. Tests are in `tests/functions/` (the engine,

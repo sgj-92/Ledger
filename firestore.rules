@@ -634,6 +634,28 @@ service cloud.firestore {
       }
     }
 
+    // "Tell me when it's ticked": one person's own wish to hear when a request is done
+    // (itemId null) or one of its checklist items is ticked. Private: each person reads and
+    // removes only their own, so Abi's choices never notify Shaun or show to anyone. Made
+    // only for a request they can see; id {uid}_{requestId}_{itemId or "all"}. The server
+    // checks they can still see it before telling them anything.
+    match /ledger_home_watches/{wid} {
+      allow read, delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn()
+                    && request.resource.data.keys().hasOnly(['uid', 'homeId', 'requestId', 'itemId', 'createdAt'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.requestId is string && request.resource.data.requestId.matches('^[A-Za-z0-9_]{1,60}$')
+                    && (request.resource.data.get('itemId', null) == null
+                        || (request.resource.data.itemId is string && request.resource.data.itemId.matches('^[A-Za-z0-9]{1,40}$')))
+                    && wid == request.auth.uid + '_' + request.resource.data.requestId + '_'
+                              + (request.resource.data.get('itemId', null) == null ? 'all' : request.resource.data.itemId)
+                    && request.resource.data.createdAt is string
+                    && exists(/databases/$(database)/documents/ledger_home_requests/$(request.resource.data.requestId))
+                    && get(/databases/$(database)/documents/ledger_home_requests/$(request.resource.data.requestId)).data.homeId == request.resource.data.homeId
+                    && canSee(get(/databases/$(database)/documents/ledger_home_requests/$(request.resource.data.requestId)).data);
+      allow update: if false;
+    }
+
     // A list sent in one go: a note to the server that these requests went out together, so
     // each person hears ONE notification for all they were sent. Written once by whoever
     // sent them; nobody reads it back. The server checks every id against the requests
@@ -650,9 +672,12 @@ service cloud.firestore {
                     && request.resource.data.count == request.resource.data.requestIds.size()
                     && request.resource.data.createdAt is string;
     }
+    // who may edit a checklist: the people in the request, and (2026-10-28) any admin, as
+    // admins already correct any open request
     function listEditor(p) {
       return inHome(p.homeId)
-          && (request.auth.uid == p.requesterUid || request.auth.uid == p.createdByUid || request.auth.uid == p.assigneeUid);
+          && (request.auth.uid == p.requesterUid || request.auth.uid == p.createdByUid || request.auth.uid == p.assigneeUid
+              || me().role == 'admin');
     }
     function itemShape(d) {
       return d.keys().hasOnly(['text', 'done', 'order', 'createdByUid', 'createdAt', 'doneByUid', 'doneAt', 'updatedByUid', 'updatedAt'])

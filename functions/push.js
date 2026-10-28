@@ -324,6 +324,7 @@ function createEngine(deps) {
     if (!actor) return { skipped: 'not at Home' };
     const name = async (uid) => clip(((await member(uid)) || {}).displayName || 'Someone', 40);
     const what = clip(r.text, 60);
+    const watchers = (requestId, itemId) => watchersOf(r, requestId, itemId, member);
     const plan = [];          // { to, title, body, optIn }
     const tellAsker = async (title, body) => {
       for (const to of new Set([r.requesterUid, r.createdByUid])) if (to && to !== u.actorUid) plan.push({ to, title, body });
@@ -359,6 +360,8 @@ function createEngine(deps) {
       await tellAsker((await name(u.actorUid)) + ' planned your request', clip(r.text, 120));
     } else if (u.type === 'status' && u.metadata && u.metadata.status === 'done') {
       await tellAsker((await name(u.actorUid)) + ' completed your request', clip(r.text, 120));
+      // anyone who asked to hear when it's done (their own, private wish)
+      for (const w of await watchers(rid, null)) if (w !== u.actorUid) plan.push({ to: w, title: (await name(u.actorUid)) + ' completed “' + what + '”', body: 'You asked to hear when it was done' });
       await follow((await name(u.actorUid)) + ' completed “' + what + '”', r.requesterUid === r.assigneeUid ? 'Own task' : 'Asked by ' + (await name(r.requesterUid)));
     } else if (u.type === 'cant_do') {
       await tellAsker((await name(u.actorUid)) + ' can’t do “' + what + '”', clip(r.cantDoReason || '', 140));
@@ -380,6 +383,60 @@ function createEngine(deps) {
       const payload = { title: p.title, body: p.body || '', url: appLink(ev.appUrl, { home: rid }),
         tag: 'ledger-home-' + rid, renotify: true, kind: 'home' };
       results.push(await sendPushToUser(p.to, payload, { urgency: 'normal', ttl: 24 * 3600, vapidPublicKey: ev.vapidPublicKey }));
+    }
+    const sum = { recipients: results.map((x) => x.recipientUid), sent: results.reduce((n, x) => n + x.sent, 0), failed: results.reduce((n, x) => n + x.failed, 0) };
+    await recordEvent(eventId, Object.assign({ status: 'done' }, sum));
+    return Object.assign(sum, { results });
+  }
+
+  // ---- Home: "tell me when it's ticked / done" (ledger_home_watches) ----
+  // Each watch is one person's own; the server sends only to people still at that Home who
+  // can still see the request (in it, sharing it with Home, or an admin).
+  async function watchersOf(r, requestId, itemId, member) {
+    const snap = await db.collection('ledger_home_watches').where('requestId', '==', requestId).where('itemId', '==', itemId).get();
+    const out = [];
+    for (const d of snap.docs) {
+      const w = d.data() || {};
+      if (w.homeId !== r.homeId || !w.uid || out.indexOf(w.uid) > -1) continue;
+      const m = await member(w.uid);
+      if (!m) continue;
+      if (m.role === 'admin' || (r.participants || []).indexOf(w.uid) > -1 || r.visibility === 'home') out.push(w.uid);
+    }
+    return out;
+  }
+  // a checklist item ticked: everyone watching that item, but whoever ticked it
+  async function handleItemTicked(ev) {
+    const before = ev.before || {}, after = ev.after || {};
+    const rid = ev.requestId, iid = ev.itemId;
+    if (!rid || !iid || after.done !== true || before.done === true) return { skipped: 'not a tick' };
+    const reqSnap = await db.collection('ledger_home_requests').doc(rid).get();
+    if (!reqSnap.exists) return { skipped: 'no request' };
+    const r = reqSnap.data() || {};
+    if (r.deletedAt) return { skipped: 'deleted' };
+    const memberCache = {};
+    async function member(uid) {
+      if (!uid || typeof uid !== 'string') return null;
+      if (!(uid in memberCache)) {
+        const d = await db.collection('ledger_home_members').doc(uid).get();
+        const m = d.exists ? (d.data() || {}) : null;
+        memberCache[uid] = m && m.homeId === r.homeId && m.status === 'active' ? m : null;
+      }
+      return memberCache[uid];
+    }
+    const actor = await member(after.doneByUid);
+    if (!actor) return { skipped: 'not at Home' };
+    const to = (await watchersOf(r, rid, iid, member)).filter((u) => u !== after.doneByUid);
+    if (!to.length) return { skipped: 'nobody watching' };
+    const eventId = 'item_' + rid + '_' + iid + '_' + String(after.doneAt || '').replace(/[^0-9A-Za-z]/g, '');
+    if (!(await claimEvent(eventId, { kind: 'home_item_ticked', requestId: rid }))) return { skipped: 'duplicate' };
+    const results = [];
+    for (const uid of to) {
+      if (!(await userRole(uid))) continue;
+      if (!(await wants(uid, 'partner', false))) continue;
+      const payload = { title: clip(actor.displayName || 'Someone', 40) + ' ticked “' + clip(after.text, 80) + '”',
+        body: 'On “' + clip(r.text, 80) + '”', url: appLink(ev.appUrl, { home: rid }),
+        tag: 'ledger-item-' + rid + '-' + iid, renotify: true, kind: 'home' };
+      results.push(await sendPushToUser(uid, payload, { urgency: 'normal', ttl: 24 * 3600, vapidPublicKey: ev.vapidPublicKey }));
     }
     const sum = { recipients: results.map((x) => x.recipientUid), sent: results.reduce((n, x) => n + x.sent, 0), failed: results.reduce((n, x) => n + x.failed, 0) };
     await recordEvent(eventId, Object.assign({ status: 'done' }, sum));
@@ -534,7 +591,7 @@ function createEngine(deps) {
     return result;
   }
 
-  return { sendPushToUser, handleFocusWrite, handleRequestUpdate, handleHomeUpdate, handleOngoingUpdate, handleHomeBatch, handlePinCreated, claimEvent };
+  return { sendPushToUser, handleFocusWrite, handleRequestUpdate, handleHomeUpdate, handleOngoingUpdate, handleItemTicked, handleHomeBatch, handlePinCreated, claimEvent };
 }
 
 module.exports = { createEngine, appLink, clip, fcmMessage, channelFor, FOCUS_TAG };
