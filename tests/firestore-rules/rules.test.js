@@ -457,7 +457,12 @@ async function check(name, fn){
   await check('owner: can focus on a sprint item', () => assertSucceeds(owner.doc(FOCUS).set(focus({ type: 'sprint_item', sourceId: 's1', childId: 'i1' }))));
   await check('owner: can clear current focus', () => assertSucceeds(owner.doc(FOCUS).set({ ownerUid: 'owner1', status: 'cleared', clearedAt: 'now', updatedAt: 'now', sourceDeviceId: 'dev-mac' })));
   await check('owner: focus cannot name another user', () => assertFails(owner.doc(FOCUS).set(focus({ ownerUid: 'partner1' }))));
-  await check('owner: focus type is action or sprint item', () => assertFails(owner.doc(FOCUS).set(focus({ type: 'note' }))));
+  await check('owner: can focus on today\'s training, or one of its exercises', () => assertSucceeds(owner.doc(FOCUS).set(focus({ type: 'training', sourceId: 'resistance', childId: 'Lateral Raises', title: 'Lateral Raises' }))));
+  await check('owner: …with a timer', () => assertSucceeds(owner.doc(FOCUS).set(focus({ type: 'training', sourceId: 'resistance', timerMin: 25, endsAt: '2026-10-28T10:25:00.000Z' }))));
+  await check('owner: a timer is whole minutes', () => assertFails(owner.doc(FOCUS).set(focus({ timerMin: 2.5, endsAt: '2026-10-28T10:25:00.000Z' }))));
+  await check('owner: …and at most 10 hours', () => assertFails(owner.doc(FOCUS).set(focus({ timerMin: 601, endsAt: '2026-10-28T20:25:00.000Z' }))));
+  await check('owner: its end is a time', () => assertFails(owner.doc(FOCUS).set(focus({ timerMin: 25, endsAt: 25 }))));
+  await check('owner: focus type is action, sprint item or training', () => assertFails(owner.doc(FOCUS).set(focus({ type: 'note' }))));
   await check('owner: focus takes no other fields', () => assertFails(owner.doc(FOCUS).set(focus({ recipientUid: 'partner1' }))));
   await check('owner: active focus needs what it points at', () => assertFails(owner.doc(FOCUS).set(focus({ sourceId: '' }))));
   await check('owner: other meta documents are unaffected', () => assertSucceeds(owner.doc('ledger_meta/presets').set({ anything: true })));

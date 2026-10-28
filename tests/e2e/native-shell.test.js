@@ -262,6 +262,25 @@ function fakeBridgeWhenAsked(){
   snap = await lastSnap(I);
   check(snap.focus && snap.focus.title === 'Call the plumber' && snap.focus.link === 'luxe.sgj.ledger://open?openAction=k2' && snap.focus.context === 'Action \u00b7 09:15' && typeof snap.focus.setAt === 'string',
     'Focus widget: its title, "Action", since when, and a link that opens it', JSON.stringify(snap.focus));
+  // the focus timer (build 5): set on the Mac, each phone schedules its own alert, the
+  // widget counts down, and stopping it cancels the alert
+  const endsAt = new Date(Date.now() + 25 * 60000).toISOString();
+  await put('ledger_meta/currentFocus', { ownerUid: owner, type: 'action', sourceId: 'k2', childId: null, title: 'Call the plumber', date: TODAY,
+    setAt: new Date().toISOString(), updatedAt: new Date().toISOString(), sourceDeviceId: 'mac', status: 'active', timerMin: 25, endsAt });
+  const sched = c => /^LocalNotifications\.schedule /.test(c) && /"id":7101/.test(c) && /Call the plumber/.test(c) && c.indexOf(endsAt.slice(0, 16)) > -1;
+  check(await until(I, () => window.__nat.calls.some(c => /^LocalNotifications\.schedule /.test(c) && /Call the plumber/.test(c)), null, 12000) && (await calls(I)).some(sched),
+    'Focus timer: the iPhone schedules one alert, for when the timer ends', (await calls(I)).filter(c => /LocalNotifications/.test(c)).join(' | '));
+  check(!(await calls(I)).some(c => /LocalNotifications\.createChannel/.test(c)), 'Focus timer: no Android channel on iOS');
+  check(await until(A, () => window.__nat.calls.some(c => /^LocalNotifications\.createChannel /.test(c) && /focus-timer/.test(c)) && window.__nat.calls.some(c => /^LocalNotifications\.schedule /.test(c) && /"channelId":"focus-timer"/.test(c)), null, 12000),
+    'Focus timer: Android makes its "Focus timer" channel and schedules on it');
+  check(await until(I, e => { const s = (window.__nat.snapshots || []).slice(-1)[0]; return s && s.focus && s.focus.endsAt === e; }, endsAt, 12000), 'Focus timer: the widget\'s snapshot carries when it ends');
+  await I.click('.tab-btn[data-view="log"]');
+  check(await until(I, () => { const b = document.getElementById('nowTimer'); return !!b && b.classList.contains('on') && /^2[45]:\d\d$/.test(b.textContent); }), 'Focus timer: the Focus card counts down ("24:59")');
+  const cancels = (await calls(I)).filter(c => /^LocalNotifications\.cancel/.test(c)).length;
+  await put('ledger_meta/currentFocus', { ownerUid: owner, type: 'action', sourceId: 'k2', childId: null, title: 'Call the plumber', date: TODAY,
+    setAt: new Date().toISOString(), updatedAt: new Date().toISOString(), sourceDeviceId: 'mac', status: 'active' });
+  check(await until(I, n => window.__nat.calls.filter(c => /^LocalNotifications\.cancel/.test(c)).length > n, cancels, 12000), 'Focus timer: stopped → the alert is cancelled');
+  check(await until(I, () => { const b = document.getElementById('nowTimer'); return !!b && !b.classList.contains('on'); }), 'Focus timer: …and the card shows a plain clock to set one');
   // its links open Ledger at the right place — and only Ledger's own links
   const openLink = (p, url) => p.evaluate(u => (window.__nat.listeners['App.appUrlOpen'] || []).forEach(cb => cb({ url: u })), url);
   await I.click('.tab-btn[data-view="plan"]');

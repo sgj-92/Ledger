@@ -666,6 +666,24 @@ at a preview with `LEDGER_APP_URL`.
 - The file was added to the target with `native/scripts/add-ios-flow-widget.rb`.
 - **Not verified:** Swift compiles, and how it looks. Both are checked in Xcode.
 
+**Build 5 (2026-10-28, Shaun's request): the focus timer.**
+- **The data:** the Current Focus may carry a timer, `timerMin` and `endsAt` on
+  `ledger_meta/currentFocus`. The snapshot's `focus` adds `endsAt`.
+- **Today's training** can be the focus: `type: 'training'`, `sourceId` the training type,
+  `childId` an exercise's name.
+- **The Focus widget:**
+  - counts down with `Text(timerInterval:countsDown:)` (iOS 16+; the widget targets 17);
+  - adds a timeline entry at the end, so it says "Time's up" without the app.
+- **The alert:** `@capacitor/local-notifications` 8.3.1 schedules one notification
+  (id 7101) on each of Shaun's phones for `endsAt`.
+  - It is replaced or cancelled whenever the timer changes, from any device.
+  - Android gets its own "Focus timer" channel.
+  - The plugin brings `SCHEDULE_EXACT_ALARM`. On Android 14 exact alarms may need
+    allowing in Settings; without that, the alert can be late.
+- **Older builds** ignore the plugin calls. The open app still says "Time's up".
+- **Not verified:** the Swift compiles, the alert on a real phone, and how it looks. All
+  are checked in Xcode and Android Studio.
+
 ## 12c. Phase 2: notifications and app links, as built (`feature/native-push`, 2026-10-26)
 
 Shaun approved Phase 2 on 2026-10-26, including the push rules change and the

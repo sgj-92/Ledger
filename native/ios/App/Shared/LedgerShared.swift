@@ -80,6 +80,7 @@ struct TodaySnapshot: Codable, Equatable {
         let context: String?     // "Action · 10:00", "Reset sprint · Inbox zero"
         let setAt: String?       // ISO 8601, when it was set
         let link: String         // opens it in Ledger
+        var endsAt: String? = nil // ISO 8601, when its timer ends (a timer is optional)
     }
     struct Exercise: Codable, Equatable {
         let title: String        // "Strength", "Padel", "Rest day"

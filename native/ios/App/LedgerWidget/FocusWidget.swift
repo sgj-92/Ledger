@@ -20,12 +20,16 @@ struct FocusProvider: TimelineProvider {
         completion(FocusEntry(date: Date(), snapshot: context.isPreview ? (LedgerShared.read() ?? .preview) : LedgerShared.read()))
     }
 
-    // now, and midnight (a day-old snapshot isn't shown as today's focus); the app reloads
-    // the widget whenever the focus changes
+    // now, the moment a focus timer ends (to say "Time's up"), and midnight (a day-old
+    // snapshot isn't shown as today's focus); the app reloads the widget whenever the focus
+    // or its timer changes
     func getTimeline(in context: Context, completion: @escaping (Timeline<FocusEntry>) -> Void) {
         let now = Date()
         let snap = LedgerShared.read()
         var entries = [FocusEntry(date: now, snapshot: snap)]
+        if let end = focusDate(snap?.focus?.endsAt), end > now {
+            entries.append(FocusEntry(date: end, snapshot: snap))
+        }
         if let midnight = Calendar.current.nextDate(after: now, matching: DateComponents(hour: 0, minute: 0), matchingPolicy: .nextTime) {
             entries.append(FocusEntry(date: midnight, snapshot: snap))
         }
@@ -48,12 +52,13 @@ struct FocusWidget: Widget {
 private let chooseFocusURL = URL(string: "\(LedgerShared.appScheme)://open?view=focus")!
 private let openTodayURL = URL(string: "\(LedgerShared.appScheme)://open?view=today")!
 
-private func focusSince(_ iso: String?) -> Date? {
+private func focusDate(_ iso: String?) -> Date? {
     guard let iso = iso else { return nil }
     let f = ISO8601DateFormatter()
     f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     return f.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
 }
+private func focusSince(_ iso: String?) -> Date? { focusDate(iso) }
 
 struct FocusWidgetView: View {
     @Environment(\.widgetFamily) private var family
@@ -69,7 +74,7 @@ struct FocusWidgetView: View {
         Group {
             if let s = snapshot {
                 if let f = s.focus {
-                    FocusSet(focus: f, large: family == .systemMedium)
+                    FocusSet(focus: f, large: family == .systemMedium, now: entry.date)
                 } else {
                     NoFocus(large: family == .systemMedium)
                 }
@@ -105,6 +110,7 @@ private struct FocusKicker: View {
 private struct FocusSet: View {
     let focus: TodaySnapshot.Focus
     let large: Bool
+    let now: Date
     var body: some View {
         HStack(spacing: 12) {
             // a gold rule down the side: the widget's one strong mark
@@ -133,7 +139,23 @@ private struct FocusSet: View {
 
     @ViewBuilder private var footer: some View {
         let since = focusSince(focus.setAt)
-        if large {
+        let end = focusDate(focus.endsAt)
+        if let end = end {
+            // a focus timer: the time left, counting down on the Home Screen, then "Time's up"
+            HStack(spacing: 5) {
+                Image(systemName: "timer")
+                    .font(.system(size: 11, weight: .semibold))
+                if end > now {
+                    Text(timerInterval: now...end, countsDown: true)
+                        .monospacedDigit()
+                } else {
+                    Text("Time's up")
+                }
+            }
+            .font(.system(size: large ? 13 : 12, weight: .semibold))
+            .foregroundStyle(end > now ? Palette.gold : Palette.text2)
+            .widgetAccentable()
+        } else if large {
             HStack(spacing: 6) {
                 if let ctx = focus.context {
                     Text(ctx).lineLimit(1)

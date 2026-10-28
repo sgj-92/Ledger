@@ -210,9 +210,10 @@ function createEngine(deps) {
     if (!(await wants(uid, 'currentFocus'))) return { skipped: 'turned off' };
     const eventId = 'focus_' + ev.eventId;
     if (!(await claimEvent(eventId, { kind: 'current_focus', recipientUid: uid }))) return { skipped: 'duplicate' };
+    // an Action or a sprint opens itself; today's training opens Today
     const url = after.type === 'sprint_item'
       ? appLink(ev.appUrl, { sprint: after.sourceId })
-      : appLink(ev.appUrl, { openAction: after.sourceId });
+      : (after.type === 'training' ? appLink(ev.appUrl, {}) : appLink(ev.appUrl, { openAction: after.sourceId }));
     const payload = {
       title: 'Ledger · Current focus',
       body: clip(after.title || 'Something new', 120),

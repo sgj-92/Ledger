@@ -748,6 +748,26 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-28 — Focus on training, a focus timer, and Food Plan order (Shaun's answers)
+- **Food Plan:**
+  - meals are dragged into order;
+  - a meal's sheet has **Delete meal**, with Undo;
+  - an eaten meal stays in the food diary.
+- **Training in Focus:**
+  - today's session ("Strength") can be the Current Focus, from the session's sheet
+    ("Set as current focus") or the focus picker;
+  - so can each of its exercises, from the picker;
+  - Done on an exercise moves to the next one, then the session;
+  - Done on the session opens its log, and logging ends the focus.
+- **Focus timer:** optional, chosen on the Focus card (10–90 min).
+  - It is stored on the focus, so every device counts down the same timer.
+  - A new focus starts with none; moving to the next exercise keeps it.
+  - The open app says "Time's up" (with +5 min).
+  - The iPhone and Android apps alert through a notification scheduled on the phone
+    (build 5).
+  - The iOS Focus widget counts down.
+  - A live Lock Screen countdown (Live Activity) was offered and not chosen.
+
 ### 2026-10-28 — Home: admins edit any checklist; private "tell me when ticked / done" (Shaun)
 - **Admins edit any checklist:** you and Abi may tick, add and reorder any request's
   checklist.
@@ -2392,10 +2412,15 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy, then try on the phone)
-**Newest (2026-10-28), built:** Home checklists. Admins can edit any checklist, and
-there are private "tell me when ticked / done" bells. It needs "Deploy Firebase",
-everything.
+Owner: Shaun (deploy, build 5, try)
+**Newest (2026-10-28), built:**
+- Food Plan: drag to reorder, and delete a meal.
+- Training in Focus: the session, and each exercise in turn.
+- The focus timer.
+
+**To do:**
+- "Deploy Firebase", everything (this also covers the Home checklist bells and admin editing, built the same day);
+- iPhone build 5 for the timer's alert and the widget countdown.
 
 Status: **Deployed 2026-10-27** (Deploy Firebase, everything, green).
 - **Claude in Ledger phase 1:** + → Ask Claude, for Actions and the Food Plan, with
@@ -2583,6 +2608,25 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-28) — **Food Plan order and delete; training in Focus; the focus timer.**
+  (Logged in Decisions.)
+  - **Tests:**
+    - rules: 674;
+    - functions: push 61, Home 62;
+    - native shell: 74 (the timer's alert on iPhone and Android, stand-in bridge);
+    - Home: 299;
+    - Partner: 209;
+    - execution: 81;
+    - Ask Claude: 33;
+    - settings: 9.
+  - **Checked in the browser:** Food Plan drag, delete and Undo; focus on Strength,
+    then each exercise; the timer counting down, and "Time's up".
+  - **Also fixed:** the planned-meal sheet wrote the meal's text into markup; it is now
+    set as a value.
+  - **To do (Shaun):**
+    - run "Deploy Firebase", everything;
+    - make app build 5 (iPhone; Android when Magda's is next built).
+  - **Not verified:** the Swift and the alert on a real phone.
 - (2026-10-28) — **Home: admins edit any checklist; "tell me when ticked / done".**
   (Logged in Decisions.)
   - **Tests:**

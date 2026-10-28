@@ -100,11 +100,14 @@ service cloud.firestore {
     // recipient, so it must name the owner who wrote it — never anyone else.
     function focusShape(d) {
       return d.keys().hasOnly(['ownerUid', 'type', 'sourceId', 'childId', 'title', 'date', 'setAt',
-                               'updatedAt', 'clearedAt', 'sourceDeviceId', 'status'])
+                               'updatedAt', 'clearedAt', 'sourceDeviceId', 'status', 'timerMin', 'endsAt'])
           && d.ownerUid == request.auth.uid
           && d.status in ['active', 'cleared']
+          // an optional timer (2026-10-28): its length in minutes and when it ends
+          && (d.get('timerMin', null) == null || (d.timerMin is int && d.timerMin > 0 && d.timerMin <= 600))
+          && (d.get('endsAt', null) == null || (d.endsAt is string && d.endsAt.size() <= 40))
           && (d.status == 'cleared'
-              || (d.type in ['action', 'sprint_item']
+              || (d.type in ['action', 'sprint_item', 'training']
                   && d.sourceId is string && d.sourceId.size() > 0 && d.sourceId.size() <= 100
                   && d.title is string && d.title.size() <= 300
                   && d.setAt is string));
