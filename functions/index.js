@@ -233,7 +233,7 @@ exports.assistant = onRequest(
     const body = req.body || {};
     try {
       const out = await createAssistant({ db, client, log: (...a) => logger.warn(...a) })
-        .handle({ uid, threadId: body.threadId, message: body.message, today: body.today });
+        .handle({ uid, threadId: body.threadId, message: body.message, today: body.today, image: body.image });
       res.status(out.status).json(out.body);
     } catch (e) {
       logger.error('assistant failed', e && e.message);

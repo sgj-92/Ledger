@@ -324,3 +324,32 @@ npx firebase-tools deploy --only firestore:rules,firestore:indexes,functions --p
   The ongoing task's link now says "Edit task".
 - **The request sheet:** who sees it and Delete come before the Updates, so the update
   field ends the sheet and never covers them.
+
+### Photos, a star, and moving items on (2026-10-29)
+
+Shaun's asks: photos on tasks and requests; a priority star on checklist items; and when
+Magda can't finish a day's list, the rest goes to tomorrow's. His choices: phone-quality
+photos with no new service; starred items jump to the top; a button for what's left, plus
+"move" on each item.
+
+- **Photos:**
+  - `ledger_home_requests/{rid}/photos/{photoId}`: `data` (a JPEG, base64, at most
+    1,000,000 characters), `mediaType`, `byUid`, `createdAt`;
+  - made phone-quality on the phone (about 1,600px), so each fits in one document;
+    up to 4 a request (the app's limit);
+  - seen by whoever sees the request; added by the people who edit its checklist, as
+    themselves; removed by whoever added it, or an admin; never changed;
+  - Shaun's Actions keep theirs in `ledger_commitments/{id}/photos`, his alone;
+  - watched only while the sheet showing them is open.
+- **The star:** `starred` on an item. Anyone who edits the list sets it; starred items sit
+  first, everywhere the list shows, and keep their star when moved.
+- **Moving items on:**
+  - "Move what's left (n) to tomorrow" on a list that has some left;
+  - "Move to tomorrow" or "Another day", shown while an item is being edited;
+  - the items go into that day's list between the same two people, or a new one like
+    this one if there's none, in one write;
+  - this list's Updates say what went where, which also tells the people in it.
+- **Status:** a request's status is a coloured badge at the top of its sheet.
+- **Rules:** `photoShape`, and `starred` in `itemShape`. `homeReqUpdate` is unchanged.
+- **Tests:** rules 701 (20 new); Home e2e H24.
+

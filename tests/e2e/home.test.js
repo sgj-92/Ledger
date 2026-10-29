@@ -1102,6 +1102,67 @@ async function oobLink(email){
     check(S.errs.length === 0, 'H23 no page errors', S.errs.join(' | '));
   }
 
+  // H24 (2026-10-29) — a star on an item; what's left of a day's list to tomorrow; photos
+  {
+    const closeAny = p => p.evaluate(() => { const x = document.querySelector('.sheet-backdrop.open .sheet-close, #ppBackdrop.open .sheet-close'); if (x) x.click(); });
+    const pad = n => String(n).padStart(2, '0'), dstr = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    const tmw = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return dstr(d); })();
+    const itemsOf = async id => ((await (await fetch(`${FS}/${HR}/${id}/items?pageSize=100`, { headers: ADMIN })).json()).documents || []).map(d => Object.assign({ id: d.name.split('/').pop() }, dec({ mapValue: { fields: d.fields } })));
+    const photosOf = async id => ((await (await fetch(`${FS}/${HR}/${id}/photos?pageSize=10`, { headers: ADMIN })).json()).documents || []).map(d => Object.assign({ id: d.name.split('/').pop() }, dec({ mapValue: { fields: d.fields } })));
+    await goHome(M);
+    await M.click('#hsAdd'); await M.waitForSelector('#hamList'); await M.click('#hamList'); await M.waitForSelector('#hnList');
+    check(await chip(M, '#hnFor', 'Abi'), 'H24 Maria writes Abi a day\'s list');
+    await M.fill('#hnText', 'Daily jobs'); await M.fill('#hnList', 'Hoover upstairs\nIron tops\nWater plants');
+    await M.click('#hnSave');
+    await until(M, () => !document.querySelector('.sheet-backdrop.open, #ppBackdrop.open'), null, 8000);
+    const dj = await reqByText('Daily jobs');
+    await goHome(A); await openRow(A, AH, 'Daily jobs'); await A.waitForSelector('#hlList .hl-row');
+    const texts = () => A.evaluate(() => [...document.querySelectorAll('#hlList .hl-text')].map(x => x.textContent).join('|'));
+    check(await A.evaluate(() => document.querySelectorAll('#hlList .hl-star').length === 3), 'H24 each open item has a star');
+    await A.evaluate(() => [...document.querySelectorAll('#hlList .hl-row')].find(r => r.querySelector('.hl-text').textContent === 'Iron tops').querySelector('.hl-star').click());
+    check(await until(A, () => [...document.querySelectorAll('#hlList .hl-text')].map(x => x.textContent).join('|') === 'Iron tops|Hoover upstairs|Water plants'
+        && document.querySelector('#hlList .hl-row .hl-star').classList.contains('on')), 'H24 starred: gold, and first on the list — ' + await texts());
+    check((await itemsOf(dj.id)).find(i => i.text === 'Iron tops').starred === true, 'H24 stored on the item');
+    // the status, as a badge
+    check(await A.evaluate(() => { const s = document.getElementById('hdState'); return s.classList.contains('st-requested') && getComputedStyle(s).borderRadius === '14px'; }), 'H24 the request\'s status is a badge');
+    // photos: Abi adds one; Maria sees it; only Abi (or an admin) removes it
+    check(await until(A, () => !!document.querySelector('#hdPhotos .ph-add')), 'H24 a request has "Add photo"');
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR42mP8z8DwnwEJMDKgCjAAAEQ9BgK6x8b8AAAAAElFTkSuQmCC', 'base64');
+    const [chooser] = await Promise.all([A.waitForEvent('filechooser'), A.click('#hdPhotos .ph-add')]);
+    await chooser.setFiles({ name: 'list.png', mimeType: 'image/png', buffer: png });
+    check(await until(A, () => document.querySelectorAll('#hdPhotos .ph-thumb').length === 1, null, 10000), 'H24 Abi\'s photo shows on the request');
+    let ph = [];
+    for (let k = 0; k < 20 && !ph.length; k++){ await sleep(300); ph = await photosOf(dj.id); }
+    check(ph.length === 1 && ph[0].byUid === abi && ph[0].mediaType === 'image/jpeg' && /^\/9j\//.test(ph[0].data), 'H24 stored as a JPEG on the request, added by Abi', ph.length);
+    await goHome(M); await openRow(M, MH, 'Daily jobs');
+    check(await until(M, () => document.querySelectorAll('#hdPhotos .ph-thumb').length === 1, null, 8000), 'H24 Maria (who asked) sees it');
+    await M.click('#hdPhotos .ph-thumb'); await M.waitForSelector('#photoView');
+    check(await M.evaluate(() => /Added by Abi/.test(document.querySelector('.pv-who').textContent) && !document.querySelector('.pv-del')), 'H24 full screen, "Added by Abi" — and Maria can\'t delete it');
+    await M.click('.pv-close'); await closeAny(M);
+    await A.click('#hdPhotos .ph-thumb'); await A.waitForSelector('.pv-del');
+    await A.click('.pv-del'); check(await A.evaluate(() => /Tap again/.test(document.querySelector('.pv-del').textContent)), 'H24 Delete asks twice');
+    await A.click('.pv-del');
+    check(await until(A, () => !document.querySelector('#hdPhotos .ph-thumb')), 'H24 Abi removes her own photo');
+    // Abi ticks one; what's left goes to tomorrow
+    await A.evaluate(() => [...document.querySelectorAll('#hlList .hl-row')].find(r => r.querySelector('.hl-text').textContent === 'Hoover upstairs').querySelector('.commitment-status-dot').click());
+    check(await until(A, () => /Move what’s left \(2\) to tomorrow/.test((document.getElementById('hlMoveLeft') || {}).textContent || '')), 'H24 "Move what’s left (2) to tomorrow"');
+    await A.click('#hlMoveLeft');
+    let next = null;
+    for (let k = 0; k < 30 && !next; k++){ await sleep(300); next = (await all(HR)).find(r => r.text === 'Daily jobs' && r.id !== dj.id); }
+    let moved = [];
+    for (let k = 0; k < 20 && moved.length < 2 && next; k++){ moved = await itemsOf(next.id); if (moved.length < 2) await sleep(300); }
+    check(next && next.requestedTiming === 'date' && next.requestedDate === tmw && next.requesterUid === maria && next.assigneeUid === abi && next.hasChecklist === true,
+      'H24 tomorrow\'s list: from Maria, for Abi, dated tomorrow', JSON.stringify(next && { t: next.requestedTiming, d: next.requestedDate }));
+    check(moved.map(i => i.text).sort().join('|') === 'Iron tops|Water plants' && moved.find(i => i.text === 'Iron tops').starred === true && moved.every(i => !i.done),
+      'H24 …with the two left (the star kept)', moved.map(i => i.text).join('|'));
+    const left = await itemsOf(dj.id);
+    check(left.length === 1 && left[0].text === 'Hoover upstairs' && left[0].done, 'H24 today\'s list keeps only what was done');
+    check(await until(A, () => /Moved to tomorrow: /.test(document.getElementById('hdTimeline').innerText)), 'H24 its Updates say what went where');
+    await A.screenshot({ path: `${shots}/${tag}-H24-moved.png` });
+    await closeAny(A); await sleep(300);
+    check(A.errs.length === 0 && M.errs.length === 0, 'H24 no page errors', A.errs.concat(M.errs).join(' | ').slice(0, 400));
+  }
+
   // H11 — the partner portal still does what it did
   await A.click('[data-pp-tab="today"]'); await sleep(300);
   check(await A.evaluate(() => /Nothing shared for today yet/.test(document.getElementById('partnerApp').innerText)), 'H11 Abi\'s shared day is untouched');

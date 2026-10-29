@@ -126,6 +126,23 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
   out = await createAssistant({ db, client }).handle({ uid: 'shaun', message: 'one more', today: '2026-10-28' });
   check(out.status === 429 && client.requests.length === 0, 'past the day\'s limit: refused before Claude is called');
 
+  // ---- a photo with the message (2026-10-29): Claude sees it; the thread never keeps it ----
+  const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  client = fakeClient([turn('end_turn', { type: 'text', text: 'Milk, eggs and bread.' })]);
+  out = await createAssistant({ db, client }).handle({ uid: 'shaun', message: '', today: TODAY, image: { mediaType: 'image/png', data: PNG } });
+  const sent = client.requests[0] && client.requests[0].messages[client.requests[0].messages.length - 1].content;
+  check(out.status === 200 && Array.isArray(sent) && sent[0].type === 'image' && sent[0].source.media_type === 'image/png' && sent[0].source.data === PNG
+      && sent[1].type === 'text' && /Add what this photo shows/.test(sent[1].text), 'a photo reaches Claude, before the words (a default ask when there are none)', sent && sent.map((b) => b.type));
+  const kept = JSON.parse((await get('ledger_assistant_threads/' + out.body.threadId)).messagesJson);
+  check(JSON.stringify(kept).indexOf(PNG) === -1 && /not kept/.test(JSON.stringify(kept[0])), 'the thread keeps a note that there was a photo, never the photo');
+  client = fakeClient([]);
+  out = await createAssistant({ db, client }).handle({ uid: 'shaun', message: 'this', today: TODAY, image: { mediaType: 'image/gif', data: PNG } });
+  const out2 = await createAssistant({ db, client }).handle({ uid: 'shaun', message: 'this', today: TODAY, image: { mediaType: 'image/jpeg', data: '<script>' } });
+  const out3 = await createAssistant({ db, client }).handle({ uid: 'shaun', message: 'this', today: TODAY, image: { mediaType: 'image/jpeg', data: 'A'.repeat(2500004) } });
+  check(out.status === 400 && out2.status === 400 && out3.status === 400 && client.requests.length === 0, 'not a JPEG, PNG or WebP, not base64, or too large: refused before Claude is called');
+  out = await createAssistant({ db, client }).handle({ uid: 'abi', message: '', today: TODAY, image: { mediaType: 'image/png', data: PNG } });
+  check(out.status === 403 && client.requests.length === 0, 'a partner\'s photo is refused like any other ask');
+
   // ---- which pages may call it (the emulator opens CORS to everyone, so it is checked here) ----
   const allowed = (o) => ALLOWED_ORIGINS.some((re) => re.test(o));
   check(allowed('https://ledger.sgj.luxe') && allowed('http://localhost:8950') && allowed('http://127.0.0.1:5000'), 'Ledger\'s own pages may call the endpoint');

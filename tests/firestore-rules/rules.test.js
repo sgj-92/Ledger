@@ -772,6 +772,29 @@ async function check(name, fn){
   await check('checklist: the asker gives an existing request one', () => assertSucceeds(partner.doc(HR + '/hr2').update({ hasChecklist: true, updatedAt: 'now' })));
   await check('checklist: an admin gives any request one', () => assertSucceeds(partner.doc(HR + '/hr1').update({ hasChecklist: true, updatedAt: 'now' })));
   await check('checklist: not someone outside it who is not an admin', () => assertFails(nanny.doc(HR + '/hr2').update({ hasChecklist: true, updatedAt: 'now' })));
+  // (2026-10-29) a star on an item: priority, set by anyone who edits the list
+  await check('checklist: Abi stars an item', () => assertSucceeds(partner.doc(HR + '/G1/items/i2').update({ starred: true, updatedByUid: 'partner1', updatedAt: 'now' })));
+  await check('checklist: a star is yes or no', () => assertFails(partner.doc(HR + '/G1/items/i2').update({ starred: 'very', updatedByUid: 'partner1', updatedAt: 'now' })));
+  await check('checklist: an item can start starred', () => assertSucceeds(nanny.doc(HR + '/G1/items/s1').set(item('nanny1', { starred: true }))));
+  // (2026-10-29) photos on a request: one JPEG each, seen with the request
+  const photo = (by, o) => Object.assign({ data: '/9j/4AAQSkZJRg' + 'A'.repeat(200), mediaType: 'image/jpeg', byUid: by, createdAt: 'now', w: 1200, h: 1600 }, o || {});
+  await check('photo: Abi (whose request it is) adds one, as herself', () => assertSucceeds(partner.doc(HR + '/G1/photos/p1').set(photo('partner1'))));
+  await check('photo: the nanny (who asked) adds one', () => assertSucceeds(nanny.doc(HR + '/G1/photos/p2').set(photo('nanny1'))));
+  await check('photo: never as someone else', () => assertFails(nanny.doc(HR + '/G1/photos/p3').set(photo('partner1'))));
+  await check('photo: only a JPEG', () => assertFails(nanny.doc(HR + '/G1/photos/p4').set(photo('nanny1', { mediaType: 'image/svg+xml' }))));
+  await check('photo: never over a megabyte', () => assertFails(nanny.doc(HR + '/G1/photos/p5').set(photo('nanny1', { data: 'A'.repeat(1000001) }))));
+  await check('photo: nothing else on it', () => assertFails(nanny.doc(HR + '/G1/photos/p6').set(photo('nanny1', { caption: 'x' }))));
+  await check('photo: the people in the request see them', () => assertSucceeds(nanny.collection(HR + '/G1/photos').get()));
+  await check('photo: Shaun (admin) sees them — oversight', () => assertSucceeds(owner.collection(HR + '/G1/photos').get()));
+  await check('photo: someone not at Home sees nothing', () => assertFails(nanny2.collection(HR + '/G1/photos').get()));
+  await check('photo: the nanny never sees a private request\'s photos', () => assertFails(nanny.collection(HR + '/hr2/photos').get()));
+  await check('photo: …nor adds one to it', () => assertFails(nanny.doc(HR + '/hr2/photos/p7').set(photo('nanny1'))));
+  await check('photo: never changed', () => assertFails(nanny.doc(HR + '/G1/photos/p2').update({ w: 10 })));
+  await check('photo: the nanny cannot remove Abi\'s', () => assertFails(nanny.doc(HR + '/G1/photos/p1').delete()));
+  await check('photo: whoever added one removes it', () => assertSucceeds(nanny.doc(HR + '/G1/photos/p2').delete()));
+  await check('photo: an admin removes any', () => assertSucceeds(owner.doc(HR + '/G1/photos/p1').delete()));
+  await check('photo: on Shaun\'s own Action, only Shaun', () => assertSucceeds(owner.doc('ledger_commitments/c1/photos/a1').set(photo('owner1'))));
+  await check('photo: Abi never reads a photo on Shaun\'s Action', () => assertFails(partner.doc('ledger_commitments/c1/photos/a1').get()));
   // "tell me when it's ticked / done": private to each person
   const WT = 'ledger_home_watches';
   const watch = (uid, rid, iid, o) => Object.assign({ uid, homeId: 'owner1', requestId: rid, itemId: iid, createdAt: 'now' }, o || {});

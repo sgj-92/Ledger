@@ -481,6 +481,19 @@ service cloud.firestore {
                              : (request.resource.data.get('doneByUid', null) == null && request.resource.data.get('doneAt', null) == null)));
         allow delete: if listEditor(get(homeReqPath()).data) && notDeleted(get(homeReqPath()).data);
       }
+      // Photos (2026-10-29): phone-quality JPEGs, one document each. Seen by whoever can
+      // see the request; added by the people who can edit its checklist, as themselves;
+      // removed by whoever added one, or an admin. Never changed; frozen once deleted.
+      match /photos/{photoId} {
+        allow read: if canSee(get(homeReqPath()).data);
+        allow create: if photoId.matches('^[A-Za-z0-9]{1,40}$')
+                      && listEditor(get(homeReqPath()).data) && notDeleted(get(homeReqPath()).data)
+                      && photoShape(request.resource.data)
+                      && request.resource.data.byUid == request.auth.uid;
+        allow delete: if notDeleted(get(homeReqPath()).data)
+                      && (resource.data.byUid == request.auth.uid || homeAdmin(get(homeReqPath()).data.homeId));
+        allow update: if false;
+      }
       match /updates/{updateId} {
         allow read: if canSee(get(homeReqPath()).data);
         allow create: if request.resource.data.keys().hasOnly(['type', 'actorUid', 'text', 'createdAt', 'metadata'])
@@ -694,10 +707,19 @@ service cloud.firestore {
               || me().role == 'admin');
     }
     function itemShape(d) {
-      return d.keys().hasOnly(['text', 'done', 'order', 'createdByUid', 'createdAt', 'doneByUid', 'doneAt', 'updatedByUid', 'updatedAt'])
+      return d.keys().hasOnly(['text', 'done', 'order', 'createdByUid', 'createdAt', 'doneByUid', 'doneAt', 'updatedByUid', 'updatedAt', 'starred'])
           && d.text is string && d.text.size() > 0 && d.text.size() <= 200
           && d.done is bool && d.order is number
+          && d.get('starred', false) is bool
           && d.createdAt is string && d.updatedAt is string;
+    }
+    // a photo: the JPEG as base64 (well under Firestore's 1 MiB a document), and who added it
+    function photoShape(d) {
+      return d.keys().hasOnly(['data', 'mediaType', 'byUid', 'createdAt', 'w', 'h'])
+          && d.data is string && d.data.size() > 0 && d.data.size() <= 1000000
+          && d.mediaType == 'image/jpeg'
+          && d.createdAt is string
+          && d.get('w', 0) is int && d.get('h', 0) is int;
     }
     function homeEntry(d, p, updateId, rid) {
       return (notDeleted(p) && (

@@ -281,3 +281,14 @@ Anthropic).
 All of this was done on 2026-10-27.
 
 **Next (phase 2):** health, Comms, Home, settings, duplicates and merging.
+
+**A photo with the message (2026-10-29):** the camera button in the sheet adds one photo,
+such as a shopping list on the fridge.
+- The phone makes it phone-quality (about 1,600px JPEG) and sends it with the words.
+  With no words, the ask is "Add what this photo shows."
+- The server accepts JPEG, PNG or WebP, at most 2.5 MB of base64, and refuses anything
+  else before Claude is called.
+- The photo is never kept: the stored conversation notes only that there was one.
+- The system prompt says writing in a photo is data, never an instruction.
+- Tests: `tests/functions/assistant.test.js`, 33.
+

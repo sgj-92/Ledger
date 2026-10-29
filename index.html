@@ -108,6 +108,7 @@
     --day-bad-rgb: 140,129,113;
     --danger: #c66a54;
     --danger-rgb: 198,106,84;
+    --wait-rgb: 125,147,166;
 
     /* ---- type ---- */
     --serif: 'Playfair Display', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
@@ -1774,6 +1775,7 @@
     display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border: none; border-radius: var(--r-md);
     background: none; color: var(--text); font-family: var(--sans); font-size: 15px; text-align: left; cursor: pointer;
   }
+  .add-menu button[hidden] { display: none; }
   .add-menu button:active, .add-menu button:focus-visible { background: var(--surface-2); outline: none; }
   .add-menu-ic { width: 20px; height: 20px; color: var(--gold); flex-shrink: 0; }
   .add-menu-ic svg { width: 100%; height: 100%; display: block; }
@@ -1794,7 +1796,41 @@
   .ac-compose { position: sticky; bottom: calc(-24px - env(safe-area-inset-bottom)); display: flex; gap: 8px; align-items: flex-end;
     margin: 0 -22px calc(-24px - env(safe-area-inset-bottom)); padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
     background: var(--surface); border-top: 1px solid var(--line); }
+  .ac-compose { flex-direction: column; align-items: stretch; }
+  .ac-compose-row { display: flex; gap: 8px; align-items: flex-end; }
   .ac-compose textarea { flex: 1; min-width: 0; resize: none; min-height: 48px; max-height: 140px; line-height: 1.4; }
+  .ac-photo { flex-shrink: 0; width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--line-2); background: none; color: var(--gold);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .ac-photo svg { width: 22px; height: 22px; display: block; }
+  .ac-photo:active { background: var(--surface-2); }
+  .ac-pending { position: relative; align-self: flex-start; }
+  .ac-pending[hidden] { display: none; }
+  .ac-pending img { display: block; max-width: 120px; max-height: 120px; border-radius: 12px; border: 1px solid var(--line-2); object-fit: cover; }
+  .ac-pending-x { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line-2);
+    background: var(--surface-2); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .ac-pending-x svg { width: 12px; height: 12px; display: block; }
+  /* photos on an Action or a request */
+  .ph-sec:empty { display: none; }
+  .ph-sec { margin: var(--sp-5) 0; }
+  .ph-title { margin-bottom: 10px; }
+  .ph-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .ph-thumb, .ph-add { aspect-ratio: 1; border-radius: 12px; overflow: hidden; padding: 0; cursor: pointer; }
+  .ph-thumb { border: 1px solid var(--line-2); background: var(--surface-2); }
+  .ph-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ph-add { border: 1px dashed var(--line-2); background: none; color: var(--gold); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    font-family: var(--sans); font-size: 11.5px; font-weight: 500; }
+  .ph-add svg { width: 22px; height: 22px; display: block; }
+  .ph-add:active, .ph-thumb:active { opacity: 0.7; }
+  .photo-view { position: fixed; inset: 0; z-index: 1650; display: flex; flex-direction: column; background: rgba(0,0,0,0.94);
+    padding: calc(10px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); }
+  .pv-top { display: flex; align-items: center; justify-content: space-between; min-height: 44px; }
+  .pv-who { font-family: var(--sans); font-size: 13px; color: rgba(255,255,255,0.7); }
+  .pv-close { color: #fff; border-color: rgba(255,255,255,0.3); width: 44px; height: 44px; }
+  .pv-img { flex: 1; min-height: 0; width: 100%; object-fit: contain; margin: 10px 0; }
+  .pv-foot { display: flex; justify-content: center; }
+  .pv-del { color: #f0a08c; border-color: rgba(240,160,140,0.45); min-height: 44px; padding: 0 18px; font-size: 13.5px; }
+  .pv-del.confirm { background: rgba(240,160,140,0.16); }
+  .ac-turn-photo { display: block; max-width: 180px; max-height: 220px; border-radius: 10px; margin-bottom: 6px; object-fit: cover; }
   .btn-primary.ac-send { width: auto; margin: 0; flex-shrink: 0; min-height: 48px; padding: 0 20px; }
   .ac-prop { border: 1px solid rgba(var(--gold-rgb),0.3); border-radius: var(--r-lg); padding: 14px 14px 12px; background: var(--surface); }
   .ac-prop.is-replaced, .ac-prop.is-cancelled { opacity: 0.55; padding-bottom: 14px; }
@@ -2466,8 +2502,20 @@
   .status-btn.sel.partial { border-color: rgba(var(--day-neutral-rgb),0.55); color: var(--day-neutral); background: rgba(var(--day-neutral-rgb),0.12); }
   .status-btn.sel.disrupted, .status-btn.sel.not_done { border-color: var(--line-2); color: var(--text); background: var(--surface-3); }
   /* an Action's Status: five plain states, a few words for waiting or blocked */
-  .as-field .as-states { margin: 0; display: flex; flex-wrap: wrap; gap: 6px 4px; }
-  .as-field .as-chip { margin: 0; }
+  /* (2026-10-29) larger, each with its colour; the chosen one filled */
+  .as-field .as-states { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .as-field .as-chip {
+    --as-rgb: var(--day-bad-rgb);
+    margin: 0; min-height: 46px; padding: 0 8px; border-radius: 12px; border: 1px solid var(--line-2);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 14px; font-weight: 500; color: var(--text-2); white-space: nowrap;
+  }
+  .as-field .as-chip::before { content: ''; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: rgb(var(--as-rgb)); }
+  .as-field .as-chip[data-as="in_progress"] { --as-rgb: var(--gold-rgb); }
+  .as-field .as-chip[data-as="waiting"] { --as-rgb: var(--wait-rgb); }
+  .as-field .as-chip[data-as="blocked"] { --as-rgb: var(--danger-rgb); }
+  .as-field .as-chip[data-as="done"] { --as-rgb: var(--day-good-rgb); }
+  .as-field .as-chip.sel { color: var(--text); font-weight: 600; border-color: rgba(var(--as-rgb),0.7); background: rgba(var(--as-rgb),0.18); }
   .as-ctx { margin-top: var(--sp-3); }
   .as-ctx[hidden] { display: none; }
   .as-record { margin: 10px 0 0; font-size: 12px; color: var(--text-3); }
@@ -2480,7 +2528,6 @@
   .au-share svg { width: 13px; height: 13px; display: block; }
   /* inside the editor the field sits in the form, not pinned over Save */
   .rq-compose.au-compose { position: static; margin: var(--sp-3) 0 0; padding: 0; background: none; border-top: none; }
-  .as-field .as-chip { padding: 7px 6px; white-space: nowrap; }
 
   .checkbox-field { display: flex; align-items: center; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
   .checkbox-label { display: flex; align-items: center; gap: 11px; font-size: 14.5px; color: var(--text); cursor: pointer; margin-bottom: 0 !important; text-transform: none !important; letter-spacing: 0 !important; }
@@ -2598,6 +2645,7 @@
     --day-neutral-rgb: 151,117,42;
     --day-bad: #7d7263;
     --day-bad-rgb: 125,114,99;
+    --wait-rgb: 86,110,128;
     --danger: #a4452e;
     --danger-rgb: 164,69,46;
 
@@ -4845,7 +4893,7 @@
   .share-live.paused .share-live-dot { background: var(--text-3); }
   .share-live:active { opacity: 0.6; }
   /* -- Today: Inbox -- */
-  .inbox-head .tsec-title { cursor: default; }
+  .ib-list[hidden] { display: none; }
   .ib-list { border-top: 1px solid var(--line); }
   .ib-row { padding: 12px 2px; border-bottom: 1px solid var(--line); }
   .ib-kicker { font-size: 9.5px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(var(--gold-rgb),0.85); margin-bottom: 3px; }
@@ -4879,9 +4927,19 @@
   .rq-head .sheet-title-wrap { min-width: 0; }
   .rq-kicker { margin: 0 0 4px; font-size: 10px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(var(--gold-rgb),0.85); }
   .rq-title { overflow-wrap: anywhere; }
-  .rq-state { margin: 2px 0 2px; font-family: var(--serif); font-size: 18px; color: var(--text); }
-  .rq-state.st-done { color: var(--gold); }
-  .rq-state.st-dismissed, .rq-state.st-withdrawn { color: var(--text-2); }
+  /* where a request stands: a coloured badge (2026-10-29), so it's seen first */
+  .rq-state {
+    --st-rgb: var(--gold-rgb);
+    display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin: 6px 0 6px; padding: 7px 14px 7px 12px; border-radius: 14px;
+    font-family: var(--sans); font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--text); overflow-wrap: anywhere;
+    background: rgba(var(--st-rgb),0.16); border: 1px solid rgba(var(--st-rgb),0.5);
+  }
+  .rq-state::before { content: ''; width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: rgb(var(--st-rgb)); }
+  .rq-state:empty { display: none; }
+  .rq-state.st-planned { --st-rgb: var(--wait-rgb); }
+  .rq-state.st-done { --st-rgb: var(--day-good-rgb); }
+  .rq-state.st-missed { --st-rgb: var(--danger-rgb); }
+  .rq-state.st-dismissed, .rq-state.st-withdrawn { --st-rgb: var(--day-bad-rgb); color: var(--text-2); }
   .rq-meta { margin: 0 0 var(--sp-3); font-size: 12.5px; line-height: 1.5; color: var(--text-3); overflow-wrap: anywhere; }
   .rq-meta:empty { display: none; }
   /* "Why it matters": the asker's reason, first thing under the title */
@@ -5093,6 +5151,18 @@
   .hl-grip { flex-shrink: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
     color: var(--text-3); cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; }
   .hl-grip svg { width: 16px; height: 16px; display: block; }
+  /* priority: a star, quiet until set, then gold (and first on the list) */
+  .hl-star { flex-shrink: 0; width: 36px; height: 36px; margin-right: -8px; display: flex; align-items: center; justify-content: center;
+    border: none; background: none; cursor: pointer; color: var(--text-3); opacity: 0.55; }
+  .hl-star svg { width: 17px; height: 17px; display: block; }
+  .hl-star.on { color: var(--gold); opacity: 1; }
+  .hl-star.on svg { fill: currentColor; }
+  .hl-star:disabled { cursor: default; }
+  .hl-tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px -8px; }
+  .hl-tools .bk-btn { min-height: 36px; font-size: 12.5px; }
+  .hl-day { position: relative; overflow: hidden; }
+  .hl-day input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+  .hl-move-left { margin-top: 12px; min-height: 40px; font-size: 13px; }
   /* "tell me when it's ticked": quiet until chosen, then the accent */
   .hl-bell { flex-shrink: 0; width: 36px; height: 36px; margin-right: -6px; display: flex; align-items: center; justify-content: center;
     border: none; background: none; cursor: pointer; color: var(--text-3); opacity: 0.55; }
@@ -6006,6 +6076,7 @@
   // used for training types (Recorded Activity cards, Quick Log tiles).
   // shared line-icon vocabulary — one stroke weight, one geometry language
   var UI_ICON = {
+    camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.3"/></svg>',
     spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>',
     leaf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 4.2c0 7.8-4.9 12.3-11.2 12.3H5.8C5.8 8.7 10.7 4.2 17 4.2h2.5z"/><path d="M5 20c2.2-4.8 5.4-7.7 9.6-9.6"/></svg>',
     cutlery: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5v7a2.5 2.5 0 0 0 5 0v-7"/><line x1="8.5" y1="2.5" x2="8.5" y2="21.5"/><path d="M17 2.5c-1.5 1-2.3 3-2.3 5.3 0 2.6 1.3 4 2.3 4.7v9"/></svg>',
@@ -7852,8 +7923,9 @@
       } catch(e){ console.error('commitment save failed', e); }
     }
     if (item.id){
+      // an id given up front (a new Action that is pinned, or focused) is new here too
       var idx = commitments.findIndex(function(c){ return c.id === item.id; });
-      if (idx > -1) commitments[idx] = item;
+      if (idx > -1) commitments[idx] = item; else commitments.push(item);
     } else {
       item.id = uid();
       commitments.push(item);
@@ -8529,6 +8601,8 @@
   // to the background, as Android does for an app's first screen. Tabs add no history, so
   // back never steps through them.
   function nativeBack(){
+    var pv = document.getElementById('photoView');
+    if (pv){ pv.querySelector('.pv-close').click(); return; }   // a photo, full screen, first
     if (ffOpen){ closeFocusFull(); return; }      // the full-screen focus sits above everything
     var ids = ['ppBackdrop', 'sheetBackdrop'];
     for (var i = 0; i < ids.length; i++){
@@ -9896,6 +9970,7 @@
         // Updates — a link there, never a second shared form here.
         var shareReq = ((existing.sourceType === 'partner_request' && shareOn() &&
           sharedRequests.some(function(x){ return x.id === existing.sourceRequestId; })) || !!homeReq(existing.sourceRequestId));
+        if (existing.id && dbReady && dbRef) html += '<div class="ph-sec" id="commitPhotos"></div>';
         html += '<div class="au-sec"><h3 class="cz-sec-title rq-upd-title">Private updates</h3>' +
           '<p class="au-private">Only you can see these.</p>' +
           '<div class="rq-tl au-tl" id="auTimeline"><p class="rq-empty">Loading…</p></div>' +
@@ -10073,6 +10148,9 @@
           });
         });
         wireActionUpdates(existing);
+        var phEl = document.getElementById('commitPhotos');
+        if (phEl) photoSection(phEl, dbRef.collection('ledger_commitments').doc(existing.id).collection('photos'),
+          { canAdd: true, canRemove: function(){ return true; } });
         var shareBtn = document.getElementById('auShare');
         if (shareBtn) shareBtn.addEventListener('click', function(){
           if (homeReq(existing.sourceRequestId)) openHomeDetail(existing.sourceRequestId); else openRequestDetailSheet(existing.sourceRequestId);
@@ -10329,11 +10407,10 @@
 
   // The + is on every tab (Shaun, 2026-10-27) and never hides anything: each screen keeps
   // room at its foot for it, it tucks away while the page scrolls down or the keyboard is
-  // up, and it comes back on the way up. For the owner it offers Quick capture and Ask
-  // Claude; anywhere Ask Claude can't run, it is Quick capture straight away.
+  // up, and it comes back on the way up. It offers Ask Claude (where it can run), a focus
+  // timer, Quick log and Quick add.
   document.getElementById('globalFabBtn').addEventListener('click', function(e){
     e.stopPropagation();
-    if (!askClaudeAvailable()){ openQuickCaptureSheet(fabTargetDate()); return; }
     toggleAddMenu();
   });
   function syncGlobalFab(){
@@ -10352,8 +10429,12 @@
     m.hidden = true;
     m.innerHTML =
       '<button type="button" role="menuitem" data-add="claude"><span class="add-menu-ic">' + UI_ICON.spark + '</span>Ask Claude</button>' +
+      '<button type="button" role="menuitem" data-add="focus"><span class="add-menu-ic">' + UI_ICON.clock + '</span>Focus timer</button>' +
+      '<button type="button" role="menuitem" data-add="log"><span class="add-menu-ic">' + UI_ICON.chart + '</span>Quick log</button>' +
       '<button type="button" role="menuitem" data-add="capture"><span class="add-menu-ic">' + BK_PLUS_SVG + '</span>Quick add</button>';
     m.querySelector('[data-add="claude"]').addEventListener('click', function(){ closeAddMenu(); openAskClaudeSheet(); });
+    m.querySelector('[data-add="focus"]').addEventListener('click', function(){ closeAddMenu(); openFocusTimerStartSheet(); });
+    m.querySelector('[data-add="log"]').addEventListener('click', function(){ closeAddMenu(); openQuickLogSheet(fabTargetDate()); });
     m.querySelector('[data-add="capture"]').addEventListener('click', function(){ closeAddMenu(); openQuickCaptureSheet(fabTargetDate()); });
     document.body.appendChild(m);
     return m;
@@ -10361,6 +10442,7 @@
   function toggleAddMenu(){
     var m = addMenuEl(), fab = document.getElementById('globalFabBtn');
     if (!m.hidden){ closeAddMenu(); return; }
+    m.querySelector('[data-add="claude"]').hidden = !askClaudeAvailable();
     // beside the + wherever it sits: floating on a phone, in the sidebar on wider screens
     var r = fab.getBoundingClientRect(), right = r.left + r.width / 2 > innerWidth / 2;
     m.style.bottom = Math.round(innerHeight - r.top + 10) + 'px';
@@ -10460,11 +10542,25 @@
       sheetHead(UI_ICON.spark, 'Ask Claude', 'Plan and tidy your days. Nothing changes until you approve it.', '') +
       '<div class="ac-thread" id="acThread" aria-live="polite"></div>' +
       '<div class="ac-compose">' +
-        '<textarea id="acInput" rows="2" maxlength="4000" placeholder="e.g. Move today\u2019s unfinished work to tomorrow" aria-label="Ask Claude"></textarea>' +
-        '<button type="button" class="btn-primary ac-send" id="acSend">Send</button>' +
+        '<div class="ac-pending" id="acPending" hidden><img id="acPendingImg" alt="The photo to send"><button type="button" class="ac-pending-x" id="acPendingX" aria-label="Remove the photo">' + CLOSE_SVG + '</button></div>' +
+        '<div class="ac-compose-row">' +
+          '<button type="button" class="ac-photo" id="acPhoto" aria-label="Add a photo">' + UI_ICON.camera + '</button>' +
+          '<textarea id="acInput" rows="2" maxlength="4000" placeholder="e.g. Move today\u2019s unfinished work to tomorrow" aria-label="Ask Claude"></textarea>' +
+          '<button type="button" class="btn-primary ac-send" id="acSend">Send</button>' +
+        '</div>' +
       '</div>';
     var input = document.getElementById('acInput');
     document.getElementById('acSend').addEventListener('click', acSend);
+    // a photo (2026-10-29): a shopping list on the fridge, a note — Claude reads it with the words
+    document.getElementById('acPhoto').addEventListener('click', function(){
+      pickPhotos(1).then(function(list){
+        if (!list.length || !acState) return;
+        acState.photo = list[0];
+        acPaintPending();
+        if (!input.value.trim()) input.placeholder = 'e.g. Add these to tomorrow\u2019s Food Plan';
+      }, function(){ showPinToast('That photo couldn\u2019t be read', true); });
+    });
+    document.getElementById('acPendingX').addEventListener('click', function(){ if (acState){ acState.photo = null; acPaintPending(); } });
     input.addEventListener('keydown', function(e){
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); acSend(); }
     });
@@ -10474,13 +10570,21 @@
     setTimeout(function(){ try { input.focus(); } catch(e){} }, 60);
   }
 
+  function acPaintPending(){
+    var box = document.getElementById('acPending'), ph = acState && acState.photo;
+    if (!box) return;
+    box.hidden = !ph;
+    document.getElementById('acPendingImg').src = ph ? ph.dataUrl : '';
+  }
   function acSend(){
     var input = document.getElementById('acInput');
     if (!input || !acState || acState.busy) return;
-    var text = input.value.trim();
-    if (!text) return;
+    var text = input.value.trim(), photo = acState.photo || null;
+    if (!text && !photo) return;
     input.value = '';
-    acState.turns.push({ who: 'you', text: text });
+    acState.photo = null;
+    acPaintPending();
+    acState.turns.push({ who: 'you', text: text, photo: photo ? photo.dataUrl : null });
     acState.busy = true;
     acRender();
     var st = acState;
@@ -10488,7 +10592,8 @@
       return fetch(assistantUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ threadId: st.threadId, message: text, today: todayStr() })
+        body: JSON.stringify({ threadId: st.threadId, message: text, today: todayStr(),
+          image: photo ? { mediaType: photo.mediaType, data: photo.data } : undefined })
       });
     }).then(function(r){
       return r.json().then(function(b){ return { ok: r.ok, body: b || {} }; }, function(){ return { ok: false, body: {} }; });
@@ -10530,6 +10635,10 @@
       var el = document.createElement('div');
       el.className = 'ac-turn ac-' + t.who;
       el.textContent = t.text;                           // what anyone typed is text, never markup
+      if (t.photo){
+        var im = document.createElement('img'); im.className = 'ac-turn-photo'; im.src = t.photo; im.alt = 'Your photo';
+        el.insertBefore(im, el.firstChild);
+      }
       box.appendChild(el);
     });
     if (acState.busy){
@@ -14948,15 +15057,30 @@
       .sort(function(a, b){ return (a.latestCommentAt || '') < (b.latestCommentAt || '') ? 1 : -1; });
     return fresh.map(function(r){ return { r: r, kind: 'new' }; }).concat(updated.map(function(r){ return { r: r, kind: 'update' }; }));
   }
+  // folded days, with how many were waiting then: more than that opens it again
+  var INBOX_FOLD_KEY = 'ledger_inbox_folded';
+  function inboxFolded(ds, count){ var n = dayOpenMap(INBOX_FOLD_KEY)[ds]; return !!n && count <= n; }
+  function setInboxFolded(ds, n){
+    var m = dayOpenMap(INBOX_FOLD_KEY);
+    if (n) m[ds] = n; else delete m[ds];
+    var days = Object.keys(m).sort();
+    while (days.length > 14) delete m[days.shift()];
+    lsSet(INBOX_FOLD_KEY, JSON.stringify(m));
+  }
   function renderInboxSection(){
     var wrap = document.getElementById('inboxSection');
     if (!wrap) return;
     var items = shareOn() && viewedDate === todayStr() ? inboxItems() : [];
     var hItems = viewedDate === todayStr() ? homeInboxItems() : [];
     if (!items.length && !hItems.length){ wrap.innerHTML = ''; return; }
+    // folds like the other sections (2026-10-29); folded stays folded for the day, until
+    // something new arrives
+    var count = items.length + hItems.length, dateStr = viewedDate, folded = inboxFolded(dateStr, count);
     wrap.innerHTML =
-      '<div class="tsec inbox-head"><span class="tsec-title">Inbox</span><span class="tsec-status">' + (items.length + hItems.length) + '</span></div>' +
-      '<div class="ib-list">' + hItems.map(function(it, i){
+      '<div class="tsec inbox-head"><button type="button" class="tsec-main" id="inboxToggle" aria-expanded="' + !folded + '" aria-controls="inboxBody">' +
+        '<span class="tsec-title">Inbox</span><span class="tsec-status">' + count + '</span>' +
+        '<span class="tsec-chev tsec-expand">' + TSEC_CHEV_DOWN + '</span></button><span class="tsec-extra"></span></div>' +
+      '<div class="ib-list" id="inboxBody"' + (folded ? ' hidden' : '') + '>' + hItems.map(function(it, i){
         var upd = it.kind === 'update';
         return '<div class="ib-row' + (upd ? ' ib-update' : '') + '" data-hb-row="' + i + '">' +
           '<button type="button" class="ib-body" data-hb-open="' + i + '"><span class="ib-kicker"></span><span class="ib-title"></span>' +
@@ -14987,6 +15111,13 @@
           '</div>' +
         '</div>';
       }).join('') + '</div>';
+    var itg = document.getElementById('inboxToggle');
+    itg.addEventListener('click', function(){
+      var on = itg.getAttribute('aria-expanded') !== 'true';
+      itg.setAttribute('aria-expanded', String(on));
+      document.getElementById('inboxBody').hidden = !on;
+      setInboxFolded(dateStr, on ? 0 : count);
+    });
     // Home rows: found by position too; every word is text
     hItems.forEach(function(it, i){
       var r = it.r, row = wrap.querySelector('[data-hb-row="' + i + '"]');
@@ -15446,8 +15577,11 @@
   // its sheet), so progress shows on the rows and every tick arrives everywhere at once.
   var HL_MAX_WATCH = 30;
   function hrItemsRef(rid){ return homeRef(rid).collection('items'); }
+  // starred items (priority, 2026-10-29) first, then in their order
   function hrItems(rid){
-    return (home.items[rid] || []).slice().sort(function(a, b){ return (a.order - b.order) || ((a.createdAt || '') < (b.createdAt || '') ? -1 : 1); });
+    return (home.items[rid] || []).slice().sort(function(a, b){
+      return ((b.starred ? 1 : 0) - (a.starred ? 1 : 0)) || (a.order - b.order) || ((a.createdAt || '') < (b.createdAt || '') ? -1 : 1);
+    });
   }
   function hrProgress(r){
     if (!r.hasChecklist || !home.items[r.id]) return null;
@@ -15521,6 +15655,56 @@
     if (text === it.text) return Promise.resolve();
     return hrItemsRef(r.id).doc(it.id).update({ text: text, updatedByUid: homeMe(), updatedAt: new Date().toISOString() }).catch(hrFail('change it'));
   }
+  function hrStarItem(r, it){
+    return hrItemsRef(r.id).doc(it.id).update({ starred: !it.starred, updatedByUid: homeMe(), updatedAt: new Date().toISOString() }).catch(hrFail('star it'));
+  }
+  // ---- moving items to another day (2026-10-29) ----
+  // Into that day's list between the same two people (asked by the same person, for the
+  // same person), or a new one like this one if there's none. The items leave this list in
+  // the same write; a line in its Updates says what went where.
+  function hrDay(r){
+    if (r.requestedTiming === 'date') return r.requestedDate || null;
+    if (r.requestedTiming === 'today' && r.createdAt) return fmtDate(new Date(r.createdAt));
+    return null;
+  }
+  function hrListFor(r, date){
+    return (home.requests || []).find(function(x){
+      return x.id !== r.id && !x.deletedAt && x.homeId === r.homeId && x.hasChecklist && hrDay(x) === date
+        && x.requesterUid === r.requesterUid && x.assigneeUid === r.assigneeUid
+        && ['requested', 'planned', 'in_progress'].indexOf(x.status) > -1 && hrIsListEditor(x);
+    }) || null;
+  }
+  function hrMoveItemsToDay(r, its, date){
+    its = its.filter(function(it){ return !it.done; });
+    if (!its.length || !date || !hrIsListEditor(r)) return Promise.resolve();
+    var me = homeMe(), now = new Date().toISOString(), b = dbRef.batch(), target = hrListFor(r, date), tid;
+    if (target){
+      tid = target.id;
+    } else {
+      var ref = dbRef.collection(HOME_REQ).doc(), readAt = {}; readAt[me] = now;
+      tid = ref.id;
+      var doc = { homeId: r.homeId, text: r.text, note: null, requestedTiming: 'date', requestedDate: date,
+        requesterUid: r.requesterUid, assigneeUid: r.assigneeUid, createdByUid: me, participants: homeUids([r.requesterUid, r.assigneeUid, me]),
+        visibility: r.visibility === 'home' ? 'home' : 'private', status: 'requested', plannedDate: null, linkedActionId: null,
+        createdAt: now, updatedAt: now, latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created', readAt: readAt, hasChecklist: true };
+      if (r.why) doc.why = r.why;
+      b.set(ref, doc);
+      b.set(ref.collection('updates').doc('created'), hrEntry('created', null, { timing: 'date', date: date, onBehalf: r.requesterUid !== me }));
+    }
+    var have = target ? hrItems(tid) : [], top = have.length ? Math.max.apply(null, have.map(function(x){ return x.order || 0; })) : 0;
+    its.forEach(function(it, i){
+      var d = hrItemDoc(it.text, top + i + 1);
+      if (it.starred) d.starred = true;
+      b.set(dbRef.collection(HOME_REQ).doc(tid).collection('items').doc(), d);
+      b.delete(hrItemsRef(r.id).doc(it.id));
+    });
+    var day = date === fmtDate(addDays(todayStr(), 1)) ? 'tomorrow' : shortDayLabel(date);
+    return b.commit().then(function(){
+      var names = its.map(function(it){ return it.text; });
+      hrWrite(r, {}, 'comment', clipText('Moved to ' + day + ': ' + names.join(', '), 500), {}).catch(function(){});
+      showPinToast((its.length === 1 ? '1 item' : its.length + ' items') + ' moved to ' + day, false, CHECK_SVG);
+    }).catch(hrFail('move them'));
+  }
   function hrMoveItem(r, it, before, after){
     // only the moved item is written: its order falls between its new neighbours
     var a = before ? before.order : (after ? after.order - 1 : 0), z = after ? after.order : a + 2;
@@ -15537,6 +15721,7 @@
   // One person's own wish, kept in ledger_home_watches under their uid: Abi's never notify
   // Shaun, and nobody else sees them. The server tells them when it happens (functions/push.js).
   var HOME_WATCHES = 'ledger_home_watches';
+  var STAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>';
   var BELL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.4 1.6 6 2.2 6.6H3.8C4.4 15.5 6 13.9 6 9.5z"/><path d="M10 19.5a2.1 2.1 0 0 0 4 0"/></svg>';
   function hrWatching(rid, iid){ return !!(home.watches || {})[rid + '_' + (iid || 'all')]; }
   function hrSetWatch(r, iid, on){
@@ -15595,6 +15780,15 @@
       size();
       if (hadFocus) setTimeout(function(){ try { ta.focus(); } catch(e){} }, 0);
     }
+    // a day's list not finished: what's left goes to tomorrow's, in one tap
+    var tmw = fmtDate(addDays(todayStr(), 1));
+    if (editor && open.length && ['requested', 'planned', 'in_progress', 'missed'].indexOf(r.status) > -1 && hrDay(r) !== tmw){
+      var mv = document.createElement('button'); mv.type = 'button'; mv.className = 'bk-btn hl-move-left'; mv.id = 'hlMoveLeft';
+      mv.innerHTML = UI_ICON.arrowRight + '<span></span>';
+      mv.querySelector('span').textContent = open.length === 1 ? 'Move what’s left (1) to tomorrow' : 'Move what’s left (' + open.length + ') to tomorrow';
+      mv.addEventListener('click', function(){ mv.disabled = true; hrMoveItemsToDay(homeReq(rid) || r, open, tmw).then(function(){ homeChanged(); }); });
+      wrap.appendChild(mv);
+    }
     if (done.length){
       var tog = document.createElement('button'); tog.type = 'button'; tog.className = 'hl-done-toggle'; tog.id = 'hlDoneToggle';
       var shown = !!home.listDoneOpen;
@@ -15626,15 +15820,51 @@
         var inp = document.createElement('input'); inp.type = 'text'; inp.className = 'hl-edit'; inp.maxLength = 200; inp.value = it.text;
         inp.setAttribute('aria-label', 'Edit item');
         body.replaceChild(inp, t); inp.focus();
+        // while editing an open item: move it to tomorrow, or to a day chosen
+        var tools = null;
+        if (!it.done){
+          tools = document.createElement('div'); tools.className = 'hl-tools';
+          tools.innerHTML = (hrDay(r) === fmtDate(addDays(todayStr(), 1)) ? '' : '<button type="button" class="bk-btn" data-hl-tomorrow>' + UI_ICON.arrowRight + 'Move to tomorrow</button>') +
+            '<label class="bk-btn hl-day">' + UI_ICON.calendar + '<span>Another day</span><input type="date" aria-label="Move to another day"></label>';
+          var dIn = tools.querySelector('input');
+          dIn.min = fmtDate(addDays(todayStr(), 1));
+          body.appendChild(tools);
+          // pressing a button keeps the field's focus, so editing doesn't end first
+          var tmBtn = tools.querySelector('[data-hl-tomorrow]');
+          if (tmBtn){
+            tmBtn.addEventListener('pointerdown', function(e){ e.preventDefault(); });
+            tmBtn.addEventListener('click', function(){ moveTo(fmtDate(addDays(todayStr(), 1))); });
+          }
+          dIn.addEventListener('change', function(){ if (dIn.value) moveTo(dIn.value); });
+          dIn.addEventListener('blur', function(){ setTimeout(function(){ if (!doneEdit && document.activeElement !== inp) commit(); }, 0); });
+        }
         var doneEdit = false;
         function commit(){ if (doneEdit) return; doneEdit = true; hrRenameItem(homeReq(r.id) || r, it, inp.value).then(function(){ homeChanged(); }); }
+        function moveTo(date){
+          if (doneEdit) return; doneEdit = true;
+          var text = String(inp.value || '').replace(/\s+/g, ' ').trim().slice(0, 200) || it.text;
+          hrMoveItemsToDay(homeReq(r.id) || r, [Object.assign({}, it, { text: text })], date).then(function(){ homeChanged(); });
+        }
         inp.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); inp.blur(); } if (e.key === 'Escape'){ inp.value = it.text; inp.blur(); } });
-        inp.addEventListener('blur', commit);
+        inp.addEventListener('blur', function(){
+          // to the day field: still editing
+          setTimeout(function(){ if (tools && tools.contains(document.activeElement)) return; commit(); }, 0);
+        });
       }
       t.addEventListener('click', edit);
       t.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); edit(); } });
     }
     row.appendChild(tick); row.appendChild(body);
+    // a star: priority, first on the list. Anyone who edits the list sets it; everyone sees it
+    if (!it.done && (editor || it.starred)){
+      var star = document.createElement('button'); star.type = 'button';
+      star.className = 'hl-star' + (it.starred ? ' on' : ''); star.innerHTML = STAR_SVG;
+      star.setAttribute('aria-pressed', it.starred ? 'true' : 'false');
+      star.setAttribute('aria-label', (it.starred ? 'Priority — unstar “' : 'Star “') + it.text + '”');
+      star.disabled = !editor;
+      star.addEventListener('click', function(){ if (editor) hrStarItem(homeReq(r.id) || r, it); });
+      row.appendChild(star);
+    }
     if (!it.done && hrCanWatch(r)){
       var on = hrWatching(r.id, it.id), bell = document.createElement('button'); bell.type = 'button';
       bell.className = 'hl-bell' + (on ? ' on' : ''); bell.innerHTML = BELL_SVG;
@@ -17420,6 +17650,7 @@
       '<div class="rq-act" id="hdAct"></div>' +
       '<div class="rq-own" id="hdOwn"></div>' +
       '<div class="hl-wrap" id="hdList"></div>' +
+      '<div class="ph-sec" id="hdPhotos"></div>' +
       // who sees it and Delete come before the Updates, so the update field ends the sheet
       // and never sits over them
       '<div id="hdShareWrap"></div>' +
@@ -17556,6 +17787,12 @@
     home.listDoneOpen = false;
     homeSyncItems(rid);
     paint();
+    // its photos: whoever edits its list adds them; each comes off by whoever added it, or an admin
+    photoSection(sh.querySelector('#hdPhotos'), homeRef(rid).collection('photos'), {
+      canAdd: function(){ var r = cur(); return !!r && !r.deletedAt && hrIsListEditor(r); },
+      canRemove: function(p){ var r = cur(); return !!r && !r.deletedAt && (p.byUid === homeMe() || homeIsAdmin()); },
+      who: function(p){ return p.byUid === homeMe() ? 'you' : homeNameOf(p.byUid); }
+    });
     home.listRefresh = null;
     home.detailRefresh = function(){ if (!paint()){ home.detailRefresh = null; return; } hrMarkRead(cur()); };
     hrWatchTimeline(r0, sh.querySelector('#hdTimeline'), function(){ if (open()) hrMarkRead(cur()); });
@@ -20992,9 +21229,7 @@
   }
   // Change: one list of what could be the focus now — the sprint's open items, then the
   // day's open Actions (key tasks first). Choosing one replaces the focus; there is no queue.
-  function openFocusPicker(){
-    editingId = null;
-    activeSheetRefresh = null;
+  function focusChoices(){
     var s = activeSprint();
     var sItems = s ? sprintOpenItems(s) : [];
     var today = todayStr();
@@ -21011,6 +21246,12 @@
       rows.push({ t: focusForTraining(type, null), sub: 'Training' + (names.length ? ' · ' + names.length + (names.length === 1 ? ' exercise' : ' exercises') : ''), on: focusIsTraining(type, null) });
       names.forEach(function(n, i){ rows.push({ t: focusForTraining(type, n), sub: lbl + ' · ' + (i + 1) + ' of ' + names.length, on: focusIsTraining(type, n) }); });
     });
+    return rows;
+  }
+  function openFocusPicker(){
+    editingId = null;
+    activeSheetRefresh = null;
+    var rows = focusChoices();
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
       sheetHead('', 'Current focus', 'The one thing you are doing now.', '') +
       (rows.length
@@ -21030,6 +21271,73 @@
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
     var clr = document.getElementById('fpClear');
     if (clr) clr.addEventListener('click', function(){ closeSheet(); clearCurrentFocus(); });
+  }
+
+  // + → Focus timer (2026-10-29): how long, then what — one of today's open things, or
+  // something new, which becomes an Action for today. It starts the timer and goes full screen.
+  function openFocusTimerStartSheet(){
+    editingId = null; activeSheetRefresh = null;
+    var rows = focusChoices(), min = 25;
+    rows.sort(function(a, b){ return (b.on ? 1 : 0) - (a.on ? 1 : 0); });   // the focus now, first
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.clock, 'Focus timer', 'How long, then what to focus on.', '') +
+      '<div class="ft-choices" role="radiogroup" aria-label="How long">' + FOCUS_TIMER_CHOICES.map(function(m){
+        return '<button type="button" class="bk-filter-chip' + (m === min ? ' sel' : '') + '" role="radio" aria-checked="' + (m === min) + '" data-fs-min="' + m + '">' + m + ' min</button>';
+      }).join('') + '</div>' +
+      '<div class="sec-head"><span class="sec-label">Something new</span><span class="sec-rule"></span></div>' +
+      '<div class="hl-add fs-new"><textarea id="fsNew" rows="1" maxlength="300" placeholder="What are you doing?" aria-label="Something new to focus on"></textarea><button type="button" class="rq-send" id="fsNewBtn" disabled>Start</button></div>' +
+      (rows.length
+        ? '<div class="sec-head"><span class="sec-label">Or one of today’s</span><span class="sec-rule"></span></div>' +
+          '<div class="fp-list">' + rows.map(function(r, i){
+            return '<button type="button" class="fp-row' + (r.on ? ' on' : '') + '" data-fs="' + i + '"><span class="fp-title"></span><span class="fp-sub"></span>' +
+              (r.on ? '<span class="fp-now">Now</span>' : '') + '</button>';
+          }).join('') + '</div>'
+        : '');
+    function start(t){
+      closeSheet();
+      var cur = focusActive(), same = cur && t && cur.type === t.type && cur.sourceId === t.sourceId && (cur.childId || null) === (t.childId || null);
+      if (same){ setFocusTimer(min); openFocusFullSoon(); return; }
+      var d = focusDoc(t);
+      d.timerMin = min; d.endsAt = new Date(Date.now() + min * 60000).toISOString();
+      nativeAskNotifyPermission();
+      writeFocus(d);
+      openFocusFullSoon();
+    }
+    sheetEl.querySelectorAll('[data-fs-min]').forEach(function(b){
+      b.addEventListener('click', function(){
+        min = Number(b.dataset.fsMin);
+        sheetEl.querySelectorAll('[data-fs-min]').forEach(function(x){ var on = x === b; x.classList.toggle('sel', on); x.setAttribute('aria-checked', String(on)); });
+      });
+    });
+    rows.forEach(function(r, i){
+      var b = sheetEl.querySelector('[data-fs="' + i + '"]');
+      b.querySelector('.fp-title').textContent = r.t.title;    // user text
+      b.querySelector('.fp-sub').textContent = r.sub;
+      b.addEventListener('click', function(){ start(r.t); });
+    });
+    var ta = document.getElementById('fsNew'), go = document.getElementById('fsNewBtn');
+    function startNew(){
+      var text = ta.value.trim();
+      if (!text) return;
+      var today = todayStr();
+      var item = { id: uid(), date: today, originalDate: today, title: clipText(text, 300), priorityId: null, minVersion: null,
+        status: 'planned', disruptionReason: null, category: qcLastCategory || 'work', createdAt: new Date().toISOString() };
+      saveCommitment(item);
+      start(focusForAction(item));
+    }
+    ta.addEventListener('input', function(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; go.disabled = !ta.value.trim(); });
+    ta.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); startNew(); } });
+    go.addEventListener('click', startNew);
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+  }
+  // a new Action reaches the list a moment after it's saved: wait for it, briefly
+  function openFocusFullSoon(){
+    var tries = 0;
+    (function attempt(){
+      if (focusTarget()){ openFocusFull(); return; }
+      if (++tries < 20) setTimeout(attempt, 100);
+    })();
   }
 
   // ---- Today: the sprint ----
@@ -22514,16 +22822,28 @@
 
   document.getElementById('viewHistoryBtn').addEventListener('click', function(){ goCalendarOn(viewedDate); });
 
-  document.querySelectorAll('.quicklog-card').forEach(function(card){
-    card.addEventListener('click', function(){
-      var type = card.dataset.type;
-      if (type === 'symptom'){ openSymptomSheet(null, { date: viewedDate }); return; }
-      if (type === 'steps'){ openStepsSheet(viewedDate); return; }
-      if (type === 'life'){ openLifeContextSheet(viewedDate, null); return; }
-      var existing = type === 'nutrition' ? getNutritionForDate(viewedDate) : null;
-      openSheet(type, existing, viewedDate);
-    });
+  function openQuickLogType(type, date){
+    if (type === 'symptom'){ openSymptomSheet(null, { date: date }); return; }
+    if (type === 'steps'){ openStepsSheet(date); return; }
+    if (type === 'life'){ openLifeContextSheet(date, null); return; }
+    var existing = type === 'nutrition' ? getNutritionForDate(date) : null;
+    openSheet(type, existing, date);
+  }
+  document.querySelectorAll('#quickLogGrid .quicklog-card').forEach(function(card){
+    card.addEventListener('click', function(){ openQuickLogType(card.dataset.type, viewedDate); });
   });
+  // + → Quick log (2026-10-29): Today's tiles, in a sheet, from any tab
+  function openQuickLogSheet(date){
+    editingId = null; activeSheetRefresh = null;
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.chart, 'Quick log', date === todayStr() ? 'Today' : shortDayLabel(date), '') +
+      '<div class="quicklog-grid ql-sheet">' + document.getElementById('quickLogGrid').innerHTML + '</div>';
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    sheetEl.querySelectorAll('.quicklog-card').forEach(function(card){
+      card.addEventListener('click', function(){ openQuickLogType(card.dataset.type, date); });
+    });
+  }
 
   applyTheme();
   document.getElementById('openSettingsBtn').addEventListener('click', openSettingsSheet);
@@ -27435,6 +27755,105 @@
     });
   }
 
+  // ---- photos on an Action or a Home request (2026-10-29) ----
+  // One Firestore document each, inside the record they belong to, so they follow its rules
+  // exactly: an Action's are Shaun's alone, a request's are seen by whoever sees it. Up to
+  // four. Watched only while the sheet that shows them is open.
+  var PHOTO_MAX = 4;
+  function photoSection(el, ref, opts){
+    if (!el) return;
+    var stop = null, photos = [];
+    function canAdd(){ return typeof opts.canAdd === 'function' ? opts.canAdd() : !!opts.canAdd; }
+    function paint(){
+      el.innerHTML = '';
+      var add = canAdd() && photos.length < PHOTO_MAX;
+      if (!photos.length && !add) return;
+      var h = document.createElement('h3'); h.className = 'cz-sec-title ph-title'; h.textContent = 'Photos';
+      var grid = document.createElement('div'); grid.className = 'ph-grid';
+      photos.forEach(function(p, i){
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'ph-thumb';
+        b.setAttribute('aria-label', 'Photo ' + (i + 1) + ' of ' + photos.length);
+        var im = document.createElement('img'); im.alt = ''; im.src = 'data:image/jpeg;base64,' + p.data;
+        b.appendChild(im);
+        b.addEventListener('click', function(){ openPhotoViewer(p, opts.canRemove && opts.canRemove(p) ? function(){ return ref.doc(p.id).delete(); } : null, opts.who ? opts.who(p) : ''); });
+        grid.appendChild(b);
+      });
+      if (add){
+        var a = document.createElement('button'); a.type = 'button'; a.className = 'ph-add';
+        a.innerHTML = UI_ICON.camera + '<span>Add photo</span>';
+        a.addEventListener('click', function(){
+          pickPhotos(PHOTO_MAX - photos.length).then(function(list){
+            list.forEach(function(ph){
+              ref.doc().set({ data: ph.data, mediaType: 'image/jpeg', byUid: authUser ? authUser.uid : 'local', createdAt: new Date().toISOString() })
+                .catch(function(e){ console.error('photo save failed', e); showPinToast('That photo couldn’t be saved', true); });
+            });
+          }, function(){ showPinToast('That photo couldn’t be read', true); });
+        });
+        grid.appendChild(a);
+      }
+      el.appendChild(h); el.appendChild(grid);
+    }
+    paint();
+    try {
+      stop = ref.orderBy('createdAt').onSnapshot(function(snap){
+        // the sheet has gone: stop watching
+        if (!document.body.contains(el)){ if (stop) stop(); return; }
+        photos = snap.docs.map(function(d){ var x = d.data() || {}; x.id = d.id; return x; }).filter(function(x){ return typeof x.data === 'string'; });
+        paint();
+      }, function(err){ console.warn('photos unavailable', err && err.code); });
+    } catch(e){}
+  }
+  // one photo, the whole screen; Delete asks twice
+  function openPhotoViewer(p, remove, who){
+    var v = document.getElementById('photoView');
+    if (v) v.remove();
+    v = document.createElement('div'); v.id = 'photoView'; v.className = 'photo-view';
+    v.setAttribute('role', 'dialog'); v.setAttribute('aria-modal', 'true'); v.setAttribute('aria-label', 'Photo');
+    v.innerHTML = '<div class="pv-top"><span class="pv-who"></span><button type="button" class="sheet-close pv-close" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<img class="pv-img" alt="Photo">' +
+      (remove ? '<div class="pv-foot"><button type="button" class="bk-btn pv-del">Delete photo</button></div>' : '');
+    v.querySelector('.pv-img').src = 'data:image/jpeg;base64,' + p.data;
+    v.querySelector('.pv-who').textContent = who ? 'Added by ' + who : '';
+    function close(){ v.remove(); document.removeEventListener('keydown', esc, true); }
+    function esc(e){ if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); close(); } }
+    document.addEventListener('keydown', esc, true);
+    v.querySelector('.pv-close').addEventListener('click', close);
+    var del = v.querySelector('.pv-del');
+    if (del) del.addEventListener('click', function(){
+      if (!del.classList.contains('confirm')){ del.classList.add('confirm'); del.textContent = 'Tap again to delete'; return; }
+      close();
+      remove().catch(function(e){ console.error('photo delete failed', e); showPinToast('Couldn’t delete the photo', true); });
+    });
+    document.body.appendChild(v);
+    v.querySelector('.pv-close').focus();
+  }
+  // Photos chosen on the phone (camera or library), made phone-quality: about 1,600px,
+  // JPEG — small enough to keep in Firestore and to send to Claude (2026-10-29).
+  // Resolves [{ dataUrl, mediaType, data }] (data: the base64 alone), at most `max` of them.
+  function pickPhotos(max){
+    return new Promise(function(resolve, reject){
+      var inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = max > 1;
+      inp.style.display = 'none';
+      inp.addEventListener('change', function(){
+        var files = Array.prototype.slice.call(inp.files || [], 0, max);
+        inp.remove();
+        Promise.all(files.map(function(f){ return photoFromFile(f); })).then(resolve, reject);
+      });
+      document.body.appendChild(inp);
+      inp.click();
+    });
+  }
+  function photoFromFile(file){
+    // a busy photo can still be large: smaller, until it fits in one Firestore document
+    return compressImage(file, 1600, 0.8).then(function(url){
+      return url.length > 900000 ? compressImage(file, 1200, 0.7) : url;
+    }).then(function(url){
+      return url.length > 900000 ? compressImage(file, 900, 0.6) : url;
+    }).then(function(url){
+      return { dataUrl: url, mediaType: 'image/jpeg', data: url.slice(url.indexOf(',') + 1) };
+    });
+  }
   function compressImage(file, maxDim, quality){
     return new Promise(function(resolve, reject){
       var reader = new FileReader();

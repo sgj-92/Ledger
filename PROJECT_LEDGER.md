@@ -754,6 +754,20 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-29 — Photos, checklist stars, moving items on, + menu (Shaun's answers)
+- **Photos** on Actions and Home requests: phone-quality (about 1,600px JPEG), up to 4,
+  stored in Firestore inside the record they belong to, so they follow its rules. No new
+  service (Firebase Storage was offered and not chosen).
+- **Ask Claude takes a photo** with the message; the photo is never kept.
+- **A star** on a checklist item marks priority; starred items sit first.
+- **Moving items on:** "Move what's left to tomorrow" on a list, plus "Move to tomorrow"
+  or "Another day" on each item. Not automatic overnight.
+- **Status** is larger: an Action's five states as coloured buttons; a request's status
+  as a coloured badge.
+- **The + menu** offers Ask Claude, Focus timer (how long, then one of today's or something
+  new), Quick log and Quick add. The Inbox folds.
+- See `docs/HOUSEHOLD_DESIGN.md` (2026-10-29) and `docs/CLAUDE_ASSISTANT.md` §11.
+
 ### 2026-10-29 — The focus timer full screen, and on the Lock Screen (Shaun: "Both")
 - **Full screen in Ledger:** the timer button opens it once a timer runs, and so does
   choosing a length. It shows the focus, a ring and the time left, with Done, +5 min and
@@ -2447,11 +2461,16 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (install the next build, try)
-**Newest (2026-10-29), built:** the focus timer full screen (live on the website), and
-as a Live Activity on the iPhone (in the next Xcode Cloud build, after build 7).
+Owner: Shaun (deploy Firebase, install the next build, try)
+**Newest (2026-10-29), built:**
+- the focus timer full screen (website), and as a Live Activity (the next Xcode Cloud
+  build after build 7);
+- photos on Actions and Home requests; a photo in Ask Claude; checklist stars; moving
+  what's left to tomorrow; larger status; + → Focus timer and Quick log; the Inbox folds.
 
 **To do:**
+- "Deploy Firebase", everything: photos and stars are refused by the live rules until
+  then, and Ask Claude's photo needs the new function.
 - Install the new build from TestFlight once Xcode Cloud finishes. Set a timer, lock the
   phone, and check the Lock Screen and the Dynamic Island.
 - If the build fails, send a screenshot of its log.
@@ -2643,6 +2662,13 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-29) — **Photos, stars, moving items on, the + menu, status.** (Logged in
+  Decisions.)
+  - **Tests:** rules 701; functions: assistant 33; Home e2e 329 (new H24).
+  - **Checked in the browser:** + → Focus timer (new and existing), Quick log from Plan,
+    the Action status buttons.
+  - **Fixed on the way:** a new Action given an id up front (pinned or focused) was
+    not saved in the local-only fallback.
 - (2026-10-29) — **The focus timer full screen, and as a Live Activity.** (Logged in
   Decisions.)
   - **Web:** `#focusFull`, with the Screen Wake Lock.
