@@ -684,6 +684,31 @@ at a preview with `LEDGER_APP_URL`.
 - **Not verified:** the Swift compiles, the alert on a real phone, and how it looks. All
   are checked in Xcode and Android Studio.
 
+**2026-10-29 (Shaun's request): the focus timer, full screen and on the Lock Screen.**
+- **Full screen, in the page (web and both apps):** `#focusFull` shows the focus, a ring
+  and the time left, with Done, +5 min and Stop.
+  - The timer button opens it once a timer runs, and so does choosing a length.
+  - It keeps the screen on while open: the Screen Wake Lock where the browser has one; in
+    the iPhone app, `LedgerWidget.keepAwake` (`isIdleTimerDisabled`).
+  - Android's back button closes it first.
+- **The Live Activity (iPhone, the first Xcode Cloud build after build 7):**
+  - `FocusActivityAttributes` (in `LedgerShared.swift`, so both targets have it) holds the
+    title, context, start and end.
+  - `LedgerWidget.focusActivity` starts it or updates the one running;
+    `endFocusActivity` ends it. The page calls them from `nativeFocusTimerSync`, in the
+    Focus widget's words (`widgetFocus`), whenever the time, the title or the context
+    changes. A timer that ran out while Ledger was closed ends on the next launch.
+  - `FocusLiveActivity` (in `FocusWidget.swift`) draws the Lock Screen and the Dynamic
+    Island: compact, minimal and expanded. The system ticks the countdown
+    (`Text(timerInterval:)`, `ProgressView(timerInterval:)`); `staleDate` is the end, so
+    it says "Time's up" with Ledger closed.
+  - Needs iOS 16.2, and `NSSupportsLiveActivities` in the app's `Info.plist`. Shaun can
+    turn it off in Settings → Ledger → Live Activities; the app then shows none.
+  - No push token: it never updates from the server, only from the open app.
+- **Older builds** ignore the new calls; the page works the same without them.
+- **Not verified:** the Swift compiles, and how the Live Activity looks. Both are checked
+  by the Xcode Cloud build and on Shaun's iPhone.
+
 ## 12d. Xcode Cloud: building the iPhone app without the Mac (2026-10-29)
 
 Shaun's request: build from GitHub while away from the Mac. Xcode Cloud builds on Apple's

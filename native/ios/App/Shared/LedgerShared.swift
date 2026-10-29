@@ -104,3 +104,21 @@ struct TodaySnapshot: Codable, Equatable {
     let focus: Focus?            // the Current Focus, if one is set and still live
     var flow: [FlowItem]? = nil  // today's Flow, done steps included (version 4)
 }
+
+#if canImport(ActivityKit)
+import ActivityKit
+
+/// The focus timer as a Live Activity (app builds from 2026-10-29): the time left on the
+/// Lock Screen and in the Dynamic Island, counting down with Ledger closed. The web app
+/// starts, updates and ends it through LedgerWidget (`focusActivity`, `endFocusActivity`);
+/// the system draws the countdown itself, so nothing needs to run while it ticks.
+@available(iOS 16.1, *)
+struct FocusActivityAttributes: ActivityAttributes {
+    public struct ContentState: Codable, Hashable {
+        var title: String        // what Shaun is focusing on now
+        var context: String?     // "Strength · 2 of 4", "Work · Key task"
+        var startedAt: Date      // when this timer's run began (for the progress bar)
+        var endsAt: Date         // when time's up
+    }
+}
+#endif

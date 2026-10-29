@@ -7,5 +7,6 @@ struct LedgerWidgetBundle: WidgetBundle {
         TodayWidget()
         FocusWidget()
         FlowWidget()
+        FocusLiveActivity()     // the focus timer on the Lock Screen and in the Dynamic Island
     }
 }

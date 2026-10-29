@@ -188,6 +188,12 @@ The same page adapts by viewport width; there is no desktop build, route or flag
   sprint item = tick it, and focus moves to the next item in the same write. A
   focus whose Action is completed, deleted or moved (or whose item is done) is
   moved on or cleared, in a transaction so only one device does it.
+  - **Focus timer** (2026-10-28): optional `timerMin` and `endsAt` on the focus; the
+    NOW line counts down.
+  - **Full screen** (2026-10-29): the focus, a ring and the time left, with Done, +5 min
+    and Stop. It keeps the screen on while open.
+  - **On the iPhone** (2026-10-29): a Live Activity counts down on the Lock Screen and in
+    the Dynamic Island (`docs/NATIVE_MIGRATION.md`).
 - **Challenge strip** — when a Challenge is running, one quiet line above Morning
   Prime, **collapsed by default**: icon, "Belly Must Go. · Day 3 of 92 · 3 of 4 done"
   (name strongest, the rest muted; the name truncates before the numbers), chevron.
@@ -747,6 +753,16 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-29 — The focus timer full screen, and on the Lock Screen (Shaun: "Both")
+- **Full screen in Ledger:** the timer button opens it once a timer runs, and so does
+  choosing a length. It shows the focus, a ring and the time left, with Done, +5 min and
+  Stop, and keeps the screen on while open.
+- **A Live Activity on the iPhone:** the countdown on the Lock Screen and in the Dynamic
+  Island, with Ledger closed. It says "Time's up" when the timer ends.
+  - It supersedes "a Live Activity was offered and not chosen" (2026-10-28).
+  - The open app starts, updates and ends it; nothing on the server.
+- See `docs/NATIVE_MIGRATION.md` §12b (2026-10-29).
 
 ### 2026-10-29 — iPhone builds come from Xcode Cloud (Shaun)
 - **Xcode Cloud** builds the iPhone app from `main` and sends it to TestFlight.
@@ -2431,15 +2447,15 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy, build 5, try)
-**Newest (2026-10-28), built:**
-- Food Plan: drag to reorder, and delete a meal.
-- Training in Focus: the session, and each exercise in turn.
-- The focus timer.
+Owner: Shaun (install the next build, try)
+**Newest (2026-10-29), built:** the focus timer full screen (live on the website), and
+as a Live Activity on the iPhone (in the next Xcode Cloud build, after build 7).
 
 **To do:**
-- "Deploy Firebase", everything (this also covers the Home checklist bells and admin editing, built the same day);
-- Install build 7 from TestFlight; it has the timer's alert and the widget countdown.
+- Install the new build from TestFlight once Xcode Cloud finishes. Set a timer, lock the
+  phone, and check the Lock Screen and the Dynamic Island.
+- If the build fails, send a screenshot of its log.
+- Firebase deploy and build 7 are done (Shaun, 2026-10-29).
 
 Status: **Deployed 2026-10-27** (Deploy Firebase, everything, green).
 - **Claude in Ledger phase 1:** + → Ask Claude, for Actions and the Food Plan, with
@@ -2627,6 +2643,15 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-29) — **The focus timer full screen, and as a Live Activity.** (Logged in
+  Decisions.)
+  - **Web:** `#focusFull`, with the Screen Wake Lock.
+  - **iPhone:** `FocusLiveActivity`, `LedgerWidget.focusActivity`, `endFocusActivity` and
+    `keepAwake`, and `NSSupportsLiveActivities`.
+  - **Tests:** native shell 83; execution 81.
+  - **Checked in the browser:** no timer, running, "Time's up"; phone sizes, side-on
+    and desktop; light and dark.
+  - **Not verified here:** the Swift compiles (the Xcode Cloud build checks it).
 - (2026-10-29) — **Xcode Cloud set up, with TestFlight; build 7 succeeded.**
   - **In the repository:** the shared App scheme, and `ci_post_clone.sh`.
   - **Shaun's settings:** the Default workflow (`main`, changes to `native/` only), and

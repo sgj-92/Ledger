@@ -276,11 +276,36 @@ function fakeBridgeWhenAsked(){
   check(await until(I, e => { const s = (window.__nat.snapshots || []).slice(-1)[0]; return s && s.focus && s.focus.endsAt === e; }, endsAt, 12000), 'Focus timer: the widget\'s snapshot carries when it ends');
   await I.click('.tab-btn[data-view="log"]');
   check(await until(I, () => { const b = document.getElementById('nowTimer'); return !!b && b.classList.contains('on') && /^2[45]:\d\d$/.test(b.textContent); }), 'Focus timer: the Focus card counts down ("24:59")');
+  // the Live Activity (2026-10-29): the iPhone starts one countdown, with the focus's title,
+  // when it ends and when this run began; Android has none
+  const act = await until(I, e => window.__nat.calls.some(c => /^LedgerWidget\.focusActivity /.test(c) && c.indexOf(e) > -1), endsAt, 12000);
+  const actCall = (await calls(I)).filter(c => /^LedgerWidget\.focusActivity /.test(c)).pop() || '';
+  const actOpts = actCall ? JSON.parse(actCall.slice(actCall.indexOf(' ') + 1)) : {};
+  check(act && actOpts.title === 'Call the plumber' && actOpts.context === 'Action \u00b7 09:15' && actOpts.endsAt === endsAt
+      && Math.abs(new Date(actOpts.endsAt) - new Date(actOpts.startedAt) - 25 * 60000) < 2000,
+    'Live Activity: the iPhone starts the countdown — title, context, start and end', actCall);
+  check(!(await calls(A)).some(c => /^LedgerWidget/.test(c)), 'Live Activity: none on Android');
+  // the full-screen focus: the timer button opens it, the screen stays on, it closes again
+  await I.click('#nowTimer');
+  check(await until(I, () => !document.getElementById('focusFull').hidden && /^2[45]:\d\d$/.test(document.getElementById('ffTime').textContent)
+      && document.getElementById('ffTitle').textContent === 'Call the plumber'), 'Full screen: the running timer opens it, counting down');
+  check(await until(I, () => window.__nat.calls.includes('LedgerWidget.keepAwake {"on":true}')), 'Full screen: the iPhone keeps the screen on');
+  await I.click('#ffClose');
+  check(await until(I, () => document.getElementById('focusFull').hidden && window.__nat.calls.includes('LedgerWidget.keepAwake {"on":false}')), 'Full screen: closing lets the screen sleep again');
+  await A.click('.tab-btn[data-view="log"]');
+  check(await until(A, () => { const b = document.getElementById('nowTimer'); return !!b && b.classList.contains('on'); }), 'Full screen (Android): the timer reaches the phone');
+  await A.click('#nowTimer');
+  check(await until(A, () => !document.getElementById('focusFull').hidden), 'Full screen (Android): opens');
+  const minimized = (await calls(A)).filter(c => c === 'App.minimizeApp').length;
+  await back(A);
+  check(await until(A, () => document.getElementById('focusFull').hidden) && (await calls(A)).filter(c => c === 'App.minimizeApp').length === minimized,
+    'Full screen (Android): back closes it, and only it');
   const cancels = (await calls(I)).filter(c => /^LocalNotifications\.cancel/.test(c)).length;
   await put('ledger_meta/currentFocus', { ownerUid: owner, type: 'action', sourceId: 'k2', childId: null, title: 'Call the plumber', date: TODAY,
     setAt: new Date().toISOString(), updatedAt: new Date().toISOString(), sourceDeviceId: 'mac', status: 'active' });
   check(await until(I, n => window.__nat.calls.filter(c => /^LocalNotifications\.cancel/.test(c)).length > n, cancels, 12000), 'Focus timer: stopped → the alert is cancelled');
   check(await until(I, () => { const b = document.getElementById('nowTimer'); return !!b && !b.classList.contains('on'); }), 'Focus timer: …and the card shows a plain clock to set one');
+  check(await until(I, () => window.__nat.calls.includes('LedgerWidget.endFocusActivity')), 'Live Activity: stopping the timer ends it');
   // its links open Ledger at the right place — and only Ledger's own links
   const openLink = (p, url) => p.evaluate(u => (window.__nat.listeners['App.appUrlOpen'] || []).forEach(cb => cb({ url: u })), url);
   await I.click('.tab-btn[data-view="plan"]');

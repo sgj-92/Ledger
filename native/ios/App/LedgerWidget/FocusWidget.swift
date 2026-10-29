@@ -1,5 +1,6 @@
 import WidgetKit
 import SwiftUI
+import ActivityKit
 
 // Ledger's "Focus" widget: the Current Focus and nothing else, so the one thing being done
 // now sits on the Home Screen once it's set. It comes from the same snapshot as Today
@@ -222,6 +223,160 @@ private struct FocusOpenLedger: View {
                 .foregroundStyle(Palette.text2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// ---- the focus timer's Live Activity (2026-10-29) ----
+// The time left on the Lock Screen and in the Dynamic Island while a focus timer runs,
+// counting down with Ledger closed. The app starts, updates and ends it (LedgerWidget's
+// `focusActivity`); the system ticks the countdown itself. Past endsAt it's stale, and
+// says "Time's up" until Ledger next opens or the timer changes.
+
+// the Dynamic Island is always dark: the dark theme's colours, fixed
+private let islandGold = Color(hex: 0xDCB878)
+private let islandText = Color(hex: 0xF0E9DD)
+private let islandText2 = Color(hex: 0xA89B88)
+private let timeUpColor = Color.ledger(0xC66A54, 0xA4452E)
+
+private func focusTimeUp(_ state: FocusActivityAttributes.ContentState, stale: Bool) -> Bool {
+    stale || state.endsAt <= Date()
+}
+// a closed range never runs backwards: start is never after the end
+private func focusRange(_ state: FocusActivityAttributes.ContentState) -> ClosedRange<Date> {
+    min(state.startedAt, state.endsAt)...state.endsAt
+}
+
+struct FocusLiveActivity: Widget {
+    var body: some WidgetConfiguration {
+        ActivityConfiguration(for: FocusActivityAttributes.self) { context in
+            FocusActivityLockScreen(state: context.state, up: focusTimeUp(context.state, stale: context.isStale))
+                .activityBackgroundTint(Palette.ground)
+                .activitySystemActionForegroundColor(Palette.gold)
+                .widgetURL(openTodayURL)
+        } dynamicIsland: { context in
+            let up = focusTimeUp(context.state, stale: context.isStale)
+            return DynamicIsland {
+                DynamicIslandExpandedRegion(.leading) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "scope")
+                        Text("FOCUS").tracking(1.4)
+                    }
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(islandGold)
+                    .padding(.leading, 4)
+                }
+                DynamicIslandExpandedRegion(.trailing) {
+                    FocusCountdown(state: context.state, up: up, size: 22, color: islandGold, upColor: islandText2)
+                        .padding(.trailing, 4)
+                }
+                DynamicIslandExpandedRegion(.bottom) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(context.state.title)
+                            .font(.system(size: 17, design: .serif))
+                            .foregroundStyle(islandText)
+                            .lineLimit(2)
+                        if let ctx = context.state.context, !ctx.isEmpty {
+                            Text(ctx)
+                                .font(.system(size: 12))
+                                .foregroundStyle(islandText2)
+                                .lineLimit(1)
+                        }
+                        if !up {
+                            ProgressView(timerInterval: focusRange(context.state), countsDown: true,
+                                         label: { EmptyView() }, currentValueLabel: { EmptyView() })
+                                .tint(islandGold)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
+                }
+            } compactLeading: {
+                Image(systemName: "scope")
+                    .foregroundStyle(islandGold)
+            } compactTrailing: {
+                FocusCountdown(state: context.state, up: up, size: 14, color: islandGold, upColor: islandText2, compact: true)
+            } minimal: {
+                Image(systemName: up ? "bell.fill" : "timer")
+                    .foregroundStyle(islandGold)
+            }
+            .widgetURL(openTodayURL)
+            .keylineTint(islandGold)
+        }
+    }
+}
+
+// the time left, ticking, or "Time's up"
+private struct FocusCountdown: View {
+    let state: FocusActivityAttributes.ContentState
+    let up: Bool
+    let size: CGFloat
+    let color: Color
+    let upColor: Color
+    var compact = false
+    var body: some View {
+        if up {
+            Text(compact ? "Up" : "Time's up")
+                .font(.system(size: size, weight: .semibold))
+                .foregroundStyle(upColor)
+        } else {
+            // a timer's text takes all the width it's offered: give it what it needs
+            let long = state.endsAt.timeIntervalSince(Date()) >= 3600
+            Text(timerInterval: focusRange(state), countsDown: true)
+                .font(.system(size: size, weight: .semibold))
+                .monospacedDigit()
+                .multilineTextAlignment(.trailing)
+                .foregroundStyle(color)
+                .frame(width: compact ? (long ? 58 : 42) : (long ? 100 : 74), alignment: .trailing)
+        }
+    }
+}
+
+private struct FocusActivityLockScreen: View {
+    let state: FocusActivityAttributes.ContentState
+    let up: Bool
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "scope")
+                        Text("FOCUS").tracking(1.6)
+                    }
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Palette.gold)
+                    Text(state.title)
+                        .font(.system(size: 18, design: .serif))
+                        .foregroundStyle(Palette.text)
+                        .lineLimit(2)
+                    if let ctx = state.context, !ctx.isEmpty {
+                        Text(ctx)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.text2)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 8)
+                if up {
+                    Text("Time's up")
+                        .font(.system(size: 22, design: .serif))
+                        .foregroundStyle(timeUpColor)
+                } else {
+                    let long = state.endsAt.timeIntervalSince(Date()) >= 3600
+                    Text(timerInterval: focusRange(state), countsDown: true)
+                        .font(.system(size: 34, weight: .regular, design: .serif))
+                        .monospacedDigit()
+                        .multilineTextAlignment(.trailing)
+                        .foregroundStyle(Palette.text)
+                        .frame(width: long ? 140 : 100, alignment: .trailing)
+                }
+            }
+            if !up {
+                ProgressView(timerInterval: focusRange(state), countsDown: true,
+                             label: { EmptyView() }, currentValueLabel: { EmptyView() })
+                    .tint(Palette.gold)
+            }
+        }
+        .padding(16)
     }
 }
 

@@ -4153,6 +4153,60 @@
   .ft-note { margin: 0 0 var(--sp-3); }
   .ft-actions { margin-bottom: var(--sp-2); }
   .now-done { width: 26px; height: 26px; margin-right: 2px; }
+  /* the focus, full screen: the one thing and its time left, big enough to read across a
+     room; the screen stays awake while it's open */
+  body.ff-open { overflow: hidden; }
+  body.ff-open .pin-toast { z-index: 1450; }
+  .focus-full {
+    position: fixed; inset: 0; z-index: 1400; display: flex; flex-direction: column;
+    padding: calc(12px + env(safe-area-inset-top)) 22px calc(22px + env(safe-area-inset-bottom));
+    background: radial-gradient(110% 60% at 50% 38%, rgba(var(--gold-rgb),0.07) 0%, var(--bg) 70%), var(--bg);
+    color: var(--text); animation: ff-in 0.22s ease;
+  }
+  .focus-full[hidden] { display: none; }
+  @keyframes ff-in { from { opacity: 0; } to { opacity: 1; } }
+  .ff-top { display: flex; align-items: center; justify-content: space-between; min-height: 44px; }
+  .ff-k { font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
+  .ff-close { width: 44px; height: 44px; margin-right: -6px; }
+  .ff-body { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; }
+  .ff-title {
+    margin: 0; max-width: 560px; font-family: var(--serif); font-size: 27px; line-height: 1.22; font-weight: 400; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden;
+  }
+  .ff-meta { margin: 0; font-family: var(--sans); font-size: 13px; color: var(--text-3); }
+  .ff-ring { position: relative; width: min(74vw, 46vh, 330px); aspect-ratio: 1; margin-top: 22px; }
+  .ff-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ff-ring circle { fill: none; stroke-width: 5; }
+  .ff-track { stroke: var(--line-2); }
+  .ff-prog { stroke: var(--gold); stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+  .ff-ring.up .ff-prog { stroke: var(--danger); }
+  .ff-ring.idle .ff-prog { stroke: transparent; }
+  .ff-read { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .ff-time { font-family: var(--serif); font-size: min(17vw, 10.5vh, 76px); line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .ff-ring.up .ff-time { color: var(--danger); font-size: min(11vw, 7vh, 46px); }
+  .ff-ring.idle .ff-time { color: var(--text-3); font-size: min(9vw, 6vh, 36px); }
+  .ff-sub { font-family: var(--sans); font-size: 12.5px; color: var(--text-3); }
+  .ff-choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 22px; max-width: 360px; }
+  .ff-choices .bk-filter-chip { margin: 0; padding: 10px 14px; font-size: 13px; }
+  .ff-foot { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 420px; margin: 0 auto; }
+  .ff-btns { display: flex; gap: 10px; }
+  .ff-btns .bk-btn { flex: 1; min-height: 48px; font-size: 13.5px; }
+  .ff-btns:empty { display: none; }
+  .ff-foot .btn-primary { min-height: 52px; }
+  /* a phone on its side: the ring beside the words, the buttons in one row */
+  @media (orientation: landscape) and (max-height: 520px) {
+    .ff-body { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "ring title" "ring meta" "ring choices";
+      align-content: center; justify-content: center; column-gap: 36px; row-gap: 6px; text-align: left; }
+    .ff-ring { grid-area: ring; width: min(54vh, 240px); margin: 0; }
+    .ff-title { grid-area: title; align-self: end; font-size: 24px; }
+    .ff-meta { grid-area: meta; align-self: start; }
+    .ff-choices { grid-area: choices; justify-content: flex-start; margin-top: 10px; }
+    .ff-time { font-size: min(13vh, 60px); }
+    .ff-foot { flex-direction: row; max-width: 720px; }
+    .ff-btns { flex: 2; }
+    .ff-foot .btn-primary { flex: 1; width: auto; min-height: 48px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .focus-full { animation: none; } .ff-prog { transition: none; } }
   html[data-theme="light"] .now-k, html[data-theme="light"] .sp-k, html[data-theme="light"] .tl-focus { color: var(--gold-2); }
   /* the running sprint: one surface, a line per thing, nothing nested */
   .sp-panel {
@@ -5684,6 +5738,23 @@
 
 <div class="sheet-backdrop" id="sheetBackdrop">
   <div class="sheet" id="sheet"></div>
+</div>
+
+<div class="focus-full" id="focusFull" role="dialog" aria-modal="true" aria-label="Focus" hidden>
+  <div class="ff-top"><span class="ff-k">Focus</span><button type="button" class="sheet-close ff-close" id="ffClose" aria-label="Close full screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>
+  <div class="ff-body">
+    <p class="ff-title" id="ffTitle"></p>
+    <p class="ff-meta" id="ffMeta"></p>
+    <div class="ff-ring" id="ffRing">
+      <svg viewBox="0 0 200 200" aria-hidden="true"><circle class="ff-track" cx="100" cy="100" r="94"/><circle class="ff-prog" id="ffProg" cx="100" cy="100" r="94"/></svg>
+      <div class="ff-read"><span class="ff-time" id="ffTime" role="timer"></span><span class="ff-sub" id="ffSub"></span></div>
+    </div>
+    <div class="ff-choices" id="ffChoices" role="group" aria-label="Set a timer"></div>
+  </div>
+  <div class="ff-foot">
+    <div class="ff-btns" id="ffBtns"></div>
+    <button type="button" class="btn-primary" id="ffDone">Done</button>
+  </div>
 </div>
 
 <script>
@@ -8408,7 +8479,7 @@
   // One notification, scheduled on this phone for the moment the focus timer ends, and
   // replaced or cancelled whenever the timer changes. Earlier builds without the plugin
   // answer nothing, which is fine: the open app still says so.
-  var FOCUS_NOTE_ID = 7101, focusNoteAt = '';
+  var FOCUS_NOTE_ID = 7101, focusNoteAt = '', focusActKey = null;
   function nativeAskNotifyPermission(){
     if (!NATIVE) return;
     nativeCall('LocalNotifications', 'checkPermissions').then(function(r){
@@ -8418,6 +8489,7 @@
   function nativeFocusTimerSync(){
     if (!NATIVE) return;
     var f = authRole === 'owner' ? focusActive() : null, at = f && f.endsAt && new Date(f.endsAt).getTime() > Date.now() ? f.endsAt : '';
+    nativeFocusActivitySync(f, at);
     if (at === focusNoteAt) return;
     focusNoteAt = at;
     nativeCall('LocalNotifications', 'cancel', { notifications: [{ id: FOCUS_NOTE_ID }] }).then(function(){
@@ -8432,6 +8504,22 @@
         });
     });
   }
+  // the countdown on the iPhone's Lock Screen and in its Dynamic Island (a Live Activity,
+  // app builds from 2026-10-29): one while a timer runs, updated when its time or the focus
+  // changes (the next exercise keeps the timer), ended with it. The phone ticks it itself.
+  // Earlier builds don't know these methods and answer nothing, which is fine.
+  function nativeFocusActivitySync(f, at){
+    if (window.Capacitor.getPlatform() !== 'ios') return;
+    var w = at ? widgetFocus() : null;            // in the Focus widget's own words
+    var title = at ? clipText(w ? w.title : f.title, 200) : '';
+    var ctx = w && w.context ? w.context : '';
+    var key = at ? at + '|' + title + '|' + ctx : '';
+    if (key === focusActKey) return;              // the first call after launch always goes
+    focusActKey = key;
+    if (!at){ nativeCall('LedgerWidget', 'endFocusActivity'); return; }
+    var end = new Date(at).getTime(), start = Math.min(Date.now(), end - (f.timerMin || 0) * 60000);
+    nativeCall('LedgerWidget', 'focusActivity', { title: title, context: ctx || null, startedAt: new Date(start).toISOString(), endsAt: at });
+  }
   // the status bar's text follows Ledger's theme: light on the dark theme, dark on light
   function nativeSyncBars(){
     if (!NATIVE) return;
@@ -8441,6 +8529,7 @@
   // to the background, as Android does for an app's first screen. Tabs add no history, so
   // back never steps through them.
   function nativeBack(){
+    if (ffOpen){ closeFocusFull(); return; }      // the full-screen focus sits above everything
     var ids = ['ppBackdrop', 'sheetBackdrop'];
     for (var i = 0; i < ids.length; i++){
       var bd = document.getElementById(ids[i]);
@@ -20433,6 +20522,7 @@
     localSaveExec();
     renderLogView();
     if (todayMode === 'flow') renderFlow();
+    paintFocusFull();
     scheduleFocusReconcile();
   }
   function saveSprint(s){
@@ -20666,10 +20756,11 @@
       focusTimerAlerted = f.endsAt;
       if (left > -60000 && document.visibilityState === 'visible'){
         var t = focusTarget(f);
-        showActionToast('Time’s up · ' + clipText(t ? focusTitle(t) : f.title, 40), '+5 min', function(){ extendFocusTimer(5); });
+        if (!ffOpen) showActionToast('Time’s up · ' + clipText(t ? focusTitle(t) : f.title, 40), '+5 min', function(){ extendFocusTimer(5); });
         try { if (navigator.vibrate) navigator.vibrate([180, 90, 180]); } catch(e){}
       }
     }
+    paintFocusFull();
     var running = !!(f && f.endsAt && left > -60000);
     if (running && !focusTick) focusTick = setInterval(paintFocusTimer, 1000);
     if (!running && focusTick){ clearInterval(focusTick); focusTick = null; }
@@ -20685,18 +20776,96 @@
         return '<button type="button" class="bk-filter-chip" data-ft="' + m + '">' + m + ' min</button>';
       }).join('') + '</div>' +
       '<p class="set-note ft-note">' + (NATIVE ? 'When time’s up, this phone alerts you — even with Ledger closed.' : 'When time’s up, Ledger says so here while it’s open. On your phone, the app alerts you even when it’s closed.') + '</p>' +
-      (left != null ? '<div class="ib-actions ft-actions">' + (left > 0 ? '' : '') + '<button type="button" class="bk-btn" id="ftMore">+5 min</button><button type="button" class="bk-btn" id="ftStop">Stop timer</button></div>' : '');
+      '<div class="ib-actions ft-actions">' + (left != null ? '<button type="button" class="bk-btn" id="ftMore">+5 min</button><button type="button" class="bk-btn" id="ftStop">Stop timer</button>' : '') +
+        '<button type="button" class="bk-btn" id="ftFull">Full screen</button></div>';
     sheetEl.querySelector('#ftSub').textContent = focusTitle(t);
     var lf = sheetEl.querySelector('#ftLeft');
     if (lf) lf.textContent = left > 0 ? fmtLeft(left) + ' left' : 'Time’s up';
     backdrop.classList.add('open');
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
     sheetEl.querySelectorAll('[data-ft]').forEach(function(b){
-      b.addEventListener('click', function(){ closeSheet(); setFocusTimer(Number(b.dataset.ft)); showPinToast('Timer · ' + b.dataset.ft + ' min', false, CHECK_SVG); });
+      b.addEventListener('click', function(){ closeSheet(); setFocusTimer(Number(b.dataset.ft)); openFocusFull(); });
     });
+    document.getElementById('ftFull').addEventListener('click', function(){ closeSheet(); openFocusFull(); });
     var more = document.getElementById('ftMore'); if (more) more.addEventListener('click', function(){ closeSheet(); extendFocusTimer(5); });
     var stop = document.getElementById('ftStop'); if (stop) stop.addEventListener('click', function(){ closeSheet(); setFocusTimer(null); showPinToast('Timer stopped', false, CHECK_SVG); });
   }
+  // ---- the focus, full screen (2026-10-29) ----
+  // The one thing and its time left, big enough to read from across a room. The timer
+  // button opens it once a timer runs, and so does choosing a length; Done, +5 min and Stop
+  // work here as on the Focus card. It closes by itself when the focus ends. The screen
+  // stays awake while it's open: the Screen Wake Lock where the browser has one, and in the
+  // iPhone app the app's own switch (LedgerWidget.keepAwake, app build 8).
+  var ffOpen = false, ffMode = '', ffWake = null, ffWaking = false, FF_RING = 2 * Math.PI * 94;
+  function openFocusFull(){
+    if (!focusTarget()) return;
+    ffOpen = true; ffMode = '';
+    document.getElementById('focusFull').hidden = false;
+    document.body.classList.add('ff-open');
+    paintFocusFull();
+    ffKeepAwake(true);
+    document.getElementById('ffClose').focus();
+  }
+  function closeFocusFull(){
+    if (!ffOpen) return;
+    ffOpen = false;
+    document.getElementById('focusFull').hidden = true;
+    document.body.classList.remove('ff-open');
+    ffKeepAwake(false);
+    var back = document.getElementById('nowTimer');
+    if (back) back.focus();
+  }
+  function paintFocusFull(){
+    if (!ffOpen) return;
+    var f = focusActive(), t = focusTarget(f);
+    if (!t){ closeFocusFull(); return; }
+    var left = focusLeftMs(f), idle = left == null, up = !idle && left <= 0, total = (f.timerMin || 0) * 60000;
+    var ring = document.getElementById('ffRing'), prog = document.getElementById('ffProg');
+    document.getElementById('ffTitle').textContent = focusTitle(t);     // user text
+    document.getElementById('ffMeta').textContent = focusMeta(t);
+    ring.classList.toggle('idle', idle);
+    ring.classList.toggle('up', up);
+    prog.style.strokeDasharray = FF_RING;
+    prog.style.strokeDashoffset = FF_RING * (1 - (up ? 1 : (idle || !total ? 0 : Math.min(1, left / total))));
+    document.getElementById('ffTime').textContent = idle ? 'No timer' : (up ? 'Time’s up' : fmtLeft(left));
+    document.getElementById('ffSub').textContent = idle ? 'Choose how long' : (up || !f.timerMin ? '' : 'of ' + f.timerMin + ' min');
+    var mode = idle ? 'idle' : 'timer';
+    if (mode === ffMode) return;                 // the controls only change with the timer's state
+    ffMode = mode;
+    var ch = document.getElementById('ffChoices'), btns = document.getElementById('ffBtns');
+    ch.innerHTML = idle ? FOCUS_TIMER_CHOICES.map(function(m){ return '<button type="button" class="bk-filter-chip" data-ff="' + m + '">' + m + ' min</button>'; }).join('') : '';
+    ch.hidden = !idle;
+    btns.innerHTML = idle ? '' : '<button type="button" class="bk-btn" data-ff-more>+5 min</button><button type="button" class="bk-btn" data-ff-stop>Stop timer</button>';
+    ch.querySelectorAll('[data-ff]').forEach(function(b){ b.addEventListener('click', function(){ setFocusTimer(Number(b.dataset.ff)); }); });
+    var more = btns.querySelector('[data-ff-more]'); if (more) more.addEventListener('click', function(){ extendFocusTimer(5); });
+    var stop = btns.querySelector('[data-ff-stop]'); if (stop) stop.addEventListener('click', function(){ setFocusTimer(null); });
+  }
+  function ffKeepAwake(on){
+    if (NATIVE && window.Capacitor.getPlatform() === 'ios') nativeCall('LedgerWidget', 'keepAwake', { on: on });
+    if (!on){
+      if (ffWake){ ffWake.release().catch(function(){}); ffWake = null; }
+      return;
+    }
+    if (ffWake || ffWaking || !navigator.wakeLock || document.visibilityState !== 'visible') return;
+    ffWaking = true;
+    try {
+      navigator.wakeLock.request('screen').then(function(l){
+        ffWaking = false;
+        if (!ffOpen){ l.release().catch(function(){}); return; }
+        ffWake = l;
+        l.addEventListener('release', function(){ if (ffWake === l) ffWake = null; });
+      }).catch(function(){ ffWaking = false; });
+    } catch(e){ ffWaking = false; }
+  }
+  // the browser lets the lock go when Ledger is hidden: take it again on the way back
+  document.addEventListener('visibilitychange', function(){ if (ffOpen && document.visibilityState === 'visible') ffKeepAwake(true); });
+  document.addEventListener('keydown', function(e){ if (ffOpen && e.key === 'Escape'){ e.preventDefault(); closeFocusFull(); } });
+  document.getElementById('ffClose').addEventListener('click', closeFocusFull);
+  document.getElementById('ffDone').addEventListener('click', function(){
+    var t = focusTarget();
+    if (t && t.kind === 'training' && !t.ex) closeFocusFull();    // the session's log is a sheet
+    completeFocus();
+  });
   function clearCurrentFocus(){ if (currentFocus && currentFocus.status === 'active') writeFocus(clearedFocusDoc()); }
   function focusActive(){ return currentFocus && currentFocus.status === 'active' ? currentFocus : null; }
   function focusIsAction(id){ var f = focusActive(); return !!(f && f.type === 'action' && f.sourceId === id); }
@@ -20814,7 +20983,7 @@
     document.getElementById('nowMeta').textContent = focusMeta(t);
     document.getElementById('nowOpen').addEventListener('click', openFocusTarget);
     document.getElementById('nowChange').addEventListener('click', openFocusPicker);
-    document.getElementById('nowTimer').addEventListener('click', openFocusTimerSheet);
+    document.getElementById('nowTimer').addEventListener('click', function(){ if (focusLeftMs() != null) openFocusFull(); else openFocusTimerSheet(); });
     paintFocusTimer();
     document.getElementById('nowDone').addEventListener('click', function(){
       this.classList.add('completed');                 // immediate, before the record confirms
