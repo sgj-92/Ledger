@@ -50,5 +50,10 @@ PLISTEOF
 fi
 plutil -lint "$PLIST"
 
+# Xcode Cloud only builds from a Package.resolved, and won't make one itself. Make it
+# here, with resolution allowed for this one step; the archive then uses this file.
 cd ios/App
+defaults write com.apple.dt.Xcode IDEPackageOnlyUseVersionsFromResolvedFile -bool NO
+defaults write com.apple.dt.Xcode IDEDisableAutomaticPackageResolution -bool NO
 xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
+ls -l App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
