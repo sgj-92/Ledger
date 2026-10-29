@@ -684,6 +684,40 @@ at a preview with `LEDGER_APP_URL`.
 - **Not verified:** the Swift compiles, the alert on a real phone, and how it looks. All
   are checked in Xcode and Android Studio.
 
+## 12d. Xcode Cloud: building the iPhone app without the Mac (2026-10-29)
+
+Shaun's request: build from GitHub while away from the Mac. Xcode Cloud builds on Apple's
+machines and uploads to TestFlight. A build starts from the App Store Connect app, or by
+itself when `native/` changes on `main`.
+
+**In the repository:**
+- `native/ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme`: the shared scheme
+  Xcode Cloud requires.
+- `native/ios/App/ci_scripts/ci_post_clone.sh`: makes what GitHub doesn't hold, the way
+  `npm run sync` does on the Mac:
+  - `npm ci`;
+  - the app URL;
+  - `cap sync ios` (the web layer, `capacitor.config.json`, the plugin symlinks);
+  - `GoogleService-Info.plist`, from the secret environment variable
+    `GOOGLE_SERVICE_INFO_PLIST` (the file, base64);
+  - `Package.resolved`.
+
+**In Xcode Cloud (set once, in Xcode → Integrate → Create Workflow):**
+- **Product:** App (`luxe.sgj.ledger`).
+- **Start condition:** changes to `main`, only when files under `native/` change. Website
+  changes never need a build. Manual start stays available.
+- **Environment:**
+  - the latest Xcode;
+  - the secret `GOOGLE_SERVICE_INFO_PLIST`, made on the Mac with
+    `base64 -i native/ios/App/App/GoogleService-Info.plist | pbcopy`.
+- **Actions:** Archive (iOS), with TestFlight (internal testing) as its deployment.
+- **Post-action:** TestFlight internal testing, to Shaun's group.
+- **Build numbers:** Xcode Cloud sets them. Its next number (App Store Connect → Xcode
+  Cloud → Settings) must be above any build already uploaded.
+
+**Not verified:** the first cloud build. Its log is in App Store Connect and in Xcode's
+Report navigator.
+
 ## 12c. Phase 2: notifications and app links, as built (`feature/native-push`, 2026-10-26)
 
 Shaun approved Phase 2 on 2026-10-26, including the push rules change and the
