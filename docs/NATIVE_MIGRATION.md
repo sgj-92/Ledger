@@ -718,8 +718,17 @@ itself when `native/` changes on `main`.
 - **Build numbers:** Xcode Cloud sets them. Its next number (App Store Connect → Xcode
   Cloud → Settings) must be above any build already uploaded.
 
-**Not verified:** the first cloud build. Its log is in App Store Connect and in Xcode's
-Report navigator.
+**Working since 2026-10-29: build 7.**
+- **Build 6 failed** at Swift package resolution. Xcode Cloud only builds from a
+  `Package.resolved`, so `ci_post_clone.sh` now turns resolution on for its own
+  `xcodebuild -resolvePackageDependencies`.
+- **The Firebase settings** saved only with Secret unticked. During setup, Xcode
+  rejected secret values as "invalid". They are the four `FIREBASE_*` values; they ship
+  inside the app anyway.
+- **Build numbers** now come from Xcode Cloud. They started at 6, above the Mac builds.
+  `npm run bump` is only for a build made on the Mac.
+- **The Ledger record** in App Store Connect is called "Ledger: Take Ownership"; the
+  phone still shows Ledger.
 
 ## 12c. Phase 2: notifications and app links, as built (`feature/native-push`, 2026-10-26)
 

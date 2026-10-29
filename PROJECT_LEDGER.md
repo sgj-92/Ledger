@@ -748,6 +748,14 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-29 — iPhone builds come from Xcode Cloud (Shaun)
+- **Xcode Cloud** builds the iPhone app from `main` and sends it to TestFlight.
+  - It starts by itself when `native/` changes; website changes need no build.
+  - Shaun installs builds from TestFlight; a build lasts 90 days, so there is no more
+    reinstalling every 7 days from Xcode.
+  - Shaun preferred it to GitHub Actions, which needs more setup.
+- See `docs/NATIVE_MIGRATION.md` §12d.
+
 ### 2026-10-28 — Admins tick off others' requests; tap a title to edit (Shaun)
 - **Ticking off:** you and Abi may mark done, or reopen, a request someone else is doing
   (e.g. Abi → Magda). The person it was for is told.
@@ -2431,7 +2439,7 @@ Owner: Shaun (deploy, build 5, try)
 
 **To do:**
 - "Deploy Firebase", everything (this also covers the Home checklist bells and admin editing, built the same day);
-- iPhone build 5 for the timer's alert and the widget countdown.
+- Install build 7 from TestFlight; it has the timer's alert and the widget countdown.
 
 Status: **Deployed 2026-10-27** (Deploy Firebase, everything, green).
 - **Claude in Ledger phase 1:** + → Ask Claude, for Actions and the Food Plan, with
@@ -2619,6 +2627,12 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-29) — **Xcode Cloud set up, with TestFlight; build 7 succeeded.**
+  - **In the repository:** the shared App scheme, and `ci_post_clone.sh`.
+  - **Shaun's settings:** the Default workflow (`main`, changes to `native/` only), and
+    the four `FIREBASE_*` variables.
+  - Build 7 carries the focus timer and the widget countdown, the code that was to be
+    build 5.
 - (2026-10-28) — **Admins tick off others' Home requests; tap a title to edit; request
   sheet order.** (Logged in Decisions.)
   - **Tests:**
