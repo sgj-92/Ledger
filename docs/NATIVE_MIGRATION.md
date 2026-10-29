@@ -708,8 +708,11 @@ itself when `native/` changes on `main`.
   changes never need a build. Manual start stays available.
 - **Environment:**
   - the latest Xcode;
-  - the secret `GOOGLE_SERVICE_INFO_PLIST`, made on the Mac with
-    `base64 -i native/ios/App/App/GoogleService-Info.plist | pbcopy`.
+  - the Firebase settings as secrets. Either `GOOGLE_SERVICE_INFO_PLIST`, made on one
+    line with `base64 -i native/ios/App/App/GoogleService-Info.plist | tr -d '\n' | pbcopy`
+    (Xcode called the value "invalid" with base64's trailing line break), or the four
+    values `FIREBASE_API_KEY`, `FIREBASE_GCM_SENDER_ID`, `FIREBASE_GOOGLE_APP_ID` and
+    `FIREBASE_PROJECT_ID`, read with `plutil -p` from the same file.
 - **Actions:** Archive (iOS), with TestFlight (internal testing) as its deployment.
 - **Post-action:** TestFlight internal testing, to Shaun's group.
 - **Build numbers:** Xcode Cloud sets them. Its next number (App Store Connect → Xcode
