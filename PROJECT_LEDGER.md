@@ -2474,7 +2474,11 @@ Owner: Shaun (deploy Firebase, install the next build, try)
 - Install the new build from TestFlight once Xcode Cloud finishes. Set a timer, lock the
   phone, and check the Lock Screen and the Dynamic Island.
 - If the build fails, send a screenshot of its log.
-- Firebase deploy and build 7 are done (Shaun, 2026-10-29).
+- Build 7 is installed. **Firebase is behind:** the last "Deploy Firebase" run was
+  2026-10-28 08:30 (3df5da8), before the admin tick-off rules (8b3ff8e). So an admin's
+  "Mark done" on someone else's request is refused by the live rules and flips back
+  (Shaun, 2026-10-30), and photos, stars and the Ask Claude photo can't work yet. The
+  code is right (the same steps pass on the emulator); one deploy of everything fixes it.
 
 Status: **Deployed 2026-10-27** (Deploy Firebase, everything, green).
 - **Claude in Ledger phase 1:** + → Ask Claude, for Actions and the Food Plan, with
