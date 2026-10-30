@@ -5167,6 +5167,35 @@
   .hl-day { position: relative; overflow: hidden; }
   .hl-day input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
   .hl-move-left { margin-top: 12px; min-height: 40px; font-size: 13px; }
+  /* daily tasks (2026-10-30): one list a day */
+  .dl-row .chev { flex-shrink: 0; width: 14px; height: 14px; color: var(--text-3); display: flex; }
+  .dl-row .chev svg { width: 100%; height: 100%; }
+  .dl-days { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0 var(--sp-4);
+    padding: 6px; border: 1px solid var(--line-2); border-radius: var(--r-lg); background: var(--surface-2); }
+  .dl-step { flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; border: none; background: none; color: var(--text-2);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .dl-step svg { width: 16px; height: 16px; display: block; }
+  #dlPrev svg { transform: rotate(180deg); }
+  .dl-step:active { background: var(--surface-3); }
+  .dl-day { position: relative; flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+  .dl-day-t { font-family: var(--serif); font-size: 19px; line-height: 1.15; color: var(--text); }
+  .dl-day-d { font-family: var(--sans); font-size: 11.5px; color: var(--text-3); }
+  .dl-day-d:empty { display: none; }
+  .dl-day input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+  .dl-new:empty, .dl-coming:empty, .dl-setup:empty { display: none; }
+  .dl-new-title { margin-bottom: 6px; }
+  .dl-none { margin: 0 0 4px; }
+  .dl-coming { margin: var(--sp-4) 0 0; }
+  .dl-coming-k { margin: 0 0 6px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); }
+  .dl-coming-row { display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 4px 2px; border-bottom: 1px solid var(--line);
+    font-size: 14.5px; color: var(--text-2); }
+  .dl-coming-row span:last-child { overflow-wrap: anywhere; }
+  .dl-setup { margin-top: var(--sp-6); }
+  .dl-setup-head { margin-top: var(--sp-4); }
+  .dl-add-rep { margin-top: 10px; }
+  .dl-times { margin-top: 4px; }
+  .dl-note { margin: 0 0 var(--sp-2); }
+  .hl-carried { color: var(--gold); }
   /* "tell me when it's ticked": quiet until chosen, then the accent */
   .hl-bell { flex-shrink: 0; width: 36px; height: 36px; margin-right: -6px; display: flex; align-items: center; justify-content: center;
     border: none; background: none; cursor: pointer; color: var(--text-3); opacity: 0.55; }
@@ -15382,7 +15411,7 @@
   // "You" for the person looking; their name for everyone else
   function homeWho(uid){ return uid === homeMe() ? 'You' : homeNameOf(uid); }
   function homeWhose(uid){ return uid === homeMe() ? 'your' : homeNameOf(uid) + '’s'; }
-  function homeReq(id){ return home.requests.find(function(r){ return r.id === id; }) || null; }
+  function homeReq(id){ return home.requests.find(function(r){ return r.id === id; }) || (home.dailyLists || []).find(function(r){ return r.id === id; }) || null; }
   // someone's own task: their idea, for themselves. (Something asked of them in person is
   // an ordinary request from whoever asked — only who wrote it differs.)
   function hrOwnIdea(r){ return !!r && !!r.assigneeUid && r.requesterUid === r.assigneeUid && r.createdByUid === r.assigneeUid; }
@@ -15443,7 +15472,10 @@
       [all, parts, shared].forEach(function(src){ Object.keys(src).forEach(function(k){ byId[k] = src[k]; }); });
       home.deletedIds = {};
       Object.keys(byId).forEach(function(k){ if (byId[k].deletedAt) home.deletedIds[k] = true; });
-      home.requests = Object.keys(byId).map(function(k){ return byId[k]; }).filter(function(r){ return !r.deletedAt; });
+      var live = Object.keys(byId).map(function(k){ return byId[k]; }).filter(function(r){ return !r.deletedAt; });
+      // each day's daily-tasks list lives in its own section, never among the requests
+      home.dailyLists = live.filter(function(r){ return r.kind === 'daily'; });
+      home.requests = live.filter(function(r){ return r.kind !== 'daily'; });
       home.reqLoaded = true;
       if (home.surface === 'owner') reconcileHome();
       homeSyncItems();
@@ -15498,6 +15530,14 @@
       listen(OC.where('homeId', '==', H).where('participants', 'array-contains', me), intoO(oParts), 'ongoing');
       listen(OC.where('homeId', '==', H).where('visibility', '==', 'home'), intoO(oShared), 'shared ongoing');
     }
+    // daily tasks: an admin sees everyone's setup; anyone else, their own
+    var DC = dbRef.collection(HOME_DAILY);
+    listen(home.me.role === 'admin' ? DC.where('homeId', '==', H) : DC.where('homeId', '==', H).where('uid', '==', me), function(snap){
+      home.dailyCfg = {};
+      snap.docs.forEach(function(d){ var c = d.data() || {}; home.dailyCfg[c.uid || d.id] = Object.assign({ uid: d.id }, c); });
+      homeSyncItems();
+      homeChanged();
+    }, 'daily tasks');
     // what I asked to hear about (mine only — nobody else's)
     listen(dbRef.collection(HOME_WATCHES).where('uid', '==', me).where('homeId', '==', H), function(snap){
       home.watches = {};
@@ -15516,6 +15556,7 @@
     home.itemStops = {}; home.items = {};
     home.stops.forEach(function(f){ try { f(); } catch(e){} });
     home.stops = []; home.members = []; home.requests = []; home.templates = []; home.ongoing = []; home.watches = {}; home.reqLoaded = false; home.membersLoaded = false;
+    home.dailyLists = []; home.dailyCfg = {};
   }
   function homeChanged(){
     if (home.detailRefresh) home.detailRefresh();
@@ -15616,6 +15657,8 @@
     hrVisible().filter(function(r){ return r.hasChecklist && (hrOpen(r) || r.id === home.itemExtra); })
       .sort(hrNewest).slice(0, HL_MAX_WATCH).forEach(function(r){ want[r.id] = true; });
     if (home.itemExtra && homeReq(home.itemExtra) && homeReq(home.itemExtra).hasChecklist) want[home.itemExtra] = true;
+    // today's daily lists, for their progress on the Home screen
+    (home.dailyLists || []).forEach(function(r){ if (r.dailyDate === todayStr() && dailyOn(r.dailyUid)) want[r.id] = true; });
     Object.keys(home.itemStops).forEach(function(rid){
       if (!want[rid]){ try { home.itemStops[rid](); } catch(e){} delete home.itemStops[rid]; delete home.items[rid]; }
     });
@@ -15681,6 +15724,7 @@
   function hrMoveItemsToDay(r, its, date){
     its = its.filter(function(it){ return !it.done; });
     if (!its.length || !date || !hrIsListEditor(r)) return Promise.resolve();
+    if (r.kind === 'daily') return dailyMoveItems(r, its, date);
     var me = homeMe(), now = new Date().toISOString(), b = dbRef.batch(), target = hrListFor(r, date), tid;
     if (target){
       tid = target.id;
@@ -15757,7 +15801,8 @@
     if (!r.hasChecklist && !editor){ wrap.innerHTML = ''; return; }
     wrap.innerHTML = '';
     var head = document.createElement('div'); head.className = 'hs-sec-head hl-head';
-    head.innerHTML = '<h3 class="cz-sec-title">Checklist</h3><span class="cz-sec-count"></span>';
+    head.innerHTML = '<h3 class="cz-sec-title"></h3><span class="cz-sec-count"></span>';
+    head.querySelector('h3').textContent = r.kind === 'daily' ? 'Tasks' : 'Checklist';
     head.querySelector('.cz-sec-count').textContent = items.length ? done.length + ' of ' + items.length + (items.length && !open.length ? ' · all ticked' : '') : '';
     if (r.hasChecklist || items.length) wrap.appendChild(head);
     var list = document.createElement('div'); list.className = 'hl-list'; list.id = 'hlList';
@@ -15818,6 +15863,7 @@
     var t = document.createElement('span'); t.className = 'hl-text'; t.textContent = it.text;
     body.appendChild(t);
     if (it.done && it.doneByUid){ var m = document.createElement('span'); m.className = 'hl-meta'; m.textContent = homeWho(it.doneByUid) + ' · ' + rqAgo(it.doneAt); body.appendChild(m); }
+    else if (it.carriedFrom){ var cf = document.createElement('span'); cf.className = 'hl-meta hl-carried'; cf.textContent = 'From ' + (it.carriedFrom === yesterdayStr() ? 'yesterday' : shortDayLabel(it.carriedFrom)); body.appendChild(cf); }
     if (editor){
       t.setAttribute('role', 'button'); t.tabIndex = 0;
       function edit(){
@@ -16197,6 +16243,7 @@
       sum.appendChild(b);
     });
     wrap.appendChild(sum);
+    if (!home.filter) homeDailyInto(wrap);
     var me = homeMe();
     if (home.filter){
       var bar = document.createElement('div'); bar.className = 'hs-filter-bar';
@@ -16534,6 +16581,7 @@
         '<button type="button" class="act-row" id="hamSelf"><span class="act-ic">' + UI_ICON.user + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Something I’ll do</span><span class="lc-row-m">Your own idea, or something asked of you in person</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
         '<button type="button" class="act-row" id="hamList"><span class="act-ic">' + CHECK_SVG + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Today\u2019s plan, shopping or checklist</span><span class="lc-row-m">One request with a list to tick off</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
         '<button type="button" class="act-row" id="hamRecur"><span class="act-ic">' + RC_ICON + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Recurring responsibility</span><span class="lc-row-m">Set it up once — it comes round by itself</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
+        (homeIsAdmin() ? '<button type="button" class="act-row" id="hamDaily"><span class="act-ic">' + DAILY_ICON + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Daily tasks</span><span class="lc-row-m">A list for each day — repeating tasks come by themselves</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' : '') +
         (homeIsAdmin() ? '<button type="button" class="act-row" id="hamOngoing"><span class="act-ic">' + OG_ICON + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Ongoing task</span><span class="lc-row-m">Bigger than a day — steps for different people</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' : '') +
         '<button type="button" class="act-row" id="hamMany"><span class="act-ic">' + UI_ICON.list + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Add several tasks</span><span class="lc-row-m">Paste or type a list — each line becomes its own request</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
       '</div>');
@@ -16543,6 +16591,379 @@
     sh.querySelector('#hamMany').addEventListener('click', function(){ openHomeBulk(); });
     sh.querySelector('#hamRecur').addEventListener('click', function(){ openHomeRecurring(null); });
     var og = sh.querySelector('#hamOngoing'); if (og) og.addEventListener('click', function(){ openOngoingForm(null, null); });
+    var dl = sh.querySelector('#hamDaily'); if (dl) dl.addEventListener('click', openDailySetup);
+  }
+
+  // ---- daily tasks (docs/HOME_DAILY.md, 2026-10-30) ----
+  // One list a day for each person an admin switches it on for (Magda, say). Each day's
+  // list is one ordinary request, `D{uid}{YYYYMMDD}`, kind 'daily', made by whoever adds to
+  // that day first — so Abi adding to Friday, and a task moved on from Thursday, land in the
+  // same list. The tasks that repeat are set once; the server adds them each morning,
+  // carries over what was left, and sends the morning message (functions/daily.js).
+  var HOME_DAILY = 'ledger_home_daily';
+  home.dailyCfg = {}; home.dailyLists = []; home.dailyRepeats = {};
+  var DAILY_TIMES = [null, '07:00', '08:00', '09:00', '10:00'];
+  var DAILY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4.5" width="14" height="16" rx="2.5"/><path d="M9 3.5h6v2.5H9z"/><polyline points="8.8 13 11 15.2 15.4 10.6"/></svg>';
+  var RC_WEEK = [1, 2, 3, 4, 5, 6, 0];          // the days of the week, Monday first
+  function dailyOn(uid){ var c = (home.dailyCfg || {})[uid]; return !!(c && c.status === 'active'); }
+  function dailyId(uid, date){ return 'D' + uid + String(date).replace(/-/g, ''); }
+  function dailyList(uid, date){ return homeReq(dailyId(uid, date)); }
+  function dailyWhose(uid){ return uid === homeMe() ? 'Your tasks' : homeNameOf(uid); }
+  // the people whose daily tasks I see: mine, and (an admin) everyone's
+  function dailyPeople(){
+    var me = homeMe();
+    return Object.keys(home.dailyCfg || {}).filter(function(uid){
+      var m = homeMember(uid);
+      return dailyOn(uid) && m && m.status === 'active' && (homeIsAdmin() || uid === me);
+    }).sort(function(a, b){ return (b === me ? 1 : 0) - (a === me ? 1 : 0) || homeNameOf(a).localeCompare(homeNameOf(b)); });
+  }
+  function dailyCanAdd(uid){ return homeOn() && (uid === homeMe() || homeIsAdmin()); }
+  function dailyDayLabel(date){
+    var t = todayStr();
+    if (date === t) return 'Today';
+    if (date === fmtDate(addDays(t, 1))) return 'Tomorrow';
+    if (date === yesterdayStr()) return 'Yesterday';
+    return shortDayLabel(date);
+  }
+  function dailyItems(uid, date){ var r = dailyList(uid, date); return r ? hrItems(r.id) : []; }
+  // A day's list is made the first time anything is added to it (by its person, or an
+  // admin), in the same write as what's added — so it works offline too. A list nobody
+  // has made can't be read to check, so if two people make it at once, the second write
+  // is refused and runs again on the list the first one made.
+  function dailyDoc(uid, date){
+    var me = homeMe(), now = new Date().toISOString(), readAt = {}; readAt[me] = now;
+    return { homeId: home.me.homeId, text: 'Daily tasks', note: null, requestedTiming: 'date', requestedDate: date,
+      requesterUid: uid, assigneeUid: uid, createdByUid: me, participants: homeUids([uid, me]), visibility: 'private', status: 'requested',
+      plannedDate: null, linkedActionId: null, createdAt: now, updatedAt: now, latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created',
+      readAt: readAt, hasChecklist: true, kind: 'daily', dailyUid: uid, dailyDate: date };
+  }
+  function dailyWrite(uid, date, fill, again){
+    var id = dailyId(uid, date), have = homeReq(id), b = dbRef.batch();
+    if (!have) b.set(homeRef(id), dailyDoc(uid, date));
+    fill(b, id, have ? hrItems(id) : []);
+    homeSyncItems(id);
+    return b.commit().catch(function(e){
+      if (have || again) throw e;
+      return new Promise(function(res){ setTimeout(res, 900); }).then(function(){
+        if (!homeReq(id)) throw e;
+        return dailyWrite(uid, date, fill, true);
+      });
+    });
+  }
+  function dailyTop(have){ return have.length ? Math.max.apply(null, have.map(function(x){ return x.order || 0; })) : 0; }
+  function dailyAdd(uid, date, lines){
+    lines = lines.map(function(t){ return t.slice(0, 200); }).filter(Boolean).slice(0, 60);
+    if (!lines.length || !dailyCanAdd(uid)) return Promise.resolve();
+    return dailyWrite(uid, date, function(b, id, have){
+      var top = dailyTop(have);
+      lines.forEach(function(t, i){ b.set(hrItemsRef(id).doc(), hrItemDoc(t, top + i + 1)); });
+    }).catch(hrFail('add that'));
+  }
+  // moved on by hand (Magda, in the afternoon): into that day's one list, saying from when
+  function dailyMoveItems(r, its, date){
+    var day = date === fmtDate(addDays(todayStr(), 1)) ? 'tomorrow' : shortDayLabel(date);
+    return dailyWrite(r.dailyUid, date, function(b, id, have){
+      var top = dailyTop(have);
+      its.forEach(function(it, i){
+        var d = hrItemDoc(it.text, top + i + 1);
+        if (it.starred) d.starred = true;
+        if (it.repeatId) d.repeatId = it.repeatId;     // so that day's repeat doesn't come twice
+        d.carriedFrom = it.carriedFrom || r.dailyDate;
+        b.set(hrItemsRef(id).doc(), d);
+        b.delete(hrItemsRef(r.id).doc(it.id));
+      });
+    }).then(function(){
+      showPinToast((its.length === 1 ? '1 task' : its.length + ' tasks') + ' moved to ' + day, false, CHECK_SVG);
+    }).catch(hrFail('move them'));
+  }
+  // its repeating tasks, watched while a sheet shows them
+  function dailyWatchRepeats(uid, el, then){
+    var stop = null;
+    try {
+      stop = dbRef.collection(HOME_DAILY).doc(uid).collection('repeats').onSnapshot(function(snap){
+        if (!document.body.contains(el)){ if (stop) stop(); return; }
+        home.dailyRepeats[uid] = snap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); })
+          .sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1; });
+        then();
+      }, function(err){ console.warn('daily repeats unavailable', err && err.code); });
+    } catch(e){}
+  }
+  function dailyRowMeta(uid){
+    var r = dailyList(uid, todayStr());
+    if (r && !home.items[r.id]) return 'Today';
+    var its = r ? home.items[r.id] : [];
+    if (!its.length) return 'Today · nothing yet';
+    var done = its.filter(function(x){ return x.done; }).length, open = its.length - done;
+    var from = its.filter(function(x){ return !x.done && x.carriedFrom; }).length;
+    if (!open) return 'Today · all ' + its.length + ' done';
+    return 'Today · ' + done + ' of ' + its.length + ' done' + (from ? ' · ' + from + ' from before' : '');
+  }
+  // on the Home screen: one row a person, today's progress
+  function homeDailyInto(wrap){
+    var people = dailyPeople();
+    if (!people.length) return;
+    var sec = document.createElement('section'); sec.className = 'hs-sec dl-sec';
+    var head = document.createElement('div'); head.className = 'hs-sec-head';
+    head.innerHTML = '<h3 class="cz-sec-title">Daily tasks</h3><span class="cz-sec-count"></span>';
+    sec.appendChild(head);
+    var box = document.createElement('div'); box.className = 'hs-list';
+    people.forEach(function(uid){
+      var b = document.createElement('button'); b.type = 'button';
+      b.className = 'commitment-item hs-row rc-row dl-row'; b.dataset.daily = uid;
+      b.innerHTML = '<span class="rc-mark" aria-hidden="true">' + DAILY_ICON + '</span>' +
+        '<span class="commitment-body hs-row-body"><span class="commitment-title"></span><span class="commitment-meta"></span></span>' +
+        '<span class="chev">' + UI_ICON.chevronRight + '</span>';
+      b.querySelector('.commitment-title').textContent = dailyWhose(uid);
+      b.querySelector('.commitment-meta').textContent = dailyRowMeta(uid);
+      b.addEventListener('click', function(){ openDailySheet(uid, todayStr()); });
+      box.appendChild(b);
+    });
+    sec.appendChild(box);
+    wrap.appendChild(sec);
+  }
+  // one person's day: the list (ticked, starred, moved on as any checklist), what repeats
+  // will come that morning, photos, and (an admin) the setup
+  function openDailySheet(uid, date){
+    var cur = { date: date || todayStr() };
+    var sh = homeHost().open('<div class="sheet-handle"></div>' +
+      '<div class="sheet-head rq-head"><div class="sheet-title-wrap"><p class="rq-kicker">Daily tasks</p><div class="sheet-title rq-title" id="dlTitle"></div></div>' +
+        '<button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<div class="dl-days" role="group" aria-label="Which day">' +
+        '<button type="button" class="dl-step" id="dlPrev" aria-label="The day before">' + UI_ICON.chevronRight + '</button>' +
+        '<label class="dl-day"><span class="dl-day-t" id="dlDay"></span><span class="dl-day-d" id="dlDate"></span><input type="date" id="dlPick" aria-label="Choose a day"></label>' +
+        '<button type="button" class="dl-step" id="dlNext" aria-label="The day after">' + UI_ICON.chevronRight + '</button>' +
+      '</div>' +
+      '<div class="hl-wrap" id="dlList"></div>' +
+      '<div class="dl-new" id="dlNew"></div>' +
+      '<div class="dl-coming" id="dlComing"></div>' +
+      '<div id="dlPhotosWrap"></div>' +
+      '<div class="dl-setup" id="dlSetup"></div>');
+    var mark = sh.querySelector('#dlList'), phFor = null;
+    function open(){ return document.body.contains(mark) && !!mark.closest('.sheet-backdrop.open'); }
+    sh.querySelector('#dlTitle').textContent = dailyWhose(uid);
+    function go(date){ cur.date = date; homeSyncItems(dailyId(uid, date)); paint(); }
+    sh.querySelector('#dlPrev').addEventListener('click', function(){ go(fmtDate(addDays(cur.date, -1))); });
+    sh.querySelector('#dlNext').addEventListener('click', function(){ go(fmtDate(addDays(cur.date, 1))); });
+    sh.querySelector('#dlPick').addEventListener('change', function(){ if (this.value) go(this.value); });
+    function paint(){
+      if (!open()) return false;
+      if (!dailyOn(uid) && !homeIsAdmin()){ homeCloseAll(); return false; }
+      var r = dailyList(uid, cur.date), today = todayStr();
+      sh.querySelector('#dlDay').textContent = dailyDayLabel(cur.date);
+      sh.querySelector('#dlDate').textContent = /^(Today|Tomorrow|Yesterday)$/.test(dailyDayLabel(cur.date)) ? shortDayLabel(cur.date) : '';
+      sh.querySelector('#dlPick').value = cur.date;
+      // the list: as any checklist once it exists; before that, a field that makes it
+      var listEl = sh.querySelector('#dlList'), newEl = sh.querySelector('#dlNew');
+      if (r){ newEl.innerHTML = ''; hrChecklistInto(listEl, r.id); }
+      else {
+        listEl.innerHTML = '';
+        var keep = newEl.querySelector('textarea');
+        if (!(keep && (document.activeElement === keep || keep.value))){
+          newEl.innerHTML = '<h3 class="cz-sec-title dl-new-title">Tasks</h3><p class="hs-empty dl-none"></p>' +
+            (dailyCanAdd(uid) ? '<div class="hl-add"><textarea id="dlAdd" rows="1" maxlength="4000" aria-label="Add a task"></textarea><button type="button" class="rq-send" id="dlAddBtn" disabled>Add</button></div>' : '');
+          newEl.querySelector('.dl-none').textContent = 'Nothing for ' + (cur.date === today ? 'today' : dailyDayLabel(cur.date).toLowerCase() === 'tomorrow' ? 'tomorrow' : dailyDayLabel(cur.date)) + ' yet.';
+          var ta = newEl.querySelector('#dlAdd'), btn = newEl.querySelector('#dlAddBtn');
+          if (ta){
+            ta.placeholder = 'Add a task — or paste a list';
+            var size = function(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; btn.disabled = !ta.value.trim(); };
+            var add = function(){ var lines = hbParse(ta.value); if (!lines.length) return; ta.value = ''; size(); btn.disabled = true; dailyAdd(uid, cur.date, lines); };
+            ta.addEventListener('input', size);
+            ta.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); add(); } });
+            btn.addEventListener('click', add);
+          }
+        }
+      }
+      // a day still to come: the repeating tasks it will bring
+      var coming = sh.querySelector('#dlComing'), reps = home.dailyRepeats[uid] || [];
+      coming.innerHTML = '';
+      if (cur.date > today){
+        var have = {}; dailyItems(uid, cur.date).forEach(function(x){ if (x.repeatId) have[x.repeatId] = true; });
+        var due = reps.filter(function(x){ return !have[x.id] && rcIsDue(x.schedule, cur.date); });
+        if (due.length){
+          var h = document.createElement('p'); h.className = 'dl-coming-k'; h.textContent = 'Added that morning';
+          coming.appendChild(h);
+          due.forEach(function(x){
+            var row = document.createElement('div'); row.className = 'dl-coming-row';
+            row.innerHTML = '<span class="rc-mark" aria-hidden="true">' + RC_ICON + '</span><span></span>';
+            row.lastChild.textContent = x.text;                       // user text
+            coming.appendChild(row);
+          });
+        }
+      }
+      // photos, on a day that has a list
+      var phWrap = sh.querySelector('#dlPhotosWrap');
+      if ((r ? r.id : null) !== phFor){
+        phFor = r ? r.id : null; phWrap.innerHTML = '';
+        if (r){
+          var ph = document.createElement('div'); ph.className = 'ph-sec'; phWrap.appendChild(ph);
+          photoSection(ph, homeRef(r.id).collection('photos'), {
+            canAdd: function(){ return dailyCanAdd(uid); },
+            canRemove: function(p){ return p.byUid === homeMe() || homeIsAdmin(); },
+            who: function(p){ return p.byUid === homeMe() ? 'you' : homeNameOf(p.byUid); }
+          });
+        }
+      }
+      paintSetup();
+      return true;
+    }
+    // the repeating tasks (everyone sees them; an admin changes them), the morning message
+    function paintSetup(){
+      var el = sh.querySelector('#dlSetup'), reps = home.dailyRepeats[uid] || [], admin = homeIsAdmin(), c = (home.dailyCfg || {})[uid] || {};
+      el.innerHTML = '';
+      if (!reps.length && !admin) return;
+      var h = document.createElement('div'); h.className = 'hs-sec-head dl-setup-head';
+      h.innerHTML = '<h3 class="cz-sec-title">Repeating tasks</h3><span class="cz-sec-count"></span>';
+      h.querySelector('.cz-sec-count').textContent = reps.length ? String(reps.length) : '';
+      el.appendChild(h);
+      var box = document.createElement('div'); box.className = 'hs-list';
+      reps.forEach(function(x){
+        var b = document.createElement(admin ? 'button' : 'div'); if (admin) b.type = 'button';
+        b.className = 'commitment-item hs-row rc-row dl-rep'; b.dataset.rep = x.id;
+        b.innerHTML = '<span class="rc-mark" aria-hidden="true">' + RC_ICON + '</span>' +
+          '<span class="commitment-body hs-row-body"><span class="commitment-title"></span><span class="commitment-meta"></span></span>';
+        b.querySelector('.commitment-title').textContent = (x.starred ? '★ ' : '') + x.text;      // user text
+        b.querySelector('.commitment-meta').textContent = rcLabel(x.schedule);
+        if (admin) b.addEventListener('click', function(){ openDailyRepeat(uid, x, cur.date); });
+        box.appendChild(b);
+      });
+      if (!reps.length){ var p = document.createElement('p'); p.className = 'hs-empty'; p.textContent = 'None yet. A repeating task is added to the list each day it falls on.'; box.appendChild(p); }
+      el.appendChild(box);
+      if (!admin) return;
+      var addRep = document.createElement('button'); addRep.type = 'button'; addRep.className = 'add-exercise-btn dl-add-rep'; addRep.id = 'dlAddRep';
+      addRep.textContent = '+ Repeating task';
+      addRep.addEventListener('click', function(){ openDailyRepeat(uid, null, cur.date); });
+      el.appendChild(addRep);
+      var mh = document.createElement('div'); mh.className = 'hs-sec-head dl-setup-head';
+      mh.innerHTML = '<h3 class="cz-sec-title">Morning message</h3>';
+      el.appendChild(mh);
+      var chips = document.createElement('div'); chips.className = 'ft-choices dl-times'; chips.setAttribute('role', 'radiogroup'); chips.setAttribute('aria-label', 'Morning message');
+      DAILY_TIMES.forEach(function(t){
+        var on = (c.notifyTime || null) === t, b = document.createElement('button'); b.type = 'button';
+        b.className = 'bk-filter-chip' + (on ? ' sel' : ''); b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(on));
+        b.dataset.dlTime = t || 'off'; b.textContent = t ? String(Number(t.slice(0, 2))) + ':00' : 'Off';
+        b.addEventListener('click', function(){ dailySave(uid, { notifyTime: t }); });
+        chips.appendChild(b);
+      });
+      el.appendChild(chips);
+      var note = document.createElement('p'); note.className = 'set-note dl-note';
+      note.textContent = c.notifyTime ? 'Each morning, one notification says what’s on ' + (uid === homeMe() ? 'your' : homeNameOf(uid) + '’s') + ' list.' : 'No morning notification.';
+      el.appendChild(note);
+      var off = document.createElement('button'); off.type = 'button'; off.className = 'btn-quiet dl-off'; off.id = 'dlOff';
+      off.textContent = 'Stop daily tasks for ' + (uid === homeMe() ? 'me' : homeNameOf(uid));
+      off.addEventListener('click', function(){
+        if (!confirm('Stop daily tasks for ' + (uid === homeMe() ? 'you' : homeNameOf(uid)) + '? Their lists so far stay as they are.')) return;
+        dailySave(uid, { status: 'off' }).then(function(){ homeCloseAll(); });
+      });
+      el.appendChild(off);
+    }
+    dailyWatchRepeats(uid, mark, function(){ if (open()) paint(); });
+    home.detailRefresh = function(){ if (!paint()) home.detailRefresh = null; };
+    homeSyncItems(dailyId(uid, cur.date));
+    paint();
+  }
+  // the setup, built on the record as it is (a field never wipes another)
+  function dailySave(uid, patch){
+    var c = (home.dailyCfg || {})[uid], now = new Date().toISOString(), me = homeMe();
+    var tz = 'Europe/London'; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || tz; } catch(e){}
+    var ref = dbRef.collection(HOME_DAILY).doc(uid), p;
+    if (c) p = ref.update(Object.assign({ updatedAt: now, updatedByUid: me }, patch));
+    else p = ref.set(Object.assign({ homeId: home.me.homeId, uid: uid, status: 'active', notifyTime: '08:00', timezone: tz,
+      createdByUid: me, createdAt: now, updatedAt: now, updatedByUid: me }, patch));
+    return p.catch(hrFail('save that'));
+  }
+  // an admin switches daily tasks on for someone (or opens theirs)
+  function openDailySetup(){
+    var people = homeActiveMembers().slice().sort(function(a, b){ return (b.uid === homeMe() ? 0 : 1) - (a.uid === homeMe() ? 0 : 1); });
+    var pick = null, time = '08:00';
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead(DAILY_ICON, 'Daily tasks', 'One list a day — tasks that repeat come by themselves, and what’s left moves on overnight.', '') +
+      '<div class="field"><label>For</label><div class="ft-choices" id="dsWho" role="radiogroup" aria-label="For"></div></div>' +
+      '<div class="field"><label>Morning message</label><div class="ft-choices" id="dsTime" role="radiogroup" aria-label="Morning message"></div></div>' +
+      '<p class="hn-err" id="dsErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="dsSave">Start daily tasks</button>');
+    var who = sh.querySelector('#dsWho');
+    people.forEach(function(m){
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'bk-filter-chip'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', 'false');
+      b.textContent = (m.uid === homeMe() ? 'Me' : m.displayName) + (dailyOn(m.uid) ? ' · on' : '');
+      b.addEventListener('click', function(){
+        if (dailyOn(m.uid)){ openDailySheet(m.uid, todayStr()); return; }
+        pick = m.uid;
+        who.querySelectorAll('.bk-filter-chip').forEach(function(x){ x.classList.toggle('sel', x === b); x.setAttribute('aria-checked', String(x === b)); });
+      });
+      who.appendChild(b);
+    });
+    var tEl = sh.querySelector('#dsTime');
+    DAILY_TIMES.forEach(function(t){
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'bk-filter-chip' + (t === time ? ' sel' : '');
+      b.textContent = t ? String(Number(t.slice(0, 2))) + ':00' : 'Off';
+      b.addEventListener('click', function(){ time = t; tEl.querySelectorAll('.bk-filter-chip').forEach(function(x){ x.classList.toggle('sel', x === b); }); });
+      tEl.appendChild(b);
+    });
+    sh.querySelector('#dsSave').addEventListener('click', function(){
+      if (!pick){ sh.querySelector('#dsErr').textContent = 'Choose who it’s for.'; return; }
+      var uid = pick;
+      this.disabled = true;
+      dailySave(uid, { status: 'active', notifyTime: time }).then(function(){
+        var tries = 0;
+        (function wait(){ if (dailyOn(uid) || ++tries > 20) openDailySheet(uid, todayStr()); else setTimeout(wait, 150); })();
+      });
+    });
+  }
+  // a repeating task: what, which days, a star
+  function openDailyRepeat(uid, rep, backDate){
+    var days = rep && rep.schedule ? (rep.schedule.freq === 'daily' ? RC_WEEK.slice() : (rep.schedule.days || []).slice()) : RC_WEEK.slice();
+    var starred = !!(rep && rep.starred);
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead(RC_ICON, rep ? 'Repeating task' : 'New repeating task', '<span id="drFor"></span>', '') +
+      '<div class="field"><label for="drText">Task</label><textarea id="drText" rows="1" maxlength="200" placeholder="e.g. Water the plants"></textarea></div>' +
+      '<div class="field"><label>Which days</label><div class="ft-choices" id="drDays" role="group" aria-label="Which days"></div></div>' +
+      '<button type="button" class="handoff-toggle" id="drStar" role="checkbox" aria-checked="false"><span class="handoff-toggle-box">' + CHECK_SVG + '</span>' +
+        '<span class="handoff-toggle-body"><span class="handoff-toggle-title">Priority</span><span class="handoff-toggle-sub">A star, and first on the list</span></span></button>' +
+      '<p class="hn-err" id="drErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="drSave">' + (rep ? 'Save' : 'Add') + '</button>' +
+      (rep ? '<button type="button" class="delete-btn" id="drDel">Remove this repeating task</button>' : '') +
+      '<button type="button" class="btn-quiet" id="drBack">Back</button>');
+    sh.querySelector('#drFor').textContent = 'On ' + (uid === homeMe() ? 'your' : homeNameOf(uid) + '’s') + ' list, each day it falls on';
+    var ta = sh.querySelector('#drText'); ta.value = rep ? rep.text : '';
+    var dEl = sh.querySelector('#drDays');
+    function paintDays(){
+      dEl.innerHTML = '';
+      var every = document.createElement('button'); every.type = 'button';
+      every.className = 'bk-filter-chip' + (days.length === 7 ? ' sel' : ''); every.textContent = 'Every day';
+      every.setAttribute('aria-pressed', String(days.length === 7));
+      every.addEventListener('click', function(){ days = days.length === 7 ? [] : RC_WEEK.slice(); paintDays(); });
+      dEl.appendChild(every);
+      RC_WEEK.forEach(function(d){
+        var on = days.indexOf(d) > -1, b = document.createElement('button'); b.type = 'button';
+        b.className = 'bk-filter-chip' + (on ? ' sel' : ''); b.textContent = RC_DAYS[d]; b.setAttribute('aria-pressed', String(on));
+        b.dataset.drDay = d;
+        b.addEventListener('click', function(){ if (on) days = days.filter(function(x){ return x !== d; }); else days.push(d); paintDays(); });
+        dEl.appendChild(b);
+      });
+    }
+    paintDays();
+    var star = sh.querySelector('#drStar');
+    function paintStar(){ star.classList.toggle('on', starred); star.setAttribute('aria-checked', String(starred)); }
+    star.addEventListener('click', function(){ starred = !starred; paintStar(); });
+    paintStar();
+    function back(){ openDailySheet(uid, backDate || todayStr()); }
+    sh.querySelector('#drBack').addEventListener('click', back);
+    sh.querySelector('#drSave').addEventListener('click', function(){
+      var text = ta.value.replace(/\s+/g, ' ').trim().slice(0, 200), err = sh.querySelector('#drErr');
+      if (!text){ err.textContent = 'Say what the task is.'; ta.focus(); return; }
+      if (!days.length){ err.textContent = 'Choose at least one day.'; return; }
+      var now = new Date().toISOString(), me = homeMe();
+      var start = rep && rep.schedule && rep.schedule.startDate ? rep.schedule.startDate : todayStr();
+      var sched = days.length === 7 ? { freq: 'daily', startDate: start } : { freq: 'weekdays', days: days.slice().sort(), startDate: start };
+      var ref = rep ? dbRef.collection(HOME_DAILY).doc(uid).collection('repeats').doc(rep.id) : dbRef.collection(HOME_DAILY).doc(uid).collection('repeats').doc();
+      var doc = Object.assign({}, rep ? { createdByUid: rep.createdByUid, createdAt: rep.createdAt } : { createdByUid: me, createdAt: now },
+        { text: text, schedule: sched, starred: starred, updatedAt: now, updatedByUid: me });
+      this.disabled = true;
+      ref.set(doc).then(back).catch(function(e){ hrFail('save it')(e); back(); });
+    });
+    var del = sh.querySelector('#drDel');
+    if (del) del.addEventListener('click', function(){
+      dbRef.collection(HOME_DAILY).doc(uid).collection('repeats').doc(rep.id).delete().then(back).catch(hrFail('remove it'));
+    });
+    if (!rep) setTimeout(function(){ try { ta.focus(); } catch(e){} }, 60);
   }
 
   // ---- ongoing tasks (docs/HOME_ONGOING.md) ----
@@ -17643,6 +18064,7 @@
   function openHomeDetail(rid){
     var r0 = homeReq(rid);
     if (!r0) return;
+    if (r0.kind === 'daily'){ openDailySheet(r0.dailyUid, r0.dailyDate); return; }
     var sh = homeHost().open('<div class="sheet-handle"></div>' +
       '<div class="sheet-head rq-head"><div class="sheet-title-wrap">' +
         '<p class="rq-kicker" id="hdKicker"></p><div class="sheet-title rq-title" id="hdTitle"></div>' +

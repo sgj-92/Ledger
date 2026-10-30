@@ -754,6 +754,19 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-30 — Daily tasks at Home (Shaun's answers)
+- **One list per person per day** (`D{uid}{YYYYMMDD}`, kind `daily`), in its own Home
+  section, never among the requests. Abi adding to a day, and tasks moved on, land in the
+  same list.
+- **Who:** anyone an admin switches it on for (Magda first). Abi, Shaun and the person add
+  tasks; only admins set repeating tasks.
+- **Unfinished tasks carry over automatically overnight**; the person can still move them
+  on by hand in the afternoon.
+- **Repeating tasks** (every day, or chosen weekdays) are added each morning by the server.
+- **One morning message** at a time an admin chooses (or off).
+- Someone else adding to today's list notifies the person.
+- See `docs/HOME_DAILY.md`.
+
 ### 2026-10-29 — Photos, checklist stars, moving items on, + menu (Shaun's answers)
 - **Photos** on Actions and Home requests: phone-quality (about 1,600px JPEG), up to 4,
   stored in Firestore inside the record they belong to, so they follow its rules. No new
@@ -2461,7 +2474,9 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy Firebase, install the next build, try)
+Owner: Shaun (deploy Firebase, then set up Magda's daily tasks)
+**Newest (2026-10-30), built:** daily tasks at Home (`docs/HOME_DAILY.md`). After the
+deploy: Home → Add → Daily tasks → Magda, then add her repeating tasks.
 **Newest (2026-10-29), built:**
 - the focus timer full screen (website), and as a Live Activity (the next Xcode Cloud
   build after build 7);
@@ -2666,6 +2681,15 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-30) — **Daily tasks at Home.** (Logged in Decisions.)
+  - **Server:** `functions/daily.js`, plus `onDailyTick`, `onDailyWritten` and
+    `onDailyRepeatWritten`.
+  - **Rules:** `ledger_home_daily` and its repeats; a day's list as a second route to
+    creating a request.
+  - **App:** the Daily tasks section, the day sheet, setup, repeating tasks.
+  - **Tests:** rules 736 (35 new); functions: daily 23; Home e2e 347 (H25); partner 209,
+    native shell 83, execution 81.
+  - **Needs:** "Deploy Firebase", everything.
 - (2026-10-30) — **Food Plan sheet's foot (Shaun).** Done is the one big button, on its
   own below a rule; "No meals to plan today" sits well below it and shows only when nothing
   is planned; Add is outlined, so Done is the sheet's primary.

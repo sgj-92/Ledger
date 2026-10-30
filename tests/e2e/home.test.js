@@ -1163,6 +1163,74 @@ async function oobLink(email){
     check(A.errs.length === 0 && M.errs.length === 0, 'H24 no page errors', A.errs.concat(M.errs).join(' | ').slice(0, 400));
   }
 
+  // H25 (2026-10-30) — daily tasks: one list a day for Maria, tasks that repeat, moved on by hand
+  {
+    const closeAny = p => p.evaluate(() => { const x = document.querySelector('.sheet-backdrop.open .sheet-close, #ppBackdrop.open .sheet-close'); if (x) x.click(); });
+    const pad = n => String(n).padStart(2, '0'), dstr = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    const today = dstr(new Date()), tmw = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return dstr(d); })();
+    const lid = (uid, d) => 'D' + uid + d.replace(/-/g, '');
+    const itemsOf = async id => ((await (await fetch(`${FS}/${HR}/${id}/items?pageSize=100`, { headers: ADMIN })).json()).documents || []).map(d => Object.assign({ id: d.name.split('/').pop() }, dec({ mapValue: { fields: d.fields } })));
+    const getDoc = async path => { const r = await fetch(`${FS}/${path}`, { headers: ADMIN }); if (!r.ok) return null; const j = await r.json(); return dec({ mapValue: { fields: j.fields || {} } }); };
+    // Abi switches them on for Maria
+    await goHome(A); await A.click('#hsAdd'); await A.waitForSelector('#hamDaily'); await A.click('#hamDaily');
+    await A.waitForSelector('#dsWho');
+    check(await chip(A, '#dsWho', 'Maria'), 'H25 Abi: Add → Daily tasks → for Maria');
+    await A.click('#dsSave');
+    check(await until(A, () => !!document.getElementById('dlTitle') && document.getElementById('dlTitle').textContent === 'Maria' && /Today/.test(document.getElementById('dlDay').textContent), null, 10000),
+      'H25 …and Maria’s day opens: "Today"');
+    let cfg = null;
+    for (let k = 0; k < 20 && !cfg; k++){ await sleep(250); cfg = await getDoc('ledger_home_daily/' + maria); }
+    check(cfg && cfg.status === 'active' && cfg.uid === maria && cfg.notifyTime === '08:00' && cfg.createdByUid === abi && typeof cfg.timezone === 'string', 'H25 stored: on, a morning message at 8', cfg);
+    // Abi adds two for today: the day's list is made with them
+    await A.fill('#dlAdd', 'Hoover upstairs\nIron the tops'); await A.click('#dlAddBtn');
+    check(await until(A, () => document.querySelectorAll('#dlList .hl-row').length === 2, null, 10000), 'H25 two tasks on today’s list');
+    const tl = await getDoc(`${HR}/${lid(maria, today)}`);
+    check(tl && tl.kind === 'daily' && tl.dailyUid === maria && tl.dailyDate === today && tl.assigneeUid === maria && tl.createdByUid === abi, 'H25 today’s list: one request, kind daily, Maria’s, from Abi', tl && { k: tl.kind, d: tl.dailyDate });
+    // a repeating task, every day
+    await A.click('#dlAddRep'); await A.waitForSelector('#drText');
+    await A.fill('#drText', 'Water the plants'); await A.click('#drSave');
+    check(await until(A, () => [...document.querySelectorAll('.dl-rep')].some(r => /Water the plants/.test(r.innerText) && /Every day/.test(r.innerText)), null, 10000), 'H25 a repeating task: "Water the plants · Every day"');
+    await A.click('#dlNext');
+    check(await until(A, () => /Tomorrow/.test(document.getElementById('dlDay').textContent) && /Water the plants/.test(document.getElementById('dlComing').innerText) && /added that morning/i.test(document.getElementById('dlComing').innerText)),
+      'H25 tomorrow shows it coming: "Added that morning"');
+    await A.screenshot({ path: `${shots}/${tag}-H25-abi-tomorrow.png` });
+    await closeAny(A); await sleep(300);
+    // Maria: her own list at the top of Home
+    await goHome(M);
+    check(await until(M, () => { const r = document.querySelector('.dl-row'); return !!r && /Your tasks/.test(r.innerText) && /0 of 2 done/.test(r.innerText); }, null, 10000), 'H25 Maria’s Home: "Your tasks · Today · 0 of 2 done"');
+    check(await M.evaluate(() => ![...document.querySelectorAll('.hs-row:not(.dl-row) .commitment-title')].some(x => x.textContent === 'Daily tasks')), 'H25 the day’s list is never among the requests');
+    await M.screenshot({ path: `${shots}/${tag}-H25-maria-home.png`, fullPage: true });
+    await M.click('.dl-row'); await M.waitForSelector('#dlList .hl-row');
+    check(await until(M, () => !document.getElementById('dlAddRep') && !document.querySelector('[data-dl-time]') && [...document.querySelectorAll('.dl-rep')].length === 1),
+      'H25 she sees what repeats, but only an admin changes it');
+    await M.evaluate(() => [...document.querySelectorAll('#dlList .hl-row')].find(r => r.querySelector('.hl-text').textContent === 'Hoover upstairs').querySelector('.commitment-status-dot').click());
+    // her own task, for today
+    await M.fill('#hlAdd', 'Buy nappies'); await M.click('#hlAddBtn');
+    check(await until(M, () => [...document.querySelectorAll('#dlList .hl-text')].some(x => x.textContent === 'Buy nappies')), 'H25 Maria adds her own task');
+    // the afternoon: what's left moves on, into tomorrow's one list
+    check(await until(M, () => /Move what’s left \(2\) to tomorrow/.test((document.getElementById('hlMoveLeft') || {}).textContent || '')), 'H25 "Move what’s left (2) to tomorrow"');
+    await M.screenshot({ path: `${shots}/${tag}-H25-maria-today.png` });
+    await M.click('#hlMoveLeft');
+    let moved = [];
+    for (let k = 0; k < 30 && moved.length < 2; k++){ await sleep(300); moved = await itemsOf(lid(maria, tmw)); }
+    check(moved.map(x => x.text).sort().join('|') === 'Buy nappies|Iron the tops' && moved.every(x => x.carriedFrom === today && !x.done), 'H25 tomorrow’s list has them, "from" today', moved.map(x => x.text + ':' + x.carriedFrom));
+    const left = await itemsOf(lid(maria, today));
+    check(left.length === 1 && left[0].text === 'Hoover upstairs' && left[0].done, 'H25 today keeps what was done');
+    await M.click('#dlNext');
+    check(await until(M, () => [...document.querySelectorAll('#dlList .hl-meta')].filter(x => /From yesterday|From /.test(x.textContent)).length === 2 && /Water the plants/.test(document.getElementById('dlComing').innerText)),
+      'H25 tomorrow: the two say where they came from; the plants are still to come');
+    await closeAny(M); await sleep(300);
+    // Shaun (admin) sees Maria's, and Abi turns the morning message off
+    await goHome(S);
+    check(await until(S, () => [...document.querySelectorAll('.dl-row')].some(r => /Maria/.test(r.innerText) && /Today/.test(r.innerText)), null, 10000), 'H25 Shaun sees Maria’s daily tasks');
+    await goHome(A); await A.click('.dl-row'); await A.waitForSelector('[data-dl-time="off"]');
+    await A.click('[data-dl-time="off"]');
+    for (let k = 0; k < 20; k++){ await sleep(250); cfg = await getDoc('ledger_home_daily/' + maria); if (cfg && cfg.notifyTime == null) break; }
+    check(cfg && cfg.notifyTime == null && cfg.status === 'active' && cfg.createdByUid === abi, 'H25 the morning message off; nothing else changes', cfg);
+    await closeAny(A); await sleep(300);
+    check(A.errs.length === 0 && M.errs.length === 0 && S.errs.length === 0, 'H25 no page errors', A.errs.concat(M.errs, S.errs).join(' | ').slice(0, 400));
+  }
+
   // H11 — the partner portal still does what it did
   await A.click('[data-pp-tab="today"]'); await sleep(300);
   check(await A.evaluate(() => /Nothing shared for today yet/.test(document.getElementById('partnerApp').innerText)), 'H11 Abi\'s shared day is untouched');

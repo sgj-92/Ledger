@@ -11,6 +11,8 @@
 //   ledger_home_batches/{id} (created)            → each person a list was for, once
 //   ledger_home_ongoing/{id}/updates/{u} (created) → everyone on the ongoing task
 //   ledger_home_requests/{id}/items/{i} (ticked)  → whoever asked to hear about that item
+//   ledger_home_requests/D…/items/{i} (added)     → the person, when someone adds to today's list
+//   daily tasks (hourly)                          → each person's morning message (daily.js)
 //
 // And three that are not pushes: ledger_meta/homeMigration, written by the owner, moves his
 // Partner Sharing requests into Home (migrate.js); and recurring responsibilities at Home
@@ -49,6 +51,7 @@ const webpush = require('web-push');
 const { createEngine } = require('./push');
 const { createMigrator } = require('./migrate');
 const { createRecurrer } = require('./recur');
+const { createDaily } = require('./daily');
 const { createAssistant, ALLOWED_ORIGINS } = require('./assistant');
 
 admin.initializeApp();
@@ -134,6 +137,14 @@ exports.onHomeItemWritten = onDocumentWritten(
   async (event) => {
     const before = event.data && event.data.before && event.data.before.exists ? event.data.before.data() : null;
     const after = event.data && event.data.after && event.data.after.exists ? event.data.after.data() : null;
+    // a task someone else adds to a person's list for today (daily tasks)
+    if (after && !before && event.params.requestId.charAt(0) === 'D') {
+      const added = await engine().handleDailyItemAdded(Object.assign({
+        before, after, requestId: event.params.requestId, itemId: event.params.itemId
+      }, common()));
+      report('daily item push', added);
+      return;
+    }
     if (!after || after.done !== true || (before && before.done === true)) return;
     const result = await engine().handleItemTicked(Object.assign({
       before, after, requestId: event.params.requestId, itemId: event.params.itemId
@@ -240,5 +251,36 @@ exports.assistant = onRequest(
       const busy = e && (e.status === 429 || e.status === 529);
       res.status(502).json({ error: busy ? 'Claude is busy. Try again in a minute.' : 'Claude could not be reached. Try again.' });
     }
+  }
+);
+
+// Daily tasks at Home (docs/HOME_DAILY.md): hourly, in each person's own timezone, what
+// was left on earlier days moves onto today's list, today's repeating tasks are added, and
+// at the morning time chosen one message says what's on it. At once, too, when daily tasks
+// are switched on or their repeating tasks change. Bookkeeping it writes never re-runs it.
+function daily(withPush) {
+  const e = withPush ? engine() : null;
+  return createDaily({ db, log: (...a) => logger.warn(...a), notify: e ? (uid, m) => e.sendDailyMorning(uid, m, common()) : null });
+}
+const DAILY_BOOKKEEPING = ['lastRollDate', 'lastNotifiedDate', 'lastRunAt'];
+exports.onDailyTick = onSchedule({ schedule: 'every 60 minutes', timeZone: 'Etc/UTC', secrets: [VAPID_PRIVATE_KEY] }, async () => {
+  const out = await daily(true).runAll();
+  if (out.errors.length) logger.warn('daily tick', out); else logger.info('daily tick', out);
+});
+exports.onDailyWritten = onDocumentWritten(
+  { document: 'ledger_home_daily/{uid}' },
+  async (event) => {
+    const before = event.data && event.data.before && event.data.before.exists ? event.data.before.data() : null;
+    const after = event.data && event.data.after && event.data.after.exists ? event.data.after.data() : null;
+    if (!after || after.status !== 'active') return;
+    if (before && sameApartFrom(before, after, DAILY_BOOKKEEPING)) return;
+    logger.info('daily written', await daily(false).runOne(event.data.after.ref));
+  }
+);
+exports.onDailyRepeatWritten = onDocumentWritten(
+  { document: 'ledger_home_daily/{uid}/repeats/{repId}' },
+  async (event) => {
+    if (!event.data || !event.data.after || !event.data.after.exists) return;
+    logger.info('daily repeat written', await daily(false).runOne(db.collection('ledger_home_daily').doc(event.params.uid)));
   }
 );

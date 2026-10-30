@@ -418,7 +418,7 @@ service cloud.firestore {
       // them), or something another member asked of them in person (requester = that
       // member). The creator is always the signed-in user, so it always shows who wrote it;
       // requester and assignee are active members.
-      allow create: if rid.matches('^[A-Za-z0-9]{1,40}$')
+      allow create: if (dailyList(rid, request.resource.data)) || (rid.matches('^[A-Za-z0-9]{1,40}$')
                     && inHome(request.resource.data.homeId)
                     && request.resource.data.keys().hasOnly(['homeId', 'text', 'note', 'why', 'requestedTiming', 'requestedDate',
                          'requesterUid', 'assigneeUid', 'createdByUid', 'participants', 'visibility', 'status',
@@ -442,7 +442,7 @@ service cloud.firestore {
                     && request.resource.data.get('linkedActionId', null) == null
                     && request.resource.data.get('latestUpdateByUid', request.auth.uid) == request.auth.uid
                     && request.resource.data.get('readAt', {}).keys().hasOnly([request.auth.uid])
-                    && homeText(request.resource.data);
+                    && homeText(request.resource.data));
       allow update: if notDeleted(resource.data) && canSee(resource.data)
                     && request.resource.data.homeId == resource.data.homeId
                     && homeReqUpdate(resource.data, request.resource.data, request.resource.data.diff(resource.data).affectedKeys());
@@ -572,6 +572,85 @@ service cloud.firestore {
                         || request.resource.data.assigneeUid == resource.data.get('assigneeUid', null)
                         || activeIn(request.resource.data.assigneeUid, resource.data.homeId));
       allow delete: if false;
+    }
+
+    // ---- Daily tasks at Home (docs/HOME_DAILY.md, 2026-10-30) ----
+    // One person's daily list, switched on by an admin. Its setup (the morning message's
+    // time) and the tasks that repeat live here; each day's list is one ordinary request,
+    // id D{uid}{YYYYMMDD}, kind 'daily', made by whoever adds to that day first. The server
+    // rolls unfinished tasks on and adds the repeating ones (functions/daily.js).
+    function dailyPath(uid) {
+      return /databases/$(database)/documents/ledger_home_daily/$(uid);
+    }
+    function dailyShape(d) {
+      return d.keys().hasOnly(['homeId', 'uid', 'status', 'notifyTime', 'timezone', 'createdByUid', 'createdAt', 'updatedAt', 'updatedByUid',
+                               'lastRollDate', 'lastNotifiedDate', 'lastRunAt'])
+          && d.status in ['active', 'off']
+          && (d.get('notifyTime', null) == null || (d.notifyTime is string && d.notifyTime.matches('^[0-2][0-9]:[0-5][0-9]$')))
+          && d.timezone is string && d.timezone.size() <= 64
+          && d.createdAt is string
+          && d.updatedByUid == request.auth.uid;
+    }
+    function dailyServerKeys() {
+      return ['lastRollDate', 'lastNotifiedDate', 'lastRunAt'];
+    }
+    // a day's list: one per person and date, made by them or an admin, only while their
+    // daily tasks are on; private to them and whoever made it (admins see every request)
+    function dailyList(rid, d) {
+      return d.get('kind', null) == 'daily'
+          && d.keys().hasOnly(['homeId', 'text', 'note', 'requestedTiming', 'requestedDate', 'requesterUid', 'assigneeUid', 'createdByUid',
+                               'participants', 'visibility', 'status', 'plannedDate', 'linkedActionId', 'createdAt', 'updatedAt',
+                               'latestUpdateAt', 'latestUpdateByUid', 'latestUpdateType', 'readAt', 'hasChecklist', 'kind', 'dailyUid', 'dailyDate'])
+          && d.dailyUid is string && recurDate(d.dailyDate)
+          && rid == 'D' + d.dailyUid + d.dailyDate.replace('-', '')
+          && inHome(d.homeId)
+          && exists(dailyPath(d.dailyUid))
+          && get(dailyPath(d.dailyUid)).data.homeId == d.homeId && get(dailyPath(d.dailyUid)).data.status == 'active'
+          && d.requesterUid == d.dailyUid && d.assigneeUid == d.dailyUid
+          && d.createdByUid == request.auth.uid
+          && (request.auth.uid == d.dailyUid || me().role == 'admin')
+          && d.participants.hasAll([d.dailyUid, request.auth.uid]) && d.participants.hasOnly([d.dailyUid, request.auth.uid])
+          && d.visibility == 'private' && d.status == 'requested' && d.hasChecklist == true
+          && d.requestedTiming == 'date' && d.requestedDate == d.dailyDate
+          && d.get('plannedDate', null) == null && d.get('linkedActionId', null) == null
+          && d.get('latestUpdateByUid', request.auth.uid) == request.auth.uid
+          && d.get('readAt', {}).keys().hasOnly([request.auth.uid])
+          && homeText(d);
+    }
+    match /ledger_home_daily/{uid} {
+      // an admin sees everyone's; each person sees their own (by field, so it can be queried)
+      allow read: if inHome(resource.data.homeId) && (me().role == 'admin' || resource.data.uid == request.auth.uid);
+      allow create: if homeAdmin(request.resource.data.homeId)
+                    && request.resource.data.uid == uid
+                    && activeIn(uid, request.resource.data.homeId)
+                    && request.resource.data.createdByUid == request.auth.uid
+                    && dailyShape(request.resource.data)
+                    && request.resource.data.status == 'active'
+                    && !request.resource.data.keys().hasAny(dailyServerKeys());
+      allow update: if homeAdmin(resource.data.homeId)
+                    && request.resource.data.homeId == resource.data.homeId
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.createdByUid == resource.data.createdByUid
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(dailyServerKeys())
+                    && dailyShape(request.resource.data);
+      allow delete: if false;
+      // the tasks that repeat: set by an admin; seen by them and by the person
+      match /repeats/{repId} {
+        allow read: if inHome(get(dailyPath(uid)).data.homeId)
+                    && (me().role == 'admin' || request.auth.uid == uid);
+        allow create, update: if repId.matches('^[A-Za-z0-9]{1,40}$')
+                    && homeAdmin(get(dailyPath(uid)).data.homeId)
+                    && request.resource.data.keys().hasOnly(['text', 'schedule', 'starred', 'createdByUid', 'createdAt', 'updatedAt', 'updatedByUid'])
+                    && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 200
+                    && recurSchedule(request.resource.data.schedule)
+                    && request.resource.data.get('starred', false) is bool
+                    && request.resource.data.createdAt is string
+                    && request.resource.data.updatedByUid == request.auth.uid
+                    && (resource == null ? request.resource.data.createdByUid == request.auth.uid
+                                         : request.resource.data.createdByUid == resource.data.createdByUid);
+        allow delete: if homeAdmin(get(dailyPath(uid)).data.homeId);
+      }
     }
 
     // ---- Ongoing tasks at Home (docs/HOME_ONGOING.md) ----
@@ -707,10 +786,13 @@ service cloud.firestore {
               || me().role == 'admin');
     }
     function itemShape(d) {
-      return d.keys().hasOnly(['text', 'done', 'order', 'createdByUid', 'createdAt', 'doneByUid', 'doneAt', 'updatedByUid', 'updatedAt', 'starred'])
+      return d.keys().hasOnly(['text', 'done', 'order', 'createdByUid', 'createdAt', 'doneByUid', 'doneAt', 'updatedByUid', 'updatedAt', 'starred',
+                               'carriedFrom', 'repeatId'])
           && d.text is string && d.text.size() > 0 && d.text.size() <= 200
           && d.done is bool && d.order is number
           && d.get('starred', false) is bool
+          && (d.get('carriedFrom', null) == null || recurDate(d.carriedFrom))
+          && (d.get('repeatId', null) == null || (d.repeatId is string && d.repeatId.size() <= 40))
           && d.createdAt is string && d.updatedAt is string;
     }
     // a photo: the JPEG as base64 (well under Firestore's 1 MiB a document), and who added it

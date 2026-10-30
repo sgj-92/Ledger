@@ -795,6 +795,55 @@ async function check(name, fn){
   await check('photo: an admin removes any', () => assertSucceeds(owner.doc(HR + '/G1/photos/p1').delete()));
   await check('photo: on Shaun\'s own Action, only Shaun', () => assertSucceeds(owner.doc('ledger_commitments/c1/photos/a1').set(photo('owner1'))));
   await check('photo: Abi never reads a photo on Shaun\'s Action', () => assertFails(partner.doc('ledger_commitments/c1/photos/a1').get()));
+  // ---- (2026-10-30) daily tasks: one list a day for a person, switched on by an admin ----
+  const HD = 'ledger_home_daily';
+  const dcfg = (uid, by, o) => Object.assign({ homeId: 'owner1', uid, status: 'active', notifyTime: '08:00', timezone: 'Europe/London', createdByUid: by, createdAt: 'now', updatedAt: 'now', updatedByUid: by }, o || {});
+  await check('daily: Abi switches on daily tasks for the nanny', () => assertSucceeds(partner.doc(HD + '/nanny1').set(dcfg('nanny1', 'partner1'))));
+  await check('daily: the nanny cannot switch them on (not an admin)', () => assertFails(nanny.doc(HD + '/nanny1x').set(dcfg('nanny1x', 'nanny1'))));
+  await check('daily: never for someone not at Home', () => assertFails(owner.doc(HD + '/nanny2').set(dcfg('nanny2', 'owner1'))));
+  await check('daily: never someone else\'s id', () => assertFails(owner.doc(HD + '/exnanny').set(dcfg('nanny1', 'owner1'))));
+  await check('daily: the server\'s bookkeeping is never the client\'s', () => assertFails(owner.doc(HD + '/partner1').set(dcfg('partner1', 'owner1', { lastRollDate: '2026-10-30' }))));
+  await check('daily: Shaun switches on Abi\'s too', () => assertSucceeds(owner.doc(HD + '/partner1').set(dcfg('partner1', 'owner1', { notifyTime: null }))));
+  await check('daily: the nanny reads her own', () => assertSucceeds(nanny.collection(HD).where('homeId', '==', 'owner1').where('uid', '==', 'nanny1').get()));
+  await check('daily: …never anyone else\'s', () => assertFails(nanny.collection(HD).where('homeId', '==', 'owner1').get()));
+  await check('daily: an admin reads them all', () => assertSucceeds(partner.collection(HD).where('homeId', '==', 'owner1').get()));
+  await check('daily: the nanny cannot change her morning time', () => assertFails(nanny.doc(HD + '/nanny1').update({ notifyTime: '09:00', updatedAt: 'now', updatedByUid: 'nanny1' })));
+  await check('daily: Abi changes it', () => assertSucceeds(partner.doc(HD + '/nanny1').update({ notifyTime: '07:00', updatedAt: 'now', updatedByUid: 'partner1' })));
+  const rpt = (by, o) => Object.assign({ text: 'Water the plants', schedule: { freq: 'weekdays', days: [1, 4], startDate: '2026-10-30' }, starred: false, createdByUid: by, createdAt: 'now', updatedAt: 'now', updatedByUid: by }, o || {});
+  await check('daily repeat: Abi adds one', () => assertSucceeds(partner.doc(HD + '/nanny1/repeats/r1').set(rpt('partner1'))));
+  await check('daily repeat: the nanny cannot', () => assertFails(nanny.doc(HD + '/nanny1/repeats/r2').set(rpt('nanny1'))));
+  await check('daily repeat: a schedule that makes sense', () => assertFails(partner.doc(HD + '/nanny1/repeats/r3').set(rpt('partner1', { schedule: { freq: 'weekdays', days: [], startDate: '2026-10-30' } }))));
+  await check('daily repeat: the nanny sees hers', () => assertSucceeds(nanny.collection(HD + '/nanny1/repeats').get()));
+  await check('daily repeat: someone not at Home sees nothing', () => assertFails(nanny2.collection(HD + '/nanny1/repeats').get()));
+  await check('daily repeat: Shaun removes one', () => assertSucceeds(owner.doc(HD + '/nanny1/repeats/r1').delete()));
+  const dlist = (uid, date, by, o) => Object.assign({ homeId: 'owner1', text: 'Daily tasks', note: null, requestedTiming: 'date', requestedDate: date,
+    requesterUid: uid, assigneeUid: uid, createdByUid: by, participants: uid === by ? [uid] : [uid, by], visibility: 'private', status: 'requested',
+    plannedDate: null, linkedActionId: null, createdAt: 'now', updatedAt: 'now', latestUpdateAt: 'now', latestUpdateByUid: by, latestUpdateType: 'created',
+    readAt: { [by]: 'now' }, hasChecklist: true, kind: 'daily', dailyUid: uid, dailyDate: date }, o || {});
+  await check('daily list: Abi starts the nanny\'s list for a day', () => assertSucceeds(partner.doc(HR + '/Dnanny120261031').set(dlist('nanny1', '2026-10-31', 'partner1'))));
+  await check('daily list: …made with its first tasks, in one write', async () => {
+    const b = partner.batch();
+    b.set(partner.doc(HR + '/Dnanny120261110'), dlist('nanny1', '2026-11-10', 'partner1'));
+    b.set(partner.doc(HR + '/Dnanny120261110/items/f1'), item('partner1', { text: 'Bins out' }));
+    b.set(partner.doc(HR + '/Dnanny120261110/items/f2'), item('partner1', { text: 'Mop the kitchen', order: 2 }));
+    return assertSucceeds(b.commit());
+  });
+  await check('daily list: made again by someone else at the same time: refused, never overwritten', () => assertFails(owner.doc(HR + '/Dnanny120261110').set(dlist('nanny1', '2026-11-10', 'owner1'))));
+  await check('daily list: the nanny starts her own', () => assertSucceeds(nanny.doc(HR + '/Dnanny120261101').set(dlist('nanny1', '2026-11-01', 'nanny1'))));
+  await check('daily list: its id is its person and day', () => assertFails(partner.doc(HR + '/Dnanny120261199').set(dlist('nanny1', '2026-11-02', 'partner1'))));
+  await check('daily list: only for someone with daily tasks', () => assertFails(owner.doc(HR + '/Dexnanny20261031').set(dlist('exnanny', '2026-10-31', 'owner1'))));
+  await check('daily list: the nanny never starts one for Abi', () => assertFails(nanny.doc(HR + '/Dpartner120261031').set(dlist('partner1', '2026-10-31', 'nanny1'))));
+  await check('daily list: nothing else on it', () => assertFails(partner.doc(HR + '/Dnanny120261103').set(dlist('nanny1', '2026-11-03', 'partner1', { why: 'x' }))));
+  await check('daily list: always private, and only ever "daily" by this route', () => assertFails(partner.doc(HR + '/Dnanny120261104').set(dlist('nanny1', '2026-11-04', 'partner1', { visibility: 'home' }))));
+  await check('daily list: an ordinary request never claims to be one', () => assertFails(partner.doc(HR + '/x1daily').set(dlist('nanny1', '2026-11-05', 'partner1'))));
+  await check('daily list: Abi adds a task to it', () => assertSucceeds(partner.doc(HR + '/Dnanny120261031/items/a1').set(item('partner1', { text: 'Hoover upstairs' }))));
+  await check('daily list: the nanny adds her own', () => assertSucceeds(nanny.doc(HR + '/Dnanny120261031/items/a2').set(item('nanny1', { text: 'Buy nappies' }))));
+  await check('daily list: a task carried from another day says which', () => assertSucceeds(nanny.doc(HR + '/Dnanny120261101/items/c1').set(item('nanny1', { text: 'Iron tops', carriedFrom: '2026-10-31' }))));
+  await check('daily list: …as a date', () => assertFails(nanny.doc(HR + '/Dnanny120261101/items/c2').set(item('nanny1', { text: 'Iron tops', carriedFrom: 'yesterday' }))));
+  await check('daily list: someone not at Home sees nothing', () => assertFails(nanny2.doc(HR + '/Dnanny120261031').get()));
+  await check('daily list: Abi switches daily tasks off', () => assertSucceeds(partner.doc(HD + '/nanny1').update({ status: 'off', updatedAt: 'now', updatedByUid: 'partner1' })));
+  await check('daily list: …then no new day\'s list starts', () => assertFails(nanny.doc(HR + '/Dnanny120261106').set(dlist('nanny1', '2026-11-06', 'nanny1'))));
+  await check('daily: …and on again', () => assertSucceeds(partner.doc(HD + '/nanny1').update({ status: 'active', updatedAt: 'now', updatedByUid: 'partner1' })));
   // "tell me when it's ticked / done": private to each person
   const WT = 'ledger_home_watches';
   const watch = (uid, rid, iid, o) => Object.assign({ uid, homeId: 'owner1', requestId: rid, itemId: iid, createdAt: 'now' }, o || {});

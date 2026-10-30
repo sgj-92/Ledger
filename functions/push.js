@@ -19,6 +19,7 @@
 
 const SUBS = 'ledger_push_subscriptions';
 const EVENTS = 'ledger_push_events';
+const { localNow } = require('./recur');
 const PREFS = 'ledger_notification_prefs';
 
 const FOCUS_TAG = 'ledger-current-focus';
@@ -447,6 +448,47 @@ function createEngine(deps) {
     return Object.assign(sum, { results });
   }
 
+  // ---- Home: daily tasks (functions/daily.js, docs/HOME_DAILY.md) ----
+  // A task someone else adds to a person's list for today: that person hears it, once.
+  // Tasks the day brings (carried over, or repeating) are announced by the morning
+  // message, never one by one; a list for another day is quiet until its morning.
+  async function handleDailyItemAdded(ev) {
+    const after = ev.after || {}, rid = ev.requestId, iid = ev.itemId;
+    if (!rid || !iid || ev.before) return { skipped: 'not new' };
+    if (after.carriedFrom || after.repeatId) return { skipped: 'the day\'s own' };
+    const reqSnap = await db.collection('ledger_home_requests').doc(rid).get();
+    if (!reqSnap.exists) return { skipped: 'no list' };
+    const r = reqSnap.data() || {};
+    if (r.kind !== 'daily' || r.deletedAt || !r.dailyUid) return { skipped: 'not a daily list' };
+    if (!after.createdByUid || after.createdByUid === r.dailyUid) return { skipped: 'their own' };
+    const cfg = await db.collection('ledger_home_daily').doc(r.dailyUid).get();
+    const c = cfg.exists ? cfg.data() || {} : null;
+    if (!c || c.status !== 'active' || c.homeId !== r.homeId) return { skipped: 'daily tasks off' };
+    if (r.dailyDate !== localNow(c.timezone, new Date(now())).date) return { skipped: 'not today' };
+    const member = async (uid) => {
+      const d = await db.collection('ledger_home_members').doc(uid).get();
+      const m = d.exists ? d.data() || {} : null;
+      return m && m.homeId === r.homeId && m.status === 'active' ? m : null;
+    };
+    const actor = await member(after.createdByUid), them = await member(r.dailyUid);
+    if (!actor || !them || !(await userRole(r.dailyUid))) return { skipped: 'not at Home' };
+    const eventId = 'daily_add_' + rid + '_' + iid;
+    if (!(await claimEvent(eventId, { kind: 'home_daily_added', requestId: rid }))) return { skipped: 'duplicate' };
+    const result = await sendPushToUser(r.dailyUid, {
+      title: clip(actor.displayName || 'Someone', 40) + ' added to today’s tasks', body: clip(after.text, 120),
+      url: appLink(ev.appUrl, { home: rid }), tag: 'ledger-daily-' + rid, renotify: true, kind: 'home'
+    }, { urgency: 'normal', ttl: 12 * 3600, vapidPublicKey: ev.vapidPublicKey });
+    await recordEvent(eventId, Object.assign({ status: 'done' }, result));
+    return result;
+  }
+  // the morning message (daily.js decides when, and what it says)
+  async function sendDailyMorning(uid, m, ev) {
+    if (!(await userRole(uid))) return null;
+    return sendPushToUser(uid, {
+      title: m.title, body: m.body, url: appLink(ev.appUrl, { home: m.listId }), tag: 'ledger-daily-morning', renotify: true, kind: 'home'
+    }, { urgency: 'normal', ttl: 6 * 3600, vapidPublicKey: ev.vapidPublicKey });
+  }
+
   // ---- Home: an update on an ongoing task (ledger_home_ongoing/{id}/updates/{id}) ----
   // What someone on it says, or (an admin) that it's waiting on someone, or no longer is.
   // Everyone on the task hears it but whoever wrote it; admins not on it hear it only if
@@ -595,7 +637,8 @@ function createEngine(deps) {
     return result;
   }
 
-  return { sendPushToUser, handleFocusWrite, handleRequestUpdate, handleHomeUpdate, handleOngoingUpdate, handleItemTicked, handleHomeBatch, handlePinCreated, claimEvent };
+  return { sendPushToUser, handleFocusWrite, handleRequestUpdate, handleHomeUpdate, handleOngoingUpdate, handleItemTicked, handleHomeBatch, handlePinCreated, claimEvent,
+    handleDailyItemAdded, sendDailyMorning };
 }
 
 module.exports = { createEngine, appLink, clip, fcmMessage, channelFor, FOCUS_TAG };
