@@ -2662,6 +2662,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-30) — **Food Plan sheet's foot (Shaun).** Done is the one big button, on its
+  own below a rule; "No meals to plan today" sits well below it and shows only when nothing
+  is planned; Add is outlined, so Done is the sheet's primary.
 - (2026-10-29) — **Photos, stars, moving items on, the + menu, status.** (Logged in
   Decisions.)
   - **Tests:** rules 701; functions: assistant 33; Home e2e 329 (new H24).

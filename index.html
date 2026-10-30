@@ -3052,9 +3052,11 @@
     .kt-mark, .kt-mark svg, .kt-cap, .kt-text { transition: none; }
     .kt-row.kt-enter, .kt-row.kt-flash .kt-title { animation: none; }
   }
-  /* the quiet escape hatches in these sheets sit centred under the primary action */
-  #pmNoneBtn, #pmDoneBtn { display: block; width: 100%; text-align: center; }
-  #pmNoneBtn { color: var(--text-3); font-size: 12.5px; padding-bottom: 4px; }
+  /* the sheet's foot: Done, big and on its own; the quiet escape hatch well below it */
+  .pm-foot { margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--line); }
+  #pmDoneBtn { min-height: 52px; font-size: 15.5px; }
+  #pmNoneBtn { display: block; width: 100%; min-height: 44px; margin-top: var(--sp-3); text-align: center; color: var(--text-3); font-size: 13px; }
+  #pmNoneBtn[hidden] { display: none; }
 
   /* ---- planned meals sheet ---- */
   .pm-list { margin-bottom: var(--sp-3); }
@@ -3084,7 +3086,9 @@
   /* the new-meal field and its Add, side by side: Add keeps the field (and keyboard) open */
   .pm-new-row { display: flex; align-items: flex-end; gap: 8px; }
   .pm-new-row textarea { flex: 1; min-width: 0; min-height: 48px; resize: none; line-height: 1.4; }
-  .btn-primary.pm-add { width: auto; flex-shrink: 0; margin: 0; padding-left: 20px; padding-right: 20px; min-height: 48px; }
+  .btn-primary.pm-add { width: auto; flex-shrink: 0; margin: 0; padding-left: 20px; padding-right: 20px; min-height: 48px;
+    background: none; border: 1px solid rgba(var(--gold-rgb),0.55); color: var(--gold); }
+  .btn-primary.pm-add:active { background: rgba(var(--gold-rgb),0.1); }
 
   /* ============ Add action: one inline field ============
      The trigger lives in the Actions section header. What it opens reads as the next
@@ -19222,14 +19226,20 @@
           : '<button type="button" class="add-exercise-btn" id="pmAddBtn">+ Add meal</button>') +
         (dateStr <= todayStr() ? '<button type="button" class="pm-diary-link" id="pmDiaryBtn">' +
           (eaten || diaryLinesOf(getNutritionForDate(dateStr)).length ? 'View food diary' : 'Open food diary') + UI_ICON.chevronRight + '</button>' : '') +
-        '<button type="button" class="btn-quiet" id="pmDoneBtn">Done</button>' +
-        '<button type="button" class="btn-link" id="pmNoneBtn">No meals to plan today</button>';
+        // (2026-10-30) Done is the daily tap: the sheet's one big button, apart from the rest;
+        // "No meals to plan" only when there's nothing planned, well below it
+        '<div class="pm-foot">' +
+          '<button type="button" class="btn-primary" id="pmDoneBtn">Done</button>' +
+          '<button type="button" class="btn-link" id="pmNoneBtn"' + (getPlanMeals(getPlanForDate(dateStr)).length ? ' hidden' : '') + '>No meals to plan today</button>' +
+        '</div>';
     }
     // the list and its count only: everything else (the field, the keyboard) stays put
     function paintList(){
       var list = document.getElementById('pmList'), sub = document.getElementById('pmSub');
       if (!list || !sub) return false;
       sub.textContent = subText();
+      var none = document.getElementById('pmNoneBtn');
+      if (none) none.hidden = getPlanMeals(getPlanForDate(dateStr)).length > 0;
       list.innerHTML = listHtml();
       // meal text is user content — always set as text, never interpolated as markup
       getPlanMeals(getPlanForDate(dateStr)).forEach(function(m){
