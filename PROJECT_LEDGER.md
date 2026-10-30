@@ -754,6 +754,13 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-10-30 — Ask Claude at Home for Abi (Shaun; supersedes "owner only" in part)
+- Home admins who aren't the owner (Abi) get Ask Claude **at Home**: "Plan" on her Home.
+- **Scope:** everything at Home (daily tasks, repeating tasks, requests, checklists) and what
+  Shaun already shares with her. Never his private Ledger.
+- Proposals are applied by her own Ledger, as her, under Home's rules. 50 requests a day.
+- See `docs/CLAUDE_ASSISTANT.md` §12.
+
 ### 2026-10-30 — Daily tasks at Home (Shaun's answers)
 - **One list per person per day** (`D{uid}{YYYYMMDD}`, kind `daily`), in its own Home
   section, never among the requests. Abi adding to a day, and tasks moved on, land in the
@@ -2474,7 +2481,7 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy Firebase, then set up Magda's daily tasks)
+Owner: Shaun (deploy Firebase, then set up Magda's daily tasks; Abi tries "Plan")
 **Newest (2026-10-30), built:** daily tasks at Home (`docs/HOME_DAILY.md`). After the
 deploy: Home → Add → Daily tasks → Magda, then add her repeating tasks.
 **Newest (2026-10-29), built:**
@@ -2681,6 +2688,12 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-30) — **Ask Claude at Home for Abi.** (Logged in Decisions.)
+  - `functions/assistant-home.js`: her Home-only tools and proposals.
+  - `index.html`: "Plan" on her Home; apply and Undo as her.
+  - `firestore.rules`: each person's own proposals.
+  - **Tests:** rules 741; assistant 47; Home e2e 360 (H26); execution 81 (a non-admin at
+    Home is refused); partner 209; native shell 83; Ask Claude e2e 33.
 - (2026-10-30) — **Daily tasks at Home.** (Logged in Decisions.)
   - **Server:** `functions/daily.js`, plus `onDailyTick`, `onDailyWritten` and
     `onDailyRepeatWritten`.

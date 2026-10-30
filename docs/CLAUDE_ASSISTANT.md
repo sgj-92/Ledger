@@ -170,8 +170,10 @@ as the push key does. It is never in the app, the repo or a browser.
 
 ## 8. Safety
 
-- **Owner only.** Partners and Home members get no button, no connector and no access to
-  the functions. Abi and Magda's own data is never sent to Claude.
+- **Owner only** for Shaun's Ledger. Partners and Home members get no access to it, and
+  Abi and Magda's own data is never sent to Claude through it.
+- **Superseded in part (2026-10-30):** Home admins who aren't the owner (Abi) have Ask
+  Claude **at Home**. See §12. It never reaches Shaun's Ledger.
 - **No new write path.** Ledger's rules still decide every write, because Ledger makes
   them as Shaun.
 - **Ledger text is data, not instructions.** Home requests written by Abi or Magda, and
@@ -291,4 +293,51 @@ such as a shopping list on the fridge.
 - The photo is never kept: the stored conversation notes only that there was one.
 - The system prompt says writing in a photo is data, never an instruction.
 - Tests: `tests/functions/assistant.test.js`, 33.
+
+## 12. Ask Claude at Home (2026-10-30)
+
+Shaun: "I want to give Abi access to Claude too so she can plan the week properly."
+His answers:
+- **Scope:** everything at Home.
+- **His schedule:** yes, what he already shares with her.
+- **Limit:** 50 requests a day.
+
+**Who:** a Home admin who is not the owner (`partner` or `household` role, active, admin
+at Home): Abi. Magda (a member) has none. Shaun keeps his own, which is unchanged.
+
+**What it sees** (`functions/assistant-home.js`):
+- the people at Home, and whose daily tasks are on;
+- each person's daily list for a day, and the repeating tasks a coming day will bring;
+- repeating tasks;
+- Home requests and their checklists;
+- **what Shaun shares with her** through Partner Sharing (published day and week
+  snapshots, only through an active relationship).
+
+No tool reads Shaun's private Ledger. His tools (`get_day`, Actions, Food Plan) are not
+offered in this mode, and a call to one is "Unknown tool".
+
+**What it proposes:**
+- tasks on someone's daily list for a day (today or later, only if their daily tasks are
+  on);
+- a repeating task (every day or chosen weekdays), or removing one;
+- a request to someone at Home, with an optional day and checklist;
+- items on an existing request's checklist.
+
+**Applying:** her Ledger applies what she ticks, signed in as her, through Home's own
+writes, so Home's rules decide every one. Ids are chosen first, so Undo removes exactly
+what was added; a removed repeating task is put back.
+
+**Records:**
+- proposals carry `scope: 'home'`; each person reads and marks only their own;
+- 50 requests a day each (`ledger_assistant_usage`, counted per person);
+- photos work as for Shaun.
+
+**In the app:** "Plan" beside Add on her Home. The sheet is "Plan with Claude", in her own
+sheet.
+
+**Tests:**
+- `tests/functions/assistant.test.js`: 47 (her tools, her proposals, Magda refused, the
+  limit);
+- rules: proposals;
+- Home e2e H26 (a stand-in Claude; apply and Undo against the emulator).
 

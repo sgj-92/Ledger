@@ -1231,6 +1231,63 @@ async function oobLink(email){
     check(A.errs.length === 0 && M.errs.length === 0 && S.errs.length === 0, 'H25 no page errors', A.errs.concat(M.errs, S.errs).join(' | ').slice(0, 400));
   }
 
+  // H26 (2026-10-30) — Ask Claude at Home: Abi plans the week; Home only; applied as her
+  {
+    const closeAny = p => p.evaluate(() => { const x = document.querySelector('.sheet-backdrop.open .sheet-close, #ppBackdrop.open .sheet-close'); if (x) x.click(); });
+    const pad = n => String(n).padStart(2, '0'), dstr = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    const tmw = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return dstr(d); })();
+    const lid = (uid, d) => 'D' + uid + d.replace(/-/g, '');
+    const itemsOf = async id => ((await (await fetch(`${FS}/${HR}/${id}/items?pageSize=100`, { headers: ADMIN })).json()).documents || []).map(d => Object.assign({ id: d.name.split('/').pop() }, dec({ mapValue: { fields: d.fields } })));
+    const reps = async uid => ((await (await fetch(`${FS}/ledger_home_daily/${uid}/repeats?pageSize=50`, { headers: ADMIN })).json()).documents || []).map(d => dec({ mapValue: { fields: d.fields } }));
+    const gro = await reqByText('Weekly groceries');
+    const asked = [];
+    await A.route(/cloudfunctions\.net\/assistant|127\.0\.0\.1:5001\/.*\/assistant/, async (r) => {
+      asked.push({ auth: !!r.request().headers()['authorization'], body: JSON.parse(r.request().postData() || '{}') });
+      await r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ threadId: 'thr1', reply: 'Here is Maria’s week.', proposal: { id: 'prop1', summary: 'Maria’s week', changes: [
+        { n: 1, kind: 'daily_add', uid: maria, name: 'Maria', date: tmw, tasks: ['Mop the kitchen', 'Change the sheets'] },
+        { n: 2, kind: 'daily_repeat_add', uid: maria, name: 'Maria', text: 'Bins out', schedule: { freq: 'weekdays', days: [2], startDate: tmw }, starred: false },
+        { n: 3, kind: 'home_request', assigneeUid: owner, name: 'Shaun', text: 'Pick up the dry cleaning', date: tmw, items: ['Shirts'] },
+        { n: 4, kind: 'checklist_add', requestId: gro.id, before: { text: 'Weekly groceries' }, items: ['Oat milk'] }
+      ] } }) });
+    });
+    await goHome(A);
+    check(await until(A, () => !!document.getElementById('hsClaude')), 'H26 Abi (a Home admin) has "Plan" on her Home');
+    await goHome(M);
+    check(await M.evaluate(() => !document.getElementById('hsClaude')), 'H26 Maria (not an admin) has none');
+    await goHome(S);
+    check(await S.evaluate(() => !document.getElementById('hsClaude')), 'H26 Shaun has his own (the +), not this one');
+    await A.click('#hsClaude'); await A.waitForSelector('#acInput');
+    check(await A.evaluate(() => /Plan with Claude/.test(document.querySelector('#ppSheet .sheet-title').textContent)), 'H26 "Plan with Claude" opens in her own sheet');
+    await A.fill('#acInput', 'Plan Maria’s week'); await A.click('#acSend');
+    check(await until(A, () => document.querySelectorAll('.ac-change').length === 4, null, 10000), 'H26 the proposal: four changes to review');
+    check(asked.length === 1 && asked[0].auth && asked[0].body.message === 'Plan Maria’s week', 'H26 her request goes signed in as her', asked[0] && asked[0].body);
+    const rows = await A.evaluate(() => [...document.querySelectorAll('.ac-change')].map(r => r.innerText.replace(/\n/g, ' | ')));
+    check(/Add to Maria’s/.test(rows[0]) && /Mop the kitchen/.test(rows[0]) && /Repeat Bins out/.test(rows[1]) && /Tue/.test(rows[1]) && /Ask Pick up the dry cleaning/.test(rows[2]) && /For Shaun/.test(rows[2]) && /Add to Weekly groceries/.test(rows[3]),
+      'H26 each in words: added to Maria’s day, a repeat on Tue, a request for Shaun, an item on a list', rows.join(' || '));
+    await A.screenshot({ path: `${shots}/${tag}-H26-abi-proposal.png` });
+    await A.click('[data-ac="apply"]');
+    let day = [], rp = [], dc = null, gi = [];
+    for (let k = 0; k < 30; k++){
+      await sleep(300);
+      day = await itemsOf(lid(maria, tmw)); rp = await reps(maria); dc = (await all(HR)).find(r => r.text === 'Pick up the dry cleaning'); gi = await itemsOf(gro.id);
+      if (day.some(x => x.text === 'Mop the kitchen') && rp.some(x => x.text === 'Bins out') && dc && gi.some(x => x.text === 'Oat milk')) break;
+    }
+    check(day.some(x => x.text === 'Mop the kitchen' && x.createdByUid === abi) && day.some(x => x.text === 'Change the sheets'), 'H26 applied: on Maria’s list for tomorrow, added by Abi');
+    check(rp.some(x => x.text === 'Bins out' && x.createdByUid === abi && x.schedule.freq === 'weekdays'), 'H26 …a repeating task, hers');
+    check(dc && dc.requesterUid === abi && dc.assigneeUid === owner && dc.requestedDate === tmw && dc.hasChecklist, 'H26 …a request to Shaun for tomorrow, from Abi');
+    check(gi.some(x => x.text === 'Oat milk' && x.createdByUid === abi), 'H26 …and the item on the groceries list');
+    // Undo puts it all back
+    await A.click('[data-ac="undo"]');
+    for (let k = 0; k < 30; k++){
+      await sleep(300);
+      day = await itemsOf(lid(maria, tmw)); rp = await reps(maria); dc = (await all(HR)).find(r => r.text === 'Pick up the dry cleaning'); gi = await itemsOf(gro.id);
+      if (!day.some(x => x.text === 'Mop the kitchen') && !rp.some(x => x.text === 'Bins out') && dc && dc.deletedAt && !gi.some(x => x.text === 'Oat milk')) break;
+    }
+    check(!day.some(x => x.text === 'Mop the kitchen') && !rp.some(x => x.text === 'Bins out') && dc && dc.deletedAt && !gi.some(x => x.text === 'Oat milk'), 'H26 Undo takes each back off');
+    await closeAny(A); await sleep(300);
+    check(A.errs.length === 0, 'H26 no page errors', A.errs.join(' | ').slice(0, 400));
+  }
+
   // H11 — the partner portal still does what it did
   await A.click('[data-pp-tab="today"]'); await sleep(300);
   check(await A.evaluate(() => /Nothing shared for today yet/.test(document.getElementById('partnerApp').innerText)), 'H11 Abi\'s shared day is untouched');

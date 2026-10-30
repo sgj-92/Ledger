@@ -544,8 +544,13 @@ async function swChecks(){
   check(r.status === 401, 'assistant: no sign-in is refused (' + r.status + ')');
   r = await ask({ authorization: 'Bearer not-a-token' });
   check(r.status === 401, 'assistant: a made-up token is refused (' + r.status + ')');
-  r = await ask({ authorization: 'Bearer ' + await tokenFor(ABI) });
-  check(r.status === 403 && /only for the owner/.test((await r.json()).error), 'assistant: a partner is refused (' + r.status + ')');
+  // (2026-10-30) Abi, a Home admin, now has Ask Claude at Home; someone at Home who isn't an
+  // admin, or a partner outside Home, still has none
+  const MAGDA = 'magda@example.com', magda = await signUp(MAGDA);
+  await put(`ledger_users/${magda}`, { role: 'household', displayName: 'Magda' });
+  await put(`ledger_home_members/${magda}`, { homeId: owner, role: 'member', status: 'active', displayName: 'Magda' });
+  r = await ask({ authorization: 'Bearer ' + await tokenFor(MAGDA) });
+  check(r.status === 403 && /only for the owner/.test((await r.json()).error), 'assistant: someone at Home who isn\'t an admin is refused (' + r.status + ')');
   r = await ask({ authorization: 'Bearer ' + await tokenFor(SHAUN) }, 'GET');
   check(r.status === 405, 'assistant: POST only (' + r.status + ')');
   const pre = (origin) => fetch(AS, { method: 'OPTIONS', headers: { origin, 'access-control-request-method': 'POST', 'access-control-request-headers': 'authorization,content-type' } });

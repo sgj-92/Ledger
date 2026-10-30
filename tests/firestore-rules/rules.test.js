@@ -1022,6 +1022,7 @@ async function check(name, fn){
     await ctx.firestore().doc('ledger_assistant_proposals/p1').set({ ownerUid: 'owner1', status: 'proposed', summary: 'Move 2', changes: [{ n: 1, kind: 'action_update' }], createdAt: 'x' });
     await ctx.firestore().doc('ledger_assistant_proposals/p2').set({ ownerUid: 'owner2', status: 'proposed', summary: 'Other', changes: [], createdAt: 'x' });
     await ctx.firestore().doc('ledger_assistant_threads/t1').set({ ownerUid: 'owner1', messagesJson: '[]' });
+    await ctx.firestore().doc('ledger_assistant_proposals/pa').set({ ownerUid: 'partner1', scope: 'home', status: 'proposed', summary: 'Week', changes: [{ n: 1, kind: 'daily_add' }], createdAt: 'x' });
   });
   const AP = 'ledger_assistant_proposals/';
   await check('assistant: the owner reads his proposal', () => assertSucceeds(owner.doc(AP + 'p1').get()));
@@ -1034,6 +1035,12 @@ async function check(name, fn){
   await check('assistant: only a known outcome', () => assertFails(owner.doc(AP + 'p1').update({ status: 'proposed' })));
   await check('assistant: no client creates a proposal', () => assertFails(owner.doc(AP + 'p3').set({ ownerUid: 'owner1', status: 'proposed', changes: [] })));
   await check('assistant: nor deletes one', () => assertFails(owner.doc(AP + 'p1').delete()));
+  // (2026-10-30) Ask Claude at Home: Abi's own proposals
+  await check('assistant: Abi reads her own (Home) proposal', () => assertSucceeds(partner.doc(AP + 'pa').get()));
+  await check('assistant: …and records it applied', () => assertSucceeds(partner.doc(AP + 'pa').update({ status: 'applied', applied: [{ n: 1 }], appliedAt: 'now', updatedAt: 'now' })));
+  await check('assistant: Shaun never reads hers', () => assertFails(owner.doc(AP + 'pa').get()));
+  await check('assistant: nor the nanny', () => assertFails(nanny.doc(AP + 'pa').get()));
+  await check('assistant: Abi still never reads Shaun\'s', () => assertFails(partner.doc(AP + 'p1').get()));
   await check('assistant: the conversation is server-only', () => assertFails(owner.doc('ledger_assistant_threads/t1').get()));
   await check('assistant: the daily count is server-only', () => assertFails(owner.doc('ledger_assistant_usage/owner1_2026-10-27').set({ count: 0 })));
 

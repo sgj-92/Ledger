@@ -5005,6 +5005,7 @@
   .hs-add svg { width: 14px; height: 14px; display: block; }
   .hs-add:active { transform: scale(0.97); background: rgba(var(--gold-rgb),0.14); }
   html[data-theme="light"] .hs-add { color: var(--gold-2); }
+  .hs-top-acts { display: flex; gap: 8px; flex-shrink: 0; }
   .hs-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: var(--sp-5); }
   .hs-stat {
     display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; min-height: 64px;
@@ -10531,6 +10532,10 @@
     return 'https://' + ASSISTANT_REGION + '-' + firebaseConfig.projectId + '.cloudfunctions.net/assistant';
   }
   function askClaudeAvailable(){ return !LOCAL_ONLY && authRole === 'owner' && dbReady && !!authUser; }
+  // Ask Claude at Home (2026-10-30): a Home admin who isn't the owner (Abi) plans Home with
+  // it — its own tools on the server (functions/assistant-home.js), never Shaun's Ledger;
+  // what she ticks is applied here, as her, through Home's own writes and rules
+  function askClaudeHomeAvailable(){ return !LOCAL_ONLY && authRole !== 'owner' && !!authUser && !!dbRef && homeIsAdmin(); }
   var acState = null;
   function acNorm(v){ return v === undefined || v === '' ? null : v; }
 
@@ -10562,26 +10567,46 @@
     } else if (c.kind === 'plan_meals_add'){
       verb = 'Add meals'; title = day(c.id);
       (c.add || []).forEach(function(m){ lines.push(m); });
+    } else if (c.kind === 'daily_add'){
+      verb = 'Add to'; title = (c.name || '') + '\u2019s ' + day(c.date);
+      (c.tasks || []).forEach(function(t){ lines.push(t); });
+    } else if (c.kind === 'daily_repeat_add'){
+      verb = 'Repeat'; title = c.text;
+      lines.push([c.name, rcLabel(c.schedule), c.starred ? 'Priority' : ''].filter(Boolean).join(' \u00b7 '));
+    } else if (c.kind === 'daily_repeat_remove'){
+      var bf = c.before || {};
+      verb = 'Stop repeating'; title = bf.text; danger = true;
+      lines.push([c.name, rcLabel(bf.schedule)].filter(Boolean).join(' \u00b7 '));
+    } else if (c.kind === 'home_request'){
+      verb = 'Ask'; title = c.text;
+      lines.push('For ' + (c.assigneeUid === homeMe() ? 'you' : c.name) + (c.date ? ' \u00b7 ' + day(c.date) : ''));
+      (c.items || []).forEach(function(t){ lines.push('\u2022 ' + t); });
+    } else if (c.kind === 'checklist_add'){
+      verb = 'Add to'; title = (c.before || {}).text;
+      (c.items || []).forEach(function(t){ lines.push('\u2022 ' + t); });
     }
     return { verb: verb, title: title || '', lines: lines, danger: danger };
   }
 
   function openAskClaudeSheet(){
-    if (!askClaudeAvailable()) return;
+    var atHome = !askClaudeAvailable() && askClaudeHomeAvailable();
+    if (!askClaudeAvailable() && !atHome) return;
     editingId = null;
     activeSheetRefresh = null;
-    acState = { threadId: null, turns: [], busy: false, picked: {} };
-    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
-      sheetHead(UI_ICON.spark, 'Ask Claude', 'Plan and tidy your days. Nothing changes until you approve it.', '') +
+    acState = { threadId: null, turns: [], busy: false, picked: {}, home: atHome };
+    var html = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.spark, atHome ? 'Plan with Claude' : 'Ask Claude', atHome ? 'Plan the week at Home. Nothing changes until you approve it.' : 'Plan and tidy your days. Nothing changes until you approve it.', '') +
       '<div class="ac-thread" id="acThread" aria-live="polite"></div>' +
       '<div class="ac-compose">' +
         '<div class="ac-pending" id="acPending" hidden><img id="acPendingImg" alt="The photo to send"><button type="button" class="ac-pending-x" id="acPendingX" aria-label="Remove the photo">' + CLOSE_SVG + '</button></div>' +
         '<div class="ac-compose-row">' +
           '<button type="button" class="ac-photo" id="acPhoto" aria-label="Add a photo">' + UI_ICON.camera + '</button>' +
-          '<textarea id="acInput" rows="2" maxlength="4000" placeholder="e.g. Move today\u2019s unfinished work to tomorrow" aria-label="Ask Claude"></textarea>' +
+          '<textarea id="acInput" rows="2" maxlength="4000" placeholder="' + (atHome ? 'e.g. Plan next week\u2019s daily tasks' : 'e.g. Move today\u2019s unfinished work to tomorrow') + '" aria-label="Ask Claude"></textarea>' +
           '<button type="button" class="btn-primary ac-send" id="acSend">Send</button>' +
         '</div>' +
       '</div>';
+    if (atHome) homeHost().open(html);
+    else sheetEl.innerHTML = html;
     var input = document.getElementById('acInput');
     document.getElementById('acSend').addEventListener('click', acSend);
     // a photo (2026-10-29): a shopping list on the fridge, a note — Claude reads it with the words
@@ -10590,16 +10615,18 @@
         if (!list.length || !acState) return;
         acState.photo = list[0];
         acPaintPending();
-        if (!input.value.trim()) input.placeholder = 'e.g. Add these to tomorrow\u2019s Food Plan';
+        if (!input.value.trim()) input.placeholder = atHome ? 'e.g. Add these to tomorrow\u2019s list' : 'e.g. Add these to tomorrow\u2019s Food Plan';
       }, function(){ showPinToast('That photo couldn\u2019t be read', true); });
     });
     document.getElementById('acPendingX').addEventListener('click', function(){ if (acState){ acState.photo = null; acPaintPending(); } });
     input.addEventListener('keydown', function(e){
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); acSend(); }
     });
-    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    if (!atHome){
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      backdrop.classList.add('open');
+    }
     acRender();
-    backdrop.classList.add('open');
     setTimeout(function(){ try { input.focus(); } catch(e){} }, 60);
   }
 
@@ -10660,7 +10687,9 @@
     if (!acState.turns.length){
       var hint = document.createElement('p');
       hint.className = 'ac-empty';
-      hint.textContent = 'Ask for anything on Today and your upcoming days: add or move Actions, tick things off, tidy the backlog, plan meals. You review every change before it happens.';
+      hint.textContent = acState.home
+        ? 'Plan the week at Home: each person\u2019s daily tasks, tasks that repeat, requests and shopping lists. A photo of a list works too. You review every change before it happens.'
+        : 'Ask for anything on Today and your upcoming days: add or move Actions, tick things off, tidy the backlog, plan meals. You review every change before it happens.';
       box.appendChild(hint);
     }
     acState.turns.forEach(function(t){
@@ -10697,11 +10726,11 @@
     head.lastChild.textContent = p.summary;
     card.appendChild(head);
     if (t.state === 'replaced' || t.state === 'cancelled') return card;
-    var removes = p.changes.filter(function(c){ return c.kind === 'action_delete'; }).length;
+    var removes = p.changes.filter(function(c){ return c.kind === 'action_delete' || c.kind === 'daily_repeat_remove'; }).length;
     if (t.state === 'open' && (removes || p.changes.length > 10)){
       var warn = document.createElement('p');
       warn.className = 'ac-prop-warn';
-      warn.textContent = [removes ? 'Removes ' + removes + (removes === 1 ? ' Action.' : ' Actions.') : '',
+      warn.textContent = [removes ? 'Removes ' + removes + (acState.home ? (removes === 1 ? ' repeating task.' : ' repeating tasks.') : (removes === 1 ? ' Action.' : ' Actions.')) : '',
         p.changes.length > 10 ? 'Changes ' + p.changes.length + ' records.' : ''].filter(Boolean).join(' ');
       card.appendChild(warn);
     }
@@ -10814,6 +10843,63 @@
       savePlanForDate(c.id, Object.assign({}, plan, { meals: getPlanMeals(plan).concat(added) }));
       return { ok: true, undo: { kind: 'meals', date: c.id, ids: added.map(function(m){ return m.id; }) } };
     }
+    if (/^(daily_|home_request|checklist_add)/.test(c.kind)) return acApplyHome(c);
+    return { ok: false, why: 'Ledger doesn\u2019t know this kind of change' };
+  }
+  // Home changes from Ask Claude at Home: made here, as whoever applies them, through Home's
+  // own writes (so Home's rules decide each one), with ids chosen first so Undo knows them
+  function acApplyHome(c){
+    var me = homeMe(), now = new Date().toISOString(), fail = function(what){ return hrFail(what); };
+    if (!homeOn() || !dbRef) return { ok: false, why: 'Home isn\u2019t available right now' };
+    if (c.kind === 'daily_add'){
+      if (!dailyOn(c.uid)) return { ok: false, why: 'their daily tasks are off' };
+      if (c.date < todayStr()) return { ok: false, why: 'that day has gone' };
+      var ids = [];
+      dailyWrite(c.uid, c.date, function(b, id, have){
+        var top = dailyTop(have); ids.length = 0;
+        (c.tasks || []).forEach(function(t, i){ var ref = hrItemsRef(id).doc(); ids.push(ref.id); b.set(ref, hrItemDoc(t, top + i + 1)); });
+      }).catch(fail('add those'));
+      return { ok: true, undo: { kind: 'home_items', rid: dailyId(c.uid, c.date), ids: ids } };
+    }
+    if (c.kind === 'daily_repeat_add'){
+      if (!dailyOn(c.uid)) return { ok: false, why: 'their daily tasks are off' };
+      var rref = dbRef.collection(HOME_DAILY).doc(c.uid).collection('repeats').doc();
+      rref.set({ text: c.text, schedule: c.schedule, starred: !!c.starred, createdByUid: me, createdAt: now, updatedAt: now, updatedByUid: me }).catch(fail('add that'));
+      return { ok: true, undo: { kind: 'repeat_del', uid: c.uid, id: rref.id } };
+    }
+    if (c.kind === 'daily_repeat_remove'){
+      var dref = dbRef.collection(HOME_DAILY).doc(c.uid).collection('repeats').doc(c.id);
+      dref.delete().catch(fail('remove that'));
+      var bf = c.before || {};
+      return { ok: true, undo: { kind: 'repeat_put', uid: c.uid, id: c.id,
+        doc: { text: bf.text, schedule: bf.schedule, starred: !!bf.starred, createdByUid: me, createdAt: now, updatedAt: now, updatedByUid: me } } };
+    }
+    if (c.kind === 'home_request'){
+      var m = homeMember(c.assigneeUid);
+      if (!m || m.status !== 'active') return { ok: false, why: 'they\u2019re no longer at Home' };
+      var ref = dbRef.collection(HOME_REQ).doc(), b = dbRef.batch(), readAt = {}; readAt[me] = now;
+      var timing = c.date ? 'date' : 'none';
+      var doc = { homeId: home.me.homeId, text: c.text, note: null, requestedTiming: timing, requestedDate: c.date || null,
+        requesterUid: me, assigneeUid: c.assigneeUid, createdByUid: me, participants: homeUids([me, c.assigneeUid]), visibility: 'private',
+        status: 'requested', plannedDate: null, linkedActionId: null, createdAt: now, updatedAt: now,
+        latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created', readAt: readAt };
+      if ((c.items || []).length) doc.hasChecklist = true;
+      b.set(ref, doc);
+      b.set(ref.collection('updates').doc('created'), hrEntry('created', null, { timing: timing, date: c.date || null, onBehalf: false }));
+      (c.items || []).forEach(function(t, i){ b.set(ref.collection('items').doc(), hrItemDoc(t, i + 1)); });
+      b.commit().catch(fail('send that'));
+      return { ok: true, undo: { kind: 'request_del', id: ref.id } };
+    }
+    if (c.kind === 'checklist_add'){
+      var r = homeReq(c.requestId);
+      if (!r || r.deletedAt) return { ok: false, why: 'it\u2019s no longer there' };
+      if (!hrIsListEditor(r)) return { ok: false, why: 'you can\u2019t change that list' };
+      var have = hrItems(r.id), top = dailyTop(have), b2 = dbRef.batch(), ids2 = [];
+      (c.items || []).forEach(function(t, i){ var iref = hrItemsRef(r.id).doc(); ids2.push(iref.id); b2.set(iref, hrItemDoc(t, top + i + 1)); });
+      if (!r.hasChecklist) b2.update(homeRef(r.id), { hasChecklist: true, updatedAt: now });
+      b2.commit().catch(fail('add those'));
+      return { ok: true, undo: { kind: 'home_items', rid: r.id, ids: ids2 } };
+    }
     return { ok: false, why: 'Ledger doesn\u2019t know this kind of change' };
   }
   // Undo puts each record back as it was — newest first, and never over a later edit.
@@ -10830,6 +10916,17 @@
         cur = commitments.find(function(x){ return x.id === u.id; });
         var same = cur && Object.keys(u.expect).every(function(k){ return acNorm(cur[k]) === acNorm(u.expect[k]); });
         if (same) saveCommitment(Object.assign({}, cur, u.fields)); else kept++;
+      } else if (u.kind === 'home_items'){
+        var hb = dbRef.batch();
+        u.ids.forEach(function(id){ hb.delete(hrItemsRef(u.rid).doc(id)); });
+        hb.commit().catch(function(e){ console.warn('undo items', e && e.code); });
+      } else if (u.kind === 'repeat_del'){
+        dbRef.collection(HOME_DAILY).doc(u.uid).collection('repeats').doc(u.id).delete().catch(function(e){ console.warn('undo repeat', e && e.code); });
+      } else if (u.kind === 'repeat_put'){
+        dbRef.collection(HOME_DAILY).doc(u.uid).collection('repeats').doc(u.id).set(u.doc).catch(function(e){ console.warn('undo repeat', e && e.code); });
+      } else if (u.kind === 'request_del'){
+        var hr = homeReq(u.id);
+        if (hr) hrDelete(hr); else kept++;
       } else if (u.kind === 'meals'){
         var plan = getPlanForDate(u.date);
         if (plan) savePlanForDate(u.date, Object.assign({}, plan, { meals: getPlanMeals(plan).filter(function(m){ return u.ids.indexOf(m.id) === -1; }) }));
@@ -16226,7 +16323,17 @@
     add.innerHTML = BK_PLUS_SVG + '<span>Add</span>';
     add.setAttribute('aria-haspopup', 'dialog');
     add.addEventListener('click', openHomeAddMenu);
-    top.appendChild(who); top.appendChild(add);
+    top.appendChild(who);
+    // Ask Claude at Home (2026-10-30): for a Home admin who isn't the owner — Shaun has his own
+    if (askClaudeHomeAvailable()){
+      var cl = document.createElement('button'); cl.type = 'button'; cl.className = 'hs-add hs-claude'; cl.id = 'hsClaude';
+      cl.innerHTML = UI_ICON.spark + '<span>Plan</span>';
+      cl.setAttribute('aria-label', 'Plan with Claude');
+      cl.addEventListener('click', openAskClaudeSheet);
+      var acts = document.createElement('div'); acts.className = 'hs-top-acts';
+      acts.appendChild(cl); acts.appendChild(add);
+      top.appendChild(acts);
+    } else top.appendChild(add);
     wrap.appendChild(top);
     // the summary: three counts, each a way in
     var c = homeCounts();
