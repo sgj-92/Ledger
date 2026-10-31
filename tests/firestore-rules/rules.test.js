@@ -459,6 +459,8 @@ async function check(name, fn){
   await check('owner: focus cannot name another user', () => assertFails(owner.doc(FOCUS).set(focus({ ownerUid: 'partner1' }))));
   await check('owner: can focus on today\'s training, or one of its exercises', () => assertSucceeds(owner.doc(FOCUS).set(focus({ type: 'training', sourceId: 'resistance', childId: 'Lateral Raises', title: 'Lateral Raises' }))));
   await check('owner: …with a timer', () => assertSucceeds(owner.doc(FOCUS).set(focus({ type: 'training', sourceId: 'resistance', timerMin: 25, endsAt: '2026-10-28T10:25:00.000Z' }))));
+  await check('owner: can focus on today\'s Morning Prime (2026-10-31)', () => assertSucceeds(owner.doc(FOCUS).set(focus({ type: 'prime', sourceId: '2026-10-31', title: 'Morning Prime' }))));
+  await check('owner: …but not on a made-up kind', () => assertFails(owner.doc(FOCUS).set(focus({ type: 'whatever', sourceId: 'x', title: 'x' }))));
   await check('owner: a timer is whole minutes', () => assertFails(owner.doc(FOCUS).set(focus({ timerMin: 2.5, endsAt: '2026-10-28T10:25:00.000Z' }))));
   await check('owner: …and at most 10 hours', () => assertFails(owner.doc(FOCUS).set(focus({ timerMin: 601, endsAt: '2026-10-28T20:25:00.000Z' }))));
   await check('owner: its end is a time', () => assertFails(owner.doc(FOCUS).set(focus({ timerMin: 25, endsAt: 25 }))));

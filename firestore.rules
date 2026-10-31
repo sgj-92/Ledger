@@ -109,7 +109,7 @@ service cloud.firestore {
           && (d.get('timerMin', null) == null || (d.timerMin is int && d.timerMin > 0 && d.timerMin <= 600))
           && (d.get('endsAt', null) == null || (d.endsAt is string && d.endsAt.size() <= 40))
           && (d.status == 'cleared'
-              || (d.type in ['action', 'sprint_item', 'training']
+              || (d.type in ['action', 'sprint_item', 'training', 'prime']
                   && d.sourceId is string && d.sourceId.size() > 0 && d.sourceId.size() <= 100
                   && d.title is string && d.title.size() <= 300
                   && d.setAt is string));

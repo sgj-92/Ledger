@@ -2688,6 +2688,14 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-31) — **Morning Prime as a focus, pinned; Plan and Move fold** (Shaun).
+  - Current Focus `type: 'prime'` (today's, until completed). It is in the focus picker
+    first, on the widget, and in the full screen. Done opens it on Today.
+  - "Pin now" sends Morning Prime and its progress to the phone.
+  - Plan (with the intention) and Move fold separately; each device remembers which.
+  - **Rules:** `focusShape` allows `prime`. **Tests:** rules 743, push 61, native shell 83,
+    execution 81, settings 9.
+  - **Needs:** "Deploy Firebase" (the rule, and the focus notification's link).
 - (2026-10-30) — **Ask Claude at Home for Abi.** (Logged in Decisions.)
   - `functions/assistant-home.js`: her Home-only tools and proposals.
   - `index.html`: "Plan" on her Home; apply and Undo as her.

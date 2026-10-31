@@ -2859,7 +2859,14 @@
   .mp-step:not(.static):active { opacity: 0.6; }
 
   /* Plan / Move headings inside the card */
-  .mp-sec { display: flex; align-items: center; gap: 12px; padding: 16px 0 6px; }
+  .mp-sec { display: flex; align-items: center; gap: 12px; padding: 16px 0 6px; width: 100%; min-height: 44px;
+    border: none; background: none; cursor: pointer; font-family: var(--sans); text-align: left; color: inherit; }
+  .mp-sec-chev { flex-shrink: 0; width: 13px; height: 13px; color: var(--text-3); display: flex; transition: transform 0.2s ease; }
+  .mp-sec-chev svg { width: 100%; height: 100%; display: block; }
+  .mp-sec[aria-expanded="true"] .mp-sec-chev { transform: rotate(180deg); }
+  .mp-sec:active { opacity: 0.65; }
+  .mp-items[hidden] { display: none; }
+  .mp-acts { margin-top: var(--sp-3); }
   .mp-sec-label {
     font-size: 10px; font-weight: 500; text-transform: uppercase;
     letter-spacing: 0.2em; color: var(--text-3); white-space: nowrap;
@@ -8738,7 +8745,7 @@
       return { title: String(t.c.title || f.title || '').slice(0, 160), context: 'Action' + (tm ? ' \u00b7 ' + tm : ''),
         setAt: f.setAt || null, endsAt: f.endsAt || null, link: 'luxe.sgj.ledger://open?openAction=' + encodeURIComponent(t.c.id) };
     }
-    if (t.kind === 'training')
+    if (t.kind === 'training' || t.kind === 'prime')
       return { title: String(focusTitle(t)).slice(0, 160), context: focusMeta(t), setAt: f.setAt || null, endsAt: f.endsAt || null,
         link: 'luxe.sgj.ledger://open?view=today' };
     return { title: String(t.it.text || f.title || '').slice(0, 160), context: 'Reset sprint' + (t.s && t.s.title ? ' \u00b7 ' + String(t.s.title).slice(0, 40) : ''),
@@ -19592,12 +19599,29 @@
     return 'Still to go: ' + missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length-1] + '.';
   }
 
+  // Plan and Move each fold away on their own (2026-10-31); this device remembers which
+  var MP_FOLD_KEY = 'ledger_mp_folded';
+  function mpFolded(){ try { var m = JSON.parse(lsGet(MP_FOLD_KEY, '{}')); return m && typeof m === 'object' ? m : {}; } catch(e){ return {}; } }
   function mpSectionHead(label, sec){
-    return '<div class="mp-sec">' +
+    var key = label.toLowerCase(), folded = !!mpFolded()[key];
+    return '<button type="button" class="mp-sec" data-mp-fold="' + key + '" aria-expanded="' + !folded + '" aria-controls="mpItems_' + key + '">' +
       '<span class="mp-sec-label">' + label + '</span>' +
       '<span class="mp-sec-rule"></span>' +
       '<span class="mp-sec-val">' + (sec.complete ? 'Complete' : sec.resolved + ' of ' + sec.total) + '</span>' +
-    '</div>';
+      '<span class="mp-sec-chev" aria-hidden="true">' + TSEC_CHEV_DOWN + '</span>' +
+    '</button>';
+  }
+  function mpItemsOpen(key){ return '<div class="mp-items" id="mpItems_' + key + '"' + (mpFolded()[key] ? ' hidden' : '') + '>'; }
+  // the focus picker's Done, or a tap on the Now line: Today, Morning Prime open
+  function openPrimeOnToday(){
+    var t = todayStr();
+    if (currentView !== 'log') goView('log');
+    if (viewedDate !== t){ viewedDate = t; renderLogView(); }
+    mpExpanded[t] = true;
+    renderMorningPrime();
+    renderNowCue();                       // its Done circle wasn't a tick: Morning Prime is done in its steps
+    var el = document.getElementById('morningPrime');
+    if (el && el.scrollIntoView) setTimeout(function(){ el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
   }
 
   function renderMorningPrime(){
@@ -19616,6 +19640,13 @@
       ? 'Completed ' + mpTimeLabel(st.completedAt)
       : (expanded ? 'Set yourself up for a focused day.' : mpProgressLabel(st));
 
+    // the intention is Plan's last step: it folds away with Plan
+    var intentionHtml = st.intentionEnabled
+      ? '<div class="mp-intention-wrap">' +
+          '<textarea id="mpIntention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
+          '<span class="mp-count" id="mpCount"></span>' +
+        '</div>'
+      : '';
     var html = '<div class="mp-card' + (st.completedAt ? ' done' : '') + '">' +
       '<button type="button" class="mp-head" id="mpHead" aria-expanded="' + (expanded ? 'true' : 'false') + '" aria-controls="mpBody">' +
         '<span class="mp-mark' + (st.completedAt ? ' filled' : '') + '">' + (st.completedAt ? CHECK_SVG : UI_ICON.sun) + '</span>' +
@@ -19628,18 +19659,12 @@
       '</button>' +
       '<div class="mp-body' + (expanded ? '' : ' collapsed') + '" id="mpBody"><div class="mp-body-inner">' +
         (st.planSec.total
-          ? '<div class="mp-group mp-group-plan">' + mpSectionHead('Plan', st.planSec) +
-            st.planSec.items.map(function(x, i){ return routineRowHtml(x, { num: i + 1, skipMode: skipMode }); }).join('') + '</div>'
-          : '') +
-        (st.intentionEnabled
-          ? '<div class="mp-intention-wrap">' +
-              '<textarea id="mpIntention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
-              '<span class="mp-count" id="mpCount"></span>' +
-            '</div>'
-          : '') +
+          ? '<div class="mp-group mp-group-plan">' + mpSectionHead('Plan', st.planSec) + mpItemsOpen('plan') +
+            st.planSec.items.map(function(x, i){ return routineRowHtml(x, { num: i + 1, skipMode: skipMode }); }).join('') + intentionHtml + '</div></div>'
+          : intentionHtml) +
         (st.moveSec.total
-          ? '<div class="mp-group mp-group-move">' + mpSectionHead('Move', st.moveSec) +
-            st.moveSec.items.map(function(x){ return routineRowHtml(x, { skipMode: skipMode }); }).join('') + '</div>'
+          ? '<div class="mp-group mp-group-move">' + mpSectionHead('Move', st.moveSec) + mpItemsOpen('move') +
+            st.moveSec.items.map(function(x){ return routineRowHtml(x, { skipMode: skipMode }); }).join('') + '</div></div>'
           : '') +
         // one quiet way in, rather than a Skip on every row
         (skipMode || !st.complete
@@ -19654,6 +19679,14 @@
           '</button>' : '') +
         '<button type="button" class="btn-primary mp-save" id="mpSaveBtn">' + (st.completedAt ? 'Update Morning Prime' : 'Save Morning Prime') + '</button>' +
         (st.complete ? '' : '<p class="mp-hint" id="mpHint">' + mpMissingLabel(st) + '</p>') +
+        // the one thing being done now, and a nudge to the phone (2026-10-31)
+        (isToday && !st.completedAt && (authRole === 'owner' || LOCAL_ONLY)
+          ? '<div class="act-rows mp-acts">' +
+              '<button type="button" class="act-row focus-set-btn' + (focusIsPrime() ? ' on' : '') + '" id="mpFocusBtn"><span class="act-ic">' + UI_ICON.target + '</span>' +
+                '<span class="act-label">' + (focusIsPrime() ? 'Current focus \u2713' : 'Set as current focus') + '</span>' + (focusIsPrime() ? '<span class="act-meta">Clear</span>' : '') + '</button>' +
+              (authRole === 'owner' ? '<button type="button" class="act-row" id="mpPinBtn"><span class="act-ic">' + PIN_ICON_SVG + '</span><span class="act-label">Pin now</span></button>' : '') +
+            '</div>'
+          : '') +
       '</div></div>' +
     '</div>';
     wrap.innerHTML = html;
@@ -19695,6 +19728,23 @@
       if (again) again.focus();
     });
 
+    wrap.querySelectorAll('[data-mp-fold]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var key = b.dataset.mpFold, m = mpFolded();
+        if (m[key]) delete m[key]; else m[key] = 1;
+        lsSet(MP_FOLD_KEY, JSON.stringify(m));
+        b.setAttribute('aria-expanded', String(!m[key]));
+        var box = document.getElementById('mpItems_' + key); if (box) box.hidden = !!m[key];
+      });
+    });
+    var mpFocusBtn = document.getElementById('mpFocusBtn');
+    if (mpFocusBtn) mpFocusBtn.addEventListener('click', function(){
+      if (focusIsPrime()){ clearCurrentFocus(); showPinToast('Focus cleared', false, CHECK_SVG); }
+      else { setCurrentFocus(focusForPrime()); showPinToast('Current focus · Morning Prime', false, CHECK_SVG); }
+      renderMorningPrime(); renderNowCue();
+    });
+    var mpPinBtn = document.getElementById('mpPinBtn');
+    if (mpPinBtn) mpPinBtn.addEventListener('click', function(){ pinNow('Morning Prime', mpProgressLabel(mpState(dateStr)), null, dateStr); });
     var mpBacklogBtn = document.getElementById('mpBacklogBtn');
     if (mpBacklogBtn) mpBacklogBtn.addEventListener('click', openBacklogSheet);
 
@@ -19713,6 +19763,7 @@
       delete mpIntentionDraft[dateStr];
       await patchMorningPrime(dateStr, patch);
       renderMorningPrime();
+      if (patch.completedAt){ renderNowCue(); scheduleFocusReconcile(); }   // a Morning Prime focus is done with it
     });
   }
 
@@ -21461,6 +21512,11 @@
       return PLAN_TRAINING_TYPES.indexOf(t) > -1 && !det.completed;
     });
   }
+  // Morning Prime (2026-10-31): today's, until it's complete
+  function focusForPrime(){ return { type: 'prime', sourceId: todayStr(), childId: null, title: 'Morning Prime' }; }
+  function focusIsPrime(){ var f = focusActive(); return !!(f && f.type === 'prime' && f.sourceId === todayStr()); }
+  // open until it's completed (never judged on settings still loading)
+  function primeOpenToday(){ return !mpState(todayStr()).completedAt; }
   function focusIsTraining(type, exName){ var f = focusActive(); return !!(f && f.type === 'training' && f.sourceId === type && (f.childId || null) === (exName || null)); }
   function focusDoc(t){
     var now = execNow();
@@ -21639,7 +21695,7 @@
   document.getElementById('ffClose').addEventListener('click', closeFocusFull);
   document.getElementById('ffDone').addEventListener('click', function(){
     var t = focusTarget();
-    if (t && t.kind === 'training' && !t.ex) closeFocusFull();    // the session's log is a sheet
+    if (t && ((t.kind === 'training' && !t.ex) || t.kind === 'prime')) closeFocusFull();    // a sheet, or Today, takes it from here
     completeFocus();
   });
   function clearCurrentFocus(){ if (currentFocus && currentFocus.status === 'active') writeFocus(clearedFocusDoc()); }
@@ -21662,6 +21718,10 @@
       if (!s || s.state !== 'active' || !it || it.completed) return null;
       return { kind: 'sprint_item', s: s, it: it };
     }
+    if (f.type === 'prime'){
+      if (f.sourceId !== todayStr() || !primeOpenToday()) return null;            // done, or not today's
+      return { kind: 'prime', st: mpState(todayStr()) };
+    }
     if (f.type === 'training'){
       if (f.date !== todayStr() || trainingOpenToday().indexOf(f.sourceId) === -1) return null;   // logged, or not today's
       var names = trainingExercises(f.sourceId);
@@ -21670,7 +21730,7 @@
     }
     return null;
   }
-  function focusTitle(t){ return t.kind === 'action' ? t.c.title : (t.kind === 'training' ? (t.ex || TYPE_LABEL[t.type] || 'Training') : t.it.text); }
+  function focusTitle(t){ return t.kind === 'action' ? t.c.title : (t.kind === 'prime' ? 'Morning Prime' : (t.kind === 'training' ? (t.ex || TYPE_LABEL[t.type] || 'Training') : t.it.text)); }
   // Never leave a dead reference: once everything has loaded, a focus whose Action was
   // completed, deleted or moved — or whose sprint item is done — is moved on (the same
   // sprint's next item) or cleared. A transaction re-checks the stored focus, so when
@@ -21705,6 +21765,7 @@
     var t = focusTarget();
     if (!t){ clearCurrentFocus(); return; }
     if (t.kind === 'action') toggleCommitmentQuickStatus(t.c);   // clears the focus with it
+    else if (t.kind === 'prime') openPrimeOnToday();             // its steps are done there; complete, it clears
     else if (t.kind === 'training'){
       // an exercise done: the next one, then the session itself; the session done: log it
       var i = t.ex ? t.names.indexOf(t.ex) : -1;
@@ -21717,10 +21778,12 @@
     var t = focusTarget();
     if (!t) return;
     if (t.kind === 'action') openCommitmentSheet(t.c);
+    else if (t.kind === 'prime') openPrimeOnToday();
     else if (t.kind === 'training') openPlanTrainingLogSheet(t.type, todayStr());
     else openSprintSheet(t.s.id);
   }
   function focusMeta(t){
+    if (t.kind === 'prime') return mpProgressLabel(t.st);
     if (t.kind === 'training'){
       var lbl = TYPE_LABEL[t.type] || 'Training', n = t.names.length;
       if (t.ex) return lbl + ' · ' + (t.names.indexOf(t.ex) + 1) + ' of ' + n;
@@ -21769,6 +21832,7 @@
   // Change: one list of what could be the focus now — the sprint's open items, then the
   // day's open Actions (key tasks first). Choosing one replaces the focus; there is no queue.
   function focusChoices(){
+    var rows0 = primeOpenToday() ? [{ t: focusForPrime(), sub: mpProgressLabel(mpState(todayStr())), on: focusIsPrime() }] : [];
     var s = activeSprint();
     var sItems = s ? sprintOpenItems(s) : [];
     var today = todayStr();
@@ -21785,7 +21849,7 @@
       rows.push({ t: focusForTraining(type, null), sub: 'Training' + (names.length ? ' · ' + names.length + (names.length === 1 ? ' exercise' : ' exercises') : ''), on: focusIsTraining(type, null) });
       names.forEach(function(n, i){ rows.push({ t: focusForTraining(type, n), sub: lbl + ' · ' + (i + 1) + ' of ' + names.length, on: focusIsTraining(type, n) }); });
     });
-    return rows;
+    return rows0.concat(rows);
   }
   function openFocusPicker(){
     editingId = null;
