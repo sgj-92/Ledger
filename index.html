@@ -1028,6 +1028,42 @@
   }
   .mi-thumb svg { width: 19px; height: 19px; display: block; }
   .meal-ideas-panel { margin-top: var(--sp-7); }
+  /* Plan: the week's outcomes, above its days */
+  .wk-panel { margin: 0 0 var(--sp-4); padding-bottom: 6px; }
+  .wk-panel.folded { padding-bottom: 4px; }
+  .wk-panel.folded .wk-head { border-bottom: none; }
+  .wk-fold { display: inline-flex; align-items: center; gap: 10px; background: none; border: none; padding: 0; cursor: pointer; color: inherit; font: inherit; }
+  .wk-chev { width: 13px; height: 13px; color: var(--text-3); transition: transform 0.18s ease; }
+  .wk-panel.folded .wk-chev { transform: rotate(-90deg); }
+  .wk-list[hidden] { display: none; }
+  .wk-empty { font-size: 13px; color: var(--text-3); margin: 0; padding: 13px 0 9px; line-height: 1.45; }
+  .wk-area { font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); padding: 12px 0 2px; }
+  .wk-row {
+    display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 9px 0;
+    background: none; border: none; border-bottom: 1px solid var(--line); text-align: left; cursor: pointer; color: var(--text);
+  }
+  .wk-list > .wk-row:last-child { border-bottom: none; }
+  .wk-row:active { opacity: 0.65; }
+  .wk-mark {
+    flex: 0 0 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line-2);
+    display: flex; align-items: center; justify-content: center; color: var(--gold);
+  }
+  .wk-mark svg { width: 11px; height: 11px; display: block; }
+  .wk-row.r-done .wk-mark { border-color: rgba(var(--gold-rgb),0.6); background: rgba(var(--gold-rgb),0.12); }
+  .wk-row.r-partly .wk-mark { border-color: rgba(var(--gold-rgb),0.5); }
+  .wk-row.r-partly .wk-mark svg { width: 20px; height: 20px; opacity: 0.55; }
+  .wk-row.r-not .wk-mark { color: var(--text-3); }
+  .wk-row.r-not .wk-text { color: var(--text-2); }
+  .wk-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .wk-text { font-size: 14.5px; line-height: 1.35; overflow-wrap: anywhere; }
+  .wk-meta { font-size: 11.5px; color: var(--text-3); line-height: 1.3; }
+  .wk-row .chev { color: var(--text-3); display: flex; }
+  .wk-row .chev svg { width: 14px; height: 14px; display: block; }
+  #outAreaWrap[hidden] { display: none; }
+  /* an Action that moves one of the week's outcomes says so, quietly */
+  .commitment-moves { display: flex; align-items: center; gap: 5px; margin-top: 3px; font-size: 11.5px; color: var(--text-3); line-height: 1.3; min-width: 0; }
+  .commitment-moves svg { width: 11px; height: 11px; flex-shrink: 0; display: block; color: var(--gold); opacity: 0.8; }
+  .commitment-moves span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mi-body { flex: 1; min-width: 0; }
   .mi-title { font-family: var(--serif); font-size: 16px; color: var(--text); }
   .mi-sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
@@ -1213,6 +1249,32 @@
   .prio-link:active { opacity: 0.6; }
   .prio-link svg { width: 12px; height: 12px; display: block; }
   .field-hint { font-size: 12px; color: var(--text-3); margin: -6px 2px 16px; line-height: 1.45; }
+  /* goals: two areas, year goals with their 90-day goals beneath */
+  .goal-area-head { margin: var(--sp-4) 0 0; }
+  .goal-area + .goal-area .goal-area-head { margin-top: var(--sp-5); }
+  .goal-none { font-size: 13px; color: var(--text-3); padding: 12px 2px 4px; margin: 0; }
+  .goal-kicker { font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); margin-bottom: 4px; }
+  .goal-row.goal-child { padding-left: 18px; position: relative; }
+  .goal-row.goal-child::before { content: ''; position: absolute; left: 6px; top: 14px; bottom: 14px; width: 1px; background: var(--line-2); }
+  .goal-row.goal-child .focus-text { font-size: 15px; }
+  .goal-row.closed { opacity: 0.6; }
+  .goal-links { display: flex; flex-wrap: wrap; column-gap: 20px; }
+  .goal-add-q { color: var(--text-2); font-size: 12px; }
+  .goal-add-q svg { width: 11px; height: 11px; }
+  .goal-closed { margin-top: var(--sp-5); }
+  .goal-closed > summary { cursor: pointer; font-size: 12.5px; font-weight: 500; color: var(--text-2); padding: 8px 2px; list-style: none; }
+  .goal-closed > summary::-webkit-details-marker { display: none; }
+  .goal-ask { border: 1px solid rgba(var(--gold-rgb),0.4); background: rgba(var(--gold-rgb),0.05); border-radius: var(--r-lg); padding: 14px 15px 6px; margin: var(--sp-2) 0 var(--sp-3); }
+  .goal-ask-head { font-family: var(--serif); font-size: 16px; color: var(--text); }
+  .goal-ask-sub { font-size: 12.5px; color: var(--text-2); margin: 4px 0 6px; line-height: 1.45; }
+  .goal-ask-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--line); }
+  .goal-ask-t { flex: 1 1 160px; min-width: 0; font-size: 14px; color: var(--text); }
+  .goal-ask-chips { display: flex; gap: 6px; }
+  .goal-num .field { flex: 1 1 0; }
+  .goal-values { margin: -6px 2px var(--sp-4); }
+  .goal-value { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-2); padding: 4px 0; font-variant-numeric: tabular-nums; }
+  .goal-value span:last-child { color: var(--text-3); }
+  #gQuarterWrap[hidden], #gNumberWrap[hidden], #gRecordsWrap[hidden], #gNoneHint[hidden] { display: none; }
   .focus-supports { font-family: var(--sans); font-size: 11.5px; color: var(--text-3); margin-top: 4px; }
   #focusEvidence { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); padding: 0 17px; }
   #focusEvidence .empty-state { padding: 16px 0; font-size: 13px; }
@@ -3003,6 +3065,15 @@
   .kt-row.kt-flash .kt-title { animation: kt-flash 1.4s ease; }
   @keyframes kt-flash { 0%, 30% { color: var(--gold); } 100% { color: var(--text); } }
   .kt-empty { font-size: 13px; color: var(--text-3); padding: 12px 0 4px; margin: 0; }
+  .kt-out .kt-mark { color: var(--gold); border-style: dashed; border-color: rgba(var(--gold-rgb),0.5); }
+  .kt-out .kt-mark svg { width: 12px; height: 12px; transform: none; }
+  .kt-out-go { flex-shrink: 0; display: flex; color: var(--gold); padding-right: 2px; }
+  .kt-out-go svg { width: 14px; height: 14px; display: block; }
+  .kt-sec[hidden] { display: none; }
+  .kt-new-for { font-size: 11.5px; color: var(--gold); margin: 0 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kt-new-for[hidden] { display: none; }
+  .moves-field .cd-chips { margin-bottom: 0; }
+  .moves-field .cd-chip { max-width: 100%; text-align: left; }
   .kt-empty[hidden], .kt-nomatch[hidden] { display: none; }
   .kt-nomatch { font-size: 13.5px; color: var(--text-2); padding: 18px 0 6px; margin: 0; }
   .kt-all {
@@ -4709,10 +4780,11 @@
       grid-template-columns: minmax(0, 1fr) minmax(360px, 1.05fr);
     }
     #planWeekSwitch { grid-column: 1; grid-row: 1; }
-    #planWeekList { grid-column: 1; grid-row: 2; }
-    #view-plan .meal-ideas-panel { grid-column: 1; grid-row: 3; }
+    #planOutcomes { grid-column: 1; grid-row: 2; }
+    #planWeekList { grid-column: 1; grid-row: 3; }
+    #view-plan .meal-ideas-panel { grid-column: 1; grid-row: 4; }
     .plan-day-pane {
-      display: block; grid-column: 2; grid-row: 1 / span 3;
+      display: block; grid-column: 2; grid-row: 1 / span 4;
       position: sticky; top: 18px; max-height: calc(100vh - 36px); overflow-y: auto;
       background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
       padding: 22px 24px 24px; overscroll-behavior: contain;
@@ -5525,7 +5597,7 @@
   <div class="freq-period detail-period me-switch" id="meSwitch" role="tablist" aria-label="Me" hidden>
     <button type="button" role="tab" data-me-sub="calendar">Calendar</button>
     <button type="button" role="tab" data-me-sub="stats">Progress</button>
-    <button type="button" role="tab" data-me-sub="focus">Focus</button>
+    <button type="button" role="tab" data-me-sub="focus">Goals</button>
   </div>
 
   <section class="view active" id="view-log">
@@ -5732,13 +5804,11 @@
     <div class="section-kicker">Progress identity</div>
     <div id="playerCard"></div>
 
-    <h2 class="section-title">Priorities</h2>
-    <p class="section-hint">Where you're heading. Link one to what you record and it shows its evidence here and in Progress.</p>
+    <h2 class="section-title">Goals</h2>
     <div id="prioritiesList"></div>
-    <button class="custom-log-btn" id="addPriorityBtn">+ Add priority</button>
 
     <h2 class="section-title">Active focus</h2>
-    <p class="section-hint">What you're practising now. It can support a priority, but doesn't have to.</p>
+    <p class="section-hint">What you're practising now. It can support a goal, but doesn't have to.</p>
     <div id="focusList"></div>
     <button class="custom-log-btn" id="addFocusBtn">+ Add focus area</button>
 
@@ -5799,6 +5869,7 @@
       <button type="button" class="pw-today" data-role="pw-today" hidden>This week</button>
     </div>
     <p class="pw-challenge" id="planChallengeLine" hidden></p>
+    <section class="panel wk-panel" id="planOutcomes" aria-label="This week's outcomes"></section>
     <div id="planWeekList"></div>
 
     <div class="panel meal-ideas-panel">
@@ -7506,6 +7577,7 @@
       // Reset Sprints and the Current Focus, live on every device
       startExecListeners();
       startLifeContextListener();
+      startWeeksListener();
       // Partner Sharing: the owner's side of the shared namespace (see firestore.rules)
       startSharingListeners();
       if (shareOn()){ startHome('owner'); watchHomeMigration(); }
@@ -7534,6 +7606,7 @@
     localLoadChallenges();
     localLoadExec();
     lcLocalLoad();
+    weeksLocalLoad();
     czLoaded = { commitments: true, plans: true, challenges: true };
     presetsLoaded = true;
     prioritiesLoaded = true;
@@ -7910,16 +7983,6 @@
     if (currentView === 'stats') renderStats();
   }
 
-  async function deletePriority(id){
-    if (dbReady && dbRef){
-      try { await dbRef.collection('ledger_priorities').doc(id).delete(); return; }
-      catch(e){ console.error(e); }
-    }
-    priorities = priorities.filter(function(p){ return p.id !== id; });
-    localSavePriorities();
-    renderPriorities();
-  }
-
   function seedPrioritiesIfNeeded(){
     if (!presetsLoaded || !prioritiesLoaded) return;
     if (presets.prioritiesSeeded) return;
@@ -8245,7 +8308,7 @@
     calendar: { kicker: 'Calendar', title: 'History' },
     plan: { kicker: 'Plan', title: 'This week' },
     stats: { kicker: 'Progress', title: 'Over time' },
-    focus: { kicker: 'Focus', title: 'Direction' },
+    focus: { kicker: 'Goals', title: 'Direction' },
     comms: { kicker: 'Communications', title: 'In motion' },
     home: { kicker: 'Home', title: 'Together' }
   };
@@ -9236,6 +9299,14 @@
     }
     var age = done ? '' : actionAgeLabel(c);
     if (age) meta.appendChild(document.createTextNode((meta.textContent ? ' · ' : '') + age));
+    var moves = c.outcomeId && outcomeById(c.outcomeId);
+    if (moves){
+      var mv = document.createElement('div');
+      mv.className = 'commitment-moves';
+      mv.innerHTML = UI_ICON.target + '<span></span>';
+      mv.lastChild.textContent = moves.text;
+      meta.parentNode.appendChild(mv);
+    }
     row.addEventListener('click', function(){ openCommitmentSheet(c); });
     if (!isRoadblock){
       row.querySelector('.commitment-status-dot').addEventListener('click', function(e){
@@ -9955,8 +10026,9 @@
     var showOutcomes = !!existing && (existing.date < todayStr() || existing.status === 'disrupted' || existing.status === 'not_done');
 
     function buildHtml(){
-      var priorityOptions = [{value:'', label:'No linked priority'}].concat(
-        priorities.map(function(p){ return {value:p.id, label:p.title}; })
+      // option labels are user text: placed as text once the sheet is built
+      var priorityOptions = [{value:'', label:'No goal'}].concat(
+        goalPickList(null, existing && existing.priorityId).map(function(p){ return {value:p.id, label:''}; })
       );
       var html = '<div class="sheet-handle"></div>' +
         '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit action' : 'New action') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
@@ -9967,9 +10039,10 @@
           [{value:'', label:'No category'}].concat(QUICK_CAPTURE_CATEGORIES.map(function(c){ return {value:c.key, label:c.label, dot:c.color}; })),
           existing ? (existing.category || '') : (opts.category || qcLastCategory)) +
         whenFieldsHtml() +
+        movesFieldHtml() +
         // the rest of the detail waits behind one line, open whenever it already holds something
-        '<details class="cd-more more-fields"' + (moreHasValue() ? ' open' : '') + '><summary>Priority, links and minimum version</summary>' +
-          fieldSelect('f_commitPriority', 'Linked priority', priorityOptions, existing ? (existing.priorityId||'') : '') +
+        '<details class="cd-more more-fields"' + (moreHasValue() ? ' open' : '') + '><summary>Goal, links and minimum version</summary>' +
+          fieldSelect('f_commitPriority', 'Goal', priorityOptions, existing ? (existing.priorityId||'') : '') +
           commsLinkFieldsHtml() +
           '<div class="field"><label>Minimum version</label><input type="text" id="f_commitMinVer" placeholder="e.g. 20-minute home workout" value="' + (existing && existing.minVersion ? existing.minVersion.replace(/"/g,'&quot;') : '') + '"></div>' +
         '</details>';
@@ -10063,6 +10136,22 @@
       return { status: 'planned', execState: 'not_started', statusContext: null, disruptionReason: null };
     }
 
+    // Moves: one tap links the action to an open outcome of its week (and keeps one already
+    // linked, wherever it is from)
+    var movesVal = existing ? (existing.outcomeId || '') : (opts.outcomeId || '');
+    var movesList = (function(){
+      var ws = weekOf((existing && existing.date) || newDate || todayStr());
+      var list = weekOutcomes(ws).filter(function(o){ return !o.result || o.id === movesVal; });
+      var cur = outcomeById(movesVal);
+      if (cur && !list.some(function(o){ return o.id === cur.id; })) list.push(cur);
+      return list;
+    })();
+    function movesFieldHtml(){
+      if (!movesList.length) return '';
+      return '<div class="field moves-field"><label>Moves</label>' +
+        commsChipsHtml('moves', [{ value: '', label: 'None' }].concat(movesList.map(function(o){ return { value: o.id, label: '' }; })), movesVal) +
+      '</div>';
+    }
     function moreHasValue(){
       var src = existing || {};
       return !!(src.priorityId || src.minVersion || src.matterId || src.conversationId ||
@@ -10131,6 +10220,7 @@
         date: nextDate,
         title: title,
         priorityId: document.getElementById('f_commitPriority').value || null,
+        outcomeId: movesList.length ? (movesVal || null) : ((existing && existing.outcomeId) || opts.outcomeId || null),
         minVersion: document.getElementById('f_commitMinVer').value || null,
         status: isEditing ? statusVal : 'planned',
         disruptionReason: (isEditing && statusVal === 'disrupted') ? (document.getElementById('f_disruptionReason').value || null) : null,
@@ -10156,6 +10246,21 @@
 
     function wireSheet(){
       document.getElementById('sheetCloseBtn').addEventListener('click', done);
+      var pSelEl = document.getElementById('f_commitPriority');
+      goalPickList(null, existing && existing.priorityId).forEach(function(p, i){ pSelEl.options[i + 1].textContent = goalPickLabel(p); });
+      var movesEl = sheetEl.querySelector('[data-chips="moves"]');
+      if (movesEl){
+        movesEl.querySelectorAll('.cd-chip').forEach(function(chip){
+          var o = movesList.filter(function(x){ return x.id === chip.dataset.v; })[0];
+          if (o) chip.textContent = o.text;
+          chip.addEventListener('click', function(){
+            movesVal = chip.dataset.v;
+            movesEl.querySelectorAll('.cd-chip').forEach(function(c){
+              var on = c === chip; c.classList.toggle('sel', on); c.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+          });
+        });
+      }
       var cSelEl = document.getElementById('f_commitConv'), mSelEl = document.getElementById('f_commitMatter');
       if (cSelEl && mSelEl) cSelEl.addEventListener('change', function(){
         var v = convById(cSelEl.value);
@@ -11784,9 +11889,9 @@
       '<div class="cd-sec"><span class="sec-label">Recent movement</span><span class="sec-rule"></span></div>' +
       logAdderHtml() +
       '<div data-role="log"></div>' +
-      '<details class="cd-more"><summary>Area and priority</summary>' +
+      '<details class="cd-more"><summary>Area and goal</summary>' +
         commsChipsHtml('area', Object.keys(MATTER_AREA_LABEL).map(function(k){ return { value: k, label: MATTER_AREA_LABEL[k] }; }), m.area || 'other') +
-        '<label class="cd-field"><span>Supports priority</span><select data-role="priority"><option value="">None</option>' +
+        '<label class="cd-field"><span>Supports goal</span><select data-role="priority"><option value="">None</option>' +
           priorities.map(function(p){ return '<option value="' + p.id + '"></option>'; }).join('') + '</select></label>' +
       '</details>';
 
@@ -13087,7 +13192,7 @@
     if (c.minVersion) extras.push('minimum: ' + c.minVersion);
     if (c.priorityId){
       var p = priorities.find(function(x){ return x.id === c.priorityId; });
-      if (p) extras.push('priority: ' + p.title);
+      if (p) extras.push('goal: ' + p.title);
     }
     if (actionTime(c)) extras.push('time: ' + timeRangeLabel(actionTime(c), c.durationMin));
     else if (c.durationMin) extras.push('duration: ' + c.durationMin + ' min');
@@ -19996,6 +20101,27 @@
     }
 
     function searching(){ return s.searchOpen && !!s.query.trim(); }
+    function ktOutcomes(){ return weekOutcomes(weekOf(dateStr)).filter(function(o){ return !o.result; }); }
+    function paintOutcomes(){
+      sheetEl.querySelectorAll('[data-kt-out]').forEach(function(row){
+        var o = outcomeById(row.dataset.ktOut);
+        if (!o) { row.hidden = true; return; }
+        row.querySelector('.kt-title').textContent = o.text;    // user content — text only
+        var today = outcomeActions(o).filter(function(c){ return c.date === dateStr; });
+        var keyN = today.filter(function(c){ return c.isKeyTask; }).length;
+        var g = goalById(o.goalId);
+        row.querySelector('.kt-meta').textContent = keyN ? plural(keyN, 'key task') + ' today'
+          : today.length ? plural(today.length, 'action') + ' today' : (g ? g.title : '');
+        row.classList.toggle('capped', keyTaskCount(dateStr) >= KEY_TASK_MAX);
+      });
+      var sec = el('ktOutSec');
+      if (sec) sec.hidden = searching();
+      var forEl = el('ktNewFor'), fo = s.newOutcome && outcomeById(s.newOutcome);
+      if (forEl){
+        forEl.hidden = !(s.newOpen && fo);
+        forEl.textContent = fo ? 'Moves: ' + fo.text : '';
+      }
+    }
 
     function metaFor(c, where){
       var cat = categoryLabel(c.category);
@@ -20031,6 +20157,17 @@
           '<button type="button" class="kt-search-x" id="ktSearchClose" aria-label="Close search">' + CLOSE_SVG + '</button>' +
         '</div>' +
         '<div class="kt-body" id="ktBody">' +
+          // the week's open outcomes come first: choosing one starts a key task that moves it
+          (ktOutcomes().length
+            ? '<section class="kt-sec kt-outs" id="ktOutSec"><h3 class="kt-sec-head">This week’s outcomes</h3>' +
+                ktOutcomes().map(function(o){
+                  return '<div class="kt-row kt-out" data-kt-out="' + o.id + '"><button type="button" class="kt-hit" data-kt-outhit="' + o.id + '">' +
+                    '<span class="kt-mark" aria-hidden="true">' + UI_ICON.target + '</span>' +
+                    '<span class="kt-text"><span class="kt-title"></span><span class="kt-meta"></span></span>' +
+                    '<span class="kt-out-go" aria-hidden="true">' + BK_PLUS_SVG + '</span></button></div>';
+                }).join('') +
+              '</section>'
+            : '') +
           '<section class="kt-sec" id="ktSelSec"><h3 class="kt-sec-head">Selected</h3><div id="ktSelected"></div></section>' +
           '<section class="kt-sec" id="ktTodaySec"><h3 class="kt-sec-head">Today</h3>' +
             '<div id="ktToday">' + s.todayIds.map(function(id){ return rowHtml(id, 'today'); }).join('') + '</div>' +
@@ -20045,6 +20182,7 @@
           '<p class="kt-nomatch" id="ktNoMatch" hidden>No matching actions</p>' +
           '<div class="kt-new">' +
             '<button type="button" class="kt-new-btn" id="ktNewBtn">+ New action</button>' +
+            '<p class="kt-new-for" id="ktNewFor" hidden></p>' +
             '<div class="kt-new-field" id="ktNewField" hidden>' +
               '<span class="aa-ring" aria-hidden="true"></span>' +
               '<input type="text" id="ktNewInput" class="aa-input" placeholder="What needs doing?" enterkeyhint="done" autocomplete="off" aria-label="New action" maxlength="200">' +
@@ -20139,6 +20277,7 @@
     }
 
     function paintAll(){
+      paintOutcomes();
       sheetEl.querySelectorAll('[data-kt-row]').forEach(paintRow);
       var added = paintSelected();
       added.forEach(paintRow);
@@ -20256,9 +20395,16 @@
       if (!title){ input.focus(); return; }
       var atCap = keyTaskCount(dateStr) >= KEY_TASK_MAX;
       var c;
-      quietly(function(){ c = createQuickAction(dateStr, title, atCap ? null : { isKeyTask: true }); });
+      var extra = atCap ? {} : { isKeyTask: true };
+      var fo = s.newOutcome && outcomeById(s.newOutcome);
+      if (fo){
+        extra.outcomeId = fo.id;
+        extra.category = outcomeArea(fo) === 'personal' ? 'personal' : 'work';
+      }
+      quietly(function(){ c = createQuickAction(dateStr, title, extra); });
       input.value = '';
       s.newText = '';
+      s.newOutcome = null;
       s.todayIds.push(c.id);
       var tmp = document.createElement('div');
       tmp.innerHTML = rowHtml(c.id, 'today');
@@ -20326,9 +20472,24 @@
       });
       el('ktNewBtn').addEventListener('click', function(){
         if (keyTaskCount(dateStr) >= KEY_TASK_MAX){ capNote(); return; }
+        s.newOutcome = null;
         setNewOpen(true, true);
+        paintOutcomes();
       });
-      el('ktNewClose').addEventListener('click', function(){ el('ktNewInput').value = ''; s.newText = ''; setNewOpen(false); });
+      el('ktNewClose').addEventListener('click', function(){ el('ktNewInput').value = ''; s.newText = ''; s.newOutcome = null; setNewOpen(false); paintOutcomes(); });
+      sheetEl.querySelectorAll('[data-kt-outhit]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var o = outcomeById(b.dataset.ktOuthit);
+          if (!o) return;
+          if (keyTaskCount(dateStr) >= KEY_TASK_MAX){ capNote(); return; }
+          s.newOutcome = o.id;
+          var input = el('ktNewInput');
+          input.value = o.text;
+          setNewOpen(true, true);
+          paintOutcomes();
+          try { input.select(); } catch(e){}
+        });
+      });
       el('ktNewAdd').addEventListener('click', addNew);
       el('ktNewInput').addEventListener('keydown', function(e){
         if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addNew(); }
@@ -24018,13 +24179,13 @@
     var wrap = document.getElementById('focusEvidence');
     if (!wrap) return;
     wrap.innerHTML = '';
-    var linked = priorities.filter(function(p){ return !!p.evidenceType; });
+    var linked = activeGoals().filter(function(p){ return !!p.evidenceType; });
     if (!linked.length){
       var e = document.createElement('div');
       e.className = 'empty-state';
       e.textContent = priorities.length
-        ? 'Link a priority to what you record (in Focus) to follow it here.'
-        : 'Set a priority in Focus to follow it here.';
+        ? 'Link a goal to what you record (in Me → Goals) to follow it here.'
+        : 'Set a goal in Me → Goals to follow it here.';
       wrap.appendChild(e);
       return;
     }
@@ -25268,7 +25429,7 @@
   function renderStatLinks(type){
     var wrap = document.getElementById('statDetailLinks');
     if (!wrap) return;
-    priorities.filter(function(p){ return evidenceSupports(p.evidenceType, type); }).forEach(function(p){
+    activeGoals().filter(function(p){ return evidenceSupports(p.evidenceType, type); }).forEach(function(p){
       var box = document.createElement('div');
       box.className = 'stat-supports';
       box.innerHTML = '<div class="stat-supports-kicker">Supports</div><div class="stat-supports-title"></div>';
@@ -26312,6 +26473,7 @@
   function renderPlan(){
     renderMealIdeas();
     renderPlanWeekSwitch();
+    renderPlanOutcomes();
 
     var list = document.getElementById('planWeekList');
     list.innerHTML = '';
@@ -26348,7 +26510,7 @@
         // quiet marks: priorities the day supports, and a known constraint
         ((sum.priorities || sum.constraint)
           ? '<span class="pday-marks">' +
-              (sum.priorities ? '<span class="pday-prio" title="Supports ' + plural(sum.priorities, 'priority', 'priorities') + '">' + UI_ICON.target + sum.priorities + '</span>' : '') +
+              (sum.priorities ? '<span class="pday-prio" title="Supports ' + plural(sum.priorities, 'goal') + '">' + UI_ICON.target + sum.priorities + '</span>' : '') +
               (sum.constraint ? '<span class="pday-rb" title="Constraint noted">' + UI_ICON.mountain + '</span>' : '') +
             '</span>'
           : '') +
@@ -26594,11 +26756,11 @@
       return byId[p.id];
     }
     dayActions(dateStr).forEach(function(c){
-      var p = c.priorityId && priorities.find(function(x){ return x.id === c.priorityId; });
+      var p = goalById(actionGoalIds(c)[0]);
       if (p) entry(p).actions++;
     });
     (trainingTypes || []).forEach(function(t){
-      priorities.forEach(function(p){
+      activeGoals().forEach(function(p){
         if (evidenceSupports(p.evidenceType, t)){
           var e = entry(p), lbl = SHORT_TYPE_LABEL[t] || TYPE_LABEL[t];
           if (e.training.indexOf(lbl) === -1) e.training.push(lbl);
@@ -26637,7 +26799,7 @@
   function dpDirectionSummary(intention, support){
     var bits = [];
     if (intention) bits.push('Intention set');
-    if (support.length) bits.push(support.length === 1 ? 'Supports 1 priority' : 'Supports ' + support.length + ' priorities');
+    if (support.length) bits.push(support.length === 1 ? 'Supports 1 goal' : 'Supports ' + support.length + ' goals');
     return bits.length ? bits.join(' · ') : 'No intention yet';
   }
   function dpConstraintsSummary(text, dateStr){
@@ -26660,8 +26822,8 @@
       var e = document.createElement('p');
       e.className = 'dp-quiet';
       e.textContent = priorities.length
-        ? 'No priorities linked yet — link one from an action.'
-        : 'Set priorities in Focus to see what a day supports.';
+        ? 'No goals linked yet — link one from an action.'
+        : 'Set goals in Me → Goals to see what a day supports.';
       wrap.appendChild(e);
       return support;
     }
@@ -26746,7 +26908,9 @@
         else if (c.durationMin) bits.push(fmtDuration(c.durationMin));
         bits.push(categoryLabel(c.category));
         var pt = priorityTitle(c.priorityId);
-        if (pt) bits.push(pt);
+        var oc = c.outcomeId && outcomeById(c.outcomeId);
+        if (oc) bits.push(oc.text);
+        else if (pt) bits.push(pt);
         if (matterTitle(c.matterId)) bits.push(matterTitle(c.matterId));
         if (c.minVersion && c.status !== 'completed') bits.push('Min: ' + c.minVersion);
         m.textContent = bits.join(' · ');
@@ -27467,7 +27631,7 @@
 
   function linkedActionsDoneThisMonth(p){
     return commitments.filter(function(c){
-      return c.priorityId === p.id && c.status === 'completed' && c.date && withinThisMonth(c);
+      return actionServesGoal(c, p) && c.status === 'completed' && c.date && withinThisMonth(c);
     }).length;
   }
 
@@ -27496,7 +27660,7 @@
         ? { text: plural(good, 'on-track day') + ' this month · ' + month.length + ' logged' }
         : { text: 'No nutrition days logged this month', quiet: true });
     } else if (key === 'actions'){
-      var linked = commitments.filter(function(c){ return c.priorityId === p.id; });
+      var linked = commitments.filter(function(c){ return actionServesGoal(c, p); });
       var done = linkedActionsDoneThisMonth(p);
       var open = linked.filter(function(c){ return c.status === 'planned'; }).length;
       lines.push(linked.length
@@ -27534,105 +27698,654 @@
     openStatDetailSheet(key);
   }
 
+  // ---------- goals (docs/GOALS_AND_REVIEW.md) ----------
+  // A priority is now a goal: a year goal, or a 90-day goal under one, in an area (Business
+  // or Personal). The records stay in ledger_priorities, so every link that already names a
+  // priority (priorityId on Actions, matters and focus areas) keeps working. A priority from
+  // before reads as an active year goal for this year, and Ledger asks its area once.
+  // Quarters are calendar quarters. Goals are never deleted: achieved or dropped instead.
+  var GOAL_AREAS = [{ key: 'business', label: 'Business' }, { key: 'personal', label: 'Personal' }];
+  var GOAL_AREA_LABEL = { business: 'Business', personal: 'Personal' };
+  var GOAL_VALUES_MAX = 60;
+  function quarterOf(ds){ return ds.slice(0, 4) + '-Q' + Math.ceil(Number(ds.slice(5, 7)) / 3); }
+  function curQuarter(){ return quarterOf(todayStr()); }
+  function nextQuarterOf(q){ var y = Number(q.slice(0, 4)), n = Number(q.slice(6)); return n === 4 ? (y + 1) + '-Q1' : y + '-Q' + (n + 1); }
+  function quarterLabel(q){
+    var n = Number(q.slice(6));
+    return 'Q' + n + ' · ' + ['Jan–Mar', 'Apr–Jun', 'Jul–Sep', 'Oct–Dec'][n - 1] + (q.slice(0, 4) === todayStr().slice(0, 4) ? '' : ' ' + q.slice(0, 4));
+  }
+  function goalHorizon(p){ return p && p.horizon === 'quarter' ? 'quarter' : 'year'; }
+  function goalStatus(p){ return p && (p.status === 'achieved' || p.status === 'dropped') ? p.status : 'active'; }
+  function goalPeriod(p){ return (p && p.period) || (goalHorizon(p) === 'quarter' ? curQuarter() : todayStr().slice(0, 4)); }
+  function goalById(id){ return (id && priorities.find(function(p){ return p.id === id; })) || null; }
+  function goalArea(p){
+    if (!p) return null;
+    if (p.area === 'business' || p.area === 'personal') return p.area;
+    var parent = goalHorizon(p) === 'quarter' ? goalById(p.parentId) : null;
+    return parent && (parent.area === 'business' || parent.area === 'personal') ? parent.area : null;
+  }
+  function activeGoals(){ return priorities.filter(function(p){ return goalStatus(p) === 'active'; }); }
+  function byGoalOrder(a, b){
+    var pa = goalPeriod(a), pb = goalPeriod(b);
+    if (pa !== pb) return pa < pb ? -1 : 1;
+    return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1;
+  }
+  function goalChildren(p){
+    return activeGoals().filter(function(q){ return goalHorizon(q) === 'quarter' && q.parentId === p.id; }).sort(byGoalOrder);
+  }
+  // a 90-day goal names its quarter wherever it is picked
+  function goalPickLabel(p){ return goalHorizon(p) === 'quarter' ? 'Q' + goalPeriod(p).slice(6) + ' · ' + p.title : p.title; }
+  // active goals for a picker, 90-day goals first (they are what a week moves); one already
+  // chosen stays listed even once it is closed
+  function goalPickList(area, keepId){
+    var list = activeGoals().filter(function(p){ return !area || !goalArea(p) || goalArea(p) === area; });
+    var cur = goalById(keepId);
+    if (cur && list.indexOf(cur) === -1) list.push(cur);
+    return list.sort(function(a, b){
+      var ha = goalHorizon(a) === 'quarter' ? 0 : 1, hb = goalHorizon(b) === 'quarter' ? 0 : 1;
+      return ha !== hb ? ha - hb : byGoalOrder(a, b);
+    });
+  }
+
+  // A number Shaun updates: a start, a target and the values he enters. Shown as counts and
+  // the gap only — never a score, a percentage or a pass/fail colour (decided 2026-09-29).
+  var CURRENCY_UNITS = ['£', '$', '€'];
+  function goalMeasure(p){
+    var m = p && p.measure;
+    return m && m.kind === 'number' && m.target !== null && m.target !== '' && isFinite(Number(m.target)) ? m : null;
+  }
+  function goalValues(p){
+    return (p && Array.isArray(p.values) ? p.values : []).filter(function(x){ return x && x.date && isFinite(Number(x.value)); })
+      .sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  }
+  function goalLatest(p){ var v = goalValues(p); return v.length ? v[v.length - 1] : null; }
+  function fmtMeasure(n, unit){
+    var num = Number(n), abs = Math.abs(num);
+    var s = abs >= 1000 ? abs.toLocaleString(undefined, { maximumFractionDigits: 0 }) : String(Math.round(abs * 100) / 100);
+    var sign = num < 0 ? '-' : '';
+    if (!unit) return sign + s;
+    return CURRENCY_UNITS.indexOf(unit) > -1 ? sign + unit + s : sign + s + ' ' + unit;
+  }
+  function measureLine(p){
+    var m = goalMeasure(p);
+    if (!m) return null;
+    var last = goalLatest(p), target = Number(m.target);
+    if (!last) return { text: 'Target ' + fmtMeasure(target, m.unit) + ' · no value entered yet', quiet: true };
+    var cur = Number(last.value);
+    var hasStart = m.start !== null && m.start !== '' && m.start !== undefined && isFinite(Number(m.start));
+    var up = !hasStart || target >= Number(m.start);
+    var gap = up ? target - cur : cur - target;
+    return { text: fmtMeasure(cur, m.unit) + ' of ' + fmtMeasure(target, m.unit) + ' · ' +
+      (gap <= 0 ? 'target reached' : fmtMeasure(gap, m.unit) + ' to go') };
+  }
+  function goalSignals(p){
+    var out = [];
+    var ml = measureLine(p);
+    if (ml) out.push(ml);
+    return out.concat(prioritySignals(p));
+  }
+  // An Action serves a goal when it names it, names a goal under it, or moves a week's
+  // outcome that does.
+  function actionGoalIds(c){
+    var ids = [];
+    function add(id){
+      var g = goalById(id);
+      if (!g || ids.indexOf(g.id) > -1) return;
+      ids.push(g.id);
+      if (goalHorizon(g) === 'quarter' && g.parentId && ids.indexOf(g.parentId) === -1 && goalById(g.parentId)) ids.push(g.parentId);
+    }
+    add(c.priorityId);
+    var o = c.outcomeId ? outcomeById(c.outcomeId) : null;
+    if (o) add(o.goalId);
+    return ids;
+  }
+  function actionServesGoal(c, p){ return actionGoalIds(c).indexOf(p.id) > -1; }
+
   function renderPriorities(){
     var list = document.getElementById('prioritiesList');
     if (!list) return;
     list.innerHTML = '';
-    if (!priorities.length){
-      var e = document.createElement('div');
-      e.className = 'empty-state';
-      e.textContent = 'No priorities set yet';
-      list.appendChild(e);
-      return;
-    }
-    priorities.forEach(function(p){
-      var row = document.createElement('div');
-      row.className = 'focus-item';
-      var body = document.createElement('div');
-      body.className = 'focus-body';
-      var title = document.createElement('div');
-      title.className = 'focus-text';
-      title.textContent = p.title;
-      body.appendChild(title);
-      if (p.note){
-        var note = document.createElement('div');
-        note.className = 'focus-note';
-        note.textContent = p.note;
-        body.appendChild(note);
+    var active = activeGoals();
+    var closed = priorities.filter(function(p){ return goalStatus(p) !== 'active'; });
+    var unsorted = active.filter(function(p){ return !goalArea(p); });
+    if (unsorted.length) list.appendChild(goalAskAreaEl(unsorted));
+    GOAL_AREAS.forEach(function(a){
+      var years = active.filter(function(p){ return goalHorizon(p) === 'year' && goalArea(p) === a.key; }).sort(byGoalOrder);
+      // a 90-day goal whose year goal is gone or closed stands on its own
+      var loose = active.filter(function(p){
+        if (goalHorizon(p) !== 'quarter' || goalArea(p) !== a.key) return false;
+        var parent = goalById(p.parentId);
+        return !parent || goalStatus(parent) !== 'active' || goalHorizon(parent) !== 'year';
+      }).sort(byGoalOrder);
+      var sec = document.createElement('section');
+      sec.className = 'goal-area';
+      sec.dataset.area = a.key;
+      sec.innerHTML = '<div class="sec-head goal-area-head"><span class="sec-label"></span><span class="sec-rule"></span>' +
+        '<button type="button" class="sec-link" data-role="add-goal">' + BK_PLUS_SVG + 'Goal</button></div>';
+      sec.querySelector('.sec-label').textContent = a.label;
+      sec.querySelector('[data-role="add-goal"]').setAttribute('aria-label', 'Add a ' + a.label.toLowerCase() + ' goal');
+      sec.querySelector('[data-role="add-goal"]').addEventListener('click', function(){ openPrioritySheet(null, { area: a.key }); });
+      years.forEach(function(p){
+        sec.appendChild(goalRowEl(p, false));
+        goalChildren(p).forEach(function(q){ sec.appendChild(goalRowEl(q, true)); });
+      });
+      loose.forEach(function(p){ sec.appendChild(goalRowEl(p, false)); });
+      if (!years.length && !loose.length){
+        var none = document.createElement('p');
+        none.className = 'goal-none';
+        none.textContent = a.key === 'business' ? 'Where is the business going this year?' : 'Where is life outside work going this year?';
+        sec.appendChild(none);
       }
-      appendSignals(body, prioritySignals(p));
-      if (EVIDENCE_WITH_DETAIL.indexOf(p.evidenceType) !== -1){
-        var link = document.createElement('button');
-        link.type = 'button';
-        link.className = 'prio-link';
-        link.innerHTML = 'View progress' + UI_ICON.arrowRight;
-        link.addEventListener('click', function(ev){ ev.stopPropagation(); openProgressFor(p.evidenceType); });
-        body.appendChild(link);
-      }
-      row.appendChild(body);
-      var chev = document.createElement('span');
-      chev.className = 'chev';
-      chev.innerHTML = UI_ICON.chevronRight;
-      row.appendChild(chev);
-      row.addEventListener('click', function(){ openPrioritySheet(p); });
-      list.appendChild(row);
+      list.appendChild(sec);
     });
+    if (closed.length){
+      var det = document.createElement('details');
+      det.className = 'goal-closed';
+      det.innerHTML = '<summary>Achieved and dropped · ' + closed.length + '</summary>';
+      closed.sort(byGoalOrder).forEach(function(p){ det.appendChild(goalRowEl(p, false)); });
+      list.appendChild(det);
+    }
   }
 
-  function openPrioritySheet(existing){
+  function goalRowEl(p, child){
+    var row = document.createElement('div');
+    var st = goalStatus(p);
+    row.className = 'focus-item goal-row' + (child ? ' goal-child' : '') + (st !== 'active' ? ' closed' : '');
+    row.dataset.goal = p.id;
+    var body = document.createElement('div');
+    body.className = 'focus-body';
+    var kick = [];
+    if (st !== 'active') kick.push(st === 'achieved' ? 'Achieved' : 'Dropped');
+    if (goalHorizon(p) === 'quarter') kick.push(quarterLabel(goalPeriod(p)));
+    else if (goalPeriod(p) !== todayStr().slice(0, 4)) kick.push(goalPeriod(p));
+    if (st !== 'active' && goalArea(p)) kick.push(GOAL_AREA_LABEL[goalArea(p)]);
+    if (kick.length){
+      var k = document.createElement('div');
+      k.className = 'goal-kicker';
+      k.textContent = kick.join(' · ');
+      body.appendChild(k);
+    }
+    var title = document.createElement('div');
+    title.className = 'focus-text';
+    title.textContent = p.title;
+    body.appendChild(title);
+    var why = p.why || p.note;
+    if (why && !child){
+      var note = document.createElement('div');
+      note.className = 'focus-note';
+      note.textContent = why;
+      body.appendChild(note);
+    }
+    if (st === 'active') appendSignals(body, goalSignals(p));
+    var links = document.createElement('div');
+    links.className = 'goal-links';
+    if (st === 'active' && EVIDENCE_WITH_DETAIL.indexOf(p.evidenceType) !== -1){
+      var link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'prio-link';
+      link.innerHTML = 'View progress' + UI_ICON.arrowRight;
+      link.addEventListener('click', function(ev){ ev.stopPropagation(); openProgressFor(p.evidenceType); });
+      links.appendChild(link);
+    }
+    if (st === 'active' && goalHorizon(p) === 'year' && goalArea(p)){
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'prio-link goal-add-q';
+      add.innerHTML = BK_PLUS_SVG + '90-day goal';
+      add.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        openPrioritySheet(null, { area: goalArea(p), horizon: 'quarter', parentId: p.id });
+      });
+      links.appendChild(add);
+    }
+    if (links.children.length) body.appendChild(links);
+    row.appendChild(body);
+    var chev = document.createElement('span');
+    chev.className = 'chev';
+    chev.innerHTML = UI_ICON.chevronRight;
+    row.appendChild(chev);
+    row.addEventListener('click', function(){ openPrioritySheet(p); });
+    return row;
+  }
+
+  // Priorities from before carry over as year goals; each is asked its area once.
+  function goalAskAreaEl(list){
+    var card = document.createElement('div');
+    card.className = 'goal-ask';
+    card.innerHTML = '<div class="goal-ask-head">Which area is each goal in?</div>' +
+      '<p class="goal-ask-sub">Your priorities are now goals for ' + todayStr().slice(0, 4) + '. Choose once and they move into place.</p>';
+    list.forEach(function(p){
+      var r = document.createElement('div');
+      r.className = 'goal-ask-row';
+      r.innerHTML = '<span class="goal-ask-t"></span><span class="goal-ask-chips">' +
+        GOAL_AREAS.map(function(a){ return '<button type="button" class="cd-chip" data-area="' + a.key + '">' + a.label + '</button>'; }).join('') + '</span>';
+      r.querySelector('.goal-ask-t').textContent = p.title;
+      r.querySelectorAll('[data-area]').forEach(function(b){
+        b.addEventListener('click', function(){
+          savePriority(Object.assign({}, p, { area: b.dataset.area, horizon: goalHorizon(p), period: goalPeriod(p), status: goalStatus(p) }));
+        });
+      });
+      card.appendChild(r);
+    });
+    return card;
+  }
+
+  // opts (new goal): area, horizon ('year' | 'quarter'), parentId
+  function openPrioritySheet(existing, opts){
+    opts = opts || {};
     editingId = null;
     var isEditing = !!existing;
-    var evidenceOptions = [{ value: '', label: 'None — no measure' }].concat(
-      EVIDENCE_TYPES.map(function(e){ return { value: e.key, label: e.label }; }));
+    var g = existing || {};
+    var area = goalArea(g) || opts.area || 'business';
+    var horizon = existing ? goalHorizon(g) : (opts.horizon || 'year');
+    var cq = curQuarter(), nq = nextQuarterOf(cq);
+    var period = existing && goalHorizon(g) === 'quarter' && g.period ? g.period : cq;
+    var m = g.measure && g.measure.kind === 'number' ? g.measure : null;
+    var mKind = m ? 'number' : (g.evidenceType ? 'records' : 'none');
+    var st = goalStatus(g);
+    var quarters = [cq, nq];
+    if (quarters.indexOf(period) === -1) quarters.unshift(period);
+    var evidenceOptions = EVIDENCE_TYPES.map(function(e){ return { value: e.key, label: e.label }; });
+    var vals = goalValues(g);
     sheetEl.innerHTML =
       '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit priority' : 'New priority') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
-      '<div class="field"><label>Priority</label><input type="text" id="f_priorityTitle" placeholder="e.g. Reduce weight to 90kg"></div>' +
-      '<div class="field"><label>Note (optional)</label><textarea id="f_priorityNote" placeholder="…"></textarea></div>' +
-      fieldSelect('f_priorityEvidence', 'Evidence (optional)', evidenceOptions, existing ? (existing.evidenceType || '') : '') +
-      '<p class="field-hint" id="f_priorityEvidenceHint"></p>' +
+      '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit goal' : (horizon === 'quarter' ? 'New 90-day goal' : 'New goal')) + '</div><button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<div class="field"><label>Goal</label><input type="text" id="f_priorityTitle" maxlength="200"></div>' +
+      '<span class="cd-label">Area</span>' +
+      commsChipsHtml('garea', GOAL_AREAS.map(function(a){ return { value: a.key, label: a.label }; }), area) +
+      '<span class="cd-label">Horizon</span>' +
+      commsChipsHtml('ghorizon', [{ value: 'year', label: 'This year' }, { value: 'quarter', label: '90 days' }], horizon) +
+      '<div id="gQuarterWrap">' +
+        '<span class="cd-label">Quarter</span>' +
+        commsChipsHtml('gquarter', quarters.map(function(q){ return { value: q, label: quarterLabel(q) }; }), period) +
+        '<div class="field"><label>Part of</label><select id="f_goalParent"></select></div>' +
+      '</div>' +
+      '<div class="field"><label>Why it matters (optional)</label><textarea id="f_priorityNote" rows="2" placeholder="What reaching it changes"></textarea></div>' +
+      '<span class="cd-label">Measure</span>' +
+      commsChipsHtml('gmeasure', [{ value: 'none', label: 'None' }, { value: 'number', label: 'A number' }, { value: 'records', label: 'Ledger records' }], mKind) +
+      '<div id="gNumberWrap">' +
+        '<div class="field-row goal-num">' +
+          '<div class="field"><label>Unit</label><input type="text" id="f_goalUnit" maxlength="16" placeholder="£, clients"></div>' +
+          '<div class="field"><label>Start</label><input type="number" inputmode="decimal" step="any" id="f_goalStart" placeholder="0"></div>' +
+          '<div class="field"><label>Target</label><input type="number" inputmode="decimal" step="any" id="f_goalTarget"></div>' +
+        '</div>' +
+        '<div class="field"><label>' + (vals.length ? 'New value' : 'Value now (optional)') + '</label><input type="number" inputmode="decimal" step="any" id="f_goalValue"></div>' +
+        '<div class="goal-values" id="gValues"></div>' +
+      '</div>' +
+      '<div id="gRecordsWrap">' +
+        fieldSelect('f_priorityEvidence', 'From', evidenceOptions, g.evidenceType || 'training') +
+        '<p class="field-hint" id="f_priorityEvidenceHint"></p>' +
+      '</div>' +
+      '<p class="field-hint" id="gNoneHint">Fine for goals that aren’t measured. Actions linked to it still show when you complete them.</p>' +
       '<button class="save-btn" id="savePriorityBtn">Save</button>' +
-      (isEditing ? '<button class="delete-btn" id="deletePriorityBtn">Delete</button>' : '');
-    document.getElementById('f_priorityTitle').value = existing ? (existing.title || '') : '';
-    document.getElementById('f_priorityNote').value = existing ? (existing.note || '') : '';
+      (isEditing ? '<div class="act-rows" id="gStatusRows">' +
+        (st === 'active'
+          ? '<button type="button" class="act-row" id="gAchieved"><span class="act-ic">' + CHECK_SVG + '</span><span class="act-label">Mark achieved</span></button>' +
+            '<button type="button" class="act-row" id="gDrop"><span class="act-ic">' + CLOSE_SVG + '</span><span class="act-label">Drop this goal</span><span class="act-meta">kept in the record</span></button>'
+          : '<button type="button" class="act-row" id="gReopen"><span class="act-ic">' + UI_ICON.target + '</span><span class="act-label">Make active again</span></button>') +
+      '</div>' : '');
+    var titleIn = document.getElementById('f_priorityTitle');
+    titleIn.value = g.title || '';
+    titleIn.placeholder = horizon === 'quarter' ? 'e.g. Five new retainer clients' : 'e.g. £60k revenue this year';
+    document.getElementById('f_priorityNote').value = g.why || g.note || '';
+    if (m){
+      document.getElementById('f_goalUnit').value = m.unit || '';
+      document.getElementById('f_goalStart').value = m.start != null ? m.start : '';
+      document.getElementById('f_goalTarget').value = m.target != null ? m.target : '';
+    }
+    var valBox = document.getElementById('gValues');
+    vals.slice(-3).reverse().forEach(function(v){
+      var r = document.createElement('div');
+      r.className = 'goal-value';
+      r.innerHTML = '<span></span><span></span>';
+      r.firstChild.textContent = fmtMeasure(v.value, m ? m.unit : '');
+      r.lastChild.textContent = relativeDayLabel(v.date);
+      valBox.appendChild(r);
+    });
+    var parentSel = document.getElementById('f_goalParent');
+    function fillParents(){
+      var keep = parentSel.value || (existing ? g.parentId : opts.parentId) || '';
+      parentSel.innerHTML = '<option value="">No year goal</option>';
+      activeGoals().filter(function(p){ return goalHorizon(p) === 'year' && goalArea(p) === area && p.id !== g.id; }).sort(byGoalOrder)
+        .forEach(function(p){ var o = document.createElement('option'); o.value = p.id; o.textContent = p.title; parentSel.appendChild(o); });
+      var cur = goalById(keep);
+      if (cur && !parentSel.querySelector('option[value="' + cur.id + '"]')){
+        var o = document.createElement('option'); o.value = cur.id; o.textContent = cur.title; parentSel.appendChild(o);
+      }
+      parentSel.value = keep;
+    }
     var evSel = document.getElementById('f_priorityEvidence');
     var evHint = document.getElementById('f_priorityEvidenceHint');
     function syncEvidenceHint(){
       var v = evSel.value;
       evHint.textContent =
         v === 'weight' ? 'Uses your weight entries and the target weight under Targets.' :
-        v === 'actions' ? 'Counts actions you link to this priority when adding them.' :
+        v === 'actions' ? 'Counts actions linked to this goal, or to an outcome that moves it.' :
         v === 'nutrition' ? 'Counts the nutrition days you log.' :
         v === 'training' ? 'Counts every training session you log.' :
-        v ? 'Counts the ' + (v === 'hiit' ? 'HIIT' : EVIDENCE_LABEL[v].toLowerCase()) + ' sessions you log.' :
-        'Fine for priorities that aren’t measured. Linked actions still show when you complete them.';
+        'Counts the ' + (v === 'hiit' ? 'HIIT' : (EVIDENCE_LABEL[v] || '').toLowerCase()) + ' sessions you log.';
     }
+    function sync(){
+      document.getElementById('gQuarterWrap').hidden = horizon !== 'quarter';
+      document.getElementById('gNumberWrap').hidden = mKind !== 'number';
+      document.getElementById('gRecordsWrap').hidden = mKind !== 'records';
+      document.getElementById('gNoneHint').hidden = mKind !== 'none';
+      syncEvidenceHint();
+    }
+    function chips(field, set){
+      sheetEl.querySelectorAll('[data-chips="' + field + '"] .cd-chip').forEach(function(chip){
+        chip.addEventListener('click', function(){
+          sheetEl.querySelectorAll('[data-chips="' + field + '"] .cd-chip').forEach(function(c){
+            var on = c === chip; c.classList.toggle('sel', on); c.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+          set(chip.dataset.v);
+          sync();
+        });
+      });
+    }
+    chips('garea', function(v){ area = v; fillParents(); });
+    chips('ghorizon', function(v){ horizon = v; });
+    chips('gquarter', function(v){ period = v; });
+    chips('gmeasure', function(v){ mKind = v; });
     evSel.addEventListener('change', syncEvidenceHint);
-    syncEvidenceHint();
+    fillParents();
+    sync();
     backdrop.classList.add('open');
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    function numOrNull(id){ var v = document.getElementById(id).value; return v === '' || !isFinite(Number(v)) ? null : Number(v); }
     document.getElementById('savePriorityBtn').addEventListener('click', function(){
-      var title = document.getElementById('f_priorityTitle').value.trim();
-      if (!title) { closeSheet(); return; }
-      // build on the stored record so fields this sheet doesn't own (groupName, …) survive
+      var title = titleIn.value.trim();
+      if (!title){ titleIn.focus(); return; }
+      var why = document.getElementById('f_priorityNote').value.trim();
+      var target = numOrNull('f_goalTarget');
+      var measure = mKind === 'number' && target != null
+        ? { kind: 'number', unit: document.getElementById('f_goalUnit').value.trim().slice(0, 16) || null, start: numOrNull('f_goalStart'), target: target }
+        : null;
+      var values = goalValues(g).slice();
+      var nv = numOrNull('f_goalValue');
+      if (measure && nv != null){
+        var today = todayStr();
+        values = values.filter(function(v){ return v.date !== today; }).concat({ date: today, value: nv, note: null });
+        values = values.slice(-GOAL_VALUES_MAX);
+      }
+      // build on the stored record so fields this sheet doesn't own survive
       var out = Object.assign({}, existing || {}, {
         title: title,
-        note: document.getElementById('f_priorityNote').value,
-        evidenceType: evSel.value || null,
+        why: why || null,
+        note: null,
+        area: area,
+        horizon: horizon,
+        period: horizon === 'quarter' ? period : (existing && goalHorizon(g) === 'year' && g.period ? g.period : todayStr().slice(0, 4)),
+        parentId: horizon === 'quarter' ? (parentSel.value || null) : null,
+        status: st,
+        evidenceType: mKind === 'records' ? (evSel.value || null) : null,
+        measure: measure,
+        values: values,
         createdAt: existing ? existing.createdAt : new Date().toISOString()
       });
       savePriority(out);
       closeSheet();
     });
+    function setStatus(next){
+      var now = new Date().toISOString();
+      savePriority(Object.assign({}, existing, { status: next, closedAt: next === 'active' ? null : now }));
+      closeSheet();
+    }
     if (isEditing){
-      document.getElementById('deletePriorityBtn').addEventListener('click', function(){
-        deletePriority(existing.id);
-        closeSheet();
-      });
+      var a = document.getElementById('gAchieved'), d = document.getElementById('gDrop'), r = document.getElementById('gReopen');
+      if (a) a.addEventListener('click', function(){ setStatus('achieved'); });
+      if (d) d.addEventListener('click', function(){ setStatus('dropped'); });
+      if (r) r.addEventListener('click', function(){ setStatus('active'); });
     }
   }
 
-  document.getElementById('addPriorityBtn').addEventListener('click', function(){ openPrioritySheet(null); });
+
+  // ---------- the week's outcomes (docs/GOALS_AND_REVIEW.md) ----------
+  // One record per week, ledger_weeks/{week start}: what the week moves on a goal. Per-week
+  // state lives on the week's record, as per-day state lives on the day's plan; it is
+  // private like the plan. An Action may name the outcome it serves (outcomeId).
+  var WEEKS_LOCAL = 'ledger_weeks_fallback';
+  var WK_FOLD_KEY = 'ledger_plan_outcomes_folded';
+  var weeks = {};
+  var OUTCOME_RESULTS = [
+    { value: '', label: 'Open' }, { value: 'done', label: 'Done' },
+    { value: 'partly', label: 'Partly' }, { value: 'not', label: 'Not this week' }
+  ];
+  function weeksLocalSave(){ try { localStorage.setItem(WEEKS_LOCAL, JSON.stringify(weeks)); } catch(e){} }
+  function weeksLocalLoad(){ try { weeks = JSON.parse(localStorage.getItem(WEEKS_LOCAL) || '{}') || {}; } catch(e){ weeks = {}; } }
+  function startWeeksListener(){
+    dbRef.collection('ledger_weeks').onSnapshot(function(snap){
+      var next = {};
+      snap.docs.forEach(function(d){ next[d.id] = d.data() || {}; });
+      weeks = next;
+      weeksLocalSave();
+      weeksChanged();
+    }, function(err){ console.error('weeks snapshot error', err); });
+  }
+  function weeksChanged(){
+    if (currentView === 'plan') renderPlan();
+    if (currentView === 'focus') renderFocus();
+    if (currentView === 'log') renderCommitments();
+    if (activeSheetRefresh) activeSheetRefresh();
+  }
+  function weekOf(ds){ return fmtDate(weekStartFor(new Date((ds || todayStr()) + 'T00:00:00'))); }
+  function weekOutcomes(ws){
+    var w = weeks[ws];
+    return (w && Array.isArray(w.outcomes) ? w.outcomes : []).filter(function(o){ return o && o.id && o.text; })
+      .slice().sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
+  }
+  function outcomeById(id){
+    if (!id) return null;
+    for (var k in weeks){
+      var list = (weeks[k] && weeks[k].outcomes) || [];
+      for (var i = 0; i < list.length; i++) if (list[i] && list[i].id === id) return Object.assign({ week: k }, list[i]);
+    }
+    return null;
+  }
+  function outcomeArea(o){
+    var a = goalArea(goalById(o.goalId));
+    return a || (o.area === 'personal' || o.area === 'business' ? o.area : null);
+  }
+  function outcomeActions(o){
+    return commitments.filter(function(c){ return c.outcomeId === o.id && c.category !== 'roadblock'; });
+  }
+  function saveWeekOutcomes(ws, outcomes){
+    var now = new Date().toISOString();
+    var rec = Object.assign({}, weeks[ws] || {}, { outcomes: outcomes, updatedAt: now });
+    if (!rec.createdAt) rec.createdAt = now;
+    weeks[ws] = rec;
+    weeksLocalSave();
+    weeksChanged();      // optimistic: the listener confirms it
+    if (dbReady && dbRef){
+      return dbRef.collection('ledger_weeks').doc(ws).set(rec).catch(function(e){ console.error('week save failed', e); });
+    }
+    return Promise.resolve();
+  }
+  // build on the stored outcome, so a field this editor doesn't own survives
+  function saveOutcome(ws, o){
+    var list = weekOutcomes(ws);
+    var i = list.findIndex(function(x){ return x.id === o.id; });
+    if (i > -1) list[i] = Object.assign({}, list[i], o);
+    else list.push(Object.assign({ result: null, note: null, order: list.reduce(function(m, x){ return Math.max(m, x.order || 0); }, 0) + 1 }, o));
+    list = list.map(function(x){ var c = Object.assign({}, x); delete c.week; return c; });
+    return saveWeekOutcomes(ws, list);
+  }
+  function removeOutcome(ws, id){
+    commitments.filter(function(c){ return c.outcomeId === id; }).forEach(function(c){
+      saveCommitment(Object.assign({}, c, { outcomeId: null }));
+    });
+    return saveWeekOutcomes(ws, weekOutcomes(ws).filter(function(x){ return x.id !== id; }));
+  }
+  function outcomeMetaText(o){
+    var bits = [];
+    var g = goalById(o.goalId);
+    if (g) bits.push(g.title);
+    var acts = outcomeActions(o);
+    if (acts.length){
+      var done = acts.filter(function(c){ return c.status === 'completed'; }).length;
+      bits.push(plural(acts.length, 'action') + (done ? ', ' + done + ' done' : ''));
+    }
+    return bits.join(' · ');
+  }
+  var OUTCOME_MARK = {
+    done: CHECK_SVG,
+    partly: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 4a8 8 0 0 1 0 16z"/></svg>',
+    not: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="7" y1="12" x2="17" y2="12"/></svg>'
+  };
+  function outcomeRowEl(o, onOpen){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'wk-row' + (o.result ? ' r-' + o.result : '');
+    b.dataset.outcome = o.id;
+    b.innerHTML = '<span class="wk-mark" aria-hidden="true">' + (OUTCOME_MARK[o.result] || '') + '</span>' +
+      '<span class="wk-body"><span class="wk-text"></span><span class="wk-meta"></span></span>' +
+      '<span class="chev">' + UI_ICON.chevronRight + '</span>';
+    b.querySelector('.wk-text').textContent = o.text;
+    var meta = outcomeMetaText(o);
+    if (meta) b.querySelector('.wk-meta').textContent = meta; else b.querySelector('.wk-meta').remove();
+    if (o.result) b.setAttribute('aria-label', o.text + ' — ' + OUTCOME_RESULTS.filter(function(r){ return r.value === o.result; })[0].label);
+    b.addEventListener('click', function(){ onOpen(o); });
+    return b;
+  }
+
+  // Plan, the week shown: its outcomes at the top, by area, each named with its goal.
+  function renderPlanOutcomes(){
+    var box = document.getElementById('planOutcomes');
+    if (!box) return;
+    var ws = fmtDate(planWeekStart);
+    var outs = weekOutcomes(ws);
+    var past = fmtDate(addDays(planWeekStart, 6)) < todayStr();
+    var folded = lsGet(WK_FOLD_KEY) === '1' && outs.length > 0;
+    var done = outs.filter(function(o){ return o.result === 'done'; }).length;
+    box.innerHTML =
+      '<div class="panel-head wk-head">' +
+        '<button type="button" class="wk-fold" data-role="wk-fold" aria-expanded="' + (folded ? 'false' : 'true') + '">' +
+          '<span class="sec-label">Outcomes</span>' +
+          (outs.length ? '<span class="sec-value">' + (done ? done + ' of ' + outs.length + ' done' : outs.length) + '</span>' : '') +
+          (outs.length ? '<svg class="wk-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>' : '') +
+        '</button>' +
+        '<span class="sec-rule"></span>' +
+        '<button type="button" class="sec-link" data-role="wk-add">' + BK_PLUS_SVG + 'Outcome</button>' +
+      '</div>' +
+      '<div class="wk-list" data-role="wk-list"' + (folded ? ' hidden' : '') + '></div>';
+    box.classList.toggle('folded', folded);
+    var list = box.querySelector('[data-role="wk-list"]');
+    if (!outs.length){
+      var p = document.createElement('p');
+      p.className = 'wk-empty';
+      p.textContent = past ? 'No outcomes were set for this week.'
+        : activeGoals().length ? 'What will this week move? Name an outcome or two for each goal you’re working on.'
+        : 'Set your goals in Me → Goals, then name what this week moves.';
+      list.appendChild(p);
+    }
+    var groups = GOAL_AREAS.map(function(a){ return { key: a.key, label: a.label, items: [] }; }).concat({ key: '', label: 'Other', items: [] });
+    outs.forEach(function(o){
+      var a = outcomeArea(o) || '';
+      groups.filter(function(g){ return g.key === a; })[0].items.push(o);
+    });
+    var shown = groups.filter(function(g){ return g.items.length; });
+    shown.forEach(function(g){
+      if (shown.length > 1 || g.key === ''){
+        var h = document.createElement('div');
+        h.className = 'wk-area';
+        h.textContent = g.label;
+        list.appendChild(h);
+      }
+      g.items.forEach(function(o){ list.appendChild(outcomeRowEl(o, function(x){ openOutcomeSheet(ws, x); })); });
+    });
+    box.querySelector('[data-role="wk-add"]').addEventListener('click', function(){ openOutcomeSheet(ws, null); });
+    box.querySelector('[data-role="wk-fold"]').addEventListener('click', function(){
+      if (!outs.length) return;
+      lsSet(WK_FOLD_KEY, folded ? '0' : '1');
+      renderPlanOutcomes();
+    });
+  }
+
+  // opts.area / opts.goalId: a new outcome's starting point
+  function openOutcomeSheet(ws, existing, opts){
+    opts = opts || {};
+    editingId = null;
+    activeSheetRefresh = null;
+    var isEditing = !!existing;
+    var o = existing ? (outcomeById(existing.id) || existing) : {};
+    var goalId = o.goalId || opts.goalId || '';
+    var area = outcomeArea(o) || opts.area || (goalArea(goalById(goalId))) || 'business';
+    var result = o.result || '';
+    var wsDate = new Date(ws + 'T00:00:00');
+    function reopen(){ openOutcomeSheet(ws, outcomeById(o.id) || o); }
+    sheetEl.innerHTML =
+      '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.target, isEditing ? 'Outcome' : 'New outcome', relativeWeekLabel(wsDate) + ' · ' + weekRangeLabel(wsDate), '') +
+      '<div class="field"><label>Outcome</label><input type="text" id="f_outText" maxlength="200" placeholder="e.g. Send 5 proposals"></div>' +
+      '<div class="field"><label>Moves goal</label><select id="f_outGoal"></select></div>' +
+      '<div id="outAreaWrap"><span class="cd-label">Area</span>' +
+        commsChipsHtml('oarea', GOAL_AREAS.map(function(a){ return { value: a.key, label: a.label }; }), area) + '</div>' +
+      (isEditing ? '<span class="cd-label">This week</span>' +
+        commsChipsHtml('oresult', OUTCOME_RESULTS, result) : '') +
+      (isEditing ? '<div class="cd-sec"><span class="sec-label">Actions</span><span class="sec-rule"></span>' +
+        '<button type="button" class="sec-link" id="outAddAction">' + BK_PLUS_SVG + 'Add action</button></div>' +
+        '<div id="outActions"></div>' : '') +
+      '<button class="save-btn" id="outSave">' + (isEditing ? 'Save' : 'Add outcome') + '</button>' +
+      (isEditing ? '<button type="button" class="delete-btn" id="outRemove">Remove outcome</button>' : '');
+    var textIn = document.getElementById('f_outText');
+    textIn.value = o.text || '';
+    var gSel = document.getElementById('f_outGoal');
+    var none = document.createElement('option'); none.value = ''; none.textContent = 'No goal'; gSel.appendChild(none);
+    // by area, 90-day goals first; the picker shows each one's area beside it
+    GOAL_AREAS.map(function(a){ return a.key; }).concat(null).forEach(function(k){
+      goalPickList(null, goalId).filter(function(p){ return goalArea(p) === k; }).forEach(function(p){
+        var op = document.createElement('option'); op.value = p.id; op.textContent = goalPickLabel(p);
+        if (k) op.dataset.hint = GOAL_AREA_LABEL[k];
+        gSel.appendChild(op);
+      });
+    });
+    gSel.value = goalId;
+    function syncArea(){ document.getElementById('outAreaWrap').hidden = !!goalArea(goalById(gSel.value)); }
+    gSel.addEventListener('change', syncArea);
+    syncArea();
+    function chips(field, set){
+      sheetEl.querySelectorAll('[data-chips="' + field + '"] .cd-chip').forEach(function(chip){
+        chip.addEventListener('click', function(){
+          sheetEl.querySelectorAll('[data-chips="' + field + '"] .cd-chip').forEach(function(c){
+            var on = c === chip; c.classList.toggle('sel', on); c.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+          set(chip.dataset.v);
+        });
+      });
+    }
+    chips('oarea', function(v){ area = v; });
+    chips('oresult', function(v){ result = v; });
+    if (isEditing){
+      document.getElementById('outActions').appendChild(actionListEl(outcomeActions(o), 'No actions linked yet. Link one here, or choose this outcome under Moves on any action.'));
+      document.getElementById('outAddAction').addEventListener('click', function(){
+        var t = todayStr(), end = fmtDate(addDays(wsDate, 6));
+        var date = t >= ws && t <= end ? t : ws;
+        openCommitmentSheet(null, { date: date, outcomeId: o.id, category: outcomeArea(o) === 'personal' ? 'personal' : 'work', onDone: reopen });
+      });
+      document.getElementById('outRemove').addEventListener('click', function(){
+        var n = outcomeActions(o).length;
+        if (n && !confirm('Remove this outcome?\n\nThe ' + plural(n, 'action') + ' linked to it stay; they just stop naming it.')) return;
+        removeOutcome(ws, o.id);
+        closeSheet();
+      });
+    }
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('outSave').addEventListener('click', function(){
+      var text = textIn.value.trim();
+      if (!text){ textIn.focus(); return; }
+      var gid = gSel.value || null;
+      saveOutcome(ws, {
+        id: o.id || ('o' + uid()),
+        text: clipText(text, 200),
+        goalId: gid,
+        area: goalArea(goalById(gid)) || area,
+        result: isEditing ? (result || null) : null
+      });
+      closeSheet();
+    });
+    if (!isEditing) setTimeout(function(){ textIn.focus({ preventScroll: true }); }, 60);
+  }
 
   function renderFocus(){
     renderPlayerCard();
@@ -27696,7 +28409,7 @@
         {value:'physical', label:'Physical'}, {value:'general', label:'General'}
       ], d.category) +
       '<div class="field"><label>Description</label><textarea id="f_focusText" placeholder="e.g. Bent-knee volleys at the net"></textarea></div>' +
-      (priorities.length ? fieldSelect('f_focusPriority', 'Supports a priority (optional)',
+      (priorities.length ? fieldSelect('f_focusPriority', 'Supports a goal (optional)',
         [{ value: '', label: 'None' }].concat(priorities.map(function(p){ return { value: p.id, label: p.title }; })),
         d.priorityId || '') : '') +
       (isEditing ? fieldCheckbox('f_focusDone', 'Mark as completed', d.done) : '') +

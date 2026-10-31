@@ -22,7 +22,7 @@ and `functions/` (the push engine and Home's server jobs — see `CLAUDE.md`).
 - See `docs/NATIVE_MIGRATION.md` §12a and `native/README.md`.
 
 **Five tabs (since 2026-10-22):** Plan · Today · **Me** · **Comms** · **Home**. Me holds
-Calendar, Progress and Focus behind one switch (remembered per device; a dated link
+Calendar, Progress and Goals (formerly Focus, renamed 2026-10-31) behind one switch (remembered per device; a dated link
 always opens Calendar on that date). Comms is the Communications Centre as its own tab.
 Home is the shared household screen (summary, today, upcoming, recent updates,
 People), also Abi's third portal tab and the whole of the nanny's app.
@@ -753,6 +753,19 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-10-31 — Goals and the week, phase 1 built (`docs/GOALS_AND_REVIEW.md` §9)
+- Goals stay in `ledger_priorities`, so every existing `priorityId` link holds. A priority
+  from before reads as a year goal for this year; Ledger asks its area once.
+- **Goals are never deleted:** achieved or dropped, kept and reopenable.
+- **One measure per goal:** none, a number (start, target, values), or Ledger records.
+  Shown as counts and the gap, never a percentage (2026-09-29 stands).
+- **A week is one record,** `ledger_weeks/{week start}`, owner-only like the plan.
+  Outcomes carry a result (open, done, partly, not); phase 2's review will set it, and it
+  can be set by hand now.
+- **Moves** on an Action is one tap of an open outcome of its week. Removing an outcome
+  unlinks its actions; they stay.
+- Me → Focus is now **Me → Goals**; user-facing "priority" wording became "goal".
 
 ### 2026-10-31 — Next direction: goals, weekly planning and review (Shaun)
 - **Not ad-hoc polish:** that happens as the app is used. Next is closing the Review →
@@ -2495,7 +2508,15 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Abi and Shaun (try on their phones)
+Owner: Shaun (deploy rules, then try it)
+**Goals and the week, phase 1** — built 2026-10-31 (`docs/GOALS_AND_REVIEW.md` §9).
+- **Deploy needed:** "Deploy Firebase", Rules (`ledger_weeks`). Until then the week's
+  outcomes are refused by the live rules and don't survive a reload; goals work now.
+- **Shaun:** Me → Goals — give each priority its area, add 90-day goals and their numbers;
+  Plan → Outcomes for this week; link actions under Moves; key tasks from the outcomes.
+- **Next, on his go-ahead:** phase 2, the Friday and Sunday reviews (§5, §6).
+
+**Before that** — Owner: Abi and Shaun (try on their phones)
 **Everything to date is deployed** (Firebase 6c0f611, 2026-10-31 01:27, green; Vercel
 up to date).
 - **Abi:** set up Magda's daily tasks (Home → Add → Daily tasks → Magda, then her
@@ -2691,6 +2712,12 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-10-31) — **Goals and the week, phase 1** (`docs/GOALS_AND_REVIEW.md` §9).
+  - Me → Goals: Business and Personal; year goals with 90-day goals; number measures;
+    priorities carried over (area asked once); achieved/dropped, never deleted.
+  - Plan → Outcomes (`ledger_weeks`), Moves on Actions, the outcome line on Today, and
+    key tasks started from the week's outcomes.
+  - **Rules:** `ledger_weeks` owner-only. **Tests:** rules 751; e2e `goals.test.js` (new).
 - (2026-10-31) — **Morning Prime as a focus, pinned; Plan and Move fold** (Shaun).
   - Current Focus `type: 'prime'` (today's, until completed). It is in the focus picker
     first, on the widget, and in the full screen. Done opens it on Today.

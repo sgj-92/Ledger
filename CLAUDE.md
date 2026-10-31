@@ -230,6 +230,7 @@ These are observed facts about this repo, useful before making changes.
 - Match the surrounding style: ES5-era vanilla JS (`var`, function
   expressions), no arrow functions in app code.
 - Per-date state belongs on that day's plan record (`ledger_plans/<date>`).
+  Per-week state (outcomes, later reviews) belongs on `ledger_weeks/<week start>`.
   Per-device UI preference belongs in `localStorage`.
 - **Editors must build on top of the record they edit** (`Object.assign({}, existing, {...})`).
   Rebuilding an object from scratch has silently destroyed sibling fields more

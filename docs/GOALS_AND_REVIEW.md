@@ -1,7 +1,7 @@
 # Goals, weekly planning and review — design for review
 
-Status: **approved 2026-10-31; phase 1 in progress.** Shaun's answers to §8 are recorded
-there.
+Status: **approved 2026-10-31; phase 1 built 2026-10-31** (§9). Shaun's answers to §8 are
+recorded there. Phases 2 and 3 are not started.
 
 > "Let's look at closing the review → adjust loop and enhancing planning to align closer
 > to my personal and business goals."
@@ -193,3 +193,45 @@ goals.
 4. **The week** starts on his setting (Monday). The Friday review covers Monday to
    Friday; the Sunday review covers the week.
 5. **Priorities carry over:** each becomes a year goal, and Ledger asks its area once.
+
+## 9. Phase 1 as built (2026-10-31)
+
+**Code:** `index.html` — "goals" (after the priorities' evidence) and "the week's
+outcomes"; the Action editor's "Moves"; the key-tasks sheet. **Rules:**
+`ledger_weeks/{week start}`, owner only. **Tests:** the rules suite (`ledger_weeks` with
+the private collections) and `tests/e2e/goals.test.js` (phone and Mac).
+
+**Me → Goals** (the Me switch's third tab, formerly Focus):
+- Business, then Personal. Each year goal shows its 90-day goals beneath it, its measure
+  and its evidence. "+ Goal" per area; "+ 90-day goal" on a year goal.
+- **Priorities carried over:** read as active year goals for this year. A card asks the
+  area of each one without one; choosing saves `area`, `horizon`, `period` and `status`.
+  Nothing else is migrated or written.
+- **The goal sheet:** goal, area, horizon (this year or 90 days; a 90-day goal has a
+  calendar quarter, this or next, and a year goal it is part of), why it matters, and a
+  measure: none, a number (unit, start, target, and a new value saved with today's date),
+  or Ledger records (the existing evidence). One measure per goal.
+- **Never deleted:** "Mark achieved" or "Drop this goal" (`status`, `closedAt`); both
+  stay under "Achieved and dropped", and "Make active again" reopens.
+- A goal's linked actions now include actions naming a goal under it, or an outcome that
+  moves it.
+
+**Plan → Outcomes**, above the week's days:
+- The week shown: its outcomes by area, each with its goal and its actions ("2 actions, 1
+  done"). Folds; each device remembers.
+- **The outcome sheet:** text, the goal it moves (90-day goals first; its area follows the
+  goal, or is chosen), and, once it exists, its result (open, done, partly, not this week),
+  its actions with "+ Add action", and "Remove outcome" (its actions stay, unlinked).
+- The record is keyed by the week's first day on Shaun's week-start setting. Changing that
+  setting leaves earlier weeks under their old key.
+
+**Moves** in the Action editor: one tap on any open outcome of the action's week (or the one
+it already names). **Today** shows that outcome as a quiet line under the action.
+
+**Key tasks** (Morning Prime and Plan): "This week's outcomes" come first. Choosing one opens
+a new action with the outcome's text to edit; it is made a key task that moves the outcome,
+in Work or Personal by the outcome's area.
+
+**Not yet (phase 2):** the reviews, Claude's goal and week tools, the Today card and the
+two notifications. Marking results in the outcome sheet is the manual form of what the
+review will do.

@@ -58,6 +58,9 @@ service cloud.firestore {
     // Life Context: circumstances that affected a day or a stretch of days. Private like
     // the rest of the Owner's record — never projected, never a partner's.
     match /ledger_life_context/{docId=**}       { allow read, write: if isOwner(); }
+    // Goals and the week (docs/GOALS_AND_REVIEW.md): a week's outcomes and, later, its
+    // reviews. Private like the day's plan; never projected, never a partner's.
+    match /ledger_weeks/{docId=**}              { allow read, write: if isOwner(); }
     // Ask Claude (docs/CLAUDE_ASSISTANT.md): a proposal is written by the server (Admin SDK)
     // and never by a client. The owner reads his own and records what he did with it —
     // applied (all or part), cancelled or undone — and nothing else about it changes.

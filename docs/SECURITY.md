@@ -50,6 +50,7 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | `ledger_meta/currentFocus` | the Current Focus | owner; must name the owner who writes it |
 | `ledger_sprints` | Reset Sprints | owner |
 | `ledger_life_context` | Life Context: circumstances that affected a day or a period | owner |
+| `ledger_weeks` | A week's outcomes, and later its reviews (`docs/GOALS_AND_REVIEW.md`) | owner |
 | `ledger_matters`, `ledger_conversations` | Communications | owner |
 | `ledger_challenges` | challenges | owner |
 | `ledger_push_subscriptions` | each user's devices for Web Push | the user's own only (owner and partner alike) |
