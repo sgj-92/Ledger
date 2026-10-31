@@ -2717,7 +2717,8 @@ minutes before", recurring/accountability).
     priorities carried over (area asked once); achieved/dropped, never deleted.
   - Plan → Outcomes (`ledger_weeks`), Moves on Actions, the outcome line on Today, and
     key tasks started from the week's outcomes.
-  - **Rules:** `ledger_weeks` owner-only. **Tests:** rules 751; e2e `goals.test.js` (new).
+  - **Rules:** `ledger_weeks` owner-only. **Tests:** rules 751, goals 23 (new), home 360,
+    partner-sharing 209, native shell 83, assistant 33, comms 24, settings 9, execution 81.
 - (2026-10-31) — **Morning Prime as a focus, pinned; Plan and Move fold** (Shaun).
   - Current Focus `type: 'prime'` (today's, until completed). It is in the focus picker
     first, on the widget, and in the full screen. Done opens it on Today.
