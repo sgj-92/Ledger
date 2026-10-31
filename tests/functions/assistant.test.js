@@ -52,8 +52,12 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
 
   // ---- owner only ----
   let client = fakeClient([]);
-  let out = await createAssistant({ db, client }).handle({ uid: 'abi', message: 'Move my things', today: TODAY });
-  check(out.status === 403 && client.requests.length === 0, 'a partner is refused, and Claude is never called');
+  // a partner who isn't a Home admin (one who is gets Ask Claude at Home, below); earlier
+  // suites in the same emulator may have made 'abi' one, so this is someone else
+  await db.doc('ledger_users/partnerAway').set({ role: 'partner' });
+  await db.doc('ledger_home_members/partnerAway').delete();
+  let out = await createAssistant({ db, client }).handle({ uid: 'partnerAway', message: 'Move my things', today: TODAY });
+  check(out.status === 403 && client.requests.length === 0, 'a partner who isn\'t a Home admin is refused, and Claude is never called');
   out = await createAssistant({ db, client }).handle({ uid: 'nobody', message: 'hi', today: TODAY });
   check(out.status === 403, 'someone with no role is refused');
 
@@ -115,7 +119,7 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
   const firstAll = JSON.parse((await db.doc('ledger_assistant_threads/' + tid).get()).data().messagesJson);
   check(out.body.threadId === tid && out.body.reply === 'Which Thursday — this week or next?' && !out.body.proposal, 'a question back is a plain reply, with no proposal');
   check(JSON.stringify(second.slice(0, 6)) === JSON.stringify(firstAll.slice(0, 6)) && /make it Thursday/.test(second[second.length - 1].content), 'the earlier turns go back unchanged, the new message after them');
-  out = await createAssistant({ db, client: fakeClient([]) }).handle({ uid: 'abi', threadId: tid, message: 'peek', today: TODAY });
+  out = await createAssistant({ db, client: fakeClient([]) }).handle({ uid: 'partnerAway', threadId: tid, message: 'peek', today: TODAY });
   check(out.status === 403, 'nobody else can continue Shaun\'s conversation');
 
   // ---- a refusal, and the daily limit ----
@@ -140,19 +144,19 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
   const out2 = await createAssistant({ db, client }).handle({ uid: 'shaun', message: 'this', today: TODAY, image: { mediaType: 'image/jpeg', data: '<script>' } });
   const out3 = await createAssistant({ db, client }).handle({ uid: 'shaun', message: 'this', today: TODAY, image: { mediaType: 'image/jpeg', data: 'A'.repeat(2500004) } });
   check(out.status === 400 && out2.status === 400 && out3.status === 400 && client.requests.length === 0, 'not a JPEG, PNG or WebP, not base64, or too large: refused before Claude is called');
-  out = await createAssistant({ db, client }).handle({ uid: 'abi', message: '', today: TODAY, image: { mediaType: 'image/png', data: PNG } });
+  out = await createAssistant({ db, client }).handle({ uid: 'partnerAway', message: '', today: TODAY, image: { mediaType: 'image/png', data: PNG } });
   check(out.status === 403 && client.requests.length === 0, 'a partner\'s photo is refused like any other ask');
 
   // ---- (2026-10-30) Ask Claude at Home: a Home admin who isn't the owner — Home only ----
-  const HM = (role, name, o) => Object.assign({ homeId: 'shaun', role, status: 'active', displayName: name, addedByUid: 'shaun', addedAt: 'x' }, o || {});
+  const HM = (role, name, o) => Object.assign({ homeId: 'hhome', role, status: 'active', displayName: name, addedByUid: 'shaun', addedAt: 'x' }, o || {});
   await db.doc('ledger_users/hadmin').set({ role: 'partner' });
-  await db.doc('ledger_users/magda').set({ role: 'household' });
-  await db.doc('ledger_home_members/shaun').set(HM('admin', 'Shaun'));
+  await db.doc('ledger_users/magdaH').set({ role: 'household' });
+  await db.doc('ledger_home_members/shaunH').set(HM('admin', 'Shaun'));
   await db.doc('ledger_home_members/hadmin').set(HM('admin', 'Abi'));
-  await db.doc('ledger_home_members/magda').set(HM('member', 'Magda'));
-  await db.doc('ledger_home_daily/magda').set({ homeId: 'shaun', uid: 'magda', status: 'active', notifyTime: '08:00', timezone: 'Europe/London', createdByUid: 'hadmin', createdAt: 'x', updatedAt: 'x', updatedByUid: 'hadmin' });
-  await db.doc('ledger_home_daily/magda/repeats/beds').set({ text: 'Make the beds', schedule: { freq: 'daily', startDate: '2026-10-01' }, starred: false, createdByUid: 'hadmin', createdAt: 'x', updatedAt: 'x', updatedByUid: 'hadmin' });
-  await db.doc('ledger_home_requests/hq1').set({ homeId: 'shaun', text: 'Weekly shop', requesterUid: 'hadmin', assigneeUid: 'shaun', createdByUid: 'hadmin', participants: ['hadmin', 'shaun'],
+  await db.doc('ledger_home_members/magdaH').set(HM('member', 'Magda'));
+  await db.doc('ledger_home_daily/magdaH').set({ homeId: 'hhome', uid: 'magdaH', status: 'active', notifyTime: '08:00', timezone: 'Europe/London', createdByUid: 'hadmin', createdAt: 'x', updatedAt: 'x', updatedByUid: 'hadmin' });
+  await db.doc('ledger_home_daily/magdaH/repeats/beds').set({ text: 'Make the beds', schedule: { freq: 'daily', startDate: '2026-10-01' }, starred: false, createdByUid: 'hadmin', createdAt: 'x', updatedAt: 'x', updatedByUid: 'hadmin' });
+  await db.doc('ledger_home_requests/hq1').set({ homeId: 'hhome', text: 'Weekly shop', requesterUid: 'hadmin', assigneeUid: 'shaunH', createdByUid: 'hadmin', participants: ['hadmin', 'shaunH'],
     status: 'requested', requestedTiming: 'date', requestedDate: '2026-10-29', hasChecklist: true, createdAt: '2026-10-27T08:00:00Z' });
   await db.doc('ledger_share_members/shaun_hadmin').set({ ownerUid: 'shaun', partnerUid: 'hadmin', active: true });
   await db.doc('ledger_shared_snapshots/shaun_hadmin_day_2026-10-28').set({ ownerUid: 'shaun', partnerUid: 'hadmin', periodType: 'day', periodKey: '2026-10-28', periodStart: '2026-10-28', periodEnd: '2026-10-28',
@@ -163,26 +167,26 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
       const names = params.tools.map((t) => t.name);
       check(names.indexOf('get_day') === -1 && names.indexOf('search_actions') === -1 && names.indexOf('propose_add_meals') === -1 && names.indexOf('get_daily') > -1,
         'her tools are Home\'s only: none of Shaun\'s Ledger', names);
-      return turn('tool_use', use('home_people', {}), use('get_daily', { person_id: 'magda', date: '2026-10-28' }), use('get_shared_schedule', { from: '2026-10-26', to: '2026-11-01' }),
+      return turn('tool_use', use('home_people', {}), use('get_daily', { person_id: 'magdaH', date: '2026-10-28' }), use('get_shared_schedule', { from: '2026-10-26', to: '2026-11-01' }),
         use('get_day', { date: TODAY }), use('list_requests', { status: 'open', person_id: null, from: null, to: null }));
     },
     (params) => {
       const r = lastResults(params), body = (i) => JSON.parse(r[i].content.split('\n').slice(1).join('\n'));
       const people = body(0).people;
-      check(people.find((p) => p.id === 'magda').daily_tasks_on === true && people.find((p) => p.id === 'hadmin').you === true, 'home_people: who is at Home, and whose daily tasks are on', people);
+      check(people.find((p) => p.id === 'magdaH').daily_tasks_on === true && people.find((p) => p.id === 'hadmin').you === true, 'home_people: who is at Home, and whose daily tasks are on', people);
       const day = body(1);
       check(day.daily_tasks_on && day.repeating_tasks_coming.map((x) => x.text).join() === 'Make the beds', 'get_daily: a day to come shows the repeating tasks it will bring', day);
       check(body(2).shared.length === 1 && body(2).shared[0].items[0].title === 'Dentist at 3', 'get_shared_schedule: only what Shaun shared with her', body(2));
       check(r[3].is_error && /Unknown tool/.test(r[3].content), 'a tool of Shaun\'s Ledger is unknown to her');
       check(body(4).requests.map((x) => x.id).join() === 'hq1', 'list_requests: Home\'s requests', body(4));
       return turn('tool_use',
-        use('propose_daily_tasks', { person_id: 'magda', date: '2026-10-28', tasks: ['Iron the tops', 'Bins out'] }),
-        use('propose_daily_repeat', { person_id: 'magda', text: 'Water the plants', days: [1, 4], starred: true }),
-        use('propose_daily_tasks', { person_id: 'shaun', date: '2026-10-28', tasks: ['x'] }),
-        use('propose_daily_tasks', { person_id: 'magda', date: '2026-10-20', tasks: ['x'] }),
-        use('propose_request', { for_id: 'shaun', text: 'Pick up the dry cleaning', date: '2026-10-29', checklist: [] }),
+        use('propose_daily_tasks', { person_id: 'magdaH', date: '2026-10-28', tasks: ['Iron the tops', 'Bins out'] }),
+        use('propose_daily_repeat', { person_id: 'magdaH', text: 'Water the plants', days: [1, 4], starred: true }),
+        use('propose_daily_tasks', { person_id: 'shaunH', date: '2026-10-28', tasks: ['x'] }),
+        use('propose_daily_tasks', { person_id: 'magdaH', date: '2026-10-20', tasks: ['x'] }),
+        use('propose_request', { for_id: 'shaunH', text: 'Pick up the dry cleaning', date: '2026-10-29', checklist: [] }),
         use('propose_checklist_items', { request_id: 'hq1', items: ['Milk', 'Eggs'] }),
-        use('propose_remove_daily_repeat', { person_id: 'magda', repeat_id: 'beds' }));
+        use('propose_remove_daily_repeat', { person_id: 'magdaH', repeat_id: 'beds' }));
     },
     (params) => {
       const r = lastResults(params);
@@ -198,8 +202,8 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
     && hstored.ownerUid === 'hadmin' && hstored.scope === 'home', 'stored as her proposal, scope home', hp && hp.changes.map((c) => c.kind));
   const rep = hp.changes.find((c) => c.kind === 'daily_repeat_add');
   check(rep.schedule.freq === 'weekdays' && rep.schedule.days.join() === '1,4' && rep.starred === true, 'a repeat on Mon and Thu, starred', rep);
-  check(!(await get('ledger_home_daily/magda/repeats/' + 'x')) && (await get('ledger_home_daily/magda/repeats/beds')), 'nothing at Home changed: it is only a proposal');
-  out = await createAssistant({ db, client: fakeClient([]) }).handle({ uid: 'magda', message: 'hi', today: TODAY });
+  check(!(await get('ledger_home_daily/magdaH/repeats/' + 'x')) && (await get('ledger_home_daily/magdaH/repeats/beds')), 'nothing at Home changed: it is only a proposal');
+  out = await createAssistant({ db, client: fakeClient([]) }).handle({ uid: 'magdaH', message: 'hi', today: TODAY });
   check(out.status === 403, 'Magda (at Home, not an admin) has no Claude');
   await db.doc('ledger_assistant_usage/hadmin_2026-10-29').set({ ownerUid: 'hadmin', date: '2026-10-29', count: 50 });
   client = fakeClient([]);
