@@ -1122,7 +1122,10 @@ async function oobLink(email){
     await A.evaluate(() => [...document.querySelectorAll('#hlList .hl-row')].find(r => r.querySelector('.hl-text').textContent === 'Iron tops').querySelector('.hl-star').click());
     check(await until(A, () => [...document.querySelectorAll('#hlList .hl-text')].map(x => x.textContent).join('|') === 'Iron tops|Hoover upstairs|Water plants'
         && document.querySelector('#hlList .hl-row .hl-star').classList.contains('on')), 'H24 starred: gold, and first on the list — ' + await texts());
-    check((await itemsOf(dj.id)).find(i => i.text === 'Iron tops').starred === true, 'H24 stored on the item');
+    // the row answers at once; the write follows — wait for it rather than read once
+    let starredStored = false;
+    for (let k = 0; k < 20 && !starredStored; k++){ starredStored = ((await itemsOf(dj.id)).find(i => i.text === 'Iron tops') || {}).starred === true; if (!starredStored) await sleep(300); }
+    check(starredStored, 'H24 stored on the item');
     // the status, as a badge
     check(await A.evaluate(() => { const s = document.getElementById('hdState'); return s.classList.contains('st-requested') && getComputedStyle(s).borderRadius === '14px'; }), 'H24 the request\'s status is a badge');
     // photos: Abi adds one; Maria sees it; only Abi (or an admin) removes it
