@@ -760,8 +760,13 @@ Conventions that should not be casually changed.
 - **Shaun's answers:** year → 90-day → weekly outcomes; a Friday review (business) and a
   Sunday review (personal); Claude drafts the review and proposes next week, and he
   approves; number measures he updates himself.
-- **Design for approval:** `docs/GOALS_AND_REVIEW.md`. Nothing is built until he approves
-  it and answers its §8 questions.
+- **Approved, with answers (§8):**
+  - a Today card plus one notification for each review. This supersedes "no
+    scheduled-reminder engine", for these two reviews only;
+  - unlinked Actions take their area from their category;
+  - calendar quarters;
+  - existing priorities carry over as year goals.
+- Phase 1 (goals and the week) is next. See `docs/GOALS_AND_REVIEW.md`.
 
 ### 2026-10-30 — Ask Claude at Home for Abi (Shaun; supersedes "owner only" in part)
 - Home admins who aren't the owner (Abi) get Ask Claude **at Home**: "Plan" on her Home.

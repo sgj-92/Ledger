@@ -1,7 +1,7 @@
 # Goals, weekly planning and review — design for review
 
-Status: **design, 2026-10-31. Not built.** Waiting on Shaun's approval and the open
-questions in §8.
+Status: **approved 2026-10-31; phase 1 in progress.** Shaun's answers to §8 are recorded
+there.
 
 > "Let's look at closing the review → adjust loop and enhancing planning to align closer
 > to my personal and business goals."
@@ -182,18 +182,14 @@ rest.
 Each phase is usable on its own. Phase 1 already lets a plain week be checked against its
 goals.
 
-## 8. Open questions for Shaun
+## 8. Decided (Shaun, 2026-10-31)
 
-1. **Prompting the reviews.** Ledger's earlier decision rules out a scheduled-reminder
-   engine. Should the reviews be:
-   - a card on Today, from Friday 15:00 and Sunday 17:00, until done; or
-   - that card plus one notification each time? This would be the first timed reminder,
-     so it needs his approval.
-2. **Area of an unlinked Action.** Business when its category is work, success or
-   communicate; personal for family, personal or training. Is that right?
-3. **Quarters:** calendar quarters (Q4 is October to December), or 12-week cycles from a
-   start date he chooses?
-4. **The week starts** on his existing setting, Monday. The Friday review covers Monday to
-   Friday, the Sunday review the whole week. Agreed?
-5. **Today's priorities.** Move each into a year goal, asking its area once. Or start
-   fresh?
+1. **Prompting the reviews:** a card on Today (Friday from 15:00, Sunday from 17:00, until
+   done), plus one notification at that time. This approves Ledger's first timed
+   reminder, for these two reviews only.
+2. **Area of an unlinked Action:** by category. Work, success and communicate are
+   business; family, personal and training are personal.
+3. **Quarters:** calendar quarters.
+4. **The week** starts on his setting (Monday). The Friday review covers Monday to
+   Friday; the Sunday review covers the week.
+5. **Priorities carry over:** each becomes a year goal, and Ledger asks its area once.
