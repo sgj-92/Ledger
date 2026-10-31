@@ -2481,26 +2481,15 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy Firebase, then set up Magda's daily tasks; Abi tries "Plan")
-**Newest (2026-10-30), built:** daily tasks at Home (`docs/HOME_DAILY.md`). After the
-deploy: Home → Add → Daily tasks → Magda, then add her repeating tasks.
-**Newest (2026-10-29), built:**
-- the focus timer full screen (website), and as a Live Activity (the next Xcode Cloud
-  build after build 7);
-- photos on Actions and Home requests; a photo in Ask Claude; checklist stars; moving
-  what's left to tomorrow; larger status; + → Focus timer and Quick log; the Inbox folds.
-
-**To do:**
-- "Deploy Firebase", everything: photos and stars are refused by the live rules until
-  then, and Ask Claude's photo needs the new function.
-- Install the new build from TestFlight once Xcode Cloud finishes. Set a timer, lock the
-  phone, and check the Lock Screen and the Dynamic Island.
-- If the build fails, send a screenshot of its log.
-- Build 7 is installed. **Firebase is behind:** the last "Deploy Firebase" run was
-  2026-10-28 08:30 (3df5da8), before the admin tick-off rules (8b3ff8e). So an admin's
-  "Mark done" on someone else's request is refused by the live rules and flips back
-  (Shaun, 2026-10-30), and photos, stars and the Ask Claude photo can't work yet. The
-  code is right (the same steps pass on the emulator); one deploy of everything fixes it.
+Owner: Abi and Shaun (try on their phones)
+**Everything to date is deployed** (Firebase 6c0f611, 2026-10-31 01:27, green; Vercel
+up to date).
+- **Abi:** set up Magda's daily tasks (Home → Add → Daily tasks → Magda, then her
+  repeating tasks), and try "Plan" (Ask Claude at Home).
+- **Shaun:** try Morning Prime as the focus and Pin now; the Live Activity is in the
+  TestFlight build after build 7.
+- **First real checks still to come:** the overnight carry-over and the morning message
+  (`docs/HOME_DAILY.md`), and Abi's Claude against the real model.
 
 Status: **Deployed 2026-10-27** (Deploy Firebase, everything, green).
 - **Claude in Ledger phase 1:** + → Ask Claude, for Actions and the Food Plan, with
