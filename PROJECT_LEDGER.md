@@ -2742,6 +2742,10 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-01) — **Keyboard "done" key** (Shaun, from the iOS app). The intention fields
+  show iOS's blue "done" key: Morning Prime's saves the intention and closes the keyboard
+  (it doesn't complete Morning Prime). Single-line text fields get "done" too and close the
+  keyboard; quick capture says "next"; multi-line notes keep Return. Web only, no rebuild.
 - (2026-11-01) — **Ask Claude phase 2: logging, and the rest of Ledger** (§13).
   - Logs for training, weight, steps, food (as written), goal numbers, notes, intentions,
     conversations and Life Context. They save at once with Undo; anything replacing

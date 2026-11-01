@@ -10438,7 +10438,7 @@
     var cat = QUICK_CAPTURE_CATEGORY_MAP[category];
     row.innerHTML =
       '<button type="button" class="qc-type-chip" data-id="' + id + '"><span class="chip-dot" style="--chip-color:' + cat.color + '"></span>' + cat.label + '</button>' +
-      '<input type="text" class="qc-text-input" data-id="' + id + '" placeholder="What’s on your mind?" autocomplete="off">' +
+      '<input type="text" class="qc-text-input" data-id="' + id + '" placeholder="What’s on your mind?" enterkeyhint="next" autocomplete="off">' +
       '<button type="button" class="qc-pin-toggle" data-id="' + id + '" aria-label="Also pin to phone" title="Also pin to phone">' + PIN_ICON_SVG + '</button>' +
       '<button type="button" class="qc-row-delete" data-id="' + id + '" aria-label="Remove row">✕</button>';
     rowsWrap.appendChild(row);
@@ -20085,7 +20085,7 @@
     // the intention is Plan's last step: it folds away with Plan
     var intentionHtml = st.intentionEnabled
       ? '<div class="mp-intention-wrap">' +
-          '<textarea id="mpIntention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
+          '<textarea id="mpIntention" rows="2" enterkeyhint="done" data-enter-done maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
           '<span class="mp-count" id="mpCount"></span>' +
         '</div>'
       : '';
@@ -20154,6 +20154,16 @@
       ta.addEventListener('input', function(){
         mpIntentionDraft[dateStr] = ta.value;
         count.textContent = ta.value.length + '/' + MP_INTENTION_MAX;
+      });
+      // the keyboard's Done: the intention is kept and the keyboard goes; Morning Prime
+      // itself is still completed with its own button
+      ta.addEventListener('keydown', function(e){
+        if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+        e.preventDefault();
+        var text = (ta.value || '').trim();
+        ta.blur();
+        mpIntentionDraft[dateStr] = text;
+        patchMorningPrime(dateStr, { intention: text }).then(function(){ delete mpIntentionDraft[dateStr]; renderMorningPrime(); });
       });
     }
 
@@ -20892,7 +20902,7 @@
       '<div class="sheet-handle"></div>' +
       sheetHead(UI_ICON.target, 'Set your intention', 'One line to set the tone.', '') +
       '<div class="mp-intention-wrap">' +
-        '<textarea id="f_intention" rows="3" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
+        '<textarea id="f_intention" rows="3" enterkeyhint="done" data-enter-done maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
         '<span class="mp-count" id="intentionCount"></span>' +
       '</div>' +
       '<button type="button" class="btn-primary" id="intentionSaveBtn">Save</button>';
@@ -20903,6 +20913,9 @@
     count.textContent = value.length + '/' + MP_INTENTION_MAX;
     setTimeout(function(){ ta.focus(); }, 40);
     ta.addEventListener('input', function(){ count.textContent = ta.value.length + '/' + MP_INTENTION_MAX; });
+    ta.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); document.getElementById('intentionSaveBtn').click(); }
+    });
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
     document.getElementById('intentionSaveBtn').addEventListener('click', async function(){
       var text = (ta.value || '').trim();
@@ -26944,7 +26957,7 @@
           ? '<button type="button" class="pdp-finish" data-role="pane-finish">' + CHECK_SVG + 'Finish planning</button>' : '') +
       '</div></div>' +
       head('Direction') +
-      '<textarea class="pdp-input pdp-intention" data-role="pane-intention" rows="1" maxlength="' + MP_INTENTION_MAX + '" placeholder="Intention for the day" aria-label="Intention"></textarea>' +
+      '<textarea class="pdp-input pdp-intention" data-role="pane-intention" rows="1" enterkeyhint="done" data-enter-done maxlength="' + MP_INTENTION_MAX + '" placeholder="Intention for the day" aria-label="Intention"></textarea>' +
       '<div class="pdp-support" data-role="pane-support"></div>' +
       head('Actions', '<span class="sec-value" data-role="pane-count"></span>') +
       '<div data-role="pane-actions"></div>' +
@@ -27342,7 +27355,7 @@
           '<span class="dp-challenge" id="dpChallenge" hidden></span>', '') +
         secHtml('direction',
           '<div class="field"><label for="dpIntention">Intention</label>' +
-            '<textarea id="dpIntention" class="dp-intention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea></div>' +
+            '<textarea id="dpIntention" class="dp-intention" rows="2" enterkeyhint="done" data-enter-done maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea></div>' +
           '<div class="dp-sublabel">Supports</div><div id="dpSupport"></div>') +
         secHtml('actions', '<div id="dpActions"></div>') +
         secHtml('health',
@@ -29021,19 +29034,41 @@
   }
 
   // upgrade every select as it appears, and keep upgraded ones in step with option changes
+  // The keyboard's Return key on iOS: a single-line text field shows a blue "done" (unless it
+  // names its own, such as "search" or "send"), and a field marked data-enter-done takes
+  // Done instead of a new line. Done closes the keyboard when nothing else answered it; a
+  // sign-in form still submits. Fields for several lines (notes, diaries) keep Return.
+  function doneKeysIn(root){
+    var list = root.matches && root.matches('input') ? [root] : (root.querySelectorAll ? root.querySelectorAll('input') : []);
+    Array.prototype.forEach.call(list, function(el){
+      var t = (el.getAttribute('type') || 'text').toLowerCase();
+      if ((t === 'text' || t === 'email' || t === 'url' || t === 'tel') && !el.hasAttribute('enterkeyhint') && !el.form) el.setAttribute('enterkeyhint', 'done');
+    });
+  }
+  document.addEventListener('keydown', function(e){
+    var el = e.target;
+    if (e.key !== 'Enter' || e.shiftKey || e.isComposing || !el || !el.tagName) return;
+    if (el.tagName === 'TEXTAREA' && el.hasAttribute('data-enter-done')){
+      e.preventDefault();          // one line: no new lines
+      el.blur();
+      return;
+    }
+    if (el.tagName === 'INPUT' && !el.form && el.getAttribute('enterkeyhint') === 'done' && !e.defaultPrevented) el.blur();
+  });
   function enhanceSelectsIn(root){
     if (root.tagName === 'SELECT') enhanceSelect(root);
     else if (root.querySelectorAll) Array.prototype.forEach.call(root.querySelectorAll('select'), enhanceSelect);
   }
   new MutationObserver(function(records){
     records.forEach(function(rec){
-      Array.prototype.forEach.call(rec.addedNodes, function(n){ if (n.nodeType === 1) enhanceSelectsIn(n); });
+      Array.prototype.forEach.call(rec.addedNodes, function(n){ if (n.nodeType === 1){ enhanceSelectsIn(n); doneKeysIn(n); } });
       var t = rec.target.nodeType === 1 ? rec.target : rec.target.parentNode;
       var s = t && t.closest && t.closest('select[data-lp]');
       if (s && s._lpSync) s._lpSync();
     });
   }).observe(document.body, { childList: true, subtree: true, characterData: true });
   enhanceSelectsIn(document.body);
+  doneKeysIn(document.body);
   if (WIDE_MQ.addEventListener) WIDE_MQ.addEventListener('change', function(){ closePicker(false); });
 
   function closeSheet(){
