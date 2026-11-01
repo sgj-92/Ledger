@@ -2523,8 +2523,8 @@ wider exposure — see Open Questions.
 Owner: Shaun (deploy, then try it)
 **Ask Claude phase 2: logging and the rest of Ledger** — built 2026-11-01
 (`docs/CLAUDE_ASSISTANT.md` §13).
-- **Deploy needed:** "Deploy Firebase", everything. That covers the new functions and the
-  `ledger_weeks` rule from goals phase 1, if it isn't deployed yet.
+- **Deploy needed:** "Deploy Firebase", everything (the new functions). Goals phase 1's
+  `ledger_weeks` rule is already live (run of 2026-10-31 07:32, 7516ed3).
 - **Try:** + → Ask Claude: "legs last night, 88.4kg, chicken salad for lunch", then
   "what's missing today?" and answer it.
 
