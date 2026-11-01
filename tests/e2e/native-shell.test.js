@@ -292,6 +292,15 @@ function fakeBridgeWhenAsked(){
   check(await until(I, () => window.__nat.calls.includes('LedgerWidget.keepAwake {"on":true}')), 'Full screen: the iPhone keeps the screen on');
   await I.click('#ffClose');
   check(await until(I, () => document.getElementById('focusFull').hidden && window.__nat.calls.includes('LedgerWidget.keepAwake {"on":false}')), 'Full screen: closing lets the screen sleep again');
+  // the keyboard: the bar with Done for a field of several lines; a one-line field has "done"
+  await I.evaluate(() => { const t = document.createElement('textarea'); t.id = '__kbT'; const i = document.createElement('input'); i.id = '__kbI'; document.body.append(t, i); });
+  await I.focus('#__kbT');
+  check(await until(I, () => window.__nat.calls.includes('Keyboard.setAccessoryBarVisible {"isVisible":true}')), 'Keyboard (iPhone): a field of several lines gets the bar with Done');
+  await I.focus('#__kbI');
+  check(await until(I, () => window.__nat.calls.includes('Keyboard.setAccessoryBarVisible {"isVisible":false}') && document.getElementById('__kbI').getAttribute('enterkeyhint') === 'done'),
+    'Keyboard (iPhone): a one-line field hides the bar and shows the blue "done"');
+  await I.evaluate(() => { document.getElementById('__kbT').remove(); document.getElementById('__kbI').remove(); });
+  check(!(await calls(A)).some(c => /^Keyboard\./.test(c)), 'Keyboard: nothing asked of Android');
   await A.click('.tab-btn[data-view="log"]');
   check(await until(A, () => { const b = document.getElementById('nowTimer'); return !!b && b.classList.contains('on'); }), 'Full screen (Android): the timer reaches the phone');
   await A.click('#nowTimer');

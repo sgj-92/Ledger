@@ -70,7 +70,9 @@ product, one data model and one release of the business logic.
 **Capacitor's material limitations, and how Ledger handles them:**
 - **WebView feel.** Scroll physics, the keyboard pushing content, overscroll bounce,
   and text selection on long press. Handle with:
-  - the Keyboard plugin (resize mode);
+  - the Keyboard plugin (resize mode; since 2026-11-01 the page shows the bar above the
+    keyboard, with Done, for fields of several lines, and hides it for one-line fields,
+    which have the keyboard's own blue "done");
   - turning off WebView bounce where it fights the sheets;
   - `-webkit-touch-callout: none` on controls;
   - the existing drag handles (they use pointer events and work in WKWebView).

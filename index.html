@@ -8746,6 +8746,23 @@
     nativeSyncBars();
     if (window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android' && typeof window.Capacitor.addListener === 'function')
       window.Capacitor.addListener('App', 'backButton', nativeBack);
+    // iPhone: a field of several lines gets the bar above the keyboard, with its Done, so
+    // Return stays a new line; a one-line field has the keyboard's own blue "done" instead.
+    // (The Keyboard plugin hides the bar unless asked; it is already in the app.)
+    if (window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios'){
+      var kbBar = null;
+      var kbFor = function(e){
+        var t = e.target;
+        if (!t || !/^(INPUT|TEXTAREA)$/.test(t.tagName)) return;
+        var want = t.tagName === 'TEXTAREA';
+        if (want === kbBar) return;
+        kbBar = want;
+        nativeCall('Keyboard', 'setAccessoryBarVisible', { isVisible: want });
+      };
+      // the touch comes before the focus, so the bar is set before the keyboard rises
+      document.addEventListener('touchstart', kbFor, { passive: true, capture: true });
+      document.addEventListener('focusin', kbFor);
+    }
     // a link into Ledger from outside the page (the Today widget, later notifications):
     // the same router as every Ledger link
     if (typeof window.Capacitor.addListener === 'function')
@@ -20085,7 +20102,7 @@
     // the intention is Plan's last step: it folds away with Plan
     var intentionHtml = st.intentionEnabled
       ? '<div class="mp-intention-wrap">' +
-          '<textarea id="mpIntention" rows="2" enterkeyhint="done" data-enter-done maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
+          '<textarea id="mpIntention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
           '<span class="mp-count" id="mpCount"></span>' +
         '</div>'
       : '';
@@ -20155,15 +20172,20 @@
         mpIntentionDraft[dateStr] = ta.value;
         count.textContent = ta.value.length + '/' + MP_INTENTION_MAX;
       });
-      // the keyboard's Done: the intention is kept and the keyboard goes; Morning Prime
-      // itself is still completed with its own button
-      ta.addEventListener('keydown', function(e){
-        if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
-        e.preventDefault();
-        var text = (ta.value || '').trim();
-        ta.blur();
-        mpIntentionDraft[dateStr] = text;
-        patchMorningPrime(dateStr, { intention: text }).then(function(){ delete mpIntentionDraft[dateStr]; renderMorningPrime(); });
+      // leaving the field (the keyboard's Done, on the iPhone) keeps the intention; Morning
+      // Prime itself is still completed with its own button. A beat later, so a tap on that
+      // button lands first and this finds nothing left to save.
+      ta.addEventListener('blur', function(){
+        setTimeout(function(){
+          var text = (ta.value || '').trim();
+          if (text === ((getMorningPrime(dateStr).intention || '').trim())) return;
+          mpIntentionDraft[dateStr] = text;
+          patchMorningPrime(dateStr, { intention: text }).then(function(){
+            delete mpIntentionDraft[dateStr];
+            var mpEl = document.getElementById('morningPrime');
+            if (!(mpEl && mpEl.contains(document.activeElement))) renderMorningPrime();
+          });
+        }, 350);
       });
     }
 
@@ -20902,7 +20924,7 @@
       '<div class="sheet-handle"></div>' +
       sheetHead(UI_ICON.target, 'Set your intention', 'One line to set the tone.', '') +
       '<div class="mp-intention-wrap">' +
-        '<textarea id="f_intention" rows="3" enterkeyhint="done" data-enter-done maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
+        '<textarea id="f_intention" rows="3" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
         '<span class="mp-count" id="intentionCount"></span>' +
       '</div>' +
       '<button type="button" class="btn-primary" id="intentionSaveBtn">Save</button>';
@@ -20913,9 +20935,6 @@
     count.textContent = value.length + '/' + MP_INTENTION_MAX;
     setTimeout(function(){ ta.focus(); }, 40);
     ta.addEventListener('input', function(){ count.textContent = ta.value.length + '/' + MP_INTENTION_MAX; });
-    ta.addEventListener('keydown', function(e){
-      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); document.getElementById('intentionSaveBtn').click(); }
-    });
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
     document.getElementById('intentionSaveBtn').addEventListener('click', async function(){
       var text = (ta.value || '').trim();
@@ -26957,7 +26976,7 @@
           ? '<button type="button" class="pdp-finish" data-role="pane-finish">' + CHECK_SVG + 'Finish planning</button>' : '') +
       '</div></div>' +
       head('Direction') +
-      '<textarea class="pdp-input pdp-intention" data-role="pane-intention" rows="1" enterkeyhint="done" data-enter-done maxlength="' + MP_INTENTION_MAX + '" placeholder="Intention for the day" aria-label="Intention"></textarea>' +
+      '<textarea class="pdp-input pdp-intention" data-role="pane-intention" rows="1" maxlength="' + MP_INTENTION_MAX + '" placeholder="Intention for the day" aria-label="Intention"></textarea>' +
       '<div class="pdp-support" data-role="pane-support"></div>' +
       head('Actions', '<span class="sec-value" data-role="pane-count"></span>') +
       '<div data-role="pane-actions"></div>' +
@@ -27355,7 +27374,7 @@
           '<span class="dp-challenge" id="dpChallenge" hidden></span>', '') +
         secHtml('direction',
           '<div class="field"><label for="dpIntention">Intention</label>' +
-            '<textarea id="dpIntention" class="dp-intention" rows="2" enterkeyhint="done" data-enter-done maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea></div>' +
+            '<textarea id="dpIntention" class="dp-intention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea></div>' +
           '<div class="dp-sublabel">Supports</div><div id="dpSupport"></div>') +
         secHtml('actions', '<div id="dpActions"></div>') +
         secHtml('health',
@@ -29035,9 +29054,9 @@
 
   // upgrade every select as it appears, and keep upgraded ones in step with option changes
   // The keyboard's Return key on iOS: a single-line text field shows a blue "done" (unless it
-  // names its own, such as "search" or "send"), and a field marked data-enter-done takes
-  // Done instead of a new line. Done closes the keyboard when nothing else answered it; a
-  // sign-in form still submits. Fields for several lines (notes, diaries) keep Return.
+  // names its own, such as "search" or "send"), which closes the keyboard when nothing else
+  // answered it; a sign-in form still submits. A field for several lines keeps Return for a
+  // new line, and in the app the bar above the keyboard gives it a Done (see "native apps").
   function doneKeysIn(root){
     var list = root.matches && root.matches('input') ? [root] : (root.querySelectorAll ? root.querySelectorAll('input') : []);
     Array.prototype.forEach.call(list, function(el){
@@ -29048,11 +29067,6 @@
   document.addEventListener('keydown', function(e){
     var el = e.target;
     if (e.key !== 'Enter' || e.shiftKey || e.isComposing || !el || !el.tagName) return;
-    if (el.tagName === 'TEXTAREA' && el.hasAttribute('data-enter-done')){
-      e.preventDefault();          // one line: no new lines
-      el.blur();
-      return;
-    }
     if (el.tagName === 'INPUT' && !el.form && el.getAttribute('enterkeyhint') === 'done' && !e.defaultPrevented) el.blur();
   });
   function enhanceSelectsIn(root){
