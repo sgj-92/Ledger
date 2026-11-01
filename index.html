@@ -2206,6 +2206,10 @@
   .cu-open-ring.waiting { border-style: dashed; }
   .cu-wait-acts { display: flex; gap: 16px; margin: -2px 0 6px 38px; }
   .cu-wait-acts .btn-link { padding: 4px 0; font-size: 12.5px; color: var(--text-2); }
+  .cu-planned .cu-planned-row { cursor: default; }
+  .cu-planned .cu-planned-row:active { background: none; }
+  .cu-wait-acts .cu-plan-done { display: inline-flex; align-items: center; gap: 6px; color: var(--gold); font-weight: 600; }
+  .cu-wait-acts .cu-plan-done svg { width: 12px; height: 12px; display: block; }
   .cu-open-ring { flex-shrink: 0; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--line-2); box-sizing: border-box; }
   .cu-ev-tick { flex-shrink: 0; width: 15px; height: 15px; color: var(--gold); display: flex; }
   .cu-ev-tick svg { width: 100%; height: 100%; display: block; }
@@ -21082,6 +21086,12 @@
       trainingLogged: trainingSessions.length > 0,
       trainingState: trainingState,
       plannedTypes: (plan && plan.trainingTypes) || [],
+      // planned that day, not rested, and neither logged nor ticked on the plan
+      plannedOpen: (plan && !plan.restDay ? (plan.trainingTypes || []) : []).filter(function(t){
+        return !trainingSessions.some(function(x){ return x.type === t; }) &&
+          !(plan.trainingDetails && plan.trainingDetails[t] && plan.trainingDetails[t].completed);
+      }),
+      plannedDetails: (plan && plan.trainingDetails) || {},
       nutrition: nutrition,
       nutritionState: nutritionState,
       exposure: exposureForDate(dateStr),
@@ -21287,6 +21297,15 @@
         '', 'actions');
 
       // --- training: an existing log is the answer, not a question ---
+      // A session planned that day and not yet logged is offered as itself: done as planned
+      // (one tap, from the plan's details), or opened to change first.
+      var plannedHtml = snap.plannedOpen.length ? '<div class="cu-evidence cu-open-acts cu-planned">' + snap.plannedOpen.map(function(t){
+        // the plan's details are his words: written as text once the block is built
+        return '<div class="cu-evidence-row cu-planned-row"><span class="cu-open-ring" aria-hidden="true"></span>' +
+            '<span class="cu-ev-text"><strong>' + TYPE_LABEL[t] + '</strong><span data-cu-plandetail="' + t + '">Planned</span></span></div>' +
+          '<div class="cu-wait-acts"><button type="button" class="btn-link cu-plan-done" data-cu-plandone="' + t + '">' + CHECK_SVG + 'Done as planned</button>' +
+            '<button type="button" class="btn-link" data-cu-planedit="' + t + '">Edit first</button></div>';
+      }).join('') + '</div>' : '';
       var trainingBody;
       if (snap.trainingLogged){
         trainingBody = '<div class="cu-evidence">' +
@@ -21298,18 +21317,17 @@
               '<span class="chev">' + UI_ICON.chevronRight + '</span>' +
             '</button>';
           }).join('') +
-        '</div>' + cuResolved('Training logged.');
+        '</div>' + plannedHtml + (snap.plannedOpen.length ? '' : cuResolved('Training logged.'));
       } else {
         trainingBody = cuSeg('training', [
           { value: 'logged', label: 'Logged' },
           { value: 'none', label: 'Didn\'t train' },
           { value: 'unknown', label: 'Unknown' }
         ], trainingVal) +
+        plannedHtml +
         (trainingVal === 'logged'
-          ? '<button type="button" class="cu-link cu-link-block" id="cuAddTraining">Add the session' + UI_ICON.chevronRight + '</button>'
-          : (snap.plannedTypes.length
-              ? '<div class="cu-sub cu-sub-quiet">Planned: ' + snap.plannedTypes.map(function(t){ return SHORT_TYPE_LABEL[t] || TYPE_LABEL[t]; }).join(', ') + '</div>'
-              : ''));
+          ? '<button type="button" class="cu-link cu-link-block" id="cuAddTraining">' + (snap.plannedOpen.length ? 'Another session' : 'Add the session') + UI_ICON.chevronRight + '</button>'
+          : '');
       }
       html += cuBlock(TRAINING_ICON_SVG.resistance, 'Training', trainingBody, '', 'training');
 
@@ -21449,6 +21467,37 @@
         });
       });
 
+      sheetEl.querySelectorAll('[data-cu-plandetail]').forEach(function(el){
+        var t = el.dataset.cuPlandetail, detail = sessionDetailText(Object.assign({ type: t }, snap.plannedDetails[t] || {}));
+        el.textContent = 'Planned' + (detail && detail !== 'Session logged' ? ' \u00b7 ' + detail : '');
+      });
+      // a planned session: logged from the plan's details and ticked on the plan, then back here
+      function plannedSeed(t){
+        var det = Object.assign({}, snap.plannedDetails[t] || {});
+        ['completed', 'completedAt', 'sessionId', 'id'].forEach(function(k){ delete det[k]; });
+        return Object.assign(det, { type: t, date: dateStr, notes: det.notes || '', activityTime: det.activityTime || '' });
+      }
+      sheetEl.querySelectorAll('[data-cu-plandone]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var t = btn.dataset.cuPlandone;
+          if (!(t in TYPE_LABEL)) return;
+          readNotes();
+          var rec = Object.assign(plannedSeed(t), { id: uid(), createdAt: new Date().toISOString() });
+          Promise.resolve(saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true }))).then(function(){
+            saveSession(rec);
+            markPlanTrainingCompleted(dateStr, t, rec.id);
+            showPinToast(TYPE_LABEL[t] + ' logged', false, CHECK_SVG);
+            setTimeout(function(){ openCatchUpSheet(dateStr, { resume: 'training' }); }, 200);
+          });
+        });
+      });
+      sheetEl.querySelectorAll('[data-cu-planedit]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var t = btn.dataset.cuPlanedit;
+          if (!(t in TYPE_LABEL)) return;
+          leave('training', function(){ openSheet(t, plannedSeed(t), dateStr, { planDate: dateStr }); });
+        });
+      });
       var addTraining = document.getElementById('cuAddTraining');
       if (addTraining) addTraining.addEventListener('click', function(){
         leave('training', function(){ openCatchUpTrainingPicker(dateStr); });

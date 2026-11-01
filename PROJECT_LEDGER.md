@@ -2742,6 +2742,11 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-01) — **Catch-up: log the planned session** (Shaun: "I can't log the planned
+  activity as completed"). Each session planned that day and not yet logged shows as a
+  row: **Done as planned** logs it from the plan's details and ticks it on the plan, in one
+  tap; **Edit first** opens the form filled from the plan. Both come back to Catch-up.
+  Before, "Logged" only offered a blank session that never ticked the plan.
 - (2026-11-01) — **Keyboard: Done and Return** (Shaun, from the iOS app).
   - One-line fields show iOS's blue "done", which closes the keyboard; quick capture says
     "next".
