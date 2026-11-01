@@ -232,6 +232,8 @@ it already names). **Today** shows that outcome as a quiet line under the action
 a new action with the outcome's text to edit; it is made a key task that moves the outcome,
 in Work or Personal by the outcome's area.
 
-**Not yet (phase 2):** the reviews, Claude's goal and week tools, the Today card and the
-two notifications. Marking results in the outcome sheet is the manual form of what the
-review will do.
+**Not yet (phase 2):** the reviews, the Today card and the two notifications. Marking
+results in the outcome sheet is the manual form of what the review will do. Claude's goal
+and week tools (§6) arrived with Ask Claude phase 2 on 2026-11-01
+(`docs/CLAUDE_ASSISTANT.md` §13); the review draft (`propose_review`) comes with the
+reviews.

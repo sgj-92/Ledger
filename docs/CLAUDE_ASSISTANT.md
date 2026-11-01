@@ -1,6 +1,6 @@
 # Claude in Ledger — design
 
-Status: **design agreed 2026-10-27 (§10 answered by Shaun). Phase 1 built and deployed 2026-10-27 (§11).**
+Status: **design agreed 2026-10-27 (§10 answered by Shaun). Phase 1 built and deployed 2026-10-27 (§11). Phase 2 — logging and the rest of Ledger — built 2026-11-01 (§13).**
 
 > "I want to look at connecting Claude to ledger via api. So we can amend things in the
 > app, clean data, add new etc." — "I want to add it into ledger app too." — "I want to
@@ -341,3 +341,65 @@ sheet.
 - rules: proposals;
 - Home e2e H26 (a stand-in Claude; apply and Undo against the emulator).
 
+
+## 13. Phase 2 — logging, and the rest of Ledger (2026-11-01)
+
+Shaun: "Allow Claude to be used for goals/tasks/reviewing my day. So I can quickly just
+type what exercise I did, foods eaten etc and it just adds it. If I specify the day it
+should note it for that day. I should be able to ask what data is missing and I can update
+immediately. Let's extend its capabilities to all other areas of Ledger now."
+
+**His answers:**
+- **New logs go straight in, with Undo.** Changing or removing what is already there, and
+  anything that reaches Abi or Magda at Home, still waits for review. This supersedes
+  "nothing changes until Shaun applies it" (§2, §6) for logs that only add.
+- **Food:** into the day's food diary, in his words. Claude never estimates calories or
+  nutrients.
+- **"What's missing?"** checks health logs, goals and the week, and Actions and Comms.
+
+**Server** (`functions/assistant-more.js`, joined to Shaun's tools in `assistant.js`):
+- **Logs:** `log_training` (padel, strength with exercises, cardio, HIIT, mobility),
+  `log_weight`, `log_steps`, `log_food`, `log_goal_value`, `add_day_note`,
+  `set_intention`, `log_conversation`, `log_life_context`.
+- **Saved at once (`auto`):** a log that only adds. A log that would replace something —
+  the day's steps, the nutrition day's rating, an intention, a goal's value for that day —
+  is not auto and waits for review, showing before → after.
+- **Reads:** `get_health` (at most 31 days; a daily photo is named, never sent),
+  `list_goals`, `get_week`, `list_comms`, and `whats_missing`.
+- **`whats_missing`** is worked out by the server, not by Claude, from the records:
+  - health: no weight, no steps, no food or rating, training planned and not logged;
+  - goals: numbers not updated in 7 days, no outcomes this week, outcomes without a result
+    (from Friday) or without Actions, goals without an area;
+  - Actions and Comms: open Actions from earlier days, conversations that need him,
+    follow-ups due, conversations quiet for 14 days.
+  It states what is not recorded, never "missed".
+- **For review:** `propose_goal`, `propose_update_goal` (title, achieved, dropped,
+  reopened), `propose_outcome`, `propose_outcome_result`, `propose_conversation_state`.
+- **His Home:** when Shaun is a Home admin, the Home tools (§12) join his own, except
+  the partner's view of his shared schedule. Home changes always wait for review.
+- **Refused at the tool:** a log for a future day, a weight out of range, an unknown id, a
+  change that changes nothing, the same day's food or steps twice in one answer.
+- Still no Ledger writes on the server: the answer carries the changes; the app makes
+  them.
+
+**In the app** (`index.html`, "Ask Claude"):
+- **When an answer arrives,** its auto logs are applied at once through Ledger's own save
+  functions, under a **Logged** card with Undo. The rest is a review card ("3 changes to
+  review"). The toast only appears when there is nothing to review, so it never covers
+  Apply.
+- **Training** from Claude completes that day's planned session of the same type, as
+  logging from the plan does; Undo opens it again.
+- **Undo** puts each log back only if it is still as Claude left it: a diary, a goal's
+  values, a note, an intention, a conversation's movement.
+- **The proposal record** holds both parts of one answer (`applied` lists every change
+  made).
+- **Copy:** "Log, plan and review. New logs save at once, with Undo; changes wait for you."
+
+**Tests:**
+- `tests/functions/assistant.test.js`: 75 (reads, `whats_missing`, every log and change,
+  the auto flags, refusals, nothing written, his Home's tools);
+- `tests/e2e/assistant.test.js`: 54 (logs saved at once and the planned session
+  completed; the review card applied; Undo of every log).
+
+**Not yet:** editing or removing an existing health log, settings and targets, and
+duplicates and merging (§5). The connector (§3) is phase 3.

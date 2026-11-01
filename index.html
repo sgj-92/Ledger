@@ -7983,6 +7983,18 @@
     if (currentView === 'stats') renderStats();
   }
 
+  // Goals are never deleted by Shaun (achieved or dropped instead); only Undo of a goal
+  // Ask Claude just made takes one away.
+  async function removeGoalRecord(id){
+    if (dbReady && dbRef){
+      try { await dbRef.collection('ledger_priorities').doc(id).delete(); return; }
+      catch(e){ console.error(e); }
+    }
+    priorities = priorities.filter(function(p){ return p.id !== id; });
+    localSavePriorities();
+    renderPriorities();
+  }
+
   function seedPrioritiesIfNeeded(){
     if (!presetsLoaded || !prioritiesLoaded) return;
     if (presets.prioritiesSeeded) return;
@@ -10696,8 +10708,78 @@
     } else if (c.kind === 'checklist_add'){
       verb = 'Add to'; title = (c.before || {}).text;
       (c.items || []).forEach(function(t){ lines.push('\u2022 ' + t); });
+    } else if (/^(session_create|steps_set|food_add|goal_value|day_note|intention|comms_log|life_context|goal_create|goal_update|outcome_add|outcome_result|conv_state)$/.test(c.kind)){
+      return acLedgerView(c, day);
     }
     return { verb: verb, title: title || '', lines: lines, danger: danger };
+  }
+
+  // phase 2 (2026-11-01): logs and the rest of Ledger, in words
+  function acLedgerView(c, day){
+    var lines = [], verb = 'Log', title = '', a = c.after || {};
+    var arrow = ' \u2192 ';
+    if (c.kind === 'session_create'){
+      title = TYPE_LABEL[a.type] || a.type;
+      if (a.type === 'weight'){ lines.push(a.weightKg + ' kg \u00b7 ' + day(a.date)); }
+      else {
+        lines.push([day(a.date), a.activityTime || '', a.durationMin ? fmtDuration(a.durationMin) : '', a.venue || '',
+          a.type === 'cardio' ? [a.cardioType, a.distance ? a.distance + ' ' + (a.distanceUnit || 'km') : ''].filter(Boolean).join(' ') : '',
+          a.type === 'padel' ? ({ match: 'Match', tournament: 'Tournament', social: 'Social', training: 'Training' })[a.padelType] || '' : '',
+          a.focus || ''].filter(Boolean).join(' \u00b7 '));
+        (a.exercises || []).forEach(function(e){
+          lines.push(e.name + (e.sets && e.reps ? ' ' + e.sets + '\u00d7' + e.reps : (e.sets ? ' ' + e.sets + ' sets' : '')) + (e.value != null ? ' \u00b7 ' + e.value + ' ' + (e.unit || '') : ''));
+        });
+        if (a.outline) lines.push(a.outline);
+        if (a.notes) lines.push(a.notes);
+      }
+    } else if (c.kind === 'steps_set'){
+      title = 'Steps'; if (c.before) verb = 'Change';
+      lines.push((c.before ? fmtSteps(c.before.steps) + arrow : '') + fmtSteps(c.steps) + ' \u00b7 ' + day(c.date));
+    } else if (c.kind === 'food_add'){
+      title = 'Food \u00b7 ' + day(c.date);
+      (c.lines || []).forEach(function(l){ lines.push(l); });
+      var RL = { good: 'On track', neutral: 'Neutral', 'off-track': 'Off track' };
+      if (c.rating) lines.push('The day: ' + (c.before && c.before.dayRating && c.before.dayRating !== c.rating ? RL[c.before.dayRating] + arrow : '') + RL[c.rating]);
+    } else if (c.kind === 'goal_value'){
+      title = c.title;
+      lines.push((c.before && c.before.value != null ? fmtMeasure(c.before.value, c.unit) + arrow : '') + fmtMeasure(c.value, c.unit) + ' \u00b7 ' + day(c.date));
+      if (c.before && c.before.value != null) verb = 'Change';
+    } else if (c.kind === 'day_note'){
+      verb = 'Add a note'; title = day(c.id); lines.push(c.text);
+    } else if (c.kind === 'intention'){
+      verb = 'Intention'; title = day(c.id);
+      lines.push(c.before && c.before.intention ? c.before.intention + arrow + c.text : c.text);
+    } else if (c.kind === 'comms_log'){
+      title = c.name; lines.push((LOG_KIND_LABEL[c.logKind] || 'Note') + ': ' + c.text);
+    } else if (c.kind === 'life_context'){
+      var cat = LC_CATEGORIES.filter(function(x){ return x.key === a.category; })[0];
+      title = cat ? cat.label : 'Life context';
+      lines.push(day(a.startDate) + (a.endDate && a.endDate !== a.startDate ? ' \u2013 ' + day(a.endDate) : (a.endDate ? '' : ' \u00b7 ongoing')));
+      if (a.note) lines.push(a.note);
+    } else if (c.kind === 'goal_create'){
+      verb = 'New goal'; title = a.title;
+      var par = goalById(a.parentId);
+      lines.push([GOAL_AREA_LABEL[a.area], a.horizon === 'quarter' ? quarterLabel(a.period) : 'This year', par ? 'Part of ' + par.title : ''].filter(Boolean).join(' \u00b7 '));
+      if (a.measure) lines.push((a.measure.start != null ? fmtMeasure(a.measure.start, a.measure.unit) + arrow : 'Target ') + fmtMeasure(a.measure.target, a.measure.unit));
+      if (a.why) lines.push(a.why);
+    } else if (c.kind === 'goal_update'){
+      var pt = c.patch || {};
+      title = c.title; verb = pt.status === 'achieved' ? 'Mark achieved' : pt.status === 'dropped' ? 'Drop goal' : pt.status === 'active' ? 'Reopen goal' : 'Change goal';
+      if ('title' in pt) lines.push(c.before.title + arrow + pt.title);
+    } else if (c.kind === 'outcome_add'){
+      var o = c.outcome || {};
+      verb = 'New outcome'; title = o.text;
+      lines.push([relativeWeekLabel(new Date(c.id + 'T00:00:00')), c.goal || GOAL_AREA_LABEL[o.area]].filter(Boolean).join(' \u00b7 '));
+    } else if (c.kind === 'outcome_result'){
+      var RS = { done: 'Done', partly: 'Partly', not: 'Not this week' };
+      verb = 'Outcome'; title = c.text;
+      lines.push((RS[c.before && c.before.result] || 'Open') + arrow + (RS[c.result] || 'Open'));
+    } else if (c.kind === 'conv_state'){
+      verb = 'Change'; title = c.name;
+      lines.push((ATTENTION_LABEL[c.before && c.before.attentionState] || 'Needs me') + arrow + ATTENTION_LABEL[c.state] +
+        (c.waitingOn ? ' \u00b7 ' + c.waitingOn : '') + (c.followUp ? ' \u00b7 follow up ' + day(c.followUp) : ''));
+    }
+    return { verb: verb, title: title || '', lines: lines.filter(Boolean), danger: c.kind === 'goal_update' && (c.patch || {}).status === 'dropped' };
   }
 
   function openAskClaudeSheet(){
@@ -10707,13 +10789,13 @@
     activeSheetRefresh = null;
     acState = { threadId: null, turns: [], busy: false, picked: {}, home: atHome };
     var html = '<div class="sheet-handle"></div>' +
-      sheetHead(UI_ICON.spark, atHome ? 'Plan with Claude' : 'Ask Claude', atHome ? 'Plan the week at Home. Nothing changes until you approve it.' : 'Plan and tidy your days. Nothing changes until you approve it.', '') +
+      sheetHead(UI_ICON.spark, atHome ? 'Plan with Claude' : 'Ask Claude', atHome ? 'Plan the week at Home. Nothing changes until you approve it.' : 'Log, plan and review. New logs save at once, with Undo; changes wait for you.', '') +
       '<div class="ac-thread" id="acThread" aria-live="polite"></div>' +
       '<div class="ac-compose">' +
         '<div class="ac-pending" id="acPending" hidden><img id="acPendingImg" alt="The photo to send"><button type="button" class="ac-pending-x" id="acPendingX" aria-label="Remove the photo">' + CLOSE_SVG + '</button></div>' +
         '<div class="ac-compose-row">' +
           '<button type="button" class="ac-photo" id="acPhoto" aria-label="Add a photo">' + UI_ICON.camera + '</button>' +
-          '<textarea id="acInput" rows="2" maxlength="4000" placeholder="' + (atHome ? 'e.g. Plan next week\u2019s daily tasks' : 'e.g. Move today\u2019s unfinished work to tomorrow') + '" aria-label="Ask Claude"></textarea>' +
+          '<textarea id="acInput" rows="2" maxlength="4000" placeholder="' + (atHome ? 'e.g. Plan next week\u2019s daily tasks' : 'e.g. 5k run this morning, 88.4kg, chicken salad for lunch') + '" aria-label="Ask Claude"></textarea>' +
           '<button type="button" class="btn-primary ac-send" id="acSend">Send</button>' +
         '</div>' +
       '</div>';
@@ -10776,12 +10858,26 @@
       } else {
         st.threadId = res.body.threadId || st.threadId;
         if (res.body.reply) st.turns.push({ who: 'claude', text: res.body.reply });
-        if (res.body.proposal && res.body.proposal.changes && res.body.proposal.changes.length){
-          // a newer proposal replaces the one before it
-          st.turns.forEach(function(t){ if (t.who === 'proposal' && t.state === 'open') t.state = 'replaced'; });
-          st.picked = {};
-          res.body.proposal.changes.forEach(function(c){ st.picked[c.n] = true; });
-          st.turns.push({ who: 'proposal', proposal: res.body.proposal, state: 'open' });
+        var prop = res.body.proposal;
+        if (prop && prop.changes && prop.changes.length){
+          // logs that only add are saved now, with Undo (Shaun, 2026-11-01); the rest waits
+          var autos = st.home ? [] : prop.changes.filter(function(c){ return c.auto; });
+          var rest = prop.changes.filter(function(c){ return autos.indexOf(c) === -1; });
+          st.applied = st.applied || {};
+          st.applied[prop.id] = [];
+          if (autos.length){
+            var lt = { who: 'proposal', auto: true, proposal: { id: prop.id, total: prop.changes.length, summary: autos.length === 1 ? '1 thing logged' : autos.length + ' things logged', changes: autos }, state: 'open' };
+            st.turns.push(lt);
+            // with changes to review below, the card's own Undo is enough: no toast over Apply
+            acApply(lt, autos, rest.length > 0);
+          }
+          if (rest.length){
+            // a newer proposal replaces the one before it
+            st.turns.forEach(function(t){ if (t.who === 'proposal' && t.state === 'open' && !t.auto) t.state = 'replaced'; });
+            st.picked = {};
+            rest.forEach(function(c){ st.picked[c.n] = true; });
+            st.turns.push({ who: 'proposal', proposal: { id: prop.id, total: prop.changes.length, summary: autos.length ? (rest.length === 1 ? '1 change to review' : rest.length + ' changes to review') : prop.summary, changes: rest }, state: 'open' });
+          }
         }
       }
       if (acState === st) acRender();
@@ -10801,7 +10897,7 @@
       hint.className = 'ac-empty';
       hint.textContent = acState.home
         ? 'Plan the week at Home: each person\u2019s daily tasks, tasks that repeat, requests and shopping lists. A photo of a list works too. You review every change before it happens.'
-        : 'Ask for anything on Today and your upcoming days: add or move Actions, tick things off, tidy the backlog, plan meals. You review every change before it happens.';
+        : 'Tell Claude what you did \u2014 training, weight, steps, what you ate, a goal\u2019s number, a call \u2014 and it\u2019s logged for the day you say, with Undo. Ask \u201cwhat\u2019s missing today?\u201d and fill the gaps. Plans and changes \u2014 Actions, goals, the week, Comms, Home \u2014 wait for your approval.';
       box.appendChild(hint);
     }
     acState.turns.forEach(function(t){
@@ -10834,7 +10930,9 @@
     var head = document.createElement('div');
     head.className = 'ac-prop-head';
     head.innerHTML = '<span class="ac-prop-k"></span><span class="ac-prop-sum"></span>';
-    head.firstChild.textContent = { applied: 'Applied', held: 'Not applied', undone: 'Undone', replaced: 'Replaced', cancelled: 'Cancelled' }[t.state] || 'Proposed';
+    head.firstChild.textContent = t.auto && t.state === 'applied' ? 'Logged'
+      : ({ applied: 'Applied', held: 'Not applied', undone: 'Undone', replaced: 'Replaced', cancelled: 'Cancelled' }[t.state] || 'Proposed');
+    if (t.auto) card.classList.add('is-log');
     head.lastChild.textContent = p.summary;
     card.appendChild(head);
     if (t.state === 'replaced' || t.state === 'cancelled') return card;
@@ -10904,9 +11002,9 @@
 
   // Apply what is ticked. Each change is made through Ledger's own save functions, on the
   // record as it stands — and only if the fields it touches are still as Claude saw them.
-  function acApply(t){
+  function acApply(t, only, quiet){
     var p = t.proposal, undo = [], done = {}, held = {};
-    var chosen = p.changes.filter(function(c){ return acState.picked[c.n]; });
+    var chosen = only || p.changes.filter(function(c){ return acState.picked[c.n]; });
     chosen.forEach(function(c){
       var r = acApplyChange(c);
       if (r.ok){ done[c.n] = true; undo.push(r.undo); } else held[c.n] = r.why;
@@ -10914,12 +11012,17 @@
     var n = Object.keys(done).length, h = Object.keys(held).length;
     // nothing made it: say so, and offer nothing to undo
     t.state = n ? 'applied' : 'held'; t.done = done; t.held = held; t.undo = undo;
-    acRecord(p.id, { status: n === p.changes.length ? 'applied' : 'partial',
-      applied: Object.keys(done).map(function(k){ return { n: Number(k) }; }), appliedAt: new Date().toISOString() });
+    // one answer may be applied in two parts (its logs, then what Shaun ticks): the record holds both
+    var all = acState.applied && acState.applied[p.id] ? acState.applied[p.id] : [];
+    Object.keys(done).forEach(function(k){ if (all.indexOf(Number(k)) === -1) all.push(Number(k)); });
+    if (acState.applied) acState.applied[p.id] = all;
+    acRecord(p.id, { status: all.length === (p.total || p.changes.length) ? 'applied' : 'partial',
+      applied: all.map(function(k){ return { n: k }; }), appliedAt: new Date().toISOString() });
     acRender();
     var heldText = h ? (h === 1 ? '1 held back' : h + ' held back') : '';
     if (!n){ showPinToast('Nothing applied \u00b7 ' + heldText, true); return; }
-    showActionToast((n === 1 ? '1 change applied' : n + ' changes applied') + (h ? ' \u00b7 ' + heldText : ''), 'Undo', function(){ acUndo(t); });
+    if (quiet) return;
+    showActionToast((n === 1 ? (t.auto ? '1 thing logged' : '1 change applied') : n + (t.auto ? ' things logged' : ' changes applied')) + (h ? ' \u00b7 ' + heldText : ''), 'Undo', function(){ acUndo(t); });
   }
   function acApplyChange(c){
     var cur, i, k;
@@ -10956,7 +11059,193 @@
       return { ok: true, undo: { kind: 'meals', date: c.id, ids: added.map(function(m){ return m.id; }) } };
     }
     if (/^(daily_|home_request|checklist_add)/.test(c.kind)) return acApplyHome(c);
+    return acApplyLedger(c);
+  }
+  // phase 2 (2026-11-01): each change made through Ledger's own save functions, onto the
+  // record as it stands, and only when what it replaces is still as Claude saw it
+  function acApplyLedger(c){
+    var now = new Date().toISOString(), changed = { ok: false, why: 'it changed since Claude looked' };
+    function sessionById(id){ return sessions.find(function(x){ return x.id === id; }) || null; }
+    if (c.kind === 'session_create'){
+      if (sessionById(c.id)) return { ok: false, why: 'it\u2019s already there' };
+      var rec = Object.assign({ id: c.id }, c.after);
+      var plan = getPlanForDate(rec.date), u = { kind: 'session_del', id: c.id };
+      // planned training that day: the session completes it, as logging from the plan does
+      if (plan && !plan.restDay && (plan.trainingTypes || []).indexOf(rec.type) > -1 && !(plan.trainingDetails && plan.trainingDetails[rec.type] && plan.trainingDetails[rec.type].completed)){
+        u.plan = { date: rec.date, type: rec.type, was: (plan.trainingDetails && plan.trainingDetails[rec.type]) || null };
+        markPlanTrainingCompleted(rec.date, rec.type, c.id);
+      }
+      saveSession(rec);
+      return { ok: true, undo: u };
+    }
+    if (c.kind === 'steps_set'){
+      var sc = c.before ? sessionById(c.id) : stepsRecordFor(c.date);
+      if (c.before && (!sc || Number(sc.steps) !== Number(c.before.steps))) return changed;
+      if (!c.before && sc) return { ok: false, why: 'steps were logged for that day meanwhile' };
+      if (sc){
+        saveSession(Object.assign({}, sc, { steps: c.steps, loggedAt: now, updatedAt: now }));
+        return { ok: true, undo: { kind: 'session_restore', id: sc.id, fields: { steps: sc.steps }, expect: { steps: c.steps } } };
+      }
+      saveSession({ id: c.id, type: 'steps', date: c.date, steps: c.steps, loggedAt: now, updatedAt: now, createdAt: now, createdVia: 'claude' });
+      return { ok: true, undo: { kind: 'session_del', id: c.id } };
+    }
+    if (c.kind === 'food_add'){
+      var nu = getNutritionForDate(c.date);
+      if (c.before && nu && nu.id === c.id && c.rating && acNorm(nu.dayRating) !== acNorm(c.before.dayRating)) return changed;
+      if (nu){
+        var prev = nu.foodDiary || '', diary = (prev.trim() ? prev.replace(/\s+$/, '') + '\n' : '') + (c.lines || []).join('\n');
+        var patch = { foodDiary: diary };
+        if (c.rating) patch.dayRating = c.rating;
+        saveSession(Object.assign({}, nu, patch));
+        return { ok: true, undo: { kind: 'session_restore', id: nu.id, fields: { foodDiary: prev, dayRating: nu.dayRating || null }, expect: patch } };
+      }
+      saveSession({ id: c.id, type: 'nutrition', date: c.date, notes: '', activityTime: '', createdAt: now, createdVia: 'claude',
+        dayRating: c.rating || null, glutenFree: false, minimalProcessed: false, sufficientWater: false, waterAmount: '',
+        foodDiary: (c.lines || []).join('\n'), calories: null, glutenExposure: false, glutenSource: '', glutenTime: '', glutenConfidence: null, glutenNote: '',
+        planMealLines: [], closed: false, closedAt: null });
+      return { ok: true, undo: { kind: 'session_del', id: c.id } };
+    }
+    if (c.kind === 'goal_value'){
+      var g = goalById(c.id);
+      if (!g) return { ok: false, why: 'that goal is gone' };
+      var on = goalValues(g).filter(function(v){ return v.date === c.date; })[0];
+      if ((on ? Number(on.value) : null) !== (c.before.value == null ? null : Number(c.before.value))) return changed;
+      var vals = goalValues(g).filter(function(v){ return v.date !== c.date; }).concat({ date: c.date, value: c.value, note: null })
+        .sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }).slice(-GOAL_VALUES_MAX);
+      savePriority(Object.assign({}, g, { values: vals }));
+      return { ok: true, undo: { kind: 'goal_values', id: g.id, values: (g.values || []).slice(), date: c.date, expect: c.value } };
+    }
+    if (c.kind === 'day_note'){
+      var notes = getDayNotes(c.id), next = (notes.trim() ? notes.replace(/\s+$/, '') + '\n' : '') + c.text;
+      saveDayNotes(c.id, next);
+      return { ok: true, undo: { kind: 'plan_notes', date: c.id, was: notes, expect: next } };
+    }
+    if (c.kind === 'intention'){
+      var cur = getMorningPrime(c.id).intention || '';
+      if (cur.trim() !== ((c.before && c.before.intention) || '').trim()) return changed;
+      patchMorningPrime(c.id, { intention: c.text });
+      return { ok: true, undo: { kind: 'intention', date: c.id, was: cur, expect: c.text } };
+    }
+    if (c.kind === 'comms_log'){
+      var v = convById(c.id);
+      if (!v) return { ok: false, why: 'that conversation is gone' };
+      var entry = { at: c.at, kind: c.logKind, text: c.text };
+      patchConv(c.id, { log: (v.log || []).concat([entry]).slice(-COMMS_LOG_MAX), lastActivityAt: now });
+      return { ok: true, undo: { kind: 'comms_unlog', id: c.id, at: c.at, text: c.text, last: v.lastActivityAt || null, lastSet: now } };
+    }
+    if (c.kind === 'life_context'){
+      if (lifeContexts.some(function(x){ return x.id === c.id; })) return { ok: false, why: 'it\u2019s already there' };
+      saveLifeContext(Object.assign({ id: c.id }, c.after));
+      return { ok: true, undo: { kind: 'lc_del', id: c.id } };
+    }
+    if (c.kind === 'goal_create'){
+      if (goalById(c.id)) return { ok: false, why: 'it\u2019s already there' };
+      savePriority(Object.assign({ id: c.id }, c.after));
+      return { ok: true, undo: { kind: 'goal_del', id: c.id } };
+    }
+    if (c.kind === 'goal_update'){
+      var gu = goalById(c.id);
+      if (!gu) return { ok: false, why: 'that goal is gone' };
+      var now0 = { title: gu.title, status: goalStatus(gu), closedAt: gu.closedAt || null };
+      if (Object.keys(c.before).some(function(k){ return acNorm(now0[k]) !== acNorm(c.before[k]); })) return changed;
+      var was = {}; Object.keys(c.patch).forEach(function(k){ was[k] = gu[k] === undefined ? null : gu[k]; });
+      savePriority(Object.assign({}, gu, c.patch));
+      return { ok: true, undo: { kind: 'goal_restore', id: gu.id, fields: was, expect: c.patch } };
+    }
+    if (c.kind === 'outcome_add'){
+      if (outcomeById(c.outcome.id)) return { ok: false, why: 'it\u2019s already there' };
+      saveOutcome(c.id, c.outcome);
+      return { ok: true, undo: { kind: 'outcome_del', ws: c.id, id: c.outcome.id } };
+    }
+    if (c.kind === 'outcome_result'){
+      var oc = outcomeById(c.outcomeId);
+      if (!oc) return { ok: false, why: 'that outcome is gone' };
+      if ((oc.result || null) !== (c.before.result || null)) return changed;
+      saveOutcome(oc.week, { id: oc.id, result: c.result || null });
+      return { ok: true, undo: { kind: 'outcome_result', ws: oc.week, id: oc.id, was: oc.result || null, expect: c.result || null } };
+    }
+    if (c.kind === 'conv_state'){
+      var cv = convById(c.id);
+      if (!cv) return { ok: false, why: 'that conversation is gone' };
+      if ((cv.attentionState || 'needs_me') !== c.before.attentionState) return changed;
+      setConvState(c.id, c.state, c.waitingOn, c.followUp);
+      return { ok: true, undo: { kind: 'conv_restore', id: c.id, fields: { attentionState: cv.attentionState || 'needs_me', waitingOn: cv.waitingOn || null, nextFollowUpAt: cv.nextFollowUpAt || null }, expect: c.state } };
+    }
     return { ok: false, why: 'Ledger doesn\u2019t know this kind of change' };
+  }
+  // Undo for phase 2: true when put back, false when left because it changed since
+  function acUndoLedger(u){
+    var s0;
+    if (u.kind === 'session_del'){
+      s0 = sessions.find(function(x){ return x.id === u.id; });
+      deleteSession(u.id);
+      if (u.plan){
+        var pl = getPlanForDate(u.plan.date);
+        if (pl){
+          var td = Object.assign({}, pl.trainingDetails || {});
+          if (u.plan.was) td[u.plan.type] = u.plan.was; else delete td[u.plan.type];
+          savePlanForDate(u.plan.date, Object.assign({}, pl, { trainingDetails: td }));
+        }
+      }
+      return true;
+    }
+    if (u.kind === 'session_restore'){
+      s0 = sessions.find(function(x){ return x.id === u.id; });
+      if (!s0 || Object.keys(u.expect).some(function(k){ return acNorm(s0[k]) !== acNorm(u.expect[k]); })) return false;
+      saveSession(Object.assign({}, s0, u.fields));
+      return true;
+    }
+    if (u.kind === 'goal_values'){
+      var g = goalById(u.id), on = g && goalValues(g).filter(function(v){ return v.date === u.date; })[0];
+      if (!on || Number(on.value) !== Number(u.expect)) return false;
+      savePriority(Object.assign({}, g, { values: u.values }));
+      return true;
+    }
+    if (u.kind === 'plan_notes'){
+      if (getDayNotes(u.date) !== u.expect) return false;
+      saveDayNotes(u.date, u.was);
+      return true;
+    }
+    if (u.kind === 'intention'){
+      if ((getMorningPrime(u.date).intention || '') !== u.expect) return false;
+      patchMorningPrime(u.date, { intention: u.was });
+      return true;
+    }
+    if (u.kind === 'comms_unlog'){
+      var v = convById(u.id);
+      if (!v) return false;
+      var log = (v.log || []).filter(function(l){ return !(l.at === u.at && l.text === u.text); });
+      var patch = { log: log };
+      if (v.lastActivityAt === u.lastSet) patch.lastActivityAt = u.last;
+      patchConv(u.id, patch);
+      return true;
+    }
+    if (u.kind === 'lc_del'){ deleteLifeContext(u.id); return true; }
+    if (u.kind === 'goal_del'){ removeGoalRecord(u.id); return true; }
+    if (u.kind === 'goal_restore'){
+      var gr = goalById(u.id);
+      if (!gr || Object.keys(u.expect).some(function(k){ return acNorm(gr[k]) !== acNorm(u.expect[k]); })) return false;
+      savePriority(Object.assign({}, gr, u.fields));
+      return true;
+    }
+    if (u.kind === 'outcome_del'){
+      if (!outcomeById(u.id)) return false;
+      saveWeekOutcomes(u.ws, weekOutcomes(u.ws).filter(function(x){ return x.id !== u.id; }));
+      return true;
+    }
+    if (u.kind === 'outcome_result'){
+      var o = outcomeById(u.id);
+      if (!o || (o.result || null) !== u.expect) return false;
+      saveOutcome(u.ws, { id: u.id, result: u.was });
+      return true;
+    }
+    if (u.kind === 'conv_restore'){
+      var cv = convById(u.id);
+      if (!cv || (cv.attentionState || 'needs_me') !== u.expect) return false;
+      patchConv(u.id, u.fields);
+      return true;
+    }
+    return null;
   }
   // Home changes from Ask Claude at Home: made here, as whoever applies them, through Home's
   // own writes (so Home's rules decide each one), with ids chosen first so Undo knows them
@@ -11042,7 +11331,7 @@
       } else if (u.kind === 'meals'){
         var plan = getPlanForDate(u.date);
         if (plan) savePlanForDate(u.date, Object.assign({}, plan, { meals: getPlanMeals(plan).filter(function(m){ return u.ids.indexOf(m.id) === -1; }) }));
-      }
+      } else if (acUndoLedger(u) === false) kept++;
     });
     t.state = 'undone';
     acRecord(t.proposal.id, { status: 'undone', undoneAt: new Date().toISOString() });

@@ -100,10 +100,33 @@ const until = async (fn, t) => { const end = Date.now() + (t || 10000); while (D
     { n: 1, kind: 'action_update', collection: 'ledger_commitments', id: 'k1', before: k1, patch: { title: 'Call the bank about the mortgage' }, after: Object.assign({}, k1, { title: 'Call the bank about the mortgage' }) }
   ] };
   for (const p of [P1, P2]) await put('ledger_assistant_proposals/' + p.id, { ownerUid: owner, threadId: 't1', source: 'app', status: 'proposed', summary: p.summary, createdAt: TODAY, changes: [] });
+  // phase 2 (2026-11-01): logs saved at once, the rest for review
+  const MONDAY = (() => { const d = new Date(TODAY + 'T12:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return local(d); })();
+  await put('ledger_plans/' + YESTERDAY, { trainingTypes: ['resistance'], restDay: false, meals: [] });
+  await put('ledger_sessions/nu1', { type: 'nutrition', date: TODAY, foodDiary: 'Porridge', dayRating: null, createdAt: TODAY + 'T08:00:00.000Z' });
+  await put('ledger_sessions/st1', { type: 'steps', date: TODAY, steps: 5000, loggedAt: TODAY + 'T12:00:00.000Z' });
+  await put('ledger_priorities/g1', { title: '£60k revenue', area: 'business', horizon: 'year', period: TODAY.slice(0, 4), status: 'active',
+    measure: { kind: 'number', unit: '£', start: 0, target: 60000 }, values: [{ date: '2026-10-01', value: 30000, note: null }], createdAt: '2026-01-01T00:00:00.000Z' });
+  await put('ledger_weeks/' + MONDAY, { outcomes: [{ id: 'o1', text: 'Send 5 proposals', goalId: 'g1', area: 'business', result: null, note: null, order: 1 }] });
+  await put('ledger_conversations/v1', { title: 'Accountant', attentionState: 'needs_me', participants: [{ name: 'Accountant', role: '' }], log: [], createdAt: '2026-10-01T00:00:00.000Z' });
+  const P3 = { id: 'p3', summary: 'Logged your day; three things to review', changes: [
+    { n: 1, kind: 'session_create', collection: 'ledger_sessions', id: 'sx1', before: null, auto: true, after: { type: 'resistance', date: YESTERDAY, activityTime: '18:00', durationMin: 50, notes: '', createdAt: TODAY, createdVia: 'claude', exercises: [{ name: 'Squat', sets: 5, reps: 5, value: 100, unit: 'kg' }], bodyweight: null } },
+    { n: 2, kind: 'session_create', collection: 'ledger_sessions', id: 'sx2', before: null, auto: true, after: { type: 'weight', date: TODAY, weightKg: 88.4, notes: '', activityTime: '', createdAt: TODAY, createdVia: 'claude' } },
+    { n: 3, kind: 'food_add', collection: 'ledger_sessions', id: 'nu1', date: TODAY, lines: ['Chicken salad', 'Protein shake'], rating: null, before: { foodDiary: 'Porridge', dayRating: null }, auto: true },
+    { n: 4, kind: 'goal_value', collection: 'ledger_priorities', id: 'g1', title: '£60k revenue', unit: '£', date: TODAY, value: 42000, before: { value: null }, auto: true },
+    { n: 5, kind: 'comms_log', collection: 'ledger_conversations', id: 'v1', name: 'Accountant', logKind: 'call', text: 'Spoke about VAT', at: TODAY + 'T10:00:00.000Z', before: null, auto: true },
+    { n: 6, kind: 'day_note', collection: 'ledger_plans', id: TODAY, text: 'Felt sharp', before: { dayNotes: '' }, auto: true },
+    { n: 7, kind: 'steps_set', collection: 'ledger_sessions', id: 'st1', date: TODAY, steps: 9500, before: { steps: 5000 }, auto: false },
+    { n: 8, kind: 'outcome_result', collection: 'ledger_weeks', id: MONDAY, outcomeId: 'o1', text: 'Send 5 proposals', before: { result: null }, result: 'done', auto: false },
+    { n: 9, kind: 'goal_create', collection: 'ledger_priorities', id: 'g2', before: null, auto: false, after: { title: 'Five new retainers', area: 'business', horizon: 'quarter', period: TODAY.slice(0, 4) + '-Q4', parentId: 'g1', why: null, note: null, status: 'active', evidenceType: null, measure: { kind: 'number', unit: 'clients', start: 0, target: 5 }, values: [], createdAt: TODAY } },
+    { n: 10, kind: 'intention', collection: 'ledger_plans', id: TODAY, text: 'Ship it', before: { intention: '' }, auto: true }
+  ] };
+  await put('ledger_assistant_proposals/p3', { ownerUid: owner, threadId: 't1', source: 'app', status: 'proposed', summary: P3.summary, createdAt: TODAY, changes: [] });
   const replies = [
     { status: 200, body: { threadId: 't1', reply: 'Here\'s what I\'d do.', proposal: P1 } },
     { status: 200, body: { threadId: 't1', reply: '', proposal: P2 } },
-    { status: 502, body: { error: 'Claude is busy. Try again in a minute.' } }
+    { status: 502, body: { error: 'Claude is busy. Try again in a minute.' } },
+    { status: 200, body: { threadId: 't1', reply: 'Logged your session, weight, food, the revenue number, the call, a note and the intention. Three things to review.', proposal: P3 } }
   ];
   const seen = [];
 
@@ -204,6 +227,45 @@ const until = async (fn, t) => { const end = Date.now() + (t || 10000); while (D
   await p.click('#acSend');
   check(await until(() => p.evaluate(() => /Claude is busy/.test((document.querySelector('.ac-error') || {}).textContent || ''))), 'an error is shown in the conversation, plainly');
   await p.screenshot({ path: `${shots}/assistant-error.png`, fullPage: false });
+
+  // ---- phase 2: what he did is logged at once; changes wait for him ----
+  const ss = async (id) => get('ledger_sessions/' + id);
+  await p.fill('#acInput', 'Legs last night, 88.4kg, chicken salad and a shake, revenue 42k, called the accountant');
+  await p.click('#acSend');
+  check(await until(() => p.evaluate(() => !!document.querySelector('.ac-prop.is-log') && document.querySelectorAll('.ac-prop').length === 4)), 'phase 2: a "Logged" card and a review card');
+  check(await until(async () => { const t = await ss('sx1'); return t && t.type === 'resistance' && t.exercises[0].name === 'Squat'; }), 'logged at once: the strength session, for yesterday');
+  check(await until(async () => { const pl = await get('ledger_plans/' + YESTERDAY); return pl.trainingDetails && pl.trainingDetails.resistance.completed === true && pl.trainingDetails.resistance.sessionId === 'sx1'; }),
+    'it completes the strength planned for that day');
+  check(await until(async () => (await ss('sx2') || {}).weightKg === 88.4), 'logged: the weight');
+  check(await until(async () => (await ss('nu1')).foodDiary === 'Porridge\nChicken salad\nProtein shake'), 'logged: the food, added to the day\'s diary in his words');
+  check(await until(async () => (await get('ledger_priorities/g1')).values.some(v => v.value === 42000 && v.date === TODAY)), 'logged: the goal\'s number for today');
+  check(await until(async () => { const v = await get('ledger_conversations/v1'); return v.log.length === 1 && v.log[0].text === 'Spoke about VAT' && v.log[0].kind === 'call'; }), 'logged: the call, on the conversation');
+  check(await until(async () => { const pl = await get('ledger_plans/' + TODAY); return pl.dayNotes === 'Felt sharp' && pl.morningPrime && pl.morningPrime.intention === 'Ship it'; }), 'logged: a Day Note and the intention');
+  check((await ss('st1')).steps === 5000 && (await get('ledger_weeks/' + MONDAY)).outcomes[0].result === null && !(await get('ledger_priorities/g2')),
+    'not yet: replacing the steps, an outcome\'s result and a new goal wait for review');
+  check(await until(async () => { const pr = await get('ledger_assistant_proposals/p3'); return pr.status === 'partial' && pr.applied.map(a => a.n).join() === '1,2,3,4,5,6,10'; }), 'the answer records what was logged');
+  const logCard = await p.evaluate(() => ({ k: document.querySelector('.ac-prop.is-log .ac-prop-k').textContent,
+    rows: [...document.querySelectorAll('.ac-prop.is-log .ac-change')].map(r => r.innerText.replace(/\n/g, ' / ')),
+    review: [...document.querySelectorAll('.ac-prop:last-of-type .ac-change')].map(r => r.innerText.replace(/\n/g, ' / ')),
+    sum: document.querySelector('.ac-prop:last-of-type .ac-prop-sum').textContent }));
+  check(logCard.k === 'Logged' && logCard.rows.length === 7 && /Strength/.test(logCard.rows[0]) && /Squat 5×5 · 100 kg/.test(logCard.rows[0]) && /88.4 kg/.test(logCard.rows[1]) &&
+    /Chicken salad/.test(logCard.rows[2]) && /£42,000/.test(logCard.rows[3]) && /Call: Spoke about VAT/.test(logCard.rows[4]), 'the Logged card says what was saved, in words', JSON.stringify(logCard));
+  check(logCard.review.length === 3 && /5,000 → 9,500/.test(logCard.review[0]) && /Open → Done/.test(logCard.review[1]) && /New goal Five new retainers/.test(logCard.review[2]) && logCard.sum === '3 changes to review',
+    'the review card holds the rest: steps replaced, a result, a new goal', JSON.stringify(logCard.review));
+  await p.screenshot({ path: `${shots}/assistant-logged.png` });
+  await p.click('.ac-prop:last-of-type [data-ac="apply"]');
+  check(await until(async () => (await ss('st1')).steps === 9500 && (await get('ledger_weeks/' + MONDAY)).outcomes[0].result === 'done' && !!(await get('ledger_priorities/g2'))),
+    'applied: the day\'s steps, the outcome done, the 90-day goal');
+  check(await until(async () => (await get('ledger_assistant_proposals/p3')).status === 'applied'), 'the whole answer is now applied');
+  // Undo the logs: each is put back
+  await p.click('.ac-prop.is-log [data-ac="undo"]');
+  check(await until(async () => !(await ss('sx1')) && !(await ss('sx2'))), 'Undo: the session and the weight are gone');
+  check(await until(async () => { const pl = await get('ledger_plans/' + YESTERDAY); return !(pl.trainingDetails && pl.trainingDetails.resistance && pl.trainingDetails.resistance.completed); }), 'Undo: the planned strength is open again');
+  check(await until(async () => (await ss('nu1')).foodDiary === 'Porridge'), 'Undo: the diary is as it was');
+  check(await until(async () => (await get('ledger_priorities/g1')).values.length === 1), 'Undo: the goal\'s number is gone');
+  check(await until(async () => (await get('ledger_conversations/v1')).log.length === 0), 'Undo: the call is gone from the conversation');
+  check(await until(async () => { const pl = await get('ledger_plans/' + TODAY); return pl.dayNotes === '' && pl.morningPrime.intention === ''; }), 'Undo: the note and the intention are cleared');
+  check((await ss('st1')).steps === 9500 && !!(await get('ledger_priorities/g2')), 'Undo of the logs leaves the reviewed changes alone');
   await p.click('#sheetCloseBtn');
 
   // ---- the menu's other half ----

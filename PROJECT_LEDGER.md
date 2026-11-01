@@ -754,6 +754,18 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-01 — Ask Claude phase 2: logging, and the rest of Ledger (Shaun)
+- **New logs go straight in, with Undo** (training, weight, steps, food, goal numbers,
+  notes, intentions, a conversation's movement, Life Context). Supersedes "nothing changes
+  until he applies it" for logs that only add. Replacing or removing anything, and
+  anything reaching Home, still waits for review.
+- **Food is logged as written,** into the day's diary. Claude never estimates calories or
+  nutrients.
+- **"What's missing?"** covers health, goals and the week, and Actions and Comms. The
+  server works it out from the records, and it names what is not recorded, never "missed".
+- Shaun's Ask Claude now reaches his Home too, as the admin he is.
+- See `docs/CLAUDE_ASSISTANT.md` §13.
+
 ### 2026-10-31 — Goals and the week, phase 1 built (`docs/GOALS_AND_REVIEW.md` §9)
 - Goals stay in `ledger_priorities`, so every existing `priorityId` link holds. A priority
   from before reads as a year goal for this year; Ledger asks its area once.
@@ -2508,7 +2520,15 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy rules, then try it)
+Owner: Shaun (deploy, then try it)
+**Ask Claude phase 2: logging and the rest of Ledger** — built 2026-11-01
+(`docs/CLAUDE_ASSISTANT.md` §13).
+- **Deploy needed:** "Deploy Firebase", everything. That covers the new functions and the
+  `ledger_weeks` rule from goals phase 1, if it isn't deployed yet.
+- **Try:** + → Ask Claude: "legs last night, 88.4kg, chicken salad for lunch", then
+  "what's missing today?" and answer it.
+
+**Before that** — Owner: Shaun (deploy rules, then try it)
 **Goals and the week, phase 1** — built 2026-10-31 (`docs/GOALS_AND_REVIEW.md` §9).
 - **Deploy needed:** "Deploy Firebase", Rules (`ledger_weeks`). Until then the week's
   outcomes are refused by the live rules and don't survive a reload; goals work now.
@@ -2712,6 +2732,13 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-01) — **Ask Claude phase 2: logging, and the rest of Ledger** (§13).
+  - Logs for training, weight, steps, food (as written), goal numbers, notes, intentions,
+    conversations and Life Context. They save at once with Undo; anything replacing
+    something waits for review.
+  - Reads for health, goals, the week and Comms, plus "what's missing". Changes to goals,
+    outcomes and conversation states, for review. His Home's tools too.
+  - **Tests:** functions assistant 75, e2e assistant 54.
 - (2026-10-31) — **Goals and the week, phase 1** (`docs/GOALS_AND_REVIEW.md` §9).
   - Me → Goals: Business and Personal; year goals with 90-day goals; number measures;
     priorities carried over (area asked once); achieved/dropped, never deleted.

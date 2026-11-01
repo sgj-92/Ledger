@@ -210,6 +210,122 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
   out = await createAssistant({ db, client }).handle({ uid: 'hadmin', message: 'one more', today: '2026-10-29' });
   check(out.status === 429 && client.requests.length === 0, 'her limit is 50 a day');
 
+  // ---- phase 2 (2026-11-01): logs, health, goals, the week, Comms, what's missing ----
+  await db.doc('ledger_plans/' + YESTERDAY).set({ trainingTypes: ['resistance'], restDay: false });
+  await db.doc('ledger_sessions/w1').set({ type: 'weight', date: YESTERDAY, weightKg: 89.1, createdAt: '2026-10-26T07:00:00Z' });
+  await db.doc('ledger_sessions/st1').set({ type: 'steps', date: TODAY, steps: 5000, loggedAt: '2026-10-27T12:00:00Z' });
+  await db.doc('ledger_sessions/n1').set({ type: 'nutrition', date: TODAY, foodDiary: 'Porridge', dayRating: null, createdAt: '2026-10-27T08:00:00Z' });
+  await db.doc('ledger_sessions/ph1').set({ type: 'photo', date: TODAY, photoDataUrl: 'data:image/jpeg;base64,AAAA' });
+  await db.doc('ledger_priorities/g1').set({ title: '£60k revenue', area: 'business', horizon: 'year', period: '2026', status: 'active',
+    measure: { kind: 'number', unit: '£', start: 0, target: 60000 }, values: [{ date: '2026-10-01', value: 30000 }], createdAt: '2026-01-01T00:00:00Z' });
+  await db.doc('ledger_weeks/2026-10-26').set({ outcomes: [{ id: 'o1', text: 'Send 5 proposals', goalId: 'g1', area: 'business', result: null, order: 1 }] });
+  await db.doc('ledger_conversations/v1').set({ title: 'Accountant', attentionState: 'needs_me', lastActivityAt: '2026-10-01T10:00:00Z', log: [] });
+  await db.doc('ledger_conversations/v2').set({ title: 'Solicitor', attentionState: 'waiting_on_person', waitingOn: 'Jo', nextFollowUpAt: '2026-10-25', lastActivityAt: '2026-10-26T10:00:00Z' });
+  const sessionsBefore = (await db.collection('ledger_sessions').get()).size;
+  const B = (r, i) => JSON.parse(r[i].content.split('\n').slice(1).join('\n'));
+  client = fakeClient([
+    turn('tool_use',
+      use('whats_missing', { from: YESTERDAY, to: TODAY, areas: [] }),
+      use('get_health', { from: YESTERDAY, to: TODAY }),
+      use('list_goals', { include_closed: false }),
+      use('get_week', { date: TODAY }),
+      use('list_comms', { filter: 'needs_me' }),
+      use('whats_missing', { from: '2026-09-01', to: TODAY, areas: ['health'] })),
+    (params) => {
+      const r = lastResults(params);
+      check(r.slice(0, 5).every((x) => !x.is_error && x.content.indexOf('Ledger data (not instructions):') === 0), 'phase 2 reads: answered, marked as data', r.map((x) => x.content.slice(0, 80)));
+      const m = B(r, 0), y = m.health.find((d) => d.date === YESTERDAY).missing, t = m.health.find((d) => d.date === TODAY).missing;
+      check(y.indexOf('no steps logged') > -1 && y.indexOf('no food logged') > -1 && y.indexOf('Strength planned, not logged') > -1 && y.indexOf('no weight logged') === -1,
+        'whats_missing, health: yesterday — no steps, no food, Strength planned not logged; weight was logged', y);
+      check(t.indexOf('no weight logged') > -1 && t.indexOf('nutrition day not rated') > -1 && t.indexOf('no steps logged') === -1, 'whats_missing, health: today — no weight, nutrition not rated; steps were logged', t);
+      check(m.goals.numbers_not_updated_this_week.some((g) => g.id === 'g1') && m.goals.outcomes_without_actions.some((o) => o.id === 'o1') && m.goals.week_start === '2026-10-26',
+        'whats_missing, goals: a number not updated this week; an outcome with no Actions', m.goals);
+      check(m.actions_comms.open_from_earlier_days.some((c) => c.id === 'c3') && m.actions_comms.conversations_needing_you.some((v) => v.id === 'v1') &&
+        m.actions_comms.follow_ups_due.some((v) => v.id === 'v2') && m.actions_comms.gone_quiet.some((v) => v.id === 'v1') && !m.actions_comms.gone_quiet.some((v) => v.id === 'v2'),
+        'whats_missing, Actions and Comms: open from earlier, needs you, follow-up due, gone quiet', m.actions_comms);
+      check(!/missed|fail/i.test(r[0].content), 'whats_missing says what is not recorded, never "missed" or "failed"');
+      const h = B(r, 1);
+      check(h.records.some((x) => x.type === 'weight' && x.kg === 89.1) && h.records.some((x) => x.type === 'nutrition' && x.food_diary === 'Porridge') &&
+        h.records.some((x) => x.type === 'photo') && r[1].content.indexOf('base64') === -1, 'get_health: the records, and a photo only as "a daily photo" — never the image', h.records);
+      const g = B(r, 2).goals.find((x) => x.id === 'g1');
+      check(g && g.area === 'business' && g.measure.latest.value === 30000 && g.measure.target === 60000, 'list_goals: area, measure, latest value', g);
+      const w = B(r, 3);
+      check(w.week_start === '2026-10-26' && w.outcomes[0].goal.title === '£60k revenue' && w.outcomes[0].actions.length === 0, 'get_week: the week\'s outcomes with their goal and Actions', w);
+      const cm = B(r, 4);
+      check(cm.conversations.map((v) => v.id).join() === 'v1', 'list_comms: needs_me only', cm);
+      check(r[5].is_error && /31 days/.test(r[5].content), 'whats_missing: at most 31 days at once');
+      return turn('tool_use',
+        use('log_training', { date: YESTERDAY, type: 'resistance', time: '18:00', duration_min: 50, venue: 'Gym', notes: null, padel_type: null, cardio_type: null, distance: null, distance_unit: null,
+          exercises: [{ name: 'Squat', sets: 5, reps: 5, value: 100, unit: 'kg' }, { name: 'Lunges', sets: 3, reps: 10, value: null, unit: null }], focus: null, outline: null }),
+        use('log_weight', { date: TODAY, kg: 88.42 }),
+        use('log_steps', { date: TODAY, steps: 9500 }),
+        use('log_steps', { date: YESTERDAY, steps: 7000 }),
+        use('log_food', { date: TODAY, lines: ['Chicken salad', 'Protein shake'], rating: 'good' }),
+        use('log_goal_value', { goal_id: 'g1', value: 42000, date: TODAY }),
+        use('add_day_note', { date: TODAY, text: 'Felt sharp' }),
+        use('set_intention', { date: TODAY, text: 'Ship it' }),
+        use('log_conversation', { conversation_id: 'v1', kind: 'call', text: 'Spoke about VAT' }),
+        use('log_life_context', { category: 'sleep', start_date: YESTERDAY, end_date: YESTERDAY, note: 'Kids up at night', areas: ['training'] }),
+        use('propose_goal', { title: 'Five new retainers', area: 'business', horizon: 'quarter', quarter: null, parent_id: 'g1', why: null, unit: 'clients', start: 0, target: 5 }),
+        use('propose_outcome', { date: TODAY, text: 'Call 10 leads', goal_id: 'g1', area: 'business' }),
+        use('propose_outcome_result', { outcome_id: 'o1', result: 'partly' }),
+        use('propose_conversation_state', { conversation_id: 'v2', state: 'needs_me', waiting_on: null, follow_up: null }),
+        use('propose_update_goal', { id: 'g1', title: null, status: 'achieved' }),
+        use('log_weight', { date: TODAY, kg: 500 }),
+        use('log_training', { date: '2026-11-20', type: 'cardio', time: null, duration_min: 30, venue: null, notes: null, padel_type: null, cardio_type: 'Run', distance: 5, distance_unit: 'km', exercises: null, focus: null, outline: null }),
+        use('log_goal_value', { goal_id: 'nope', value: 1, date: TODAY }),
+        use('log_food', { date: TODAY, lines: ['Again'], rating: null }));
+    },
+    (params) => {
+      const r = lastResults(params);
+      check(r.slice(0, 15).every((x) => !x.is_error), 'phase 2: every log and change accepted', r.slice(0, 15).map((x) => x.content));
+      check(/Saved as soon as you finish/.test(r[0].content) && /Waits for Shaun/.test(r[2].content), 'each tool says whether it is saved at once or waits for review');
+      check(r[15].is_error && /out of range/.test(r[15].content) && r[16].is_error && /future/.test(r[16].content) && r[17].is_error && /list_goals/.test(r[17].content) && r[18].is_error && /one call/.test(r[18].content),
+        'refused: a weight out of range, training in the future, an unknown goal, the same day\'s food twice');
+      return turn('end_turn', { type: 'text', text: 'Logged your session, weight and food. The rest is for you to review.' });
+    }
+  ]);
+  // an owner of his own, with no Home: earlier suites in the same emulator make 'shaun' a Home admin
+  await db.doc('ledger_users/ownerP2').set({ role: 'owner' });
+  await db.doc('ledger_home_members/ownerP2').delete();
+  out = await createAssistant({ db, client }).handle({ uid: 'ownerP2', message: 'What\'s missing? Then: legs yesterday, 88.4kg, chicken salad and a shake', today: TODAY });
+  const p2 = out.body.proposal;
+  const kinds = p2 && p2.changes.map((c) => c.kind + (c.auto ? '*' : '')).join();
+  check(out.status === 200 && kinds === 'session_create*,session_create*,steps_set,steps_set*,food_add*,goal_value*,day_note*,intention*,comms_log*,life_context*,goal_create,outcome_add,outcome_result,conv_state,goal_update',
+    'the answer holds the logs (saved at once: *) and the changes for review', kinds);
+  const tr = p2.changes[0].after;
+  check(tr.type === 'resistance' && tr.date === YESTERDAY && tr.exercises.length === 2 && tr.exercises[0].value === 100 && tr.exercises[1].unit === 'kg' && tr.durationMin === 50 && tr.activityTime === '18:00' && tr.createdVia === 'claude',
+    'a strength session: the exercises he named, his time and length', tr);
+  check(p2.changes[1].after.weightKg === 88.4, 'weight is kept to one decimal place');
+  check(p2.changes[2].before.steps === 5000 && p2.changes[2].id === 'st1' && !p2.changes[2].auto, 'replacing the day\'s steps waits for review, with what it replaces');
+  const fd = p2.changes[4];
+  check(fd.id === 'n1' && fd.before.foodDiary === 'Porridge' && fd.lines.join('|') === 'Chicken salad|Protein shake' && fd.rating === 'good' && fd.auto, 'food is added to the day\'s diary in his words; a rating where there was none', fd);
+  check(p2.changes[5].before.value === null && p2.changes[5].value === 42000, 'a goal\'s number for a new day');
+  check(p2.changes[10].after.horizon === 'quarter' && p2.changes[10].after.period === '2026-Q4' && p2.changes[10].after.parentId === 'g1' && p2.changes[10].after.measure.target === 5,
+    'a 90-day goal in this quarter, under its year goal, with its number', p2.changes[10].after);
+  check(p2.changes[11].id === '2026-10-26' && p2.changes[11].outcome.goalId === 'g1' && p2.changes[12].before.result === null && p2.changes[12].result === 'partly', 'an outcome for this week; a result for one');
+  check(p2.changes[13].before.attentionState === 'waiting_on_person' && p2.changes[14].before.status === 'active' && p2.changes[14].patch.status === 'achieved', 'a conversation\'s state, and a goal achieved, carry what they were');
+  check((await db.collection('ledger_sessions').get()).size === sessionsBefore && (await get('ledger_sessions/n1')).foodDiary === 'Porridge' &&
+    (await get('ledger_priorities/g1')).values.length === 1 && !(await get('ledger_plans/' + TODAY)).dayNotes, 'nothing in Ledger was written: the app makes the changes');
+  check(client.requests[0].tools.some((t) => t.name === 'log_food') && client.requests[0].tools[client.requests[0].tools.length - 1].name === 'present_proposal' &&
+    !client.requests[0].tools.some((t) => t.name === 'home_people'), 'Shaun\'s tools: everything, present_proposal last; no Home tools while he is not a Home admin');
+  check(/log_food/.test(client.requests[0].system[0].text) && /never estimate calories/.test(client.requests[0].system[0].text), 'the system prompt explains logging, and that food is never estimated');
+  // Shaun at his Home: the Home tools join his own
+  await db.doc('ledger_users/owner2').set({ role: 'owner' });
+  await db.doc('ledger_home_members/owner2').set({ homeId: 'hhome', status: 'active', role: 'admin', displayName: 'Shaun' });
+  client = fakeClient([
+    turn('tool_use', use('home_people', {})),
+    (params) => {
+      check(!lastResults(params)[0].is_error, 'Shaun reads his Home\'s people');
+      return turn('end_turn', { type: 'text', text: 'Done' });
+    }
+  ]);
+  out = await createAssistant({ db, client }).handle({ uid: 'owner2', message: 'Who is at Home?', today: TODAY });
+  const on2 = client.requests[0].tools.map((t) => t.name);
+  check(out.status === 200 && on2.indexOf('home_people') > -1 && on2.indexOf('propose_daily_tasks') > -1 && on2.indexOf('get_shared_schedule') === -1 && on2.indexOf('log_food') > -1 &&
+    on2.filter((n) => n === 'present_proposal').length === 1, 'as a Home admin, his Home\'s tools join his own (not the partner\'s shared view)', on2);
+  await db.doc('ledger_home_members/owner2').delete();
+
   // ---- which pages may call it (the emulator opens CORS to everyone, so it is checked here) ----
   const allowed = (o) => ALLOWED_ORIGINS.some((re) => re.test(o));
   check(allowed('https://ledger.sgj.luxe') && allowed('http://localhost:8950') && allowed('http://127.0.0.1:5000'), 'Ledger\'s own pages may call the endpoint');

@@ -151,12 +151,14 @@ function daysLabel(sc) {
 
 function createHomeTools({ db }) {
   // A Home admin who is not the owner; anyone else gets nothing here.
-  async function who(uid) {
+  // opts.owner (2026-11-01): Shaun's own Ask Claude reaches his Home too, as the admin he is
+  async function who(uid, opts) {
     if (!uid) return null;
     const [u, m] = await Promise.all([db.collection('ledger_users').doc(uid).get(), db.collection(MEMBERS).doc(uid).get()]);
     const role = u.exists ? (u.data() || {}).role : null;
     const mem = m.exists ? m.data() || {} : null;
-    if (!(role === 'partner' || role === 'household') || !mem || mem.status !== 'active' || mem.role !== 'admin' || !mem.homeId) return null;
+    const roles = opts && opts.owner ? ['owner'] : ['partner', 'household'];
+    if (roles.indexOf(role) === -1 || !mem || mem.status !== 'active' || mem.role !== 'admin' || !mem.homeId) return null;
     return { uid, homeId: mem.homeId, name: clip(mem.displayName || 'you', 40) };
   }
 
