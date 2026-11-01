@@ -2753,6 +2753,10 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-01) — **Review screen lists every Action of the day.** Open first, then those
+  marked not done, disrupted or partly done (each with Done · the next day · Another day),
+  then the done ones, which still open to edit their date or status. Moving a not-done or
+  disrupted Action to today or later plans it again.
 - (2026-11-01) — **One review screen; Wind-down simplified** (decision above). Tests:
   partner-sharing 209, settings 9, execution 81, and a browser run of each entry point.
 - (2026-11-01) — **Catch-up: log the planned session** (Shaun: "I can't log the planned

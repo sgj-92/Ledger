@@ -12724,7 +12724,10 @@
   // it was written with stays attached to it.
   // extra: anything the mover sets at the same time (choosing a key task sets isKeyTask)
   function movedToDate(c, dateStr, extra){
-    return Object.assign({}, c, {
+    // moved on to a day still to come (or today), something not done is simply planned again
+    var replan = (c.status === 'not_done' || c.status === 'disrupted') && dateStr >= todayStr()
+      ? { status: 'planned', disruptionReason: null } : {};
+    return Object.assign({}, c, replan, {
       originalDate: actionOriginalDate(c),
       date: dateStr,
       isKeyTask: c.isKeyTask && c.date === dateStr,
@@ -20942,6 +20945,14 @@
   // the judgements no record can infer (overall status, notes) and links into the real
   // records for anything it can't answer itself.
   function cuActionOpen(c){ return c.status === 'planned' || (c.status !== 'completed' && actionIsWaiting(c)); }
+  // The review lists every Action of the day, so any of them can still be ticked, moved or
+  // opened: open ones first, then those marked not finished, then the done ones.
+  function cuListActs(actions){
+    var open = actions.filter(cuActionOpen);
+    var rest = actions.filter(function(c){ return !cuActionOpen(c) && c.status !== 'completed'; });
+    var done = actions.filter(function(c){ return c.status === 'completed'; });
+    return open.concat(rest, done);
+  }
   function catchUpSnapshot(dateStr){
     var rec = getDayRecord(dateStr) || {};
     var dayActions = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock'; });
@@ -21180,17 +21191,24 @@
 
       // --- actions: read straight from that day's commitments; the open ones are listed
       // here, each opening its own editor and coming back ---
-      var openActs = snap.actions.filter(cuActionOpen);
+      var openActs = cuListActs(snap.actions);
+      var movable = openActs.filter(function(c){ return c.status !== 'completed' && !actionIsWaiting(c); }).length +
+        openActs.filter(function(c){ return c.status !== 'completed' && actionIsWaiting(c); }).length;
       html += cuBlock(UI_ICON.list, 'Actions',
         (snap.actionsTotal && !snap.actionsOpen
           ? cuResolved('All ' + snap.actionsTotal + ' reviewed · ' + snap.actionsCompleted + ' completed')
-          : '<div class="cu-sub">' + (snap.actionsTotal
+          : ('<div class="cu-sub">' + (snap.actionsTotal
               ? snap.actionsCompleted + ' of ' + snap.actionsTotal + ' completed' +
                 (snap.actionsWaiting ? ' · ' + snap.actionsWaiting + ' waiting' : '') +
                 (snap.actionsOpen - snap.actionsWaiting ? ' · ' + (snap.actionsOpen - snap.actionsWaiting) + ' still open' : '')
-              : 'No actions recorded for this day') + '</div>' +
+              : 'No actions recorded for this day') + '</div>')) +
             (openActs.length ? '<div class="cu-evidence cu-open-acts">' + openActs.map(function(c, i){
               var w = actionIsWaiting(c);
+              // done: a tick, and it still opens (its date, its status) — nothing more to ask
+              if (c.status === 'completed') return '<button type="button" class="cu-evidence-row cu-act-done" data-cu-act="' + i + '">' +
+                '<span class="cu-ev-tick">' + CHECK_SVG + '</span>' +
+                '<span class="cu-ev-text"><strong></strong><span></span></span>' +
+                '<span class="chev">' + UI_ICON.chevronRight + '</span></button>';
               // a waiting Action says why, and offers where it goes next — never "not done";
               // an open one is ticked off, or moved on to the next day or another
               return '<button type="button" class="cu-evidence-row" data-cu-act="' + i + '">' +
@@ -21203,8 +21221,8 @@
                   '<button type="button" class="btn-link" data-cu-move="' + i + '" aria-label="Move to ' + targetWord + '">' + targetWord.charAt(0).toUpperCase() + targetWord.slice(1) + '</button>' +
                   '<button type="button" class="btn-link" data-cu-day="' + i + '">Another day</button></div>');
             }).join('') +
-            (openActs.length > 1 ? '<button type="button" class="cu-link cu-link-block" id="cuMoveAll">Move all ' + openActs.length + ' to ' + targetWord + UI_ICON.chevronRight + '</button>' : '') +
-            '</div>' : '')),
+            (movable > 1 ? '<button type="button" class="cu-link cu-link-block" id="cuMoveAll">Move all ' + movable + ' unfinished to ' + targetWord + UI_ICON.chevronRight + '</button>' : '') +
+            '</div>' : ''),
         '', 'actions');
 
       // --- training: an existing log is the answer, not a question ---
@@ -21356,7 +21374,7 @@
         Promise.resolve(saveDayStatus(dateStr, Object.assign(currentPatch(), { draft: true, lifeContextNone: true })))
           .then(function(){ openCatchUpSheet(dateStr, { resume: 'context' }); });
       });
-      var openActs = snap.actions.filter(cuActionOpen);
+      var openActs = cuListActs(snap.actions);
       function freshAct(c){ return commitments.find(function(x){ return x.id === c.id; }) || c; }
       sheetEl.querySelectorAll('[data-cu-keep]').forEach(function(el){
         var c = openActs[Number(el.dataset.cuKeep)];
@@ -21393,7 +21411,7 @@
       var moveAll = document.getElementById('cuMoveAll');
       if (moveAll) moveAll.addEventListener('click', function(){
         var tgt = reviewMoveTarget(dateStr), n = 0;
-        openActs.forEach(function(c){ var f = freshAct(c); if (cuActionOpen(f) && f.date === dateStr){ moveActionToDate(f, tgt); n++; } });
+        openActs.forEach(function(c){ var f = freshAct(c); if (f.status !== 'completed' && f.date === dateStr){ moveActionToDate(f, tgt); n++; } });
         afterChange(plural(n, 'action') + ' moved to ' + reviewDayWord(tgt));
       });
       sheetEl.querySelectorAll('[data-cu-day]').forEach(function(el){
@@ -21403,7 +21421,10 @@
       sheetEl.querySelectorAll('[data-cu-act]').forEach(function(el){
         var c = openActs[Number(el.dataset.cuAct)];
         el.querySelector('strong').textContent = c.title;                   // user text
-        el.querySelector('.cu-ev-text span').textContent = actionIsWaiting(c) ? actionStateLabel(c) : (categoryLabel(c.category) || '');
+        el.querySelector('.cu-ev-text span').textContent = c.status === 'completed' ? 'Done'
+          : actionIsWaiting(c) ? actionStateLabel(c)
+          : cuActionOpen(c) ? (categoryLabel(c.category) || '')
+          : [COMMITMENT_STATUS_LABEL[c.status], categoryLabel(c.category)].filter(Boolean).join(' \u00b7 ');
         el.addEventListener('click', function(){
           leave('actions', function(){ openCommitmentSheet(commitments.find(function(x){ return x.id === c.id; }) || c); });
         });
