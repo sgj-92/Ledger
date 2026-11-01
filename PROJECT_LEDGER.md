@@ -754,6 +754,17 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-01 — One review screen; Wind-down is two checks (Shaun)
+- **One review screen** (Catch-up's sheet) for any day, opened from three places: Catch-up
+  the next morning, Wind-down that evening ("Review today"), and Review day on a past day.
+  The old one-at-a-time Review day sheet is gone.
+- **Open Actions are ticked or moved there:** Done, the next day, another day, or all at
+  once. The next day is tomorrow for today's review and today for a past day's.
+- **Wind-down:** Review today, Plan tomorrow, then the partner check-in and custom items.
+  Food, day status and gluten moved into the review screen (its nutrition and exposure
+  cards); "Review tomorrow" became the Plan tomorrow check. Supersedes Wind-down's own
+  "Close the day": the review screen closes it.
+
 ### 2026-11-01 — Ask Claude: "here's what I did" checks first; certain ticks save at once (Shaun)
 - Claude reads the day before writing; the server, not Claude, refuses or holds duplicates
   (food already in the diary, the same weight, a second session of the same type).
@@ -2742,6 +2753,8 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-01) — **One review screen; Wind-down simplified** (decision above). Tests:
+  partner-sharing 209, settings 9, execution 81, and a browser run of each entry point.
 - (2026-11-01) — **Catch-up: log the planned session** (Shaun: "I can't log the planned
   activity as completed"). Each session planned that day and not yet logged shows as a
   row: **Done as planned** logs it from the plan's details and ticks it on the plan, in one

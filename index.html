@@ -2205,7 +2205,8 @@
   .cu-open-acts .cu-evidence-row:active { background: var(--surface-2); }
   .cu-open-ring.waiting { border-style: dashed; }
   .cu-wait-acts { display: flex; gap: 16px; margin: -2px 0 6px 38px; }
-  .cu-wait-acts .btn-link { padding: 4px 0; font-size: 12.5px; color: var(--text-2); }
+  .cu-wait-acts .btn-link { padding: 4px 0; font-size: 12.5px; color: var(--text-2); white-space: nowrap; }
+  .cu-wait-acts { flex-wrap: wrap; row-gap: 2px; }
   .cu-planned .cu-planned-row { cursor: default; }
   .cu-planned .cu-planned-row:active { background: none; }
   .cu-wait-acts .cu-plan-done { display: inline-flex; align-items: center; gap: 6px; color: var(--gold); font-weight: 600; }
@@ -8416,7 +8417,7 @@
       var jumpBtn = document.getElementById('dayJumpTodayBtn');
       if (jumpBtn) jumpBtn.addEventListener('click', function(){ setViewedDate(todayStr()); });
       var reviewBtn = document.getElementById('dayReviewBtn');
-      if (reviewBtn) reviewBtn.addEventListener('click', function(){ openReviewDaySheet(viewedDate); });
+      if (reviewBtn) reviewBtn.addEventListener('click', function(){ openCatchUpSheet(viewedDate); });
     } else if (currentView === 'plan'){
       // the header owns week navigation on Plan, as in the reference comps
       sub.innerHTML = '';
@@ -11423,132 +11424,7 @@
     if (pop) pop.remove();
   });
 
-  // ---------- review day (past-day resolution, one item at a time) ----------
-  function openReviewDaySheet(dateStr){
-    editingId = null;
-    var d = new Date(dateStr + 'T00:00:00');
-    var dayLabel = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
-
-    // A choice lands in the sheet the moment it is made; the record catches up
-    // behind it. With Firestore live, saveCommitment does not touch `commitments`
-    // — the onSnapshot listener does, a round-trip later — so re-rendering from
-    // `commitments` straight after a tap drew the same item again, and the
-    // handlers wired by that render still pointed at it. The *second* tap was
-    // then saved against the *first* item. The sheet now keeps its own record of
-    // what was chosen, reads every row through it, and lets the listener confirm.
-    var chosen = {};        // action id -> status picked in this sheet, until confirmed
-    var chosenDay = null;   // overall status picked in this sheet, until confirmed
-
-    function statusOf(c){ return chosen[c.id] || c.status; }
-    function unresolvedList(){
-      return commitments.filter(function(c){ return c.date === dateStr && statusOf(c) === 'planned'; });
-    }
-    function dayRecord(){ return dayStatuses.find(function(ds){ return ds.date === dateStr; }) || null; }
-    // an outcome is chosen, or the evening closed the day; a bare record is neither
-    function dayResolved(){
-      var rec = dayRecord();
-      return !!chosenDay || !!(rec && (rec.status || rec.closedAt));
-    }
-    // once the listener reports what was picked, the sheet stops holding it
-    function forgetConfirmed(){
-      Object.keys(chosen).forEach(function(id){
-        var c = commitments.find(function(x){ return x.id === id; });
-        if (c && c.status === chosen[id]) delete chosen[id];
-      });
-      var rec = dayRecord();
-      if (chosenDay && rec && rec.status === chosenDay) chosenDay = null;
-    }
-
-    function head(){
-      return '<div class="sheet-handle"></div>' +
-        '<div class="sheet-head"><div class="sheet-title">Review day</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>';
-    }
-
-    function buildHtml(){
-      var unresolved = unresolvedList();
-      if (unresolved.length){
-        var c = unresolved[0];
-        return head() +
-          '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">' + dayLabel + ' · ' + unresolved.length + ' item' + (unresolved.length===1?'':'s') + ' left</div>' +
-          '<div style="font-size:15px;font-weight:700;margin-bottom:12px" id="reviewItemTitle"></div>' +
-          // the item this grid answers for travels with the grid, not in a closure
-          '<div class="status-btn-grid" id="reviewStatusGrid" data-id="' + c.id + '">' +
-            ['completed','partial','disrupted','not_done'].map(function(s){
-              return '<button type="button" class="status-btn" data-s="' + s + '">' + COMMITMENT_STATUS_LABEL[s] + '</button>';
-            }).join('') +
-          '</div>';
-      }
-      if (!dayResolved()){
-        return head() +
-          lcBlockHtml(dateStr, { cls: 'lc-review' }) +
-          '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">' + dayLabel + ' — all actions resolved. How did the day go overall? Missing data isn\'t the same as failure.</div>' +
-          '<div class="status-btn-grid" id="reviewDayStatusGrid">' +
-            ['completed','partial','disrupted','unknown'].map(function(s){
-              return '<button type="button" class="status-btn" data-s="' + s + '">' + DAY_STATUS_LABEL[s] + '</button>';
-            }).join('') +
-          '</div>';
-      }
-      return head() + '<div class="empty-state">' + dayLabel + ' is fully reviewed.</div>' + lcBlockHtml(dateStr, { cls: 'lc-review' });
-    }
-
-    function render(){
-      forgetConfirmed();
-      sheetEl.innerHTML = buildHtml();
-      backdrop.classList.add('open');
-      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
-
-      var itemGrid = document.getElementById('reviewStatusGrid');
-      if (itemGrid){
-        var shown = commitments.find(function(x){ return x.id === itemGrid.dataset.id; });
-        // the title is the user's own text — written as text, never as markup
-        document.getElementById('reviewItemTitle').textContent = shown ? shown.title : '';
-        itemGrid.querySelectorAll('.status-btn').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            var id = itemGrid.dataset.id;
-            if (chosen[id]) return;                       // already answered
-            var fresh = commitments.find(function(x){ return x.id === id; });
-            if (!fresh) return;
-            var status = btn.dataset.s;
-            chosen[id] = status;
-            render();                                     // one tap: advance now
-            // build on the current record so key-task, dates and order survive
-            Promise.resolve(saveCommitment(Object.assign({}, fresh, {
-              status: status,
-              disruptionReason: status === 'disrupted' ? fresh.disruptionReason : null
-            }))).catch(function(){
-              delete chosen[id];
-              render();
-              showPinToast('Couldn\u2019t save that \u2014 try again', true);
-            });
-          });
-        });
-      }
-
-      wireLcBlock(sheetEl, dateStr, function(go){ go(function(){ openReviewDaySheet(dateStr); }); }, function(){
-        Promise.resolve(saveDayStatus(dateStr, { lifeContextNone: true })).then(render);
-      });
-      var dayGrid = document.getElementById('reviewDayStatusGrid');
-      if (dayGrid){
-        dayGrid.querySelectorAll('.status-btn').forEach(function(btn){
-          btn.addEventListener('click', function(){
-            if (chosenDay) return;
-            var status = btn.dataset.s;
-            chosenDay = status;
-            render();
-            Promise.resolve(saveDayStatus(dateStr, status)).catch(function(){
-              chosenDay = null;
-              render();
-              showPinToast('Couldn\u2019t save that \u2014 try again', true);
-            });
-          });
-        });
-      }
-    }
-
-    render();
-    // the listeners confirm into the same sheet; closeSheet clears this hook
-    activeSheetRefresh = render;
-  }
+  // (Review day, the header buttons on a past day, opens the one review screen: Catch-up.)
 
   // ============ Communications: Matters and Conversations ============
   // A Matter is the wider thing that is happening (a sale, a nursery place, a house
@@ -19683,7 +19559,14 @@
 
   // Stored order wins; a default this version added but the stored copy has never
   // seen joins the end. Sparse, like the action order hints — no migration.
+  // Wind-down's food, day status and gluten steps now live in the review screen, and
+  // "Review tomorrow" is its own check (2026-11-01): the routine keeps the rest.
+  var WD_FOLDED = ['foodLog', 'dayQuality', 'gluten', 'reviewTomorrow'];
   function getRoutine(section){
+    var all = getRoutineAll(section);
+    return section === 'windDown' ? all.filter(function(it){ return WD_FOLDED.indexOf(it.key) === -1; }) : all;
+  }
+  function getRoutineAll(section){
     var defs = DEFAULT_ROUTINES[section] || [];
     var stored = routineConfig()[section];
     if (!stored || !stored.length) return defs.map(function(it){ return Object.assign({}, it); });
@@ -21099,7 +20982,8 @@
       status: rec.status || null,
       notes: rec.notes || '',
       // what the evening already closed, so the morning only asks for the rest
-      windDownAt: (rec.windDown && rec.windDown.completedAt) || null,
+      // already reviewed (from Wind-down that evening, or an earlier pass): said, not asked
+      windDownAt: (function(){ var a = dayReviewedAt(dateStr); return a === 'yes' ? null : a; })(),
       windDown: windDownState(dateStr),
       // waiting and blocked are open, but not unexplained: they carry their reason
       actionsOpen: dayActions.filter(cuActionOpen).length,
@@ -21125,6 +21009,24 @@
     var d = new Date(dateStr + 'T00:00:00');
     d.setDate(d.getDate() - 1);
     return fmtDate(d);
+  }
+
+  // A day is reviewed (closed) however it was reached: the one review screen, from Wind-down
+  // that evening or Catch-up after; older days also by the old Wind-down close or Review day.
+  // Returns when, or null. A "finish later" draft is not a review.
+  function dayReviewedAt(dateStr){
+    var rec = getDayRecord(dateStr);
+    if (!rec || rec.draft) return (rec && rec.windDown && rec.windDown.completedAt) || null;
+    return rec.caughtUpAt || (rec.windDown && rec.windDown.completedAt) || (rec.status ? (rec.closedAt || rec.updatedAt || 'yes') : null);
+  }
+  // where a review moves what is still open: the day after it, never into the past
+  function reviewMoveTarget(dateStr){
+    var next = nextDateStr(dateStr), t = todayStr();
+    return next > t ? next : t;
+  }
+  function reviewDayWord(dateStr){
+    var t = todayStr();
+    return dateStr === t ? 'today' : dateStr === nextDateStr(t) ? 'tomorrow' : shortDayLabel(dateStr);
   }
 
   function computeCatchUpDates(){
@@ -21163,8 +21065,8 @@
       // nothing to recover — but if last night closed itself, say so once and move on
       var y = yesterdayStr();
       var yRec = getDayRecord(y);
-      var closedAt = yRec && yRec.windDown && yRec.windDown.completedAt;
-      if (viewedDate === todayStr() && closedAt){
+      var closedAt = dayReviewedAt(y);
+      if (viewedDate === todayStr() && closedAt && closedAt !== 'yes'){
         wrap.innerHTML = row(CHECK_SVG, 'Yesterday closed at ' + mpTimeLabel(closedAt), true);
         document.getElementById('catchUpBannerBtn').addEventListener('click', function(){ openCatchUpSheet(y); });
         return;
@@ -21261,16 +21163,19 @@
       var label = shortDayLabel(dateStr);
       var otherPending = computeCatchUpDates().filter(function(x){ return x !== dateStr; });
 
+      var isToday = dateStr === todayStr();
+      var target = reviewMoveTarget(dateStr), targetWord = reviewDayWord(target);
       var html = '<div class="sheet-handle"></div>' +
-        sheetHead('', 'Catch-up', snap.windDownAt
-          ? 'This day closed itself last night. Nothing here needs answering again.'
-          : 'Missing data isn\'t the same as failure \u2014 close the day by marking what actually happened.', '') +
+        sheetHead('', isToday ? 'Review today' : 'Catch-up', snap.windDownAt
+          ? 'This day is already reviewed. Nothing here needs answering again.'
+          : (isToday ? 'Tick off or move what\u2019s open, and say how the day went.'
+             : 'Missing data isn\'t the same as failure \u2014 close the day by marking what actually happened.'), '') +
         '<div class="cu-daylabel">' + label +
           (otherPending.length ? '<span class="cu-daymore">' + otherPending.length + ' more to close</span>' : '') +
         '</div>';
 
       if (snap.windDownAt){
-        html += cuResolved('Closed in the evening at ' + mpTimeLabel(snap.windDownAt) + '.');
+        html += cuResolved('Reviewed at ' + mpTimeLabel(snap.windDownAt) + '.');
       }
 
       // --- actions: read straight from that day's commitments; the open ones are listed
@@ -21286,14 +21191,20 @@
               : 'No actions recorded for this day') + '</div>' +
             (openActs.length ? '<div class="cu-evidence cu-open-acts">' + openActs.map(function(c, i){
               var w = actionIsWaiting(c);
-              // a waiting Action says why, and offers where it goes next — never "not done"
+              // a waiting Action says why, and offers where it goes next — never "not done";
+              // an open one is ticked off, or moved on to the next day or another
               return '<button type="button" class="cu-evidence-row" data-cu-act="' + i + '">' +
                 '<span class="cu-open-ring' + (w ? ' waiting' : '') + '" aria-hidden="true"></span>' +
                 '<span class="cu-ev-text"><strong></strong><span></span></span>' +
                 '<span class="chev">' + UI_ICON.chevronRight + '</span></button>' +
-                (w ? '<div class="cu-wait-acts"><button type="button" class="btn-link" data-cu-keep="' + i + '">Keep waiting · today</button>' +
-                  '<button type="button" class="btn-link" data-cu-day="' + i + '">Another day</button></div>' : '');
-            }).join('') + '</div>' : '')),
+                (w ? '<div class="cu-wait-acts"><button type="button" class="btn-link" data-cu-keep="' + i + '">Keep waiting · ' + targetWord + '</button>' +
+                  '<button type="button" class="btn-link" data-cu-day="' + i + '">Another day</button></div>'
+                   : '<div class="cu-wait-acts"><button type="button" class="btn-link cu-plan-done" data-cu-done="' + i + '">' + CHECK_SVG + 'Done</button>' +
+                  '<button type="button" class="btn-link" data-cu-move="' + i + '" aria-label="Move to ' + targetWord + '">' + targetWord.charAt(0).toUpperCase() + targetWord.slice(1) + '</button>' +
+                  '<button type="button" class="btn-link" data-cu-day="' + i + '">Another day</button></div>');
+            }).join('') +
+            (openActs.length > 1 ? '<button type="button" class="cu-link cu-link-block" id="cuMoveAll">Move all ' + openActs.length + ' to ' + targetWord + UI_ICON.chevronRight + '</button>' : '') +
+            '</div>' : '')),
         '', 'actions');
 
       // --- training: an existing log is the answer, not a question ---
@@ -21391,7 +21302,7 @@
 
       html += '<div class="sheet-actionbar">' +
         '<button type="button" class="btn-primary" id="cuCloseDayBtn">' +
-          (snap.windDownAt ? 'Done' : 'Close ' + (dateStr === yesterdayStr() ? 'previous day' : 'this day')) +
+          (snap.windDownAt ? 'Done' : 'Close ' + (isToday ? 'today' : dateStr === yesterdayStr() ? 'previous day' : 'this day')) +
         '</button>' +
         '<button type="button" class="btn-secondary" id="cuLaterBtn">Save and finish later</button>' +
       '</div>';
@@ -21451,8 +21362,39 @@
         var c = openActs[Number(el.dataset.cuKeep)];
         el.addEventListener('click', function(){
           // still waiting, just today now: the state and its reason go with it
-          leave('actions', function(){ moveActionToDate(freshAct(c), todayStr()); showPinToast('Moved to today · ' + actionStateLabel(freshAct(c)).toLowerCase(), false, CHECK_SVG); });
+          var tgt = reviewMoveTarget(dateStr);
+          leave('actions', function(){ moveActionToDate(freshAct(c), tgt); showPinToast('Moved to ' + reviewDayWord(tgt) + ' · ' + actionStateLabel(freshAct(c)).toLowerCase(), false, CHECK_SVG); });
         });
+      });
+      // in place: the change is made and the review redrawn from the records
+      function afterChange(msg){
+        readNotes();
+        if (msg) showPinToast(msg, false, CHECK_SVG);
+        setTimeout(function(){ if (sheetEl.querySelector('#cuCloseDayBtn')) render(); }, 160);
+      }
+      sheetEl.querySelectorAll('[data-cu-done]').forEach(function(el){
+        var c = openActs[Number(el.dataset.cuDone)];
+        el.addEventListener('click', function(){
+          var f = freshAct(c);
+          // a conversation's Action asks what happens next: that sheet, then back here
+          if (f.conversationId && convById(f.conversationId)){ leave('actions', function(){ toggleCommitmentQuickStatus(f); }); return; }
+          if (f.status !== 'completed') toggleCommitmentQuickStatus(f);
+          afterChange('Done');
+        });
+      });
+      sheetEl.querySelectorAll('[data-cu-move]').forEach(function(el){
+        var c = openActs[Number(el.dataset.cuMove)];
+        el.addEventListener('click', function(){
+          var tgt = reviewMoveTarget(dateStr);
+          moveActionToDate(freshAct(c), tgt);
+          afterChange('Moved to ' + reviewDayWord(tgt));
+        });
+      });
+      var moveAll = document.getElementById('cuMoveAll');
+      if (moveAll) moveAll.addEventListener('click', function(){
+        var tgt = reviewMoveTarget(dateStr), n = 0;
+        openActs.forEach(function(c){ var f = freshAct(c); if (cuActionOpen(f) && f.date === dateStr){ moveActionToDate(f, tgt); n++; } });
+        afterChange(plural(n, 'action') + ' moved to ' + reviewDayWord(tgt));
       });
       sheetEl.querySelectorAll('[data-cu-day]').forEach(function(el){
         var c = openActs[Number(el.dataset.cuDay)];
@@ -23591,7 +23533,9 @@
     function build(){
       return '<div class="sheet-handle"></div>' +
         sheetHead('', ROUTINE_SECTION_LABEL[section] + ' routine',
-          'Drag to reorder. Switch off what you don\'t use. Renaming a linked step keeps its link.', '') +
+          section === 'windDown'
+            ? 'Review today and Plan tomorrow always come first; these follow. Drag to reorder, switch off what you don\'t use.'
+            : 'Drag to reorder. Switch off what you don\'t use. Renaming a linked step keeps its link.', '') +
         '<div class="re-list" id="reList">' +
           items.map(function(it){
             var linked = routineHasRecord(it.key);
@@ -23850,26 +23794,22 @@
     var rec = getDayRecord(dateStr) || {};
     return rec.windDown || {};
   }
+  // Two checks first — today reviewed (the one review screen), tomorrow planned — then the
+  // routine's own items (partner check-in, custom). Done when all of them are.
   function windDownState(dateStr){
     var sec = routineSectionState('windDown', dateStr);
+    var reviewedAt = dayReviewedAt(dateStr);
+    var tomorrow = routineEvidence('reviewTomorrow', dateStr);
+    sec.reviewed = !!reviewedAt;
+    sec.reviewedAt = reviewedAt === 'yes' ? null : reviewedAt;
+    sec.tomorrowPlanned = !!(tomorrow && tomorrow.done);
+    var checks = (sec.reviewed ? 1 : 0) + (sec.tomorrowPlanned ? 1 : 0);
+    sec.total += 2; sec.done += checks; sec.resolved += checks;
+    sec.complete = sec.resolved === sec.total;
     var wd = windDownRecord(dateStr);
-    sec.completedAt = wd.completedAt || null;
+    sec.completedAt = wd.completedAt || (sec.complete ? (sec.reviewedAt || null) : null);
     return sec;
   }
-  // A day is closed in the evening when every enabled Wind-down item is resolved.
-  // Nothing else writes this — it is recorded once, on the day record.
-  async function commitWindDown(dateStr){
-    var st = windDownState(dateStr);
-    if (!st.complete || st.completedAt) return;
-    var wd = Object.assign({}, windDownRecord(dateStr), { completedAt: new Date().toISOString() });
-    await saveDayStatus(dateStr, { windDown: wd, closedAt: wd.completedAt });
-  }
-  async function reopenWindDown(dateStr){
-    var wd = Object.assign({}, windDownRecord(dateStr));
-    delete wd.completedAt;
-    await saveDayStatus(dateStr, { windDown: wd, closedAt: null });
-  }
-
   function renderWindDown(){
     var wrap = document.getElementById('windDownSection');
     if (!wrap) return;
@@ -23885,9 +23825,20 @@
       ? wdExpanded[dateStr]
       : (due && !st.completedAt);
 
-    var value = st.completedAt
-      ? 'Closed at ' + mpTimeLabel(st.completedAt)
+    var value = st.complete
+      ? (st.completedAt ? 'Done at ' + mpTimeLabel(st.completedAt) : 'Done')
       : st.done + ' of ' + st.total + ' complete';
+    // the two checks, in the routine's own row shape; each opens where it is answered
+    var openN = commitments.filter(function(c){ return c.date === dateStr && c.category !== 'roadblock' && cuActionOpen(c); }).length;
+    var tmr = getPlanForDate(nextDateStr(dateStr));
+    var checks = [
+      { item: { id: 'wd-check-review', key: 'keys', label: 'Review today' }, done: st.reviewed, skipped: false, resolved: st.reviewed,
+        tickable: false, linked: true, fromRecord: st.reviewed,
+        value: st.reviewed ? (st.reviewedAt ? 'Reviewed ' + mpTimeLabel(st.reviewedAt) : 'Reviewed') : (openN ? openN + ' open' : 'Not yet') },
+      { item: { id: 'wd-check-plan', key: 'reviewTomorrow', label: 'Plan tomorrow' }, done: st.tomorrowPlanned, skipped: false, resolved: st.tomorrowPlanned,
+        tickable: false, linked: true, fromRecord: st.tomorrowPlanned,
+        value: st.tomorrowPlanned ? 'Planned' : (tmr ? 'Not finished' : 'Not yet') }
+    ];
 
     // Morning Prime's evening sibling: the same card and head, a step quieter
     wrap.innerHTML =
@@ -23902,38 +23853,27 @@
       '</button>' +
       '<div class="wd-body' + (expanded ? '' : ' collapsed') + '" id="wdBody">' +
         '<div class="wd-panel">' +
+          routineRowHtml(checks[0], {}) + routineRowHtml(checks[1], {}) +
           st.items.map(function(x){ return routineRowHtml(x, {}); }).join('') +
-          lcBlockHtml(dateStr, { cls: 'lc-wd' }) +
-          (st.completedAt
-            ? '<p class="wd-note">Closed at ' + mpTimeLabel(st.completedAt) +
-              '. Catch-up will leave this day alone.</p>' +
-              '<button type="button" class="btn-quiet" id="wdReopenBtn">Reopen the day</button>'
-            : (st.complete
-                ? '<button type="button" class="btn-primary wd-close" id="wdCloseBtn">Close the day</button>'
-                : '<p class="wd-note">' + (st.total - st.done) + ' left. Whatever you don\'t finish tonight, ' +
-                  'Catch-up will pick up tomorrow.</p>')) +
+          (st.complete
+            ? '<p class="wd-note">All done. Tomorrow\u2019s Catch-up will leave today alone.</p>'
+            : '<p class="wd-note">' + (st.total - st.done) + ' left. Whatever you don\'t finish tonight, ' +
+                'Catch-up will pick up tomorrow.</p>') +
         '</div>' +
       '</div>' +
       '</div>';
 
-    fillRoutineLabels(wrap, st.items);
+    fillRoutineLabels(wrap, checks.concat(st.items));
     wireRoutineRows(wrap, 'windDown', dateStr, st.items, renderWindDown);
-    wireLcBlock(wrap, dateStr, function(go){ go(closeSheet); });
+    wrap.querySelector('[data-rt-open="wd-check-review"]').addEventListener('click', function(e){ e.stopPropagation(); openCatchUpSheet(dateStr); });
+    wrap.querySelector('[data-rt-open="wd-check-plan"]').addEventListener('click', function(e){
+      e.stopPropagation();
+      var t = nextDateStr(dateStr);
+      openPlanSheet(t, getPlanForDate(t), {});
+    });
 
     document.getElementById('wdToggle').addEventListener('click', function(){
       wdExpanded[dateStr] = !expanded;
-      renderWindDown();
-    });
-    var closeBtn = document.getElementById('wdCloseBtn');
-    if (closeBtn) closeBtn.addEventListener('click', async function(){
-      await commitWindDown(dateStr);
-      wdExpanded[dateStr] = false;
-      renderWindDown();
-    });
-    var reopenBtn = document.getElementById('wdReopenBtn');
-    if (reopenBtn) reopenBtn.addEventListener('click', async function(){
-      await reopenWindDown(dateStr);
-      wdExpanded[dateStr] = true;
       renderWindDown();
     });
   }
@@ -24550,7 +24490,7 @@
       reviewBtn.className = 'day-review-btn';
       reviewBtn.style.marginTop = '10px';
       reviewBtn.textContent = 'Review day';
-      reviewBtn.addEventListener('click', function(){ openReviewDaySheet(dateStr); });
+      reviewBtn.addEventListener('click', function(){ openCatchUpSheet(dateStr); });
       wrap.appendChild(reviewBtn);
     }
 
