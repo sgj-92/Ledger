@@ -10708,7 +10708,7 @@
     } else if (c.kind === 'checklist_add'){
       verb = 'Add to'; title = (c.before || {}).text;
       (c.items || []).forEach(function(t){ lines.push('\u2022 ' + t); });
-    } else if (/^(session_create|steps_set|food_add|goal_value|day_note|intention|comms_log|life_context|goal_create|goal_update|outcome_add|outcome_result|conv_state)$/.test(c.kind)){
+    } else if (/^(session_create|session_update|session_delete|steps_set|food_add|goal_value|day_note|intention|comms_log|life_context|goal_create|goal_update|outcome_add|outcome_result|conv_state)$/.test(c.kind)){
       return acLedgerView(c, day);
     }
     return { verb: verb, title: title || '', lines: lines, danger: danger };
@@ -10731,6 +10731,22 @@
         });
         if (a.outline) lines.push(a.outline);
         if (a.notes) lines.push(a.notes);
+      }
+    } else if (c.kind === 'session_update' || c.kind === 'session_delete'){
+      var b0 = c.before || {}, pt0 = c.patch || {};
+      title = (TYPE_LABEL[b0.type] || 'Record') + ' \u00b7 ' + day(b0.date);
+      if (c.kind === 'session_delete'){
+        verb = 'Remove';
+        lines.push(b0.type === 'weight' ? b0.weightKg + ' kg' : b0.type === 'steps' ? fmtSteps(b0.steps) + ' steps'
+          : [b0.activityTime, b0.durationMin ? fmtDuration(b0.durationMin) : '', b0.venue].filter(Boolean).join(' \u00b7 '));
+      } else {
+        verb = 'Correct';
+        var LBL = { date: 'Day', activityTime: 'Time', durationMin: 'Length', venue: 'Where', distance: 'Distance', weightKg: 'Weight', steps: 'Steps', foodDiary: 'Food diary', dayRating: 'The day', notes: 'Notes' };
+        Object.keys(pt0).forEach(function(k){
+          if (k === 'exercises'){ lines.push('Exercises \u2192 ' + (pt0.exercises || []).map(function(e){ return e.name + (e.sets && e.reps ? ' ' + e.sets + '\u00d7' + e.reps : '') + (e.value != null ? ' ' + e.value + (e.unit || '') : ''); }).join(', ')); return; }
+          var f = function(v){ return v == null || v === '' ? 'none' : k === 'date' ? day(v) : k === 'durationMin' ? fmtDuration(v) : k === 'steps' ? fmtSteps(v) : k === 'weightKg' ? v + ' kg' : String(v).replace(/\n/g, '; '); };
+          lines.push((LBL[k] || k) + ': ' + f(b0[k]) + arrow + f(pt0[k]));
+        });
       }
     } else if (c.kind === 'steps_set'){
       title = 'Steps'; if (c.before) verb = 'Change';
@@ -10779,7 +10795,7 @@
       lines.push((ATTENTION_LABEL[c.before && c.before.attentionState] || 'Needs me') + arrow + ATTENTION_LABEL[c.state] +
         (c.waitingOn ? ' \u00b7 ' + c.waitingOn : '') + (c.followUp ? ' \u00b7 follow up ' + day(c.followUp) : ''));
     }
-    return { verb: verb, title: title || '', lines: lines.filter(Boolean), danger: c.kind === 'goal_update' && (c.patch || {}).status === 'dropped' };
+    return { verb: verb, title: title || '', lines: lines.filter(Boolean), danger: c.kind === 'session_delete' || (c.kind === 'goal_update' && (c.patch || {}).status === 'dropped') };
   }
 
   function openAskClaudeSheet(){
@@ -10936,11 +10952,12 @@
     head.lastChild.textContent = p.summary;
     card.appendChild(head);
     if (t.state === 'replaced' || t.state === 'cancelled') return card;
-    var removes = p.changes.filter(function(c){ return c.kind === 'action_delete' || c.kind === 'daily_repeat_remove'; }).length;
+    var removes = p.changes.filter(function(c){ return c.kind === 'action_delete' || c.kind === 'daily_repeat_remove' || c.kind === 'session_delete'; }).length;
     if (t.state === 'open' && (removes || p.changes.length > 10)){
       var warn = document.createElement('p');
       warn.className = 'ac-prop-warn';
-      warn.textContent = [removes ? 'Removes ' + removes + (acState.home ? (removes === 1 ? ' repeating task.' : ' repeating tasks.') : (removes === 1 ? ' Action.' : ' Actions.')) : '',
+      warn.textContent = [removes ? 'Removes ' + removes + (acState.home ? (removes === 1 ? ' repeating task.' : ' repeating tasks.')
+        : p.changes.some(function(c){ return c.kind === 'session_delete'; }) ? (removes === 1 ? ' record.' : ' records.') : (removes === 1 ? ' Action.' : ' Actions.')) : '',
         p.changes.length > 10 ? 'Changes ' + p.changes.length + ' records.' : ''].filter(Boolean).join(' ');
       card.appendChild(warn);
     }
@@ -11047,9 +11064,20 @@
       }
       var was = {};
       Object.keys(c.patch).forEach(function(key){ was[key] = cur[key] === undefined ? null : cur[key]; });
-      if (c.patch.status === 'completed' && focusIsAction(c.id)) clearCurrentFocus();
+      var undoTick = null;
+      if (c.patch.status === 'completed'){
+        // as tapping its circle does: pins go, the focus moves on, a matter records it
+        cleanupPinsForCompletedAction(c.id);
+        if (focusIsAction(c.id)) clearCurrentFocus();
+        var mt = !cur.conversationId && matterById(cur.matterId);
+        if (mt){
+          var mEntry = { at: new Date().toISOString(), kind: 'done', text: cur.title };
+          patchMatter(mt.id, { log: (mt.log || []).concat([mEntry]).slice(-COMMS_LOG_MAX) });
+          undoTick = { matterId: mt.id, at: mEntry.at };
+        }
+      }
       saveCommitment(Object.assign({}, cur, c.patch));
-      return { ok: true, undo: { kind: 'restore', id: c.id, fields: was, expect: c.patch } };
+      return { ok: true, undo: { kind: 'restore', id: c.id, fields: was, expect: c.patch, matterLog: undoTick } };
     }
     if (c.kind === 'plan_meals_add'){
       var plan = planBase(c.id), added = (c.add || []).map(function(text){
@@ -11077,6 +11105,19 @@
       }
       saveSession(rec);
       return { ok: true, undo: u };
+    }
+    if (c.kind === 'session_update' || c.kind === 'session_delete'){
+      var se = sessionById(c.id);
+      if (!se) return { ok: false, why: 'it\u2019s no longer there' };
+      var watch = c.kind === 'session_delete' ? ['date', 'type', 'weightKg', 'steps', 'durationMin'] : Object.keys(c.patch || {});
+      if (watch.some(function(k){ return JSON.stringify(acNorm(se[k])) !== JSON.stringify(acNorm(c.before[k])); })) return changed;
+      if (c.kind === 'session_delete'){
+        deleteSession(c.id);
+        return { ok: true, undo: { kind: 'session_put', record: Object.assign({}, se) } };
+      }
+      var prevF = {}; Object.keys(c.patch).forEach(function(k){ prevF[k] = se[k] === undefined ? null : se[k]; });
+      saveSession(Object.assign({}, se, c.patch, { updatedAt: now }));
+      return { ok: true, undo: { kind: 'session_restore', id: c.id, fields: prevF, expect: c.patch } };
     }
     if (c.kind === 'steps_set'){
       var sc = c.before ? sessionById(c.id) : stepsRecordFor(c.date);
@@ -11189,9 +11230,14 @@
       }
       return true;
     }
+    if (u.kind === 'session_put'){
+      if (sessions.some(function(x){ return x.id === u.record.id; })) return false;
+      saveSession(Object.assign({}, u.record));
+      return true;
+    }
     if (u.kind === 'session_restore'){
       s0 = sessions.find(function(x){ return x.id === u.id; });
-      if (!s0 || Object.keys(u.expect).some(function(k){ return acNorm(s0[k]) !== acNorm(u.expect[k]); })) return false;
+      if (!s0 || Object.keys(u.expect).some(function(k){ return JSON.stringify(acNorm(s0[k])) !== JSON.stringify(acNorm(u.expect[k])); })) return false;
       saveSession(Object.assign({}, s0, u.fields));
       return true;
     }
@@ -11317,6 +11363,8 @@
         cur = commitments.find(function(x){ return x.id === u.id; });
         var same = cur && Object.keys(u.expect).every(function(k){ return acNorm(cur[k]) === acNorm(u.expect[k]); });
         if (same) saveCommitment(Object.assign({}, cur, u.fields)); else kept++;
+        var um = u.matterLog && matterById(u.matterLog.matterId);
+        if (same && um) patchMatter(um.id, { log: (um.log || []).filter(function(l){ return l.at !== u.matterLog.at; }) });
       } else if (u.kind === 'home_items'){
         var hb = dbRef.batch();
         u.ids.forEach(function(id){ hb.delete(hrItemsRef(u.rid).doc(id)); });

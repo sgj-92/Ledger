@@ -310,6 +310,65 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
   check(client.requests[0].tools.some((t) => t.name === 'log_food') && client.requests[0].tools[client.requests[0].tools.length - 1].name === 'present_proposal' &&
     !client.requests[0].tools.some((t) => t.name === 'home_people'), 'Shaun\'s tools: everything, present_proposal last; no Home tools while he is not a Home admin');
   check(/log_food/.test(client.requests[0].system[0].text) && /never estimate calories/.test(client.requests[0].system[0].text), 'the system prompt explains logging, and that food is never estimated');
+  // ---- "here's what I did": check what's there, fill the gaps, tick off (2026-11-01) ----
+  await db.doc('ledger_sessions/w2').set({ type: 'weight', date: TODAY, weightKg: 88.4, createdAt: '2026-10-27T07:00:00Z' });
+  await db.doc('ledger_sessions/tr1').set({ type: 'resistance', date: TODAY, durationMin: 50, activityTime: '07:00', exercises: [], createdAt: '2026-10-27T08:00:00Z' });
+  await db.doc('ledger_sessions/n2').set({ type: 'nutrition', date: YESTERDAY, foodDiary: 'Eggs', dayRating: null });
+  await db.doc('ledger_commitments/tk1').set(C({ date: TODAY, title: 'Call the accountant', category: 'work' }));
+  await db.doc('ledger_commitments/tk2').set(C({ date: TODAY, title: 'Stretching routine', category: 'training' }));
+  await db.doc('ledger_commitments/tk10').set(C({ date: TODAY, title: 'Gym session', category: 'training' }));   // 'Gym' (c2) is open that day too
+  await db.doc('ledger_commitments/tk3').set(C({ date: TODAY, title: 'Call the bank', category: 'work', conversationId: 'v1' }));
+  await db.doc('ledger_commitments/tk4').set(C({ date: TODAY, title: 'Email Jo', category: 'communicate', sourceType: 'home_request', sourceRequestId: 'hq1' }));
+  await db.doc('ledger_commitments/tk7').set(C({ date: TODAY, title: 'Book flights', category: 'personal' }));
+  await db.doc('ledger_commitments/tk9').set(C({ date: '2026-10-30', title: 'Gym session', category: 'training' }));
+  const MSG = 'Here\'s my day: called the accountant, did my stretching routine, did the gym session, called the bank, emailed Jo, 88.4kg, porridge and chicken salad';
+  client = fakeClient([
+    turn('tool_use',
+      use('log_action_done', { id: 'tk1' }), use('log_action_done', { id: 'tk2' }), use('log_action_done', { id: 'tk3' }),
+      use('log_action_done', { id: 'tk4' }), use('log_action_done', { id: 'tk7' }), use('log_action_done', { id: 'tk1' }),
+      use('log_weight', { date: TODAY, kg: 88.4 }), use('log_weight', { date: TODAY, kg: 88.0 }),
+      use('log_training', { date: TODAY, type: 'resistance', time: null, duration_min: 45, venue: null, notes: null, padel_type: null, cardio_type: null, distance: null, distance_unit: null, exercises: null, focus: null, outline: null }),
+      use('log_food', { date: TODAY, lines: ['Porridge', 'Chicken salad'], rating: null }),
+      use('log_food', { date: YESTERDAY, lines: ['eggs'], rating: null }),
+      use('propose_update_log', { id: 'tr1', date: null, time: null, duration_min: 60, venue: null, distance: null, exercises: null, weight_kg: null, steps: null, food_diary: null, rating: null, notes: null }),
+      use('propose_delete_log', { id: 'w2' }),
+      use('propose_update_log', { id: 'ph1', date: null, time: null, duration_min: 30, venue: null, distance: null, exercises: null, weight_kg: null, steps: null, food_diary: null, rating: null, notes: null }),
+      use('log_action_done', { id: 'tk9' }), use('log_action_done', { id: 'tk10' })),
+    (params) => {
+      const r = lastResults(params), J = (i) => JSON.parse(r[i].content);
+      check(J(0).saved.indexOf('Saved') === 0 && J(1).saved.indexOf('Saved') === 0, 'tick-off: his words name it — saved at once', [J(0), J(1)]);
+      check(/conversation/.test(J(2).note) && /request/.test(J(3).note) && /don't clearly name/.test(J(4).note) && /Waits/.test(J(2).saved),
+        'tick-off waits for review: a conversation\'s Action, a request\'s, one his words don\'t name', [J(2).note, J(3).note, J(4).note]);
+      check(r[5].is_error && /already has a change/.test(r[5].content), 'one tick per Action');
+      check(r[6].is_error && /already logged/.test(r[6].content), 'the same weight on the same day is refused');
+      check(/Waits/.test(J(7).saved) && /already logged/.test(J(7).note), 'a different weight that day waits for review');
+      check(/Waits/.test(J(8).saved) && /propose_update_log/.test(J(8).note), 'a second strength session that day waits, pointing to a correction');
+      check(/Saved/.test(J(9).saved) && /Porridge/.test(J(9).note), 'food already in the diary is skipped, and Claude is told', J(9));
+      check(r[10].is_error && /already in the day's food diary/.test(r[10].content), 'all of it already there: nothing to log (any case)');
+      check(!r[11].is_error && !r[12].is_error && r[13].is_error, 'a correction and a removal proposed; a photo can\'t be changed here');
+      check(/still to come/.test(J(14).note), 'an Action for a day still to come waits');
+      check(/just as well/.test(J(15).note), '"gym session" names both "Gym" and "Gym session": it waits for review', J(15));
+      return turn('end_turn', { type: 'text', text: 'Checked your day.' });
+    }
+  ]);
+  out = await createAssistant({ db, client }).handle({ uid: 'ownerP2', message: MSG, today: TODAY });
+  const p3 = out.body.proposal.changes, by = (id) => p3.find((c) => c.id === id);
+  check(by('tk1').auto && by('tk1').patch.status === 'completed' && by('tk2').auto && !by('tk3').auto && !by('tk4').auto && !by('tk7').auto && !by('tk9').auto && !by('tk10').auto,
+    'ticks: auto only where certain', p3.filter((c) => c.kind === 'action_update').map((c) => c.id + (c.auto ? '*' : '')));
+  const fd2 = p3.find((c) => c.kind === 'food_add');
+  check(fd2.lines.join() === 'Chicken salad' && fd2.auto, 'only the new food is added');
+  const sUpd = p3.find((c) => c.kind === 'session_update'), sDel = p3.find((c) => c.kind === 'session_delete');
+  check(sUpd.id === 'tr1' && sUpd.patch.durationMin === 60 && Object.keys(sUpd.patch).join() === 'durationMin' && sUpd.before.durationMin === 50 && !sUpd.auto, 'a correction: just what changes, with what it was, for review');
+  check(sDel.id === 'w2' && sDel.before.weightKg === 88.4 && !sDel.auto, 'a removal, for review, with the record as it was');
+  check((await get('ledger_commitments/tk1')).status === 'planned', 'nothing written: the app ticks it');
+  // two open Actions his words both name: neither is certain
+  await db.doc('ledger_commitments/tk8').set(C({ date: TODAY, title: 'Accountant call', category: 'work' }));
+  client = fakeClient([
+    turn('tool_use', use('log_action_done', { id: 'tk1' })),
+    (params) => { check(/another open Action/.test(JSON.parse(lastResults(params)[0].content).note), 'two open Actions match his words: it waits for review'); return turn('end_turn', { type: 'text', text: 'ok' }); }
+  ]);
+  await createAssistant({ db, client }).handle({ uid: 'ownerP2', message: 'called the accountant', today: TODAY });
+
   // Shaun at his Home: the Home tools join his own
   await db.doc('ledger_users/owner2').set({ role: 'owner' });
   await db.doc('ledger_home_members/owner2').set({ homeId: 'hhome', status: 'active', role: 'admin', displayName: 'Shaun' });

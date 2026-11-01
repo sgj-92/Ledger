@@ -754,6 +754,16 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-01 — Ask Claude: "here's what I did" checks first; certain ticks save at once (Shaun)
+- Claude reads the day before writing; the server, not Claude, refuses or holds duplicates
+  (food already in the diary, the same weight, a second session of the same type).
+- **Ticking off an Action saves at once only when Ledger can verify it:** his message names
+  every main word of its title, no other open Action that day matches as well, it is
+  today or earlier, and it isn't from a request, a challenge or a conversation. Otherwise
+  it waits for review.
+- Corrections and removals of health logs are possible, and always wait for review.
+- See `docs/CLAUDE_ASSISTANT.md` §13.
+
 ### 2026-11-01 — Ask Claude phase 2: logging, and the rest of Ledger (Shaun)
 - **New logs go straight in, with Undo** (training, weight, steps, food, goal numbers,
   notes, intentions, a conversation's movement, Life Context). Supersedes "nothing changes
@@ -2738,7 +2748,9 @@ minutes before", recurring/accountability).
     something waits for review.
   - Reads for health, goals, the week and Comms, plus "what's missing". Changes to goals,
     outcomes and conversation states, for review. His Home's tools too.
-  - **Tests:** functions assistant 75, e2e assistant 54.
+  - **Tests:** functions assistant 92, e2e assistant 60.
+  - **Then the same day:** "here's what I did" checks before writing; duplicate guards on
+    the server; corrections and removals for review; certain tick-offs saved at once.
 - (2026-10-31) — **Goals and the week, phase 1** (`docs/GOALS_AND_REVIEW.md` §9).
   - Me → Goals: Business and Personal; year goals with 90-day goals; number measures;
     priorities carried over (area asked once); achieved/dropped, never deleted.

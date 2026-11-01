@@ -401,5 +401,31 @@ immediately. Let's extend its capabilities to all other areas of Ledger now."
 - `tests/e2e/assistant.test.js`: 54 (logs saved at once and the planned session
   completed; the review card applied; Undo of every log).
 
-**Not yet:** editing or removing an existing health log, settings and targets, and
-duplicates and merging (§5). The connector (§3) is phase 3.
+**"Here's what I did" (2026-11-01, later the same day).** Shaun: "here's what I did,
+check against what I've already added and fill in the gaps"; ticking off "if it's reliable
+and won't make mistakes due to the rules".
+- **The order Claude follows:** read the day (`get_day`, `get_health`); log only what is
+  missing; correct what differs; tick off what he did; then, if asked, what's missing.
+- **Duplicate guards, on the server** (not left to Claude):
+  - food lines already in the diary are skipped, and Claude is told;
+  - the same weight on the same day is refused; a different one waits for review;
+  - a second session of the same type that day waits for review, pointing to a
+    correction instead.
+- **Corrections:** `propose_update_log` (date, time, length, venue, distance, exercises,
+  weight, steps, the food diary, the rating, notes) and `propose_delete_log`. Both wait for
+  review, showing before → after. A daily photo, symptoms and gluten are not changed here.
+- **Ticking off (`log_action_done`) is saved at once only when all of these hold:**
+  - his own message names the Action: every main word of its title is in what he wrote
+    (call, called and calling count as one);
+  - no other open Action that day is named just as well by the same words ("Gym" beside
+    "Gym session");
+  - it is open, for today or a day before;
+  - it isn't from a request (that reaches Abi or Magda), a challenge, or a conversation
+    (which asks what happens next).
+  Anything else waits for review, and Claude is told why.
+- **A tick does what tapping the circle does:** pins for it go, the focus moves on, and its
+  matter records it as done. Undo reverses all of it.
+- **Tests:** functions assistant 92; e2e assistant 60.
+
+**Not yet:** settings and targets, and duplicates and merging (§5). The connector (§3) is
+phase 3.

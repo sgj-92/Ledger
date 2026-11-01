@@ -320,7 +320,7 @@ function createAssistant({ db, client, now = () => new Date(), log = () => {}, m
       ? [{ type: 'image', source: { type: 'base64', media_type: photo.mediaType, data: photo.data } }, { type: 'text', text }]
       : text });
     const asked = messages.length - 1;
-    const ctx = { today, changes: [], me: me || ownerHome };
+    const ctx = { today, changes: [], me: me || ownerHome, message };
     let reply = '', summary = null, rounds = 0, stop = null;
     while (rounds++ < MAX_ROUNDS) {
       const response = await client.beta.messages.create({

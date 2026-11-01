@@ -121,12 +121,23 @@ const until = async (fn, t) => { const end = Date.now() + (t || 10000); while (D
     { n: 9, kind: 'goal_create', collection: 'ledger_priorities', id: 'g2', before: null, auto: false, after: { title: 'Five new retainers', area: 'business', horizon: 'quarter', period: TODAY.slice(0, 4) + '-Q4', parentId: 'g1', why: null, note: null, status: 'active', evidenceType: null, measure: { kind: 'number', unit: 'clients', start: 0, target: 5 }, values: [], createdAt: TODAY } },
     { n: 10, kind: 'intention', collection: 'ledger_plans', id: TODAY, text: 'Ship it', before: { intention: '' }, auto: true }
   ] };
+  // "here's what I did": a tick saved at once, and a correction for review
+  await put('ledger_matters/mt1', { title: 'Year-end accounts', status: 'active', area: 'business', log: [], createdAt: '2026-10-01T00:00:00.000Z' });
+  await put('ledger_commitments/k5', A({ date: TODAY, title: 'Call the accountant', category: 'work', matterId: 'mt1' }));
+  await put('ledger_sessions/tr9', { type: 'resistance', date: TODAY, durationMin: 50, activityTime: '07:00', exercises: [], notes: '', createdAt: TODAY + 'T08:00:00.000Z' });
+  const k5 = await get('ledger_commitments/k5'), tr9 = await get('ledger_sessions/tr9');
+  const P4 = { id: 'p4', summary: 'Ticked the accountant call; one correction', changes: [
+    { n: 1, kind: 'action_update', collection: 'ledger_commitments', id: 'k5', before: k5, patch: { status: 'completed' }, after: Object.assign({}, k5, { status: 'completed' }), auto: true, tick: true },
+    { n: 2, kind: 'session_update', collection: 'ledger_sessions', id: 'tr9', before: tr9, patch: { durationMin: 60 }, auto: false }
+  ] };
+  await put('ledger_assistant_proposals/p4', { ownerUid: owner, threadId: 't1', source: 'app', status: 'proposed', summary: P4.summary, createdAt: TODAY, changes: [] });
   await put('ledger_assistant_proposals/p3', { ownerUid: owner, threadId: 't1', source: 'app', status: 'proposed', summary: P3.summary, createdAt: TODAY, changes: [] });
   const replies = [
     { status: 200, body: { threadId: 't1', reply: 'Here\'s what I\'d do.', proposal: P1 } },
     { status: 200, body: { threadId: 't1', reply: '', proposal: P2 } },
     { status: 502, body: { error: 'Claude is busy. Try again in a minute.' } },
-    { status: 200, body: { threadId: 't1', reply: 'Logged your session, weight, food, the revenue number, the call, a note and the intention. Three things to review.', proposal: P3 } }
+    { status: 200, body: { threadId: 't1', reply: 'Logged your session, weight, food, the revenue number, the call, a note and the intention. Three things to review.', proposal: P3 } },
+    { status: 200, body: { threadId: 't1', reply: 'Ticked off the accountant call. Your strength session was 60 minutes, not 50: that one is for you to check.', proposal: P4 } }
   ];
   const seen = [];
 
@@ -266,6 +277,21 @@ const until = async (fn, t) => { const end = Date.now() + (t || 10000); while (D
   check(await until(async () => (await get('ledger_conversations/v1')).log.length === 0), 'Undo: the call is gone from the conversation');
   check(await until(async () => { const pl = await get('ledger_plans/' + TODAY); return pl.dayNotes === '' && pl.morningPrime.intention === ''; }), 'Undo: the note and the intention are cleared');
   check((await ss('st1')).steps === 9500 && !!(await get('ledger_priorities/g2')), 'Undo of the logs leaves the reviewed changes alone');
+
+  // ---- "here's what I did": the tick is saved at once; a correction waits ----
+  await p.fill('#acInput', 'Here\'s what I did: called the accountant, and strength was an hour');
+  await p.click('#acSend');
+  check(await until(async () => (await get('ledger_commitments/k5')).status === 'completed'), 'a tick his words plainly ask for is saved at once');
+  check(await until(async () => { const m = await get('ledger_matters/mt1'); return m.log.length === 1 && m.log[0].kind === 'done' && m.log[0].text === 'Call the accountant'; }),
+    'as tapping its circle would: its matter records it as done');
+  check(await until(() => p.evaluate(() => { const c = document.querySelector('.ac-prop:last-of-type'); return /Correct/.test(c.innerText) && /Length/.test(c.innerText) && /Strength/.test(c.innerText); })),
+    'the correction waits on the review card, old → new');
+  check((await ss('tr9')).durationMin === 50, 'not yet corrected');
+  await p.click('.ac-prop:last-of-type [data-ac="apply"]');
+  check(await until(async () => (await ss('tr9')).durationMin === 60 && (await ss('tr9')).activityTime === '07:00'), 'applied: the length corrected, the rest of the session kept');
+  const logs = await p.$$('.ac-prop.is-log [data-ac="undo"]');
+  await logs[logs.length - 1].click();
+  check(await until(async () => (await get('ledger_commitments/k5')).status === 'planned' && (await get('ledger_matters/mt1')).log.length === 0), 'Undo: the Action is open again, and the matter forgets it');
   await p.click('#sheetCloseBtn');
 
   // ---- the menu's other half ----

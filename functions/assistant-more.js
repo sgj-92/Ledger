@@ -53,6 +53,25 @@ function daysBetween(a, b) {
 }
 function dow(date) { return new Date(date + 'T00:00:00Z').getUTCDay(); }
 const newId = (p) => p + crypto.randomBytes(9).toString('hex');
+// Does Shaun's own message name this Action? Every main word of its title must be in what
+// he wrote (call / called / calling count as one), so a tick saved without review is one
+// he plainly asked for.
+const STOP = new Set(['the', 'and', 'for', 'with', 'from', 'into', 'onto', 'about', 'some', 'this', 'that', 'his', 'her', 'their', 'our', 'your', 'my', 'a', 'an', 'to', 'of', 'on', 'in', 'at', 'up', 'out', 'off', 'by', 'it', 'is', 'be', 'do', 'did', 'done']);
+function stem(w) {
+  w = w.toLowerCase().replace(/[^a-z0-9£$€]/g, '');
+  if (w.length > 5 && /ing$/.test(w)) w = w.slice(0, -3);
+  else if (w.length > 4 && /ed$/.test(w)) w = w.slice(0, -2);
+  else if (w.length > 3 && /s$/.test(w) && !/ss$/.test(w)) w = w.slice(0, -1);
+  return w;
+}
+function keyWords(text) {
+  return String(text || '').split(/[\s,.;:!?()\/&+-]+/).map(stem).filter((w) => w.length >= 2 && !STOP.has(w));
+}
+function named(title, message) {
+  const want = keyWords(title), have = new Set(keyWords(message));
+  return want.length > 0 && want.every((w) => have.has(w));
+}
+
 function quarterOf(date) { return date.slice(0, 4) + '-Q' + Math.ceil(Number(date.slice(5, 7)) / 3); }
 
 const SYSTEM_EXTRA = [
@@ -65,7 +84,9 @@ const SYSTEM_EXTRA = [
   '- Health: get_health for a range of days.',
   '- "What\'s missing?": call whats_missing for the day or days he means (today, if he does not say). Report what it finds briefly, grouped, in plain words — missing data is never failure, so say "no weight logged", never "missed". Then he can tell you the values and you log them.',
   '- His Home, if he is an admin there: the home_* and *_daily tools and propose_request / propose_checklist_items. Those changes reach Abi or Magda, so they always wait for his review.',
-  'Read before you log when it matters: if he says "I did legs", one log_training with the exercises he names. Never invent numbers he did not give. One log per thing he did; do not log the same thing twice.',
+  'When he tells you what he did ("here\'s my day", "yesterday I…"), check before you write: read that day with get_day and get_health first. Then (1) log only what is not there yet; (2) where a record is there but differs from what he says, correct it with propose_update_log (or propose_delete_log for a wrong one); (3) tick off each Action he did with log_action_done; (4) if he asked, say what is still missing (whats_missing). Never log something a second time.',
+  'log_action_done saves at once only when Ledger can match his own words to that Action without doubt; otherwise it waits for his review, and the tool says why. Either way, call it once per Action he did.',
+  'Never invent numbers he did not give. If he says "I did legs", one log_training with the exercises he names.',
   'Goals are Business or Personal, a year goal or a 90-day goal (calendar quarter) under one. A week\'s outcomes are what that week moves on a goal; each can be marked done, partly or not.'
 ].join('\n');
 
@@ -107,7 +128,15 @@ const TOOLS = [
   { name: 'log_life_context', description: 'Record a circumstance that affected his days (illness, poor sleep, travel…). end_date null while it is ongoing.',
     input_schema: obj({ category: { type: 'string', enum: LC_CATEGORIES }, start_date: DATE, end_date: nullable('string'), note: nullable('string'), areas: { type: 'array', items: { type: 'string', enum: LC_AREAS } } }) },
 
+  { name: 'log_action_done', description: 'Tick off an Action he says he did. Saved at once only when his words clearly name it; otherwise it waits for review.',
+    input_schema: obj({ id: { type: 'string' } }) },
+
   // ---- changes for review ----
+  { name: 'propose_update_log', description: 'Correct a health record already logged (from get_health): its date, time, length, venue, distance, exercises, weight, steps, food diary (the whole text) or rating, or notes. Null leaves a field as it is.',
+    input_schema: obj({ id: { type: 'string' }, date: nullable('string'), time: nullable('string'), duration_min: nullable('integer'), venue: nullable('string'),
+      distance: nullable('number'), exercises: { anyOf: [{ type: 'array', items: obj({ name: { type: 'string' }, sets: nullable('integer'), reps: nullable('integer'), value: nullable('number'), unit: nullable('string', { enum: ['kg', 'lb', 'reps', 'sec', 'm'] }) }) }, { type: 'null' }] },
+      weight_kg: nullable('number'), steps: nullable('integer'), food_diary: nullable('string'), rating: nullable('string', { enum: RATINGS }), notes: nullable('string') }) },
+  { name: 'propose_delete_log', description: 'Remove a health record logged by mistake (from get_health).', input_schema: obj({ id: { type: 'string' } }) },
   { name: 'propose_goal', description: 'Propose a new goal. A quarter goal names its quarter (YYYY-QN) and, usually, its year goal.',
     input_schema: obj({ title: { type: 'string' }, area: { type: 'string', enum: ['business', 'personal'] }, horizon: { type: 'string', enum: ['year', 'quarter'] },
       quarter: nullable('string'), parent_id: nullable('string'), why: nullable('string'), unit: nullable('string'), start: nullable('number'), target: nullable('number') }) },
@@ -312,7 +341,13 @@ function createLedgerTools({ db, now = () => new Date() }) {
   // ---- logs and changes ----
   async function proposeTool(name, input, ctx) {
     const changes = ctx.changes;
-    const add = (c) => { c.n = changes.length + 1; changes.push(c); return { ok: true, change: c.n, saved: c.auto ? 'Saved as soon as you finish, with Undo.' : 'Waits for Shaun\'s review.' }; };
+    // a change's note (why it waits, what was skipped) is set before it is added
+    const add = (c) => {
+      c.n = changes.length + 1; changes.push(c);
+      const out = { ok: true, change: c.n, saved: c.auto ? 'Saved as soon as you finish, with Undo.' : 'Waits for Shaun\'s review.' };
+      if (c.note || c.skipped) out.note = c.note || c.skipped;
+      return out;
+    };
     const nowIso = now().toISOString();
     const dateOk = (d) => DATE_RE.test(d || '');
     const notFuture = (d) => d <= addDays(ctx.today, 1);       // a log is for a day that has happened (or tonight's tomorrow)
@@ -335,13 +370,24 @@ function createLedgerTools({ db, now = () => new Date() }) {
       }
       if (input.type === 'yoga') r.focus = clip(input.focus, 80);
       if (input.type === 'hiit') r.outline = clip(input.outline, 500);
-      return add({ kind: 'session_create', collection: SESSIONS, id: newId('s'), before: null, after: r, auto: true });
+      // the same kind of session already that day (or already in this answer): it may be a
+      // second one, or the same one again, so he decides
+      const already = (await sessionsIn(input.date, input.date)).some((x) => x.type === input.type) ||
+        changes.some((c) => c.kind === 'session_create' && c.after.type === input.type && c.after.date === input.date);
+      const ch = { kind: 'session_create', collection: SESSIONS, id: newId('s'), before: null, after: r, auto: !already };
+      if (already) ch.note = 'A ' + TRAINING_LABEL[input.type] + ' session is already logged that day, so this waits for review. If it is the same session, use propose_update_log instead.';
+      return add(ch);
     }
     if (name === 'log_weight') {
       if (!dateOk(input.date) || !notFuture(input.date)) return { error: 'date must be YYYY-MM-DD, and not in the future' };
       if (!(input.kg > 25 && input.kg < 350)) return { error: 'That weight is out of range; it is in kg.' };
-      return add({ kind: 'session_create', collection: SESSIONS, id: newId('s'), before: null, auto: true,
-        after: { type: 'weight', date: input.date, weightKg: Math.round(input.kg * 10) / 10, createdAt: nowIso, notes: '', activityTime: '', createdVia: 'claude' } });
+      const kg = Math.round(input.kg * 10) / 10;
+      const that = (await sessionsIn(input.date, input.date)).filter((x) => x.type === 'weight');
+      if (that.some((x) => Math.abs(Number(x.weightKg) - kg) < 0.05)) return { error: 'That weight is already logged for that day.' };
+      const w = { kind: 'session_create', collection: SESSIONS, id: newId('s'), before: null, auto: !that.length,
+        after: { type: 'weight', date: input.date, weightKg: kg, createdAt: nowIso, notes: '', activityTime: '', createdVia: 'claude' } };
+      if (that.length) w.note = 'A different weight (' + that.map((x) => x.weightKg + ' kg').join(', ') + ') is already logged that day, so this waits for review. To correct it instead, use propose_update_log.';
+      return add(w);
     }
     if (name === 'log_steps') {
       if (!dateOk(input.date) || !notFuture(input.date)) return { error: 'date must be YYYY-MM-DD, and not in the future' };
@@ -356,13 +402,20 @@ function createLedgerTools({ db, now = () => new Date() }) {
     }
     if (name === 'log_food') {
       if (!dateOk(input.date) || !notFuture(input.date)) return { error: 'date must be YYYY-MM-DD, and not in the future' };
-      const lines = (input.lines || []).map((l) => clip(l, 200)).filter(Boolean).slice(0, 20);
+      let lines = (input.lines || []).map((l) => clip(l, 200)).filter(Boolean).slice(0, 20);
       if (!lines.length && !input.rating) return { error: 'Nothing to log.' };
       if (changes.some((c) => c.kind === 'food_add' && c.date === input.date)) return { error: 'That day\'s food is already in this answer; log it all in one call.' };
       const n = (await sessionsIn(input.date, input.date)).find((s) => s.type === 'nutrition') || null;
+      // what is already in the diary is not written twice
+      const inDiary = new Set(String((n && n.foodDiary) || '').split('\n').map((l) => clip(l, 200).toLowerCase()).filter(Boolean));
+      const skipped = lines.filter((l) => inDiary.has(l.toLowerCase()));
+      lines = lines.filter((l) => !inDiary.has(l.toLowerCase()));
+      if (!lines.length && (!input.rating || (n && n.dayRating === input.rating))) return { error: 'All of that is already in the day\'s food diary.' };
       const replacing = !!(input.rating && n && n.dayRating && n.dayRating !== input.rating);
-      return add({ kind: 'food_add', collection: SESSIONS, id: n ? n.id : newId('s'), date: input.date, lines, rating: input.rating || null,
-        before: n ? { foodDiary: n.foodDiary || '', dayRating: n.dayRating || null } : null, auto: !replacing });
+      const fc = { kind: 'food_add', collection: SESSIONS, id: n ? n.id : newId('s'), date: input.date, lines, rating: input.rating || null,
+        before: n ? { foodDiary: n.foodDiary || '', dayRating: n.dayRating || null } : null, auto: !replacing };
+      if (skipped.length) fc.skipped = 'Already in the diary, so not added again: ' + skipped.join('; ');
+      return add(fc);
     }
     if (name === 'log_goal_value') {
       const g = await get(PRIORITIES, input.goal_id);
@@ -408,6 +461,62 @@ function createLedgerTools({ db, now = () => new Date() }) {
         areas: areas.length ? areas : ['day'], status: end && end < ctx.today ? 'resolved' : 'active', createdAt: nowIso, resolvedAt: null } });
     }
 
+    if (name === 'log_action_done') {
+      const d = await get(COMMITMENTS, input.id);
+      if (!d || !d.title) return { error: 'No Action has that id. Use get_day or search_actions.' };
+      if (d.category === 'roadblock') return { error: 'That is a constraint, not an Action.' };
+      if (d.status === 'completed') return { error: 'That Action is already done.' };
+      if (changes.some((c) => c.collection === COMMITMENTS && c.id === d.id)) return { error: 'That Action already has a change in this answer.' };
+      const before = Object.assign({}, d); delete before.id;
+      // saved at once only when nothing about it is in doubt
+      let why = null;
+      if (!d.date || d.date > ctx.today) why = 'it is for a day still to come';
+      else if (d.sourceType || d.sourceRequestId) why = 'it came from a request, so ticking it reaches someone else';
+      else if (d.challengeId) why = 'it belongs to a challenge';
+      else if (d.conversationId) why = 'it belongs to a conversation, which asks what happens next';
+      else if (!named(d.title, ctx.message)) why = 'his words don\'t clearly name it';
+      else {
+        // another open Action the same words would name just as well ("Accountant call",
+        // or "Gym" beside "Gym session"): his words don't say which
+        const mine = new Set(keyWords(d.title));
+        const others = (await db.collection(COMMITMENTS).where('date', '==', d.date).get()).docs.filter((x) => {
+          const o = x.data() || {};
+          if (x.id === d.id || o.status === 'completed' || o.category === 'roadblock' || !named(o.title, ctx.message)) return false;
+          const theirs = keyWords(o.title);
+          return theirs.every((w) => mine.has(w)) || Array.from(mine).every((w) => theirs.indexOf(w) > -1);
+        });
+        if (others.length) why = 'another open Action that day matches his words just as well';
+      }
+      const ch = { kind: 'action_update', collection: COMMITMENTS, id: d.id, before, patch: { status: 'completed' },
+        after: Object.assign({}, before, { status: 'completed' }), auto: !why, tick: true };
+      if (why) ch.note = 'Waits for review: ' + why + '.';
+      return add(ch);
+    }
+    if (name === 'propose_update_log' || name === 'propose_delete_log') {
+      const cur = await get(SESSIONS, input.id);
+      if (!cur || ['photo', 'symptom', 'gluten'].indexOf(cur.type) > -1) return { error: 'No health record with that id can be changed here. Use get_health.' };
+      if (changes.some((c) => c.collection === SESSIONS && c.id === cur.id)) return { error: 'That record already has a change in this answer.' };
+      const before = Object.assign({}, cur); delete before.id;
+      if (name === 'propose_delete_log') return add({ kind: 'session_delete', collection: SESSIONS, id: cur.id, before, auto: false });
+      const patch = {};
+      if (input.date != null) { if (!dateOk(input.date) || !notFuture(input.date)) return { error: 'date must be YYYY-MM-DD, and not in the future' }; patch.date = input.date; }
+      if (input.notes != null) patch.notes = clip(input.notes, 1000);
+      if (TRAINING.indexOf(cur.type) > -1) {
+        if (input.time != null) { if (input.time !== '' && !TIME_RE.test(input.time)) return { error: 'time must be HH:MM' }; patch.activityTime = input.time; }
+        if (input.duration_min != null) patch.durationMin = input.duration_min > 0 ? Math.min(600, Math.round(input.duration_min)) : null;
+        if (input.venue != null) patch.venue = clip(input.venue, 80);
+        if (input.distance != null && cur.type === 'cardio') patch.distance = input.distance > 0 ? input.distance : null;
+        if (input.exercises != null && cur.type === 'resistance')
+          patch.exercises = input.exercises.map((e) => ({ name: clip(e.name, 60), sets: e.sets || null, reps: e.reps || null, value: e.value != null ? e.value : null, unit: e.unit || 'kg' })).filter((e) => e.name).slice(0, 30);
+      }
+      if (input.weight_kg != null) { if (cur.type !== 'weight' || !(input.weight_kg > 25 && input.weight_kg < 350)) return { error: 'weight_kg is for a weight record, in kg' }; patch.weightKg = Math.round(input.weight_kg * 10) / 10; }
+      if (input.steps != null) { if (cur.type !== 'steps' || !(input.steps >= 0 && input.steps <= 200000)) return { error: 'steps is for a steps record' }; patch.steps = input.steps; }
+      if (input.food_diary != null) { if (cur.type !== 'nutrition') return { error: 'food_diary is for the nutrition day' }; patch.foodDiary = String(input.food_diary).split('\n').map((l) => clip(l, 200)).filter(Boolean).join('\n'); }
+      if (input.rating != null) { if (cur.type !== 'nutrition') return { error: 'rating is for the nutrition day' }; patch.dayRating = input.rating; }
+      Object.keys(patch).forEach((k) => { if (JSON.stringify(before[k] == null ? null : before[k]) === JSON.stringify(patch[k])) delete patch[k]; });
+      if (!Object.keys(patch).length) return { error: 'Nothing would change.' };
+      return add({ kind: 'session_update', collection: SESSIONS, id: cur.id, before, patch, auto: false });
+    }
     if (name === 'propose_goal') {
       const title = clip(input.title, 200);
       if (!title) return { error: 'A goal needs a title.' };
