@@ -2562,7 +2562,7 @@ Owner: Shaun (deploy, then try it)
 **Keep in touch** — built 2026-11-02 (Communications above).
 - **Deploy needed:** "Deploy Firebase", everything: Rules (`ledger_people`; until then
   people don't save beyond the device) and functions (Claude's `list_people` and
-  `log_spoke`, and the "here's what I did" changes of 2026-11-01).
+  `log_spoke`). Everything before is live (Firebase c8aa7e8, 2026-11-01 07:15).
 - **Try:** Comms → People → Add a person, link their conversation, pick a rhythm.
 
 **Before that** — Owner: Shaun (deploy, then try it)
