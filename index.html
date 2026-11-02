@@ -16474,10 +16474,26 @@
     var me = homeMe();
     return hrVisible().filter(function(r){ return (r.assigneeUid === me && r.status === 'requested' && !hrOwnIdea(r) && !r.ongoingId) || hrUnread(r); }).length;
   }
+  // Yours to tick, wherever it shows: one taken into your Ledger as an Action is ticked
+  // through that Action (hrFinish), so the two never disagree.
   function hrCanTick(r){
-    var me = homeMe();
-    return (r.assigneeUid === me && hrOpen(r) && !(r.linkedActionId && r.linkedByUid === me && home.surface === 'owner'))
-      || hrAdminCanTick(r);
+    return (r.assigneeUid === homeMe() && hrOpen(r)) || hrAdminCanTick(r);
+  }
+  // Done, as its assignee. Taken into Shaun's Ledger, the Action is the record: ticking it
+  // marks the request done (reconcileHome), exactly as ticking it on Today does. With the
+  // Action gone, the request itself is marked done.
+  function hrLinkedAction(r){
+    return home.surface === 'owner' && r.linkedActionId && r.linkedByUid === homeMe()
+      ? commitments.find(function(c){ return c.id === r.linkedActionId; }) || null : null;
+  }
+  function hrFinish(r, quiet){
+    var a = hrLinkedAction(r);
+    if (a){
+      if (a.status !== 'completed') toggleCommitmentQuickStatus(a);
+      if (!quiet) showPinToast('Done — ' + homeNameOf(r.requesterUid) + ' will see it', false, CHECK_SVG);
+      return Promise.resolve();
+    }
+    return hrSetStatus(r, 'done', quiet);
   }
   // an admin may tick off a request someone else is doing (2026-10-28) — never one that is
   // on someone's day as a private Action, which only they complete
@@ -16491,7 +16507,7 @@
     home.pendingDone[r.id] = setTimeout(function(){
       delete home.pendingDone[r.id];
       var cur = homeReq(r.id);
-      if (cur && hrOpen(cur)) hrSetStatus(cur, 'done', true).then(homeChanged);
+      if (cur && hrOpen(cur)) hrFinish(cur, true).then(homeChanged);
       else homeChanged();
     }, 5200);
     homeChanged();
@@ -18568,7 +18584,7 @@
           : btn('hdStart', 'Start', 'gold') + btn('hdDone', 'Done');
         if (!own) html += btn('hdCant', 'Can’t do', 'ib-dismiss');
       } else if (mine && a){
-        html = '';
+        html = a.status === 'completed' ? '' : btn('hdDone', CHECK_SVG + 'Done', 'ib-done');
       } else if (mine && (r.status === 'in_progress' || r.status === 'planned')){
         html = btn('hdDone', 'Done', 'gold') + (own ? '' : btn('hdCant', 'Can’t do', 'ib-dismiss'));
       } else if (mine && (r.status === 'done' || r.status === 'cant_do')){
@@ -18594,7 +18610,7 @@
       on('hdDay', function(){ var x = cur(); openRequestDaySheet(x, hrAccept, hrOwnIdea(x) ? 'Your task' : 'From ' + homeNameOf(x.requesterUid), function(){ openHomeDetail(rid); }); });
       on('hdStart', function(){ hrSetStatus(cur(), 'in_progress'); });
       on('hdClaim', function(){ var b = sh.querySelector('#hdClaim'); if (b) b.disabled = true; hrClaim(cur()); });
-      on('hdDone', function(){ var x = cur(); if (hrConfirmDone(x)) hrSetStatus(x, 'done'); });
+      on('hdDone', function(){ var x = cur(); if (hrConfirmDone(x)) hrFinish(x); });
       on('hdReopen', function(){ var x = cur(); if (x.status === 'cant_do') hrWrite(x, { status: 'requested', cantDoReason: null }, 'status', null, { status: 'requested' }).catch(hrFail('reopen it')); else hrSetStatus(x, 'in_progress'); });
       on('hdCant', function(){ openHomeCantDo(cur()); });
       on('hdPass', function(){ openHomePass(cur()); });

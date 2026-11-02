@@ -2753,6 +2753,10 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-02) — **Home: a request on your day can be ticked from Home.** Its circle (and
+  Done in its sheet) ticks the linked Action, which marks the request done, so the two
+  agree; with the Action gone, the request itself is marked done. Before, the circle was
+  inert and the sheet had no Done. Home e2e 364 (H21b).
 - (2026-11-01) — **Review screen lists every Action of the day.** Open first, then those
   marked not done, disrupted or partly done (each with Done · the next day · Another day),
   then the done ones, which still open to edit their date or status. Moving a not-done or

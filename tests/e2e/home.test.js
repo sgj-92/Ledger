@@ -959,6 +959,31 @@ async function oobLink(email){
     check(back && back.status === 'requested' && !back.linkedActionId && back.requestedTiming === 'none', 'H21 "Take it off my day": the request waits again, with no date', JSON.stringify(back && { s: back.status, a: back.linkedActionId, t: back.requestedTiming }));
     check(!(await all('ledger_commitments')).some(c => c.id === photos.linkedActionId), 'H21 …and its Action has gone from his day');
     await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(300);
+    // one on his day is still ticked from Home: through its Action, so the two agree (2026-11-02)
+    await addOne(A); await A.waitForSelector('#hnText');
+    await chip(A, '#hnFor', 'Shaun');
+    await A.fill('#hnText', 'Collect the dry cleaning'); await A.click('#hnSave');
+    await until(A, () => !document.getElementById('ppBackdrop').classList.contains('open'), null, 8000); await sleep(600);
+    await goHome(S);
+    check(await openRow(S, SH, 'Collect the dry cleaning'), 'H21b Shaun opens it');
+    await S.waitForSelector('#hdToday'); await S.click('#hdToday');
+    let dc = null;
+    for (let k = 0; k < 30 && !(dc && dc.linkedActionId); k++){ await sleep(300); dc = await reqByText('Collect the dry cleaning'); }
+    check(await until(S, () => !!document.getElementById('hdDone')), 'H21b on his day, its sheet still offers Done');
+    await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); }); await sleep(400);
+    await goHome(S);
+    const ticked = await S.evaluate(() => {
+      const row = [...document.querySelectorAll('#view-home .hs-row')].find(r => /Collect the dry cleaning/.test(r.innerText));
+      const dot = row && row.querySelector('button.commitment-status-dot');
+      if (dot) dot.click();
+      return !!dot;
+    });
+    check(ticked, 'H21b the Home row has a circle to tick');
+    let dcDone = null, dcAct = null;
+    for (let k = 0; k < 40 && !(dcDone && dcDone.status === 'done' && dcAct && dcAct.status === 'completed'); k++){
+      await sleep(300); dcDone = await reqByText('Collect the dry cleaning'); dcAct = dcDone && (await all('ledger_commitments')).find(c => c.id === dcDone.linkedActionId);
+    }
+    check(dcAct && dcAct.status === 'completed' && dcDone.status === 'done', 'H21b ticking it completes his Action, and the request is done', JSON.stringify({ a: dcAct && dcAct.status, r: dcDone && dcDone.status }));
     // Magda (not an admin) edits only what she wrote
     check(await openRow(M, MH, 'Wash and iron the school uniform'), 'H21 Magda opens what Abi asked her');
     await sleep(500);
