@@ -4045,6 +4045,7 @@
   .cd-chip.a-waiting_on_third_party { --att: var(--weight); }
   .cd-chip.a-follow_up_later { --att: var(--yoga); }
   .cd-chip.a-no_action { --att: var(--text-3); }
+  .cd-chip.a-closed { --att: var(--day-good); }
   .cd-chip.sel { background: rgba(var(--gold-rgb),0.1); border-color: rgba(var(--gold-rgb),0.5); color: var(--text); }
   .cd-waiting { margin: -6px 0 var(--sp-4); }
   .cd-waiting[hidden] { display: none; }
@@ -12007,7 +12008,8 @@
       '<div class="cd-label">Category' + (v.category ? '' : ' <span class="cd-label-note">not set</span>') + '</div>' +
       commsChipsHtml('category', [{ value: 'personal', label: 'Personal' }, { value: 'business', label: 'Business' }], v.category || '') +
       '<div class="cd-label">Who has the ball</div>' +
-      commsChipsHtml('state', ATTENTION_ORDER.filter(function(k){ return k !== 'closed'; }).map(function(k){
+      // Closed sits with the rest, so finishing a conversation is one tap where its state is
+      commsChipsHtml('state', ATTENTION_ORDER.map(function(k){
         return { value: k, label: ATTENTION_LABEL[k], cls: 'a-' + k };
       }), st) +
       '<div class="cd-waiting"' + (convIsWaiting(v) ? '' : ' hidden') + '>' +
@@ -12072,9 +12074,10 @@
     // who has the ball: one tap, saved at once, recorded as movement
     wrap.querySelectorAll('[data-chips="state"] .cd-chip').forEach(function(chip){
       chip.addEventListener('click', function(){
-        var next = chip.dataset.v;
-        if (next === (convById(v.id).attentionState || 'needs_me')) return;
+        var next = chip.dataset.v, was = convById(v.id).attentionState || 'needs_me';
+        if (next === was) return;
         setConvState(v.id, next, null);
+        if (next === 'closed') showPinToast('Conversation closed \u00b7 under All \u2192 Closed', false, CHECK_SVG);
       });
     });
     wrap.querySelector('[data-role="close"]').addEventListener('click', function(){
