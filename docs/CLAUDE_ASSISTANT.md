@@ -427,5 +427,12 @@ and won't make mistakes due to the rules".
   matter records it as done. Undo reverses all of it.
 - **Tests:** functions assistant 92; e2e assistant 60.
 
+**Keep in touch (2026-11-02).** `list_people` reads who Shaun keeps in touch with: rhythm,
+last spoke (the latest of a "Spoke" tap and a call, message or meeting on a linked
+conversation), days since, due. `log_spoke` records that he spoke to one of them on a day:
+saved at once (`person_spoke`, with Undo), refused for someone not on the list, a day to
+come, or a day already logged. `whats_missing` lists `people_to_check_in_with` under
+Actions and Comms. Tests: functions assistant 98; e2e assistant 62.
+
 **Not yet:** settings and targets, and duplicates and merging (§5). The connector (§3) is
 phase 3.

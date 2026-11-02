@@ -3994,6 +3994,25 @@
   .comms-pane .commitment-item .commitment-matter, .comms-sheet-body .commitment-item .commitment-matter { display: none; }
   .cv-when { font-size: 10.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
   .cv-when:empty { display: none; }
+  /* Keep in touch: a person, when you last spoke, and Spoke today */
+  .pp-row { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--line); }
+  .pp-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px; padding: 11px 8px; background: none; border: none; cursor: pointer; text-align: left; font-family: var(--sans); color: var(--text); }
+  .pp-main:active { background: var(--surface); }
+  .pp-row .cv-mark { background: var(--line-2); }
+  .pp-row.due .cv-mark { background: var(--gold); }
+  .pp-row.due .cv-state { color: var(--gold); }
+  .pp-row.paused { opacity: 0.6; }
+  .pp-row .cv-aside { max-width: 30%; }
+  .pp-spoke { flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; margin-right: 4px; border-radius: 100px;
+    border: 1px solid var(--line-2); background: none; color: var(--text-2); font-family: var(--sans); font-size: 11.5px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .pp-row.due .pp-spoke { border-color: rgba(var(--gold-rgb),0.5); color: var(--gold); }
+  .pp-spoke svg { width: 11px; height: 11px; display: block; }
+  .pp-spoke:active { opacity: 0.6; }
+  .pp-sheet-when { font-size: 13px; color: var(--text-2); margin: -4px 0 var(--sp-4); }
+  .pp-conv { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .pp-conv-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pp-noconv { margin: 0 2px 8px; }
+  .cs-people { width: 100%; background: none; border: none; font: inherit; color: inherit; cursor: pointer; text-align: left; padding-left: 0; padding-right: 0; }
   .cv-row.st-closed .cv-title, .mt-row.st-closed .mt-title { color: var(--text-3); }
 
   .mt-row { flex-direction: column; align-items: flex-start; gap: 2px; padding-top: 14px; }
@@ -5852,6 +5871,7 @@
         <button type="button" role="tab" data-comms-filter="needs">Needs me<span class="cf-n"></span></button>
         <button type="button" role="tab" data-comms-filter="waiting">Waiting<span class="cf-n"></span></button>
         <button type="button" role="tab" data-comms-filter="follow">Follow-up<span class="cf-n"></span></button>
+        <button type="button" role="tab" data-comms-filter="people">People<span class="cf-n"></span></button>
         <button type="button" role="tab" data-comms-filter="all">All</button>
       </div>
       <div id="commsRows"></div>
@@ -7584,6 +7604,7 @@
       startExecListeners();
       startLifeContextListener();
       startWeeksListener();
+      startPeopleListener();
       // Partner Sharing: the owner's side of the shared namespace (see firestore.rules)
       startSharingListeners();
       if (shareOn()){ startHome('owner'); watchHomeMigration(); }
@@ -7613,6 +7634,7 @@
     localLoadExec();
     lcLocalLoad();
     weeksLocalLoad();
+    peopleLocalLoad();
     czLoaded = { commitments: true, plans: true, challenges: true };
     presetsLoaded = true;
     prioritiesLoaded = true;
@@ -10731,7 +10753,7 @@
     } else if (c.kind === 'checklist_add'){
       verb = 'Add to'; title = (c.before || {}).text;
       (c.items || []).forEach(function(t){ lines.push('\u2022 ' + t); });
-    } else if (/^(session_create|session_update|session_delete|steps_set|food_add|goal_value|day_note|intention|comms_log|life_context|goal_create|goal_update|outcome_add|outcome_result|conv_state)$/.test(c.kind)){
+    } else if (/^(session_create|session_update|session_delete|steps_set|food_add|goal_value|day_note|intention|comms_log|person_spoke|life_context|goal_create|goal_update|outcome_add|outcome_result|conv_state)$/.test(c.kind)){
       return acLedgerView(c, day);
     }
     return { verb: verb, title: title || '', lines: lines, danger: danger };
@@ -10790,6 +10812,8 @@
       lines.push(c.before && c.before.intention ? c.before.intention + arrow + c.text : c.text);
     } else if (c.kind === 'comms_log'){
       title = c.name; lines.push((LOG_KIND_LABEL[c.logKind] || 'Note') + ': ' + c.text);
+    } else if (c.kind === 'person_spoke'){
+      title = c.name; lines.push('Spoke \u00b7 ' + day(c.date));
     } else if (c.kind === 'life_context'){
       var cat = LC_CATEGORIES.filter(function(x){ return x.key === a.category; })[0];
       title = cat ? cat.label : 'Life context';
@@ -11197,6 +11221,13 @@
       patchConv(c.id, { log: (v.log || []).concat([entry]).slice(-COMMS_LOG_MAX), lastActivityAt: now });
       return { ok: true, undo: { kind: 'comms_unlog', id: c.id, at: c.at, text: c.text, last: v.lastActivityAt || null, lastSet: now } };
     }
+    if (c.kind === 'person_spoke'){
+      var pp = personById(c.id);
+      if (!pp) return { ok: false, why: 'they\u2019re no longer on your list' };
+      if ((pp.spoke || []).indexOf(c.date) > -1) return { ok: false, why: 'it\u2019s already logged' };
+      savePerson(Object.assign({}, pp, { spoke: (pp.spoke || []).concat(c.date).sort().slice(-60) }));
+      return { ok: true, undo: { kind: 'person_unspoke', id: c.id, date: c.date } };
+    }
     if (c.kind === 'life_context'){
       if (lifeContexts.some(function(x){ return x.id === c.id; })) return { ok: false, why: 'it\u2019s already there' };
       saveLifeContext(Object.assign({ id: c.id }, c.after));
@@ -11290,6 +11321,12 @@
       return true;
     }
     if (u.kind === 'lc_del'){ deleteLifeContext(u.id); return true; }
+    if (u.kind === 'person_unspoke'){
+      var pu = personById(u.id);
+      if (!pu || (pu.spoke || []).indexOf(u.date) === -1) return false;
+      savePerson(Object.assign({}, pu, { spoke: pu.spoke.filter(function(d){ return d !== u.date; }) }));
+      return true;
+    }
     if (u.kind === 'goal_del'){ removeGoalRecord(u.id); return true; }
     if (u.kind === 'goal_restore'){
       var gr = goalById(u.id);
@@ -11638,15 +11675,18 @@
     if (n.needs) parts.push(stat('cs-needs', n.needs, 'needs you', 'need you'));
     if (n.due) parts.push(stat('', n.due, 'due', 'due'));
     if (n.waiting) parts.push(stat('', n.waiting, 'waiting', 'waiting'));
-    var target = n.needs ? 'needs' : n.due ? 'follow' : n.waiting ? 'waiting' : '';
+    var pd = peopleDue().length;
+    if (pd) parts.push(stat('', pd, 'to check in with', 'to check in with'));
+    var target = n.needs ? 'needs' : n.due ? 'follow' : n.waiting ? 'waiting' : pd ? 'people' : '';
     var spoken = parts.join(', ').replace(/<[^>]+>/g, '').replace(/(\d+) due/, '$1 follow-up due');
     if (parts.length > 2) parts = parts.slice(0, 2);
     var dateStr = viewedDate, open = !!dayOpenMap(COMMS_OPEN_KEY)[dateStr];
     function tally(label, num, cls){
       return '<div class="cs-tally-row' + (num && cls ? ' ' + cls : '') + '"><span class="cs-tally-k">' + label + '</span><span class="cs-tally-v">' + num + '</span></div>';
     }
-    var rows = (n.needs || n.waiting || n.due)
-      ? tally('Needs you', n.needs, 'needs') + tally('Waiting', n.waiting) + (n.due ? tally('Follow-up due', n.due) : '')
+    var rows = (n.needs || n.waiting || n.due || pd)
+      ? tally('Needs you', n.needs, 'needs') + tally('Waiting', n.waiting) + (n.due ? tally('Follow-up due', n.due) : '') +
+        (pd ? '<button type="button" class="cs-tally-row cs-people" data-comms-open="people"><span class="cs-tally-k">Check in with</span><span class="cs-tally-v">' + pd + '</span></button>' : '')
       : '<p class="cs-tally-none">Nothing needs you</p>';
     wrap.innerHTML = '<div class="tsec">' +
       '<button type="button" class="tsec-main" id="commsToggle" aria-expanded="' + open + '" aria-controls="commsBody" aria-label="Communications' + (spoken ? ': ' + spoken : '') + '">' +
@@ -11676,7 +11716,7 @@
 
   // ---- the Communications Centre ----
   var COMMS_FILTER_KEY = 'ledger_comms_filter';
-  var commsFilter = (function(){ var f = lsGet(COMMS_FILTER_KEY, 'needs'); return ['needs', 'waiting', 'follow', 'all'].indexOf(f) > -1 ? f : 'needs'; })();
+  var commsFilter = (function(){ var f = lsGet(COMMS_FILTER_KEY, 'needs'); return ['needs', 'waiting', 'follow', 'people', 'all'].indexOf(f) > -1 ? f : 'needs'; })();
   var commsQuery = '';
   var commsSel = null;          // { kind: 'conv' | 'matter', id } — the record open in the pane or sheet
   var commsClosedOpen = false;
@@ -11769,11 +11809,17 @@
       b.classList.toggle('sel', on);
       b.setAttribute('aria-selected', on ? 'true' : 'false');
       var c = b.querySelector('.cf-n');
-      var num = { needs: n.needs, waiting: n.waiting, follow: n.due }[b.dataset.commsFilter];
+      var num = { needs: n.needs, waiting: n.waiting, follow: n.due, people: peopleDue().filter(function(p){ return commsCat === 'all' || p.category === commsCat; }).length }[b.dataset.commsFilter];
       if (c) c.textContent = num ? String(num) : '';
     });
     rowsEl.innerHTML = '';
     var firstSel = null;
+    if (commsFilter === 'people' && !commsQuery.trim()){
+      renderPeopleRows(rowsEl);
+      var paneP = document.getElementById('commsPane');
+      if (paneP && isWide() && !commsSelExists(commsSel)) paneP.innerHTML = '';
+      return;
+    }
     var vis = commsVisible();
     if (vis){
       vis.convs.forEach(function(v){ rowsEl.appendChild(convRowEl(v)); if (!firstSel) firstSel = { kind: 'conv', id: v.id }; });
@@ -12033,6 +12079,7 @@
           Object.keys(CHANNEL_LABEL).map(function(k){ return '<option value="' + k + '">' + CHANNEL_LABEL[k] + '</option>'; }).join('') +
         '</select></label>' +
         '<label class="cd-field"><span>Notes</span><textarea data-role="notes" rows="3" placeholder="Anything worth keeping"></textarea></label>' +
+        '<label class="cd-field"><span>Keep in touch with</span><select data-role="person"></select></label>' +
       '</details>' +
       '<button type="button" class="btn-quiet cd-close-btn" data-role="close">' + (st === 'closed' ? 'Reopen conversation' : 'Mark conversation closed') + '</button>';
 
@@ -12058,6 +12105,13 @@
     var fu = wrap.querySelector('[data-role="followUp"]');
     fu.value = v.nextFollowUpAt || '';
     fu.addEventListener('change', function(){ patchConv(v.id, { nextFollowUpAt: fu.value || null }); });
+    var psel = wrap.querySelector('[data-role="person"]');
+    var po = document.createElement('option'); po.value = ''; po.textContent = people.length ? 'Nobody' : 'Nobody yet (Comms → People)'; psel.appendChild(po);
+    people.slice().sort(function(a, b){ return String(a.name || '').localeCompare(String(b.name || '')); }).forEach(function(p){
+      var o = document.createElement('option'); o.value = p.id; o.textContent = p.name || 'Unnamed'; psel.appendChild(o);
+    });
+    psel.value = v.personId || '';
+    psel.addEventListener('change', function(){ patchConv(v.id, { personId: psel.value || null }); });
     var ch = wrap.querySelector('[data-role="channel"]');
     ch.value = v.channel || 'other';
     ch.addEventListener('change', function(){ patchConv(v.id, { channel: ch.value }); });
@@ -12093,6 +12147,223 @@
     var entries = (v.log || []).concat(createdEntries(convActions(v)))
       .sort(function(a, b){ return a.at < b.at ? 1 : -1; });
     wrap.querySelector('[data-role="log"]').appendChild(movementListEl(entries));
+  }
+
+  // ============ Keep in touch (2026-11-02) ============
+  // The people Shaun checks in with: each has a rhythm ("every 2 weeks"). When he last spoke
+  // to them is read from what is already recorded — a Received, Sent, Call or Meeting on any
+  // conversation linked to them (personId) — and from a one-tap "Spoke today" on the person.
+  // A person outlives a topic: closing "Clem · bday" doesn't stop keeping in touch with Clem.
+  // ledger_people/{id}, owner-only. Names and notes are his words, always written as text.
+  var PEOPLE_LOCAL = 'ledger_people_fallback';
+  var people = [];
+  var PEOPLE_RHYTHMS = [
+    { d: 7, label: 'Every week' }, { d: 14, label: 'Every 2 weeks' }, { d: 30, label: 'Every month' },
+    { d: 60, label: 'Every 2 months' }, { d: 90, label: 'Every 3 months' }
+  ];
+  var SPOKE_KINDS = ['received', 'sent', 'call', 'meeting'];
+  function peopleLocalSave(){ try { localStorage.setItem(PEOPLE_LOCAL, JSON.stringify(people)); } catch(e){} }
+  function peopleLocalLoad(){ try { people = JSON.parse(localStorage.getItem(PEOPLE_LOCAL) || '[]') || []; } catch(e){ people = []; } }
+  function startPeopleListener(){
+    dbRef.collection('ledger_people').onSnapshot(function(snap){
+      people = snap.docs.map(function(d){ var x = d.data() || {}; x.id = d.id; return x; });
+      peopleLocalSave();
+      commsChanged();
+    }, function(err){ console.error('people snapshot error', err); });
+  }
+  function personById(id){ return (id && people.find(function(p){ return p.id === id; })) || null; }
+  function savePerson(rec){
+    rec = Object.assign({}, rec, { updatedAt: new Date().toISOString() });
+    if (!rec.id) rec.id = uid();
+    if (!rec.createdAt) rec.createdAt = rec.updatedAt;
+    var i = people.findIndex(function(p){ return p.id === rec.id; });
+    if (i > -1) people[i] = rec; else people.push(rec);
+    peopleLocalSave();
+    commsChanged();
+    if (dbReady && dbRef){
+      var copy = Object.assign({}, rec); delete copy.id;
+      dbRef.collection('ledger_people').doc(rec.id).set(copy).catch(function(e){ console.error('person save failed', e); });
+    }
+    return rec;
+  }
+  function removePerson(id){
+    people = people.filter(function(p){ return p.id !== id; });
+    peopleLocalSave();
+    conversations.filter(function(v){ return v.personId === id; }).forEach(function(v){ patchConv(v.id, { personId: null }); });
+    commsChanged();
+    if (dbReady && dbRef) dbRef.collection('ledger_people').doc(id).delete().catch(function(e){ console.error('person delete failed', e); });
+  }
+  function personConvs(p){ return conversations.filter(function(v){ return v.personId === p.id; }); }
+  // the last day he spoke to them: a tap on the person, or a movement on their conversations
+  function personLastSpoke(p){
+    var last = null;
+    (p.spoke || []).forEach(function(d){ if (!last || d > last) last = d; });
+    personConvs(p).forEach(function(v){
+      (v.log || []).forEach(function(l){
+        if (SPOKE_KINDS.indexOf(l.kind) === -1 || !l.at) return;
+        var d = fmtDate(new Date(l.at));
+        if (!last || d > last) last = d;
+      });
+    });
+    return last;
+  }
+  function personRhythm(p){ var n = Number(p.everyDays); return n > 0 ? n : 14; }
+  function personRhythmLabel(p){
+    var n = personRhythm(p), r = PEOPLE_RHYTHMS.filter(function(x){ return x.d === n; })[0];
+    return r ? r.label : 'Every ' + n + ' days';
+  }
+  // { last, since (days), left (days until due; 0 or less is due), due }
+  function personState(p){
+    var last = personLastSpoke(p);
+    var since = last ? Math.round((new Date(todayStr() + 'T00:00:00') - new Date(last + 'T00:00:00')) / 86400000) : null;
+    var left = since == null ? 0 : personRhythm(p) - since;
+    return { last: last, since: since, left: left, due: !p.paused && left <= 0 };
+  }
+  function peopleDue(){ return people.filter(function(p){ return personState(p).due; }); }
+  function personWhen(st){
+    if (st.since == null) return 'No contact logged';
+    return 'Spoke ' + (st.since === 0 ? 'today' : st.since === 1 ? 'yesterday' : st.since < 14 ? st.since + ' days ago' : Math.round(st.since / 7) + ' weeks ago');
+  }
+  function personSpokeToday(p){
+    var t = todayStr();
+    var cur = personById(p.id) || p;
+    savePerson(Object.assign({}, cur, { spoke: (cur.spoke || []).filter(function(d){ return d !== t; }).concat(t).slice(-60) }));
+    showPinToast('Spoke to ' + (cur.name || 'them') + ' today', false, CHECK_SVG);
+  }
+
+  // the People view in Comms: due first (longest overdue at the top), then by when they're due
+  function renderPeopleRows(rowsEl){
+    var list = people.filter(function(p){ return commsCat === 'all' || p.category === commsCat; })
+      .filter(function(p){ return !commsQuery.trim() || commsMatchesQuery(p.name) || commsMatchesQuery(p.note); })
+      .map(function(p){ return { p: p, st: personState(p) }; })
+      .sort(function(a, b){
+        if (!!a.p.paused !== !!b.p.paused) return a.p.paused ? 1 : -1;
+        return (a.st.left - b.st.left) || String(a.p.name || '').localeCompare(String(b.p.name || ''));
+      });
+    if (!list.length){
+      rowsEl.appendChild(commsEmpty(people.length ? 'Nobody here in this category.'
+        : 'Add the people you want to keep in touch with, and how often. Ledger tells you when it’s been too long.'));
+    }
+    list.forEach(function(x){
+      var p = x.p, st = x.st;
+      var row = document.createElement('div');
+      row.className = 'pp-row' + (st.due ? ' due' : '') + (p.paused ? ' paused' : '');
+      row.innerHTML = '<button type="button" class="pp-main"><span class="cv-mark" aria-hidden="true"></span>' +
+          '<span class="cv-main"><span class="cv-title"></span><span class="cv-sub"></span></span>' +
+          '<span class="cv-aside"><span class="cv-state"></span><span class="cv-when"></span></span></button>' +
+        (p.paused ? '' : '<button type="button" class="pp-spoke">' + CHECK_SVG + 'Spoke today</button>');
+      row.querySelector('.cv-title').textContent = p.name || 'Unnamed';
+      row.querySelector('.cv-sub').textContent = personWhen(st);
+      row.querySelector('.cv-state').textContent = p.paused ? 'Paused' : st.due ? (st.since == null ? 'Check in' : 'Due') : 'In ' + plural(st.left, 'day');
+      var n = personRhythm(p);
+      row.querySelector('.cv-when').textContent = ({ 7: 'weekly', 14: 'every 2 wks', 30: 'monthly', 60: 'every 2 mths', 90: 'every 3 mths' })[n] || 'every ' + n + ' days';
+      row.querySelector('.pp-main').addEventListener('click', function(){ openPersonSheet(p); });
+      var sp = row.querySelector('.pp-spoke');
+      if (sp) sp.addEventListener('click', function(){ personSpokeToday(p); });
+      rowsEl.appendChild(row);
+    });
+    var add = document.createElement('button');
+    add.type = 'button'; add.className = 'custom-log-btn pp-add'; add.textContent = '+ Add a person';
+    add.addEventListener('click', function(){ openPersonSheet(null); });
+    rowsEl.appendChild(add);
+  }
+
+  // one person: name, rhythm, Personal or Business, a note, and their conversations
+  function openPersonSheet(existing){
+    editingId = null;
+    activeSheetRefresh = null;
+    var p = existing ? (personById(existing.id) || existing) : {};
+    var every = personRhythm(p), cat = p.category || (commsCat !== 'all' ? commsCat : 'personal');
+    var st = existing ? personState(p) : null;
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.chat || '', existing ? 'Keep in touch' : 'Add a person', st ? '' : 'Someone to check in with, and how often.', '') +
+      (st ? '<p class="pp-sheet-when" id="ppWhen"></p>' : '') +
+      '<div class="field"><label>Name</label><input type="text" id="f_ppName" maxlength="80" placeholder="e.g. Clem"></div>' +
+      '<span class="cd-label">Check in</span>' +
+      commsChipsHtml('pprhythm', PEOPLE_RHYTHMS.map(function(r){ return { value: String(r.d), label: r.label }; }), String(every)) +
+      '<span class="cd-label">Category</span>' +
+      commsChipsHtml('ppcat', [{ value: 'personal', label: 'Personal' }, { value: 'business', label: 'Business' }], cat) +
+      '<div class="field"><label>Note (optional)</label><textarea id="f_ppNote" rows="2" placeholder="Kids’ names, what you last talked about…"></textarea></div>' +
+      '<span class="cd-label">Conversations</span><div id="ppConvs"></div>' +
+      '<div class="field"><select id="f_ppLink"></select></div>' +
+      '<button class="save-btn" id="ppSave">' + (existing ? 'Save' : 'Add') + '</button>' +
+      (existing ? '<div class="act-rows">' +
+        '<button type="button" class="act-row" id="ppSpoke"><span class="act-ic">' + CHECK_SVG + '</span><span class="act-label">Spoke today</span></button>' +
+        '<button type="button" class="act-row" id="ppPause"><span class="act-ic">' + (p.paused ? UI_ICON.target : CLOSE_SVG) + '</span><span class="act-label">' + (p.paused ? 'Start checking in again' : 'Pause') + '</span></button>' +
+      '</div><button type="button" class="delete-btn" id="ppRemove">Stop keeping in touch</button>' : '');
+    var nameIn = document.getElementById('f_ppName');
+    nameIn.value = p.name || '';
+    document.getElementById('f_ppNote').value = p.note || '';
+    if (st) document.getElementById('ppWhen').textContent = personWhen(st) + (p.paused ? ' · paused' : st.due ? ' · time to check in' : ' · next in ' + plural(st.left, 'day'));
+    var linked = existing ? personConvs(p).map(function(v){ return v.id; }) : [];
+    var convBox = document.getElementById('ppConvs');
+    function paintConvs(){
+      convBox.innerHTML = '';
+      if (!linked.length){
+        var e = document.createElement('p'); e.className = 'field-hint pp-noconv';
+        e.textContent = 'Link a conversation and its calls and messages count as speaking to them.';
+        convBox.appendChild(e);
+      }
+      linked.forEach(function(id){
+        var v = convById(id); if (!v) return;
+        var r = document.createElement('div'); r.className = 'pp-conv';
+        r.innerHTML = '<span class="pp-conv-t"></span><button type="button" class="btn-link">Unlink</button>';
+        r.firstChild.textContent = convName(v) + (v.attentionState === 'closed' ? ' · closed' : '');
+        r.lastChild.addEventListener('click', function(){ linked = linked.filter(function(x){ return x !== id; }); paintConvs(); paintLink(); });
+        convBox.appendChild(r);
+      });
+    }
+    var linkSel = document.getElementById('f_ppLink');
+    function paintLink(){
+      var name = (nameIn.value || '').trim().toLowerCase();
+      var cands = conversations.filter(function(v){ return linked.indexOf(v.id) === -1 && (!v.personId || v.personId === p.id); });
+      // ones that mention the name first
+      cands.sort(function(a, b){
+        var ma = name && (convName(a) + ' ' + participantsText(a)).toLowerCase().indexOf(name) > -1 ? 0 : 1;
+        var mb = name && (convName(b) + ' ' + participantsText(b)).toLowerCase().indexOf(name) > -1 ? 0 : 1;
+        return (ma - mb) || byTimeDesc(a, b);
+      });
+      linkSel.innerHTML = '';
+      var o0 = document.createElement('option'); o0.value = ''; o0.textContent = cands.length ? 'Link a conversation…' : 'No other conversations to link'; linkSel.appendChild(o0);
+      cands.slice(0, 60).forEach(function(v){ var o = document.createElement('option'); o.value = v.id; o.textContent = convName(v); linkSel.appendChild(o); });
+      linkSel.value = '';
+    }
+    linkSel.addEventListener('change', function(){ if (linkSel.value){ linked.push(linkSel.value); paintConvs(); paintLink(); } });
+    nameIn.addEventListener('change', paintLink);
+    paintConvs(); paintLink();
+    function chips(field, set){
+      sheetEl.querySelectorAll('[data-chips="' + field + '"] .cd-chip').forEach(function(chip){
+        chip.addEventListener('click', function(){
+          sheetEl.querySelectorAll('[data-chips="' + field + '"] .cd-chip').forEach(function(c){ var on = c === chip; c.classList.toggle('sel', on); c.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+          set(chip.dataset.v);
+        });
+      });
+    }
+    chips('pprhythm', function(v){ every = Number(v); });
+    chips('ppcat', function(v){ cat = v; });
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('ppSave').addEventListener('click', function(){
+      var name = nameIn.value.trim();
+      if (!name){ nameIn.focus(); return; }
+      var rec = savePerson(Object.assign({}, personById(p.id) || p, { name: name, everyDays: every, category: cat, note: document.getElementById('f_ppNote').value.trim() || null }));
+      // the links live on the conversations
+      conversations.forEach(function(v){
+        var want = linked.indexOf(v.id) > -1;
+        if (want && v.personId !== rec.id) patchConv(v.id, { personId: rec.id });
+        else if (!want && v.personId === rec.id) patchConv(v.id, { personId: null });
+      });
+      closeSheet();
+    });
+    if (existing){
+      document.getElementById('ppSpoke').addEventListener('click', function(){ personSpokeToday(p); closeSheet(); });
+      document.getElementById('ppPause').addEventListener('click', function(){ savePerson(Object.assign({}, personById(p.id) || p, { paused: !p.paused })); closeSheet(); });
+      document.getElementById('ppRemove').addEventListener('click', function(){
+        if (!confirm('Stop keeping in touch with ' + (p.name || 'them') + '?\n\nTheir conversations stay; only the reminder goes.')) return;
+        removePerson(p.id); closeSheet();
+      });
+    }
+    if (!existing) setTimeout(function(){ try { nameIn.focus(); } catch(e){} }, 60);
   }
 
   // Who has the ball changes in one place, so the log and the waiting text stay honest.

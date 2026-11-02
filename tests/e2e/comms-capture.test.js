@@ -91,6 +91,11 @@ async function oobLink(email){
   await put('ledger_matters/m1', { title: 'Accounts', area: 'business', status: 'active', summary: '', log: [], createdAt: then, updatedAt: then });
   await put('ledger_conversations/c1', { title: 'James', matterId: 'm1', participants: [{ name: 'James', role: '' }], channel: 'email', externalRef: null, attentionState: 'waiting_on_person',
     waitingOn: 'James', summary: 'Sent draft', notes: '', lastActivityAt: then, nextFollowUpAt: null, log: [{ at: then, kind: 'state', text: 'Started · Waiting on James' }], createdAt: then, updatedAt: then });
+  // keep in touch (2026-11-02): Clem, every 2 weeks; their (closed) conversation had a call 20 days ago
+  const ago20 = new Date(now.getTime() - 20 * 86400000).toISOString();
+  await put('ledger_people/pp1', { name: 'Clem', everyDays: 14, category: 'personal', note: '', spoke: [], createdAt: then, updatedAt: then });
+  await put('ledger_conversations/c9', { title: 'Clem', participants: [{ name: 'Clem', role: '' }], channel: 'call', attentionState: 'closed', personId: 'pp1', summary: 'Birthday',
+    notes: '', lastActivityAt: ago20, nextFollowUpAt: null, log: [{ at: ago20, kind: 'call', text: 'Happy birthday call' }], createdAt: then, updatedAt: ago20 });
   await put(`ledger_commitments/k1`, { date: TODAY, originalDate: TODAY, title: 'Finish the quarterly plan', category: 'work', status: 'planned', priorityId: null, minVersion: null, disruptionReason: null, createdAt: then });
 
   const b = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
@@ -178,13 +183,28 @@ async function oobLink(email){
   check(j3.category === 'personal' && j3.summary === 'reply about accounts' && j3.matterId === 'm1' && j3.log.some(e => e.text === 'Category: Personal'), '…stored on his record, noted in his history, nothing else changed');
   check(await S.evaluate(() => localStorage.getItem('ledger_comms_category')) === 'personal' && await S2.evaluate(() => localStorage.getItem('ledger_comms_category')) === 'all', 'the filter is per device (phone Personal, Mac All)');
   await S.screenshot({ path: `${shots}/${tag}-CQ3-personal.png` });
+  // keep in touch: the phone sees Clem is due, taps Spoke; the Mac follows
+  await S.click('[data-comms-cat="all"]');
+  await S.click('[data-comms-filter="people"]');
+  check(await until(S, () => { const r = [...document.querySelectorAll('#commsRows .pp-row')].find(x => /Clem/.test(x.innerText)); return r && /3 weeks ago/.test(r.innerText) && /Due/.test(r.innerText); }),
+    'People: Clem, last spoke 3 weeks ago (the call on their conversation), is due', await S.evaluate(() => document.getElementById('commsRows').innerText));
+  check(await S.evaluate(() => /1/.test(document.querySelector('[data-comms-filter="people"]').innerText)), 'the People tab counts who is due');
+  await sleep(400);
+  check(await S.evaluate(() => { const f = document.getElementById('commsFilter'); return f.scrollWidth <= f.clientWidth + 1; }), 'the filter row fits the phone, People and all');
+  await S.screenshot({ path: `${shots}/${tag}-CQ4-people.png` });
+  await S.evaluate(() => [...document.querySelectorAll('#commsRows .pp-row')].find(x => /Clem/.test(x.innerText)).querySelector('.pp-spoke').click());
+  check(await until(S, () => /In 14 days/.test(document.getElementById('commsRows').innerText)), 'Spoke today: Clem is next due in 14 days');
+  await sleep(800);
+  check(((await all('ledger_people')).find(x => x.id === 'pp1').spoke || []).join() === TODAY, '…stored on their record, today');
+  await S2.click('nav.tabbar .tab-btn[data-view="comms"]'); await S2.click('[data-comms-filter="people"]');
+  check(await until(S2, () => /In 14 days/.test(document.getElementById('commsRows').innerText), null, 15000), 'the Mac follows: In 14 days');
   // owner-private: a partner can't read any of it
   const A = await session('abi');
   await signIn(A, ABI);
   await until(A, () => !document.getElementById('partnerApp').hidden, null, 20000);
-  const probe = await A.evaluate(async () => { const out = {}; for (const c of ['ledger_conversations', 'ledger_matters']) { try { await firebase.firestore().collection(c).get(); out[c] = 'ALLOWED'; } catch (e){ out[c] = e.code; } } return out; });
+  const probe = await A.evaluate(async () => { const out = {}; for (const c of ['ledger_conversations', 'ledger_matters', 'ledger_people']) { try { await firebase.firestore().collection(c).get(); out[c] = 'ALLOWED'; } catch (e){ out[c] = e.code; } } return out; });
   check(Object.values(probe).every(v => v === 'permission-denied'), 'Abi is refused Communications: ' + JSON.stringify(probe));
-  check(!/Fail me|WhatsApp about meeting|this one fails/.test(await A.evaluate(() => document.body.innerText)), 'nothing captured is on her screen');
+  check(!/Fail me|WhatsApp about meeting|this one fails|Clem/.test(await A.evaluate(() => document.body.innerText)), 'nothing captured is on her screen');
   for (const p of [S, S2, A]) check(!p.errs.length, p.name + ': no page errors ' + p.errs.slice(0, 3).join(' | ').slice(0, 400));
   await b.close(); server.close();
   console.log(`\n${ok.length} passed, ${bad.length} failed`);

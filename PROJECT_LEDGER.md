@@ -317,6 +317,15 @@ two Morning Prime routines, the Wind-down routine and its prominence hour.
   (`category`; older records stay unset until chosen). An All | Personal | Business
   switch above the filters narrows the list, its counts and search (per device,
   `ledger_comms_category`). Today's summary counts every category.
+- **Closing a conversation (since 2026-11-02):** Closed is one of the state chips in its
+  detail, beside Needs me, Waiting and the rest.
+- **Keep in touch (since 2026-11-02):** a People filter in Comms lists who Shaun checks in
+  with (`ledger_people`, owner-only): each with a rhythm (every week, 2 weeks, month, 2 or 3 months), when
+  he last spoke to them and whether they're due, plus **Spoke today**. Last spoke is the
+  later of a tap and a call, message or meeting on a linked conversation. A person links to
+  any number of conversations (`personId`). Today's Communications says "N to check in
+  with". Claude: `list_people`, `log_spoke` (saved at once), and `whats_missing` names who
+  is due.
 
 ### Other tabs
 - **Plan** — Ledger's whole-life forward-planning surface (Plan = intent, Today =
@@ -753,6 +762,14 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-11-02 — Keep in touch (Shaun's answers)
+- **A list of people**, separate from conversations: each has a rhythm and links to their
+  conversations. Not a CRM: name, rhythm, category, a note.
+- **Last spoke** comes from the conversations' movement (a call, message or meeting) and a
+  one-tap **Spoke today**; a note or a state change doesn't count.
+- **Where:** a People filter in Comms, and one line on Today ("2 to check in with"). Paused
+  people are never due. No push yet.
 
 ### 2026-11-01 — One review screen; Wind-down is two checks (Shaun)
 - **One review screen** (Catch-up's sheet) for any day, opened from three places: Catch-up
@@ -2542,6 +2559,13 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Shaun (deploy, then try it)
+**Keep in touch** — built 2026-11-02 (Communications above).
+- **Deploy needed:** "Deploy Firebase", everything: Rules (`ledger_people`; until then
+  people don't save beyond the device) and functions (Claude's `list_people` and
+  `log_spoke`, and the "here's what I did" changes of 2026-11-01).
+- **Try:** Comms → People → Add a person, link their conversation, pick a rhythm.
+
+**Before that** — Owner: Shaun (deploy, then try it)
 **Ask Claude phase 2: logging and the rest of Ledger** — built 2026-11-01
 (`docs/CLAUDE_ASSISTANT.md` §13).
 - **Deploy needed:** "Deploy Firebase", everything (the new functions). Goals phase 1's
@@ -2752,6 +2776,14 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-11-02) — **Keep in touch** (decision above): People in Comms, the person sheet
+  (rhythm, category, note, linked conversations, Spoke today, pause), Today's line, a
+  "Keep in touch with" picker on a conversation, and Claude's `list_people` / `log_spoke`.
+  Rules: `ledger_people` owner-only (rules 756). Tests: functions assistant 98, e2e
+  assistant 62, comms-capture 30; execution 81, partner-sharing 209.
+- (2026-11-02) — **Comms: close a conversation.** Closed joins the state chips in a
+  conversation's detail (before, there was no way to close one off there).
 
 - (2026-11-02) — **Home: a request on your day can be ticked from Home.** Its circle (and
   Done in its sheet) ticks the linked Action, which marks the request done, so the two

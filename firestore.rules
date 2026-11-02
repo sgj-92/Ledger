@@ -61,6 +61,9 @@ service cloud.firestore {
     // Goals and the week (docs/GOALS_AND_REVIEW.md): a week's outcomes and, later, its
     // reviews. Private like the day's plan; never projected, never a partner's.
     match /ledger_weeks/{docId=**}              { allow read, write: if isOwner(); }
+    // Keep in touch (2026-11-02): the people Shaun checks in with, each with a rhythm and the
+    // days he spoke to them. Private; never projected, never a partner's.
+    match /ledger_people/{docId=**}             { allow read, write: if isOwner(); }
     // Ask Claude (docs/CLAUDE_ASSISTANT.md): a proposal is written by the server (Admin SDK)
     // and never by a client. The owner reads his own and records what he did with it —
     // applied (all or part), cancelled or undone — and nothing else about it changes.

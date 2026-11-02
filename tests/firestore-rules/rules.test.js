@@ -18,7 +18,7 @@ const NOW = () => firebase.firestore.FieldValue.serverTimestamp();
 const PRIVATE = [
   'ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_day_status',
   'ledger_priorities', 'ledger_focus', 'ledger_meals', 'ledger_meta',
-  'ledger_matters', 'ledger_conversations', 'ledger_challenges', 'ledger_sprints', 'ledger_life_context', 'ledger_weeks'
+  'ledger_matters', 'ledger_conversations', 'ledger_challenges', 'ledger_sprints', 'ledger_life_context', 'ledger_weeks', 'ledger_people'
 ];
 
 // a device subscription as the client writes it
@@ -1012,7 +1012,7 @@ async function check(name, fn){
   await check('delete: never removed outright', () => assertFails(owner.doc(HR + '/hr1').delete()));
   await check('checklist: a deleted request\'s list is frozen', () => assertFails(partner.doc(HR + '/a1/items/x1').set(item('partner1'))));
   // the boundary: the nanny reaches nothing private, nothing of Partner Sharing
-  for (const c of ['ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_life_context', 'ledger_weeks', 'ledger_meta', 'ledger_action_updates', 'ledger_day_status'])
+  for (const c of ['ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_life_context', 'ledger_weeks', 'ledger_people', 'ledger_meta', 'ledger_action_updates', 'ledger_day_status'])
     await check('nanny: cannot read ' + c, () => assertFails(nanny.collection(c).get()));
   await check('nanny: cannot read published snapshots', () => assertFails(nanny.doc('ledger_shared_snapshots/owner1_partner1_day_2026-10-07').get()));
   await check('nanny: cannot read Partner Sharing requests', () => assertFails(nanny.doc('ledger_shared_requests/reqA').get()));

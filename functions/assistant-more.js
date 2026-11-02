@@ -24,6 +24,7 @@ const COMMITMENTS = 'ledger_commitments';
 const CONVERSATIONS = 'ledger_conversations';
 const MATTERS = 'ledger_matters';
 const LIFE = 'ledger_life_context';
+const PEOPLE = 'ledger_people';
 const META = 'ledger_meta';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -81,6 +82,7 @@ const SYSTEM_EXTRA = [
   '  Logs that only add something are saved by Ledger as soon as you finish, with Undo; you may say they are logged. A log that would replace something already there (the day\'s steps, the day\'s rating, an intention, a goal\'s value for that day) waits for his review like any other change — the tool says so.',
   '- Plan and review his goals and weeks: list_goals, get_week, propose_goal, propose_update_goal, propose_outcome, propose_outcome_result. These wait for his review.',
   '- Communications: list_comms, log_conversation, propose_conversation_state (waits for review).',
+  '- Keep in touch: list_people shows who he checks in with, when he last spoke to them and who is due; when he says he spoke to someone on the list, log_spoke (saved at once). If they have a conversation, a log_conversation entry counts too — do one or the other, not both.',
   '- Health: get_health for a range of days.',
   '- "What\'s missing?": call whats_missing for the day or days he means (today, if he does not say). Report what it finds briefly, grouped, in plain words — missing data is never failure, so say "no weight logged", never "missed". Then he can tell you the values and you log them.',
   '- His Home, if he is an admin there: the home_* and *_daily tools and propose_request / propose_checklist_items. Those changes reach Abi or Magda, so they always wait for his review.',
@@ -103,7 +105,11 @@ const TOOLS = [
   { name: 'whats_missing', description: 'What is not yet recorded for a range of days (at most 31; future days are skipped). areas: any of health (weight, steps, nutrition, planned training not logged), goals (numbers not updated this week, outcomes without a result or Actions), actions_comms (open Actions from earlier days, conversations that need him or have gone quiet).',
     input_schema: obj({ from: DATE, to: DATE, areas: { type: 'array', items: { type: 'string', enum: MISSING_AREAS } } }) },
 
+  { name: 'list_people', description: 'The people he keeps in touch with: their rhythm (every N days), when he last spoke to them (from a tap or a call, message or meeting on their conversations), and who is due a check-in.',
+    input_schema: obj({}) },
+
   // ---- logs ----
+  { name: 'log_spoke', description: 'Record that he spoke to someone on his keep-in-touch list on a date.', input_schema: obj({ person_id: { type: 'string' }, date: DATE }) },
   { name: 'log_training', description: 'Log a training session he did. Only fill what he said; null for the rest.',
     input_schema: obj({
       date: DATE, type: { type: 'string', enum: TRAINING },
@@ -150,7 +156,8 @@ const TOOLS = [
     input_schema: obj({ conversation_id: { type: 'string' }, state: { type: 'string', enum: ATTENTION }, waiting_on: nullable('string'), follow_up: nullable('string') }) }
 ].map((t) => Object.assign({ strict: true }, t));
 
-const READS = ['get_health', 'list_goals', 'get_week', 'list_comms', 'whats_missing'];
+const READS = ['get_health', 'list_goals', 'get_week', 'list_comms', 'whats_missing', 'list_people'];
+const SPOKE_KINDS = ['received', 'sent', 'call', 'meeting'];
 
 function createLedgerTools({ db, now = () => new Date() }) {
   const get = async (coll, id) => {
@@ -214,7 +221,26 @@ function createLedgerTools({ db, now = () => new Date() }) {
     };
   }
 
+  async function peopleView(today) {
+    const [ps, cs] = await Promise.all([all(PEOPLE), all(CONVERSATIONS)]);
+    return ps.map((p) => {
+      let last = null;
+      (p.spoke || []).forEach((d) => { if (DATE_RE.test(d) && (!last || d > last)) last = d; });
+      cs.filter((v) => v.personId === p.id).forEach((v) => (v.log || []).forEach((l) => {
+        if (SPOKE_KINDS.indexOf(l.kind) === -1 || !l.at) return;
+        const d = String(l.at).slice(0, 10);
+        if (!last || d > last) last = d;
+      }));
+      const every = Number(p.everyDays) > 0 ? Number(p.everyDays) : 14;
+      const since = last ? daysBetween(last, today) : null;
+      return { id: p.id, name: clip(p.name, 80), category: p.category || null, every_days: every, last_spoke: last,
+        days_since: since, due: !p.paused && (since == null || since >= every), paused: !!p.paused,
+        conversations: cs.filter((v) => v.personId === p.id).map((v) => ({ id: v.id, name: convView(v).name })) };
+    });
+  }
+
   async function readTool(name, input, ctx) {
+    if (name === 'list_people') return { people: await peopleView(ctx.today) };
     if (name === 'get_health') {
       const bad = range(input); if (bad) return bad;
       const [ss, lc] = await Promise.all([sessionsIn(input.from, input.to), all(LIFE)]);
@@ -326,7 +352,9 @@ function createLedgerTools({ db, now = () => new Date() }) {
         .filter((c) => c.title && c.category !== 'roadblock' && c.status !== 'completed' && c.status !== 'not_done');
       const quietBefore = addDays(today, -QUIET_DAYS);
       const live = cs.filter((v) => v.attentionState !== 'closed');
+      const ppl = await peopleView(today);
       out.actions_comms = {
+        people_to_check_in_with: ppl.filter((x) => x.due).map((x) => ({ id: x.id, name: x.name, last_spoke: x.last_spoke })),
         open_from_earlier_days: open.filter((c) => c.date < today).map((c) => ({ id: c.id, title: clip(c.title, 120), date: c.date })).slice(0, 40),
         open_today: open.filter((c) => c.date === today).length,
         conversations_needing_you: live.filter((v) => (v.attentionState || 'needs_me') === 'needs_me').map(convView).map((v) => ({ id: v.id, name: v.name })),
@@ -450,6 +478,14 @@ function createLedgerTools({ db, now = () => new Date() }) {
       const text = clip(input.text, 300);
       if (!text || LOG_KINDS.indexOf(input.kind) === -1) return { error: 'A movement needs a kind and words.' };
       return add({ kind: 'comms_log', collection: CONVERSATIONS, id: v.id, name: convView(v).name, logKind: input.kind, text, at: nowIso, before: null, auto: true });
+    }
+    if (name === 'log_spoke') {
+      const p = await get(PEOPLE, input.person_id);
+      if (!p) return { error: 'No one on his list has that id. Use list_people.' };
+      if (!dateOk(input.date) || input.date > ctx.today) return { error: 'date must be YYYY-MM-DD, and not in the future' };
+      if ((p.spoke || []).indexOf(input.date) > -1) return { error: 'That day is already logged for them.' };
+      if (changes.some((c) => c.kind === 'person_spoke' && c.id === p.id && c.date === input.date)) return { error: 'Already in this answer.' };
+      return add({ kind: 'person_spoke', collection: PEOPLE, id: p.id, name: clip(p.name, 80), date: input.date, before: null, auto: true });
     }
     if (name === 'log_life_context') {
       if (LC_CATEGORIES.indexOf(input.category) === -1 || !dateOk(input.start_date)) return { error: 'A circumstance needs a category and a start date.' };

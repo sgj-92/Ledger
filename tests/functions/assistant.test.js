@@ -369,6 +369,33 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
   ]);
   await createAssistant({ db, client }).handle({ uid: 'ownerP2', message: 'called the accountant', today: TODAY });
 
+  // ---- keep in touch (2026-11-02): who he checks in with, and "I spoke to Clem" ----
+  await db.doc('ledger_people/pc').set({ name: 'Clem', everyDays: 14, spoke: ['2026-10-01'], createdAt: '2026-09-01T00:00:00Z' });
+  await db.doc('ledger_people/pm').set({ name: 'Mum', everyDays: 7, spoke: [], createdAt: '2026-09-01T00:00:00Z' });
+  await db.doc('ledger_people/pz').set({ name: 'Zed', everyDays: 30, spoke: [], paused: true, createdAt: '2026-09-01T00:00:00Z' });
+  await db.doc('ledger_conversations/vm').set({ title: 'Mum', attentionState: 'closed', personId: 'pm', lastActivityAt: '2026-10-24T10:00:00Z',
+    log: [{ at: '2026-10-24T10:00:00Z', kind: 'call', text: 'Sunday catch-up' }, { at: '2026-10-26T10:00:00Z', kind: 'note', text: 'a note is not a conversation' }] });
+  client = fakeClient([
+    turn('tool_use', use('list_people', {}), use('whats_missing', { from: TODAY, to: TODAY, areas: ['actions_comms'] }),
+      use('log_spoke', { person_id: 'pc', date: TODAY }), use('log_spoke', { person_id: 'pc', date: '2026-10-01' }),
+      use('log_spoke', { person_id: 'pc', date: '2026-10-28' }), use('log_spoke', { person_id: 'nope', date: TODAY }), use('log_spoke', { person_id: 'pc', date: TODAY })),
+    (params) => {
+      const r = lastResults(params), ppl = B(r, 0).people, p = (id) => ppl.find((x) => x.id === id);
+      check(p('pc').last_spoke === '2026-10-01' && p('pc').due && p('pm').last_spoke === '2026-10-24' && p('pm').days_since === 3 && !p('pm').due && p('pm').conversations[0].id === 'vm',
+        'list_people: last spoke from a tap or a call on their conversation (a note doesn\'t count); who is due', ppl);
+      check(!p('pz').due && p('pz').paused, 'a paused person is never due');
+      check(B(r, 1).actions_comms.people_to_check_in_with.map((x) => x.name).join() === 'Clem', 'whats_missing: who is due a check-in', B(r, 1).actions_comms);
+      check(!r[2].is_error && r[3].is_error && /already logged/.test(r[3].content) && r[4].is_error && /future/.test(r[4].content) && r[5].is_error && r[6].is_error,
+        'log_spoke: saved; refused for a day already logged, a day to come, someone not on the list, twice in one answer', r.slice(2).map((x) => x.content));
+      return turn('end_turn', { type: 'text', text: 'Logged.' });
+    }
+  ]);
+  out = await createAssistant({ db, client }).handle({ uid: 'ownerP2', message: 'I spoke to Clem today. Who else is due?', today: TODAY });
+  const ps = out.body.proposal && out.body.proposal.changes;
+  check(out.status === 200 && ps && ps.length === 1 && ps[0].kind === 'person_spoke' && ps[0].id === 'pc' && ps[0].date === TODAY && ps[0].auto && ps[0].name === 'Clem',
+    'one spoke-to, saved at once by the app', ps);
+  check((await get('ledger_people/pc')).spoke.length === 1, 'nothing written by the server');
+
   // Shaun at his Home: the Home tools join his own
   await db.doc('ledger_users/owner2').set({ role: 'owner' });
   await db.doc('ledger_home_members/owner2').set({ homeId: 'hhome', status: 'active', role: 'admin', displayName: 'Shaun' });

@@ -119,8 +119,10 @@ const until = async (fn, t) => { const end = Date.now() + (t || 10000); while (D
     { n: 7, kind: 'steps_set', collection: 'ledger_sessions', id: 'st1', date: TODAY, steps: 9500, before: { steps: 5000 }, auto: false },
     { n: 8, kind: 'outcome_result', collection: 'ledger_weeks', id: MONDAY, outcomeId: 'o1', text: 'Send 5 proposals', before: { result: null }, result: 'done', auto: false },
     { n: 9, kind: 'goal_create', collection: 'ledger_priorities', id: 'g2', before: null, auto: false, after: { title: 'Five new retainers', area: 'business', horizon: 'quarter', period: TODAY.slice(0, 4) + '-Q4', parentId: 'g1', why: null, note: null, status: 'active', evidenceType: null, measure: { kind: 'number', unit: 'clients', start: 0, target: 5 }, values: [], createdAt: TODAY } },
-    { n: 10, kind: 'intention', collection: 'ledger_plans', id: TODAY, text: 'Ship it', before: { intention: '' }, auto: true }
+    { n: 10, kind: 'intention', collection: 'ledger_plans', id: TODAY, text: 'Ship it', before: { intention: '' }, auto: true },
+    { n: 11, kind: 'person_spoke', collection: 'ledger_people', id: 'pp1', name: 'Clem', date: YESTERDAY, before: null, auto: true }
   ] };
+  await put('ledger_people/pp1', { name: 'Clem', everyDays: 14, spoke: ['2026-09-01'], createdAt: '2026-09-01T00:00:00.000Z' });
   // "here's what I did": a tick saved at once, and a correction for review
   await put('ledger_matters/mt1', { title: 'Year-end accounts', status: 'active', area: 'business', log: [], createdAt: '2026-10-01T00:00:00.000Z' });
   await put('ledger_commitments/k5', A({ date: TODAY, title: 'Call the accountant', category: 'work', matterId: 'mt1' }));
@@ -254,12 +256,13 @@ const until = async (fn, t) => { const end = Date.now() + (t || 10000); while (D
   check(await until(async () => { const pl = await get('ledger_plans/' + TODAY); return pl.dayNotes === 'Felt sharp' && pl.morningPrime && pl.morningPrime.intention === 'Ship it'; }), 'logged: a Day Note and the intention');
   check((await ss('st1')).steps === 5000 && (await get('ledger_weeks/' + MONDAY)).outcomes[0].result === null && !(await get('ledger_priorities/g2')),
     'not yet: replacing the steps, an outcome\'s result and a new goal wait for review');
-  check(await until(async () => { const pr = await get('ledger_assistant_proposals/p3'); return pr.status === 'partial' && pr.applied.map(a => a.n).join() === '1,2,3,4,5,6,10'; }), 'the answer records what was logged');
+  check(await until(async () => { const pr = await get('ledger_assistant_proposals/p3'); return pr.status === 'partial' && pr.applied.map(a => a.n).join() === '1,2,3,4,5,6,10,11'; }), 'the answer records what was logged');
+  check(await until(async () => (await get('ledger_people/pp1')).spoke.join() === '2026-09-01,' + YESTERDAY), 'logged: he spoke to Clem yesterday');
   const logCard = await p.evaluate(() => ({ k: document.querySelector('.ac-prop.is-log .ac-prop-k').textContent,
     rows: [...document.querySelectorAll('.ac-prop.is-log .ac-change')].map(r => r.innerText.replace(/\n/g, ' / ')),
     review: [...document.querySelectorAll('.ac-prop:last-of-type .ac-change')].map(r => r.innerText.replace(/\n/g, ' / ')),
     sum: document.querySelector('.ac-prop:last-of-type .ac-prop-sum').textContent }));
-  check(logCard.k === 'Logged' && logCard.rows.length === 7 && /Strength/.test(logCard.rows[0]) && /Squat 5×5 · 100 kg/.test(logCard.rows[0]) && /88.4 kg/.test(logCard.rows[1]) &&
+  check(logCard.k === 'Logged' && logCard.rows.length === 8 && /Spoke/.test(logCard.rows[7]) && /Clem/.test(logCard.rows[7]) && /Strength/.test(logCard.rows[0]) && /Squat 5×5 · 100 kg/.test(logCard.rows[0]) && /88.4 kg/.test(logCard.rows[1]) &&
     /Chicken salad/.test(logCard.rows[2]) && /£42,000/.test(logCard.rows[3]) && /Call: Spoke about VAT/.test(logCard.rows[4]), 'the Logged card says what was saved, in words', JSON.stringify(logCard));
   check(logCard.review.length === 3 && /5,000 → 9,500/.test(logCard.review[0]) && /Open → Done/.test(logCard.review[1]) && /New goal Five new retainers/.test(logCard.review[2]) && logCard.sum === '3 changes to review',
     'the review card holds the rest: steps replaced, a result, a new goal', JSON.stringify(logCard.review));
@@ -275,6 +278,7 @@ const until = async (fn, t) => { const end = Date.now() + (t || 10000); while (D
   check(await until(async () => (await ss('nu1')).foodDiary === 'Porridge'), 'Undo: the diary is as it was');
   check(await until(async () => (await get('ledger_priorities/g1')).values.length === 1), 'Undo: the goal\'s number is gone');
   check(await until(async () => (await get('ledger_conversations/v1')).log.length === 0), 'Undo: the call is gone from the conversation');
+  check(await until(async () => (await get('ledger_people/pp1')).spoke.join() === '2026-09-01'), 'Undo: the day he spoke to Clem is gone');
   check(await until(async () => { const pl = await get('ledger_plans/' + TODAY); return pl.dayNotes === '' && pl.morningPrime.intention === ''; }), 'Undo: the note and the intention are cleared');
   check((await ss('st1')).steps === 9500 && !!(await get('ledger_priorities/g2')), 'Undo of the logs leaves the reviewed changes alone');
 
