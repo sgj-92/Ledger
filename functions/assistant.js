@@ -288,6 +288,10 @@ function createAssistant({ db, client, now = () => new Date(), log = () => {}, m
   const OWNER_TOOLS = TOOLS.filter((t) => t.name !== 'present_proposal').concat(more.TOOLS);
   const HOME_FOR_OWNER = homeTools.TOOLS.filter((t) => t.name !== 'present_proposal' && t.name !== 'get_shared_schedule');
   const OWNER_READS = ['get_day', 'search_actions', 'list_backlog'].concat(more.READS);
+  // The tool lists, as sent: each fixed once, so the prompt cache holds.
+  const OWNER_SET = fitStrict(OWNER_TOOLS.concat(PRESENT));
+  const OWNER_HOME_SET = fitStrict(OWNER_TOOLS.concat(HOME_FOR_OWNER, PRESENT));
+  const HOME_SET = fitStrict(homeTools.TOOLS);
   async function handle({ uid, threadId, message, today, image }) {
     let me = null, ownerHome = null;
     if (!(await isOwner(uid))) {
@@ -296,7 +300,7 @@ function createAssistant({ db, client, now = () => new Date(), log = () => {}, m
     } else ownerHome = await homeTools.who(uid, { owner: true });
     const atHome = !!me;
     const system = atHome ? homeTools.SYSTEM.replace(/\{name\}/g, me.name) : SYSTEM;
-    const tools = atHome ? homeTools.TOOLS : OWNER_TOOLS.concat(ownerHome ? HOME_FOR_OWNER : [], PRESENT);
+    const tools = atHome ? HOME_SET : (ownerHome ? OWNER_HOME_SET : OWNER_SET);
     const reads = atHome ? homeTools.READS : OWNER_READS.concat(ownerHome ? homeTools.READS : []);
     message = String(message || '').trim().slice(0, 4000);
     const photo = image == null ? null : checkImage(image);
@@ -399,4 +403,34 @@ function checkImage(image) {
   return { mediaType, data };
 }
 
-module.exports = { createAssistant, MODEL, ALLOWED_ORIGINS, checkImage };
+// Strict tool use has limits across all the tools in one request: at most 20 strict tools,
+// 24 optional parameters and 16 parameters with a union ("or null"). Over them the API
+// refuses the request outright (a 400), so Shaun's full set (40-odd tools) goes without
+// strict; every tool checks its own input, and a bad one comes back to Claude as an error.
+// A set within the limits (Abi's Home tools) keeps strict. (2026-11-03)
+const STRICT_LIMITS = { tools: 20, optional: 24, unions: 16 };
+function strictCost(tools) {
+  let optional = 0, unions = 0;
+  function walk(s) {
+    if (!s || typeof s !== 'object') return;
+    if (s.properties) {
+      const req = s.required || [];
+      for (const [k, v] of Object.entries(s.properties)) {
+        if (req.indexOf(k) === -1) optional++;
+        if (v && (v.anyOf || Array.isArray(v.type))) unions++;
+        walk(v); (v && v.anyOf || []).forEach(walk);
+      }
+    }
+    if (s.items) walk(s.items);
+  }
+  const strict = tools.filter((t) => t.strict);
+  strict.forEach((t) => walk(t.input_schema));
+  return { tools: strict.length, optional, unions };
+}
+function fitStrict(tools) {
+  const c = strictCost(tools);
+  if (c.tools <= STRICT_LIMITS.tools && c.optional <= STRICT_LIMITS.optional && c.unions <= STRICT_LIMITS.unions) return tools;
+  return tools.map((t) => { const x = Object.assign({}, t); delete x.strict; return x; });
+}
+
+module.exports = { createAssistant, MODEL, ALLOWED_ORIGINS, checkImage, strictCost, STRICT_LIMITS };

@@ -427,6 +427,14 @@ and won't make mistakes due to the rules".
   matter records it as done. Undo reverses all of it.
 - **Tests:** functions assistant 92; e2e assistant 60.
 
+**Strict tools have limits (2026-11-03).** The API allows at most 20 strict tools, 24 optional
+parameters and 16 "or null" (union) parameters across one request, and refuses the request
+outright (a 400) above them. Since phase 2, Shaun's set (32 tools, 42 as a Home admin, 61
+unions) was over them, so every request of his failed ("Claude could not be reached"); Abi's
+(12 tools, 4 unions) was not. Now `fitStrict` sends a set over the limits without `strict`:
+every tool checks its own input, and a bad one returns to Claude as an error. A set within the
+limits keeps strict. The functions test holds every request to the limits.
+
 **Standing lists (2026-11-03).** `list_requests` and `get_request` mark a Home standing list
 (`list: true`); the system prompt tells Claude to add to one with `propose_checklist_items`
 rather than ask anew. Tests: functions assistant 102.

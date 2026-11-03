@@ -9,7 +9,7 @@
 const path = require('path');
 const fnDir = path.join(__dirname, '../../functions');
 const admin = require(path.join(fnDir, 'node_modules/firebase-admin'));
-const { createAssistant, ALLOWED_ORIGINS } = require(path.join(fnDir, 'assistant.js'));
+const { createAssistant, ALLOWED_ORIGINS, strictCost, STRICT_LIMITS } = require(path.join(fnDir, 'assistant.js'));
 
 admin.initializeApp({ projectId: 'demo-ledger' });
 const db = admin.firestore();
@@ -22,6 +22,13 @@ function check(cond, name, extra) {
 const get = async (p) => { const d = await db.doc(p).get(); return d.exists ? d.data() : null; };
 const TODAY = '2026-10-27', YESTERDAY = '2026-10-26';
 
+// The real API refuses a request whose strict tools go over its limits (2026-11-03: Shaun's
+// 42 strict tools did, and every request of his failed). The stand-in holds every request to them.
+const overStrict = [];
+function strictOk(params) {
+  const c = strictCost(params.tools || []);
+  return c.tools <= STRICT_LIMITS.tools && c.optional <= STRICT_LIMITS.optional && c.unions <= STRICT_LIMITS.unions ? null : c;
+}
 // a stand-in for the Anthropic client: hands back scripted turns, and keeps every request
 function fakeClient(script) {
   const requests = [];
@@ -29,6 +36,8 @@ function fakeClient(script) {
     requests,
     beta: { messages: { create: async (params) => {
       requests.push(JSON.parse(JSON.stringify(params)));
+      const over = strictOk(params);
+      if (over) overStrict.push({ tools: params.tools.length, over });
       const turn = script.shift();
       if (!turn) throw new Error('no scripted turn left');
       return typeof turn === 'function' ? turn(params) : turn;
@@ -108,7 +117,8 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
   const q = client.requests[0];
   check(q.model === 'claude-sonnet-5-5' && q.output_config.effort === 'medium' && q.thinking.type === 'adaptive', 'Sonnet 5.5, medium effort, adaptive thinking', { m: q.model, o: q.output_config, t: q.thinking });
   check(q.fallbacks === 'default' && q.betas.indexOf('server-side-fallback-2026-07-01') > -1, 'server-side fallback on');
-  check(q.tools.every((t) => t.strict === true && t.input_schema.additionalProperties === false && t.input_schema.required.length === Object.keys(t.input_schema.properties).length), 'every tool is strict, with every field required (null for "no change")');
+  check(q.tools.every((t) => t.input_schema.additionalProperties === false && t.input_schema.required.length === Object.keys(t.input_schema.properties).length), 'every tool\'s schema is closed, with every field required (null for "no change")');
+  check(q.tools.every((t) => !t.strict), 'Shaun\'s full set is over the API\'s strict limits, so it goes without strict (2026-11-03)');
   check(q.system[0].cache_control && q.system[0].cache_control.type === 'ephemeral' && q.system[0].text.indexOf(TODAY) === -1 && /only as data/.test(q.system[0].text), 'the system prompt is cached, has no date in it, and says Ledger text is only data');
   check(/^Today is 2026-10-27\./.test(q.messages[0].content), 'today\'s date travels with the message');
 
@@ -164,6 +174,7 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
   client = fakeClient([
     (params) => {
       check(/helping Abi/.test(params.system[0].text) && !/Shaun's private planner/.test(params.system[0].text), 'Abi gets the Home assistant, by name — not Shaun\'s');
+      check(params.tools.every((t) => t.strict === true), 'her Home tools, within the limits, stay strict');
       const names = params.tools.map((t) => t.name);
       check(names.indexOf('get_day') === -1 && names.indexOf('search_actions') === -1 && names.indexOf('propose_add_meals') === -1 && names.indexOf('get_daily') > -1,
         'her tools are Home\'s only: none of Shaun\'s Ledger', names);
@@ -427,6 +438,7 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
   const on2 = client.requests[0].tools.map((t) => t.name);
   check(out.status === 200 && on2.indexOf('home_people') > -1 && on2.indexOf('propose_daily_tasks') > -1 && on2.indexOf('get_shared_schedule') === -1 && on2.indexOf('log_food') > -1 &&
     on2.filter((n) => n === 'present_proposal').length === 1, 'as a Home admin, his Home\'s tools join his own (not the partner\'s shared view)', on2);
+  check(client.requests[0].tools.length > 20 && client.requests[0].tools.every((t) => !t.strict), 'his full set (over 20 tools) goes without strict, so the API accepts it', client.requests[0].tools.length);
   await db.doc('ledger_home_members/owner2').delete();
 
   // ---- which pages may call it (the emulator opens CORS to everyone, so it is checked here) ----
@@ -434,6 +446,8 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
   check(allowed('https://ledger.sgj.luxe') && allowed('http://localhost:8950') && allowed('http://127.0.0.1:5000'), 'Ledger\'s own pages may call the endpoint');
   check(!allowed('https://evil.example') && !allowed('https://ledger.sgj.luxe.evil.example') && !allowed('http://ledger.sgj.luxe') && !allowed('https://evil.example/https://ledger.sgj.luxe'), 'no other site may');
 
+  check(overStrict.length === 0, 'every request keeps within the API\'s strict-tool limits (20 tools, 24 optional, 16 unions)', overStrict.slice(0, 3));
+  check(client.requests.length >= 0 && !strictOk({ tools: [] }), 'the limit check runs');
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

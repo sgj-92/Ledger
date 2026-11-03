@@ -763,6 +763,13 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-03 — Ask Claude: Shaun's tools go without strict (fix)
+- Shaun's Ask Claude failed on every request since phase 2 ("Claude could not be reached"):
+  his 32–42 strict tools were over the API's limits for strict tool use (20 tools, 16 union
+  parameters per request). Sets over the limits are now sent without `strict`; the server
+  checks every input itself. Abi's Home set is within them and stays strict. A functions test
+  now holds every request to the limits (`docs/CLAUDE_ASSISTANT.md` §13).
+
 ### 2026-11-03 — Home's top: pinned lists; headings collapse on scroll (Shaun's answers)
 - **Standing lists:** a Home list that never finishes (Food shopping, the week's food plan):
   shared with everyone at Home; Shaun or Abi make and pin them; anyone ticks and adds; what's
@@ -2572,7 +2579,11 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun and Abi (deploy, then try it)
+Owner: Shaun (deploy functions, then try Ask Claude again)
+**Ask Claude fix** (decision above): "Deploy Firebase" → functions. Pinned lists and their
+rules are already live (Firebase 21191db, 2026-11-03 04:59).
+
+**Before that** — Owner: Shaun and Abi (try it)
 **Pinned lists on Home; headings that collapse** — built 2026-11-03 (Decisions above).
 - **Deploy needed:** "Deploy Firebase", everything: Rules (standing lists; until then making a
   list is refused) and functions (Claude sees lists). Keep in touch is already live (Firebase
