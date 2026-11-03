@@ -2575,7 +2575,8 @@ wider exposure — see Open Questions.
 Owner: Shaun and Abi (deploy, then try it)
 **Pinned lists on Home; headings that collapse** — built 2026-11-03 (Decisions above).
 - **Deploy needed:** "Deploy Firebase", everything: Rules (standing lists; until then making a
-  list is refused) and functions (Claude sees lists). This also carries Keep in touch below.
+  list is refused) and functions (Claude sees lists). Keep in touch is already live (Firebase
+  462c266, 2026-11-03 03:39).
 - **Try:** Home → Add → "A list for everyone" → Food shopping (and the week's food plan).
   Magda's daily tasks pin there once Abi switches them on.
 
