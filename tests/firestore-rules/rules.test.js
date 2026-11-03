@@ -849,6 +849,35 @@ async function check(name, fn){
   await check('daily list: Abi switches daily tasks off', () => assertSucceeds(partner.doc(HD + '/nanny1').update({ status: 'off', updatedAt: 'now', updatedByUid: 'partner1' })));
   await check('daily list: …then no new day\'s list starts', () => assertFails(nanny.doc(HR + '/Dnanny120261106').set(dlist('nanny1', '2026-11-06', 'nanny1'))));
   await check('daily: …and on again', () => assertSucceeds(partner.doc(HD + '/nanny1').update({ status: 'active', updatedAt: 'now', updatedByUid: 'partner1' })));
+  // standing lists (2026-11-03): an admin makes and pins; anyone at Home ticks and adds
+  const slist = (by, o) => Object.assign({ homeId: 'owner1', text: 'Food shopping', note: null, requestedTiming: 'none', requestedDate: null,
+    requesterUid: by, assigneeUid: by, createdByUid: by, participants: [by], visibility: 'home', status: 'requested', createdAt: 'now', updatedAt: 'now',
+    latestUpdateAt: 'now', latestUpdateByUid: by, latestUpdateType: 'created', readAt: { [by]: 'now' }, hasChecklist: true, kind: 'list', pinned: true }, o || {});
+  await check('list: Abi makes a pinned list for the Home', () => assertSucceeds(partner.doc(HR + '/Lshop').set(slist('partner1'))));
+  await check('list: …with its "created" entry', () => assertSucceeds(partner.doc(HR + '/Lshop/updates/created').set(created('partner1'))));
+  await check('list: Shaun makes one too', () => assertSucceeds(owner.doc(HR + '/Lplan').set(slist('owner1', { text: 'Food plan for the week', pinned: false }))));
+  await check('list: the nanny cannot make one', () => assertFails(nanny.doc(HR + '/Lnanny').set(slist('nanny1'))));
+  await check('list: always shared with the whole Home', () => assertFails(partner.doc(HR + '/Lpriv').set(slist('partner1', { visibility: 'private' }))));
+  await check('list: never sent to someone else', () => assertFails(partner.doc(HR + '/Lsend').set(slist('partner1', { assigneeUid: 'nanny1', participants: ['partner1', 'nanny1'] }))));
+  await check('list: no date', () => assertFails(partner.doc(HR + '/Ldate').set(slist('partner1', { requestedTiming: 'date', requestedDate: '2026-11-04' }))));
+  await check('list: its id starts with L', () => assertFails(partner.doc(HR + '/shop2').set(slist('partner1'))));
+  await check('list: nothing else on it', () => assertFails(partner.doc(HR + '/Lextra').set(slist('partner1', { why: 'x' }))));
+  await check('list: never made in someone else\'s name', () => assertFails(partner.doc(HR + '/Lname').set(slist('owner1'))));
+  await check('list: the nanny reads it', () => assertSucceeds(nanny.doc(HR + '/Lshop').get()));
+  await check('list: …and finds it among what is shared', () => assertSucceeds(nanny.collection(HR).where('homeId', '==', 'owner1').where('visibility', '==', 'home').get()));
+  await check('list: the nanny adds to it', () => assertSucceeds(nanny.doc(HR + '/Lshop/items/m1').set(item('nanny1', { text: 'Milk' }))));
+  await check('list: …and ticks it, as herself', () => assertSucceeds(nanny.doc(HR + '/Lshop/items/m1').update({ done: true, doneByUid: 'nanny1', doneAt: 'now', updatedByUid: 'nanny1', updatedAt: 'now' })));
+  await check('list: Shaun clears what is ticked', () => assertSucceeds(owner.doc(HR + '/Lshop/items/m1').delete()));
+  await check('list: someone not at Home cannot add', () => assertFails(nanny2.doc(HR + '/Lshop/items/m2').set(item('nanny2', { text: 'Eggs' }))));
+  await check('list: Shaun unpins Abi\'s list', () => assertSucceeds(owner.doc(HR + '/Lshop').update({ pinned: false, updatedAt: 'now' })));
+  await check('list: the nanny cannot pin', () => assertFails(nanny.doc(HR + '/Lshop').update({ pinned: true, updatedAt: 'now' })));
+  await check('list: Abi renames it', () => assertSucceeds(partner.doc(HR + '/Lshop').update({ text: 'Weekly shop', updatedAt: 'now' })));
+  await check('list: the nanny cannot rename it', () => assertFails(nanny.doc(HR + '/Lshop').update({ text: 'Mine', updatedAt: 'now' })));
+  await check('list: the nanny cannot remove it', () => assertFails(nanny.doc(HR + '/Lplan').update({ deletedAt: 'now', deletedByUid: 'nanny1', updatedAt: 'now' })));
+  await check('list: Abi cannot remove Shaun\'s list (whoever made it does)', () => assertFails(partner.doc(HR + '/Lplan').update({ deletedAt: 'now', deletedByUid: 'partner1', updatedAt: 'now' })));
+  await check('list: Shaun removes his own', () => assertSucceeds(owner.doc(HR + '/Lplan').update({ deletedAt: 'now', deletedByUid: 'owner1', updatedAt: 'now' })));
+  await check('list: …and nobody adds to it after', () => assertFails(owner.doc(HR + '/Lplan/items/z1').set(item('owner1', { text: 'Pasta' }))));
+  await check('list: an ordinary request never claims to be one', () => assertFails(partner.doc(HR + '/Lfake').set(ask({ requesterUid: 'partner1', assigneeUid: 'nanny1', createdByUid: 'partner1', participants: ['partner1', 'nanny1'], kind: 'list' }))));
   // "tell me when it's ticked / done": private to each person
   const WT = 'ledger_home_watches';
   const watch = (uid, rid, iid, o) => Object.assign({ uid, homeId: 'owner1', requestId: rid, itemId: iid, createdAt: 'now' }, o || {});

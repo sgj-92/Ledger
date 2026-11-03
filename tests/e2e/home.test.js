@@ -1316,6 +1316,69 @@ async function oobLink(email){
     check(A.errs.length === 0, 'H26 no page errors', A.errs.join(' | ').slice(0, 400));
   }
 
+  // H27 (2026-11-03) — standing lists: Abi pins "Food shopping"; Maria adds and ticks; Shaun
+  // clears what's ticked and unpins it. The counts are one slim row of chips.
+  {
+    const closeAny = p => p.evaluate(() => { const x = document.querySelector('.sheet-backdrop.open .sheet-close, #ppBackdrop.open .sheet-close'); if (x) x.click(); });
+    const itemsOf = async id => ((await (await fetch(`${FS}/${HR}/${id}/items?pageSize=100`, { headers: ADMIN })).json()).documents || []).map(d => Object.assign({ id: d.name.split('/').pop() }, dec({ mapValue: { fields: d.fields } })));
+    const card = (p, scope, t) => p.evaluate(([s, t]) => { const c = [...document.querySelectorAll(s + ' .hs-pin.pin-list')].find(x => x.querySelector('.hs-pin-t').textContent === t); return c ? c.innerText.replace(/\n/g, ' | ') : null; }, [scope, t]);
+    await goHome(A); await A.waitForSelector('#hsAdd'); await A.click('#hsAdd');
+    check(await until(A, () => !!document.getElementById('hamPinList')), 'H27 Abi (admin): Add → "A list for everyone"');
+    await A.click('#hamPinList'); await A.waitForSelector('#lnName');
+    await A.fill('#lnName', 'Food shopping'); await A.fill('#lnItems', 'Milk\nEggs');
+    await A.click('#lnSave');
+    let L = null;
+    for (let k = 0; k < 30 && !L; k++){ await sleep(250); L = (await all(HR)).find(r => r.kind === 'list' && r.text === 'Food shopping'); }
+    check(L && /^L/.test(L.id) && L.pinned === true && L.visibility === 'home' && L.createdByUid === abi && L.requestedTiming === 'none', 'H27 one list: pinned, shared with the whole Home, Abi\'s', L);
+    check(await until(A, () => /Milk/.test((document.getElementById('lsList') || {}).innerText || '') && document.getElementById('lsKicker').textContent === 'Pinned list'), 'H27 it opens on her phone, Milk and Eggs on it');
+    await closeAny(A); await sleep(300);
+    // Maria: it's at the top of her Home; she adds and ticks
+    await goHome(M);
+    check(await until(M, ([s]) => { const c = [...document.querySelectorAll(s + ' .hs-pin.pin-list')].find(x => /Food shopping/.test(x.innerText)); return c && /2 items/.test(c.innerText) && /Milk, Eggs/.test(c.innerText); }, [MH], 12000),
+      'H27 Maria sees it pinned at the top: "2 items", "Milk, Eggs"', await card(M, MH, 'Food shopping'));
+    await M.evaluate(([s]) => [...document.querySelectorAll(s + ' .hs-pin.pin-list')].find(x => /Food shopping/.test(x.innerText)).click(), [MH]);
+    await M.waitForSelector('#hlAdd');
+    await M.fill('#hlAdd', 'Bread'); await M.click('#hlAddBtn');
+    check(await until(M, () => [...document.querySelectorAll('#lsList .hl-text')].some(x => x.textContent === 'Bread')), 'H27 Maria adds Bread');
+    await M.evaluate(() => [...document.querySelectorAll('#lsList .hl-row')].find(r => /Milk/.test(r.innerText)).querySelector('.commitment-status-dot').click());
+    let its = [];
+    for (let k = 0; k < 30; k++){ await sleep(250); its = await itemsOf(L.id); if (its.some(x => x.text === 'Milk' && x.done)) break; }
+    check(its.some(x => x.text === 'Bread' && x.createdByUid === maria) && its.some(x => x.text === 'Milk' && x.done && x.doneByUid === maria), 'H27 …and ticks Milk, as herself', its.map(x => x.text + (x.done ? '✓' : '')));
+    check(await M.evaluate(() => !document.getElementById('lsPin') && !document.getElementById('lsRemove')), 'H27 she can\'t pin, rename or remove it');
+    await closeAny(M); await sleep(300);
+    // Shaun: the chips, the card, clearing what's ticked, unpinning
+    await goHome(S);
+    check(await until(S, ([s]) => { const c = [...document.querySelectorAll(s + ' .hs-pin.pin-list')].find(x => /Food shopping/.test(x.innerText)); return c && /2 items/.test(c.innerText) && /Eggs, Bread/.test(c.innerText); }, [SH], 12000),
+      'H27 Shaun\'s Home: Food shopping pinned, 2 items still to get', await card(S, SH, 'Food shopping'));
+    check(await S.evaluate(([s]) => { const sum = document.querySelector(s + ' .hs-top .hs-sum'), pins = document.querySelector(s + ' .hs-pins');
+      return !!sum && sum.querySelectorAll('.hs-stat').length >= 2 && !!pins && (pins.compareDocumentPosition(sum) & Node.DOCUMENT_POSITION_FOLLOWING) && sum.getBoundingClientRect().height < 44 && sum.scrollWidth <= sum.clientWidth + 1; }, [SH]),
+      'H27 the counts are one slim row of chips, under the pinned lists');
+    await S.screenshot({ path: `${shots}/${tag}-H27-shaun-home.png` });
+    await S.evaluate(([s]) => [...document.querySelectorAll(s + ' .hs-pin.pin-list')].find(x => /Food shopping/.test(x.innerText)).click(), [SH]);
+    check(await until(S, () => /Clear the ticked item/.test((document.getElementById('hlClearTicked') || {}).textContent || '')), 'H27 "Clear the ticked item"');
+    check(await S.evaluate(() => !!document.getElementById('lsPin') && !document.getElementById('lsRemove')), 'H27 Shaun (an admin) pins and renames; only Abi, who made it, removes it');
+    await S.screenshot({ path: `${shots}/${tag}-H27-shaun-list.png` });
+    await S.click('#hlClearTicked');
+    for (let k = 0; k < 30; k++){ await sleep(250); its = await itemsOf(L.id); if (!its.some(x => x.text === 'Milk')) break; }
+    check(its.map(x => x.text).sort().join() === 'Bread,Eggs', 'H27 cleared: Milk is gone; Eggs and Bread stay', its.map(x => x.text));
+    await S.click('#lsPin');
+    for (let k = 0; k < 30; k++){ await sleep(250); L = (await all(HR)).find(r => r.id === L.id); if (L.pinned === false) break; }
+    check(L.pinned === false, 'H27 Shaun unpins it');
+    await closeAny(S); await sleep(400);
+    check(await until(S, ([s]) => !document.querySelector(s + ' .hs-pin.pin-list') && [...document.querySelectorAll(s + ' .ls-row')].some(r => /Food shopping/.test(r.innerText) && /2 items/.test(r.innerText)), [SH]),
+      'H27 …it moves down, under Lists');
+    check(await S.evaluate(([s]) => ![...document.querySelectorAll(s + ' .hs-row:not(.ls-row) .commitment-title')].some(x => x.textContent === 'Food shopping'), [SH]), 'H27 a list is never among the requests');
+    // Abi, who made it, removes it
+    await goHome(A);
+    await A.evaluate(([s]) => [...document.querySelectorAll(s + ' .ls-row')].find(r => /Food shopping/.test(r.innerText)).click(), [AH]);
+    await A.waitForSelector('#lsRemove');
+    await A.click('#lsRemove');
+    for (let k = 0; k < 30; k++){ await sleep(250); L = (await all(HR)).find(r => r.id === L.id); if (L.deletedAt) break; }
+    check(!!L.deletedAt && L.deletedByUid === abi, 'H27 Abi removes it');
+    check(await until(S, ([s]) => ![...document.querySelectorAll(s + ' .ls-row')].some(r => /Food shopping/.test(r.innerText)), [SH]), 'H27 …and it leaves Shaun\'s Home');
+    check(A.errs.length === 0 && M.errs.length === 0 && S.errs.length === 0, 'H27 no page errors', A.errs.concat(M.errs, S.errs).join(' | ').slice(0, 400));
+  }
+
   // H11 — the partner portal still does what it did
   await A.click('[data-pp-tab="today"]'); await sleep(300);
   check(await A.evaluate(() => /Nothing shared for today yet/.test(document.getElementById('partnerApp').innerText)), 'H11 Abi\'s shared day is untouched');

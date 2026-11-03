@@ -252,8 +252,11 @@
   .section-kicker:first-child { margin-top: var(--sp-2); }
 
   /* ---------- header ---------- */
+  /* Phones (2026-11-03): the large heading scrolls away with the page, as iOS's large
+     titles do, and a slim frosted bar with the small title takes over at the top (.hdr-mini).
+     Nothing under it moves: the heading never changes size in the flow. */
   header.top {
-    position: sticky; top: 0; z-index: 5; flex-shrink: 0;
+    position: relative; z-index: 5; flex-shrink: 0;
     padding: calc(9px + env(safe-area-inset-top)) 22px 10px;
     background: linear-gradient(var(--bg) 90%, var(--header-fade) 97%, var(--header-fade-0));
     overflow: hidden;
@@ -279,6 +282,28 @@
     background: var(--hero-scrim);
   }
   .hdr-bar { position: relative; display: flex; align-items: center; gap: 10px; }
+  .hdr-bar, .day-nav-sub { opacity: var(--hdr-fade, 1); }
+  .hdr-mini {
+    position: fixed; left: 0; right: 0; top: 0; z-index: 6;
+    display: flex; align-items: center; gap: 8px;
+    padding: env(safe-area-inset-top) 14px 0; height: calc(46px + env(safe-area-inset-top));
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+    backdrop-filter: blur(20px) saturate(1.3); -webkit-backdrop-filter: blur(20px) saturate(1.3);
+    border-bottom: 1px solid var(--line);
+    opacity: 0; transform: translateY(-8px); pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .hdr-mini.on { opacity: 1; transform: none; pointer-events: auto; }
+  .hdr-mini-t {
+    flex: 1; min-width: 0; height: 100%; border: none; background: none; cursor: pointer;
+    font-family: var(--serif); font-size: 18px; letter-spacing: -0.01em; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hdr-mini .circ-btn { width: 32px; height: 32px; }
+  .hdr-mini .circ-btn svg { width: 15px; height: 15px; }
+  body.auth-locked .hdr-mini { display: none; }
+  /* what is scrolled to (a section, a field) lands below the slim bar, not under it */
+  html { scroll-padding-top: calc(56px + env(safe-area-inset-top)); }
   .circ-btn {
     flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
     border: 1px solid var(--line-2); background: var(--tint-raise);
@@ -4677,6 +4702,7 @@
     .day-nav-sub:empty { display: none; }
 
     :root { --hdr-gap: 18px; }
+    .hdr-mini { display: none; }
     main { grid-column: 2; grid-row: 2; min-width: 0; padding: var(--hdr-gap) var(--gutter) 64px; }
     .me-switch { width: 420px; max-width: 100%; }
     body.has-update-bar main { padding-bottom: 96px; }
@@ -5099,7 +5125,6 @@
   /* ---- Home, the screen: a summary that filters, then what needs doing ---- */
   .hs { padding-bottom: var(--sp-6); }
   .hs-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: var(--sp-2) 0 var(--sp-4); }
-  .hs-who { margin: 0; min-width: 0; font-size: 12.5px; color: var(--text-3); overflow-wrap: anywhere; }
   .hs-add {
     flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 16px;
     border-radius: 100px; border: 1px solid rgba(var(--gold-rgb),0.36); background: rgba(var(--gold-rgb),0.08);
@@ -5110,20 +5135,62 @@
   .hs-add:active { transform: scale(0.97); background: rgba(var(--gold-rgb),0.14); }
   html[data-theme="light"] .hs-add { color: var(--gold-2); }
   .hs-top-acts { display: flex; gap: 8px; flex-shrink: 0; }
-  .hs-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: var(--sp-5); }
+  /* the counts (2026-11-03): one slim row of chips beside Add, each a filter */
+  .hs-top .hs-sum { display: flex; gap: 6px; min-width: 0; flex: 1 1 auto; overflow-x: auto; scrollbar-width: none; }
+  .hs-top .hs-sum::-webkit-scrollbar { display: none; }
+  .hs-top.two { flex-wrap: wrap; }
+  .hs-top.two .hs-sum { flex-basis: 100%; }
+  .hs-top.two .hs-top-acts { margin-left: auto; }
   .hs-stat {
-    display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; min-height: 64px;
-    padding: 10px 12px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface);
-    font-family: var(--sans); text-align: left; cursor: pointer; color: var(--text);
-    transition: border-color 0.14s ease, background 0.14s ease;
+    flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 11px;
+    border-radius: 100px; border: 1px solid var(--line-2); background: var(--surface);
+    font-family: var(--sans); font-size: 12.5px; cursor: pointer; color: var(--text-2); white-space: nowrap;
+    transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
   }
   .hs-stat:active { background: var(--surface-2); }
-  .hs-stat-n { font-size: 22px; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
-  .hs-stat-l { font-size: 11.5px; color: var(--text-3); line-height: 1.25; overflow-wrap: anywhere; }
-  .hs-stat.zero .hs-stat-n { color: var(--text-3); }
+  .hs-stat-n { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
+  .hs-stat.zero { color: var(--text-3); }
+  .hs-stat.zero .hs-stat-n { color: var(--text-3); font-weight: 500; }
   .hs-stat.warn .hs-stat-n { color: var(--danger); }
-  .hs-stat.sel { border-color: rgba(var(--gold-rgb),0.55); background: rgba(var(--gold-rgb),0.06); }
-  .hs-stat.sel .hs-stat-l { color: var(--text-2); }
+  .hs-stat.sel { border-color: rgba(var(--gold-rgb),0.55); background: rgba(var(--gold-rgb),0.08); color: var(--text); }
+  /* pinned: the standing lists and each person's daily tasks, two to a row */
+  .hs-pins { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: var(--sp-2) 0 var(--sp-4); }
+  .hs-pins.one { grid-template-columns: minmax(0, 1fr); }
+  .hs-pin {
+    display: flex; flex-direction: column; align-items: stretch; gap: 4px; min-width: 0; min-height: 92px;
+    padding: 12px 13px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface);
+    font-family: var(--sans); text-align: left; cursor: pointer; color: var(--text);
+    transition: transform 0.12s ease, background 0.14s ease, border-color 0.14s ease;
+  }
+  .hs-pin:active { transform: scale(0.985); background: var(--surface-2); }
+  .hs-pin-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .hs-pin-ic { flex-shrink: 0; width: 18px; height: 18px; color: var(--gold); display: flex; }
+  .hs-pin-ic svg { width: 100%; height: 100%; }
+  html[data-theme="light"] .hs-pin-ic { color: var(--gold-2); }
+  .hs-pin-t { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 500; line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .hs-pin-m { font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .hs-pin-p { font-size: 12px; line-height: 1.35; color: var(--text-3);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .hs-pin-new { border-style: dashed; border-color: rgba(var(--gold-rgb),0.4); background: none; }
+  .hs-pin-new .hs-pin-t { color: var(--gold); }
+  html[data-theme="light"] .hs-pin-new .hs-pin-t { color: var(--gold-2); }
+  .hs-pin-new .hs-pin-m { color: var(--text-3); }
+  /* a standing list, open */
+  .ls-acts { margin-top: var(--sp-5); }
+  .ls-acts .set-row-label { flex: 1; }
+  .ls-remove { color: var(--danger); }
+  .ls-switch { position: relative; flex-shrink: 0; width: 42px; height: 26px; border-radius: 100px; background: var(--line-2); transition: background 0.18s ease; }
+  .ls-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .set-row.on .ls-switch { background: var(--gold); }
+  .set-row.on .ls-switch::after { transform: translateX(16px); }
+  .ls-rename { width: 100%; font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 10px; padding: 4px 8px; }
+  .ln-ideas { display: flex; flex-wrap: wrap; gap: 8px; margin: calc(-1 * var(--sp-2)) 0 var(--sp-4); }
+  .hl-done-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+  .hl-done-bar .hl-done-toggle { margin: 0; }
+  .hl-clear { flex-shrink: 0; padding: 8px 0; font-size: 12.5px; color: var(--gold); }
+  html[data-theme="light"] .hl-clear { color: var(--gold-2); }
   .hs-filter-bar { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: calc(-1 * var(--sp-2)) 0 var(--sp-2); }
   .hs-filter-t { font-family: var(--serif); font-size: 19px; color: var(--text); }
   .hs-filter-x { padding: 6px 0; font-size: 12.5px; color: var(--text-2); }
@@ -5614,6 +5681,12 @@
   </div>
   <div class="day-nav-sub" id="dayNavSub"></div>
 </header>
+<!-- the heading, small, once the large one has scrolled away (phones); tap to go back up -->
+<div class="hdr-mini" id="hdrMini" aria-hidden="true">
+  <button class="circ-btn" id="hdrMiniPrev" aria-label="Previous" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 6 8.5 12 14.5 18"/></svg></button>
+  <button type="button" class="hdr-mini-t" id="hdrMiniTitle" aria-label="Back to the top" tabindex="-1"></button>
+  <button class="circ-btn" id="hdrMiniNext" aria-label="Next" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9.5 6 15.5 12 9.5 18"/></svg></button>
+</div>
 
 <main>
 
@@ -7027,7 +7100,7 @@
 
   function authGateEl(){ return document.getElementById('authGate'); }
   function appRegions(){
-    return ['header.top', 'main', 'nav.tabbar', '#globalFabBtn', '#sheetBackdrop']
+    return ['header.top', '#hdrMini', 'main', 'nav.tabbar', '#globalFabBtn', '#sheetBackdrop']
       .map(function(s){ return document.querySelector(s); }).filter(Boolean);
   }
   function lockApp(){
@@ -8474,7 +8547,45 @@
       titleEl.textContent = info.title;
     }
     document.querySelector('header.top').classList.toggle('has-sub', !!sub.innerHTML);
+    hdrMiniSync();
   }
+  // the slim bar mirrors the heading: its title and whether there are arrows
+  function hdrMiniSync(){
+    var t = document.getElementById('hdrMiniTitle');
+    if (!t) return;
+    t.textContent = document.getElementById('topDate').textContent;
+    ['Prev', 'Next'].forEach(function(k){
+      var big = document.getElementById('day' + k + 'Btn'), mini = document.getElementById('hdrMini' + k);
+      mini.style.visibility = big.hidden ? 'hidden' : '';
+      mini.setAttribute('aria-label', big.getAttribute('aria-label') || k);
+    });
+    hdrMiniUpdate();
+  }
+  // shown once the large heading is nearly gone; the heading fades as it goes
+  function hdrMiniUpdate(){
+    var hdr = document.querySelector('header.top'), mini = document.getElementById('hdrMini');
+    if (!hdr || !mini) return;
+    if (window.innerWidth >= 768 || !hdr.offsetHeight){ mini.classList.remove('on'); hdr.style.removeProperty('--hdr-fade'); return; }
+    var y = window.scrollY || 0, h = hdr.offsetHeight, mh = mini.offsetHeight || 46;
+    var on = y > h - mh - 4;
+    hdr.style.setProperty('--hdr-fade', String(Math.max(0, Math.min(1, 1 - y / Math.max(1, (h - mh) * 0.9))).toFixed(3)));
+    if (on !== mini.classList.contains('on')){
+      mini.classList.toggle('on', on);
+      mini.setAttribute('aria-hidden', on ? 'false' : 'true');
+      mini.querySelectorAll('button').forEach(function(b){ b.tabIndex = on ? 0 : -1; });
+    }
+  }
+  (function(){
+    var queued = false;
+    function tick(){ if (queued) return; queued = true; requestAnimationFrame(function(){ queued = false; hdrMiniUpdate(); }); }
+    window.addEventListener('scroll', tick, { passive: true });
+    window.addEventListener('resize', tick);
+    document.getElementById('hdrMiniTitle').addEventListener('click', function(){
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e){ window.scrollTo(0, 0); }
+    });
+    document.getElementById('hdrMiniPrev').addEventListener('click', function(){ document.getElementById('dayPrevBtn').click(); });
+    document.getElementById('hdrMiniNext').addEventListener('click', function(){ document.getElementById('dayNextBtn').click(); });
+  })();
 
   function headerNavStep(dir){
     if (currentView === 'plan'){ goPlanWeek(addDays(planWeekStart, dir * 7)); return; }
@@ -16131,7 +16242,10 @@
   // "You" for the person looking; their name for everyone else
   function homeWho(uid){ return uid === homeMe() ? 'You' : homeNameOf(uid); }
   function homeWhose(uid){ return uid === homeMe() ? 'your' : homeNameOf(uid) + '’s'; }
-  function homeReq(id){ return home.requests.find(function(r){ return r.id === id; }) || (home.dailyLists || []).find(function(r){ return r.id === id; }) || null; }
+  function homeReq(id){
+    function by(r){ return r.id === id; }
+    return home.requests.find(by) || (home.dailyLists || []).find(by) || (home.lists || []).find(by) || null;
+  }
   // someone's own task: their idea, for themselves. (Something asked of them in person is
   // an ordinary request from whoever asked — only who wrote it differs.)
   function hrOwnIdea(r){ return !!r && !!r.assigneeUid && r.requesterUid === r.assigneeUid && r.createdByUid === r.assigneeUid; }
@@ -16195,7 +16309,9 @@
       var live = Object.keys(byId).map(function(k){ return byId[k]; }).filter(function(r){ return !r.deletedAt; });
       // each day's daily-tasks list lives in its own section, never among the requests
       home.dailyLists = live.filter(function(r){ return r.kind === 'daily'; });
-      home.requests = live.filter(function(r){ return r.kind !== 'daily'; });
+      // standing lists (Food shopping, the week's food plan): pinned at the top, never requests
+      home.lists = live.filter(function(r){ return r.kind === 'list'; });
+      home.requests = live.filter(function(r){ return r.kind !== 'daily' && r.kind !== 'list'; });
       home.reqLoaded = true;
       if (home.surface === 'owner') reconcileHome();
       homeSyncItems();
@@ -16370,7 +16486,7 @@
     el.appendChild(k); el.appendChild(document.createTextNode(why));
   }
   // the people in it, and (since 2026-10-28) any admin, as admins correct any open request
-  function hrIsListEditor(r){ var me = homeMe(); return !!r && (r.requesterUid === me || r.createdByUid === me || r.assigneeUid === me || homeIsAdmin()); }
+  function hrIsListEditor(r){ var me = homeMe(); return !!r && ((r.kind === 'list' && homeOn()) || r.requesterUid === me || r.createdByUid === me || r.assigneeUid === me || homeIsAdmin()); }
   function homeSyncItems(extraId){
     if (extraId) home.itemExtra = extraId;
     var want = {};
@@ -16379,6 +16495,8 @@
     if (home.itemExtra && homeReq(home.itemExtra) && homeReq(home.itemExtra).hasChecklist) want[home.itemExtra] = true;
     // today's daily lists, for their progress on the Home screen
     (home.dailyLists || []).forEach(function(r){ if (r.dailyDate === todayStr() && dailyOn(r.dailyUid)) want[r.id] = true; });
+    // every standing list, for what's on it at a glance
+    (home.lists || []).slice(0, 12).forEach(function(r){ want[r.id] = true; });
     Object.keys(home.itemStops).forEach(function(rid){
       if (!want[rid]){ try { home.itemStops[rid](); } catch(e){} delete home.itemStops[rid]; delete home.items[rid]; }
     });
@@ -16522,8 +16640,9 @@
     wrap.innerHTML = '';
     var head = document.createElement('div'); head.className = 'hs-sec-head hl-head';
     head.innerHTML = '<h3 class="cz-sec-title"></h3><span class="cz-sec-count"></span>';
-    head.querySelector('h3').textContent = r.kind === 'daily' ? 'Tasks' : 'Checklist';
-    head.querySelector('.cz-sec-count').textContent = items.length ? done.length + ' of ' + items.length + (items.length && !open.length ? ' · all ticked' : '') : '';
+    head.querySelector('h3').textContent = r.kind === 'daily' ? 'Tasks' : (r.kind === 'list' ? 'On the list' : 'Checklist');
+    head.querySelector('.cz-sec-count').textContent = !items.length ? '' : (r.kind === 'list' ? (open.length ? open.length + ' left' : 'All ticked')
+      : done.length + ' of ' + items.length + (!open.length ? ' · all ticked' : ''));
     if (r.hasChecklist || items.length) wrap.appendChild(head);
     var list = document.createElement('div'); list.className = 'hl-list'; list.id = 'hlList';
     open.forEach(function(it, idx){ list.appendChild(hlRow(r, it, editor, open, idx)); });
@@ -16551,7 +16670,7 @@
     }
     // a day's list not finished: what's left goes to tomorrow's, in one tap
     var tmw = fmtDate(addDays(todayStr(), 1));
-    if (editor && open.length && ['requested', 'planned', 'in_progress', 'missed'].indexOf(r.status) > -1 && hrDay(r) !== tmw){
+    if (editor && open.length && r.kind !== 'list' && ['requested', 'planned', 'in_progress', 'missed'].indexOf(r.status) > -1 && hrDay(r) !== tmw){
       var mv = document.createElement('button'); mv.type = 'button'; mv.className = 'bk-btn hl-move-left'; mv.id = 'hlMoveLeft';
       mv.innerHTML = UI_ICON.arrowRight + '<span></span>';
       mv.querySelector('span').textContent = open.length === 1 ? 'Move what’s left (1) to tomorrow' : 'Move what’s left (' + open.length + ') to tomorrow';
@@ -16565,11 +16684,20 @@
       tog.innerHTML = '<span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
       tog.querySelector('span').textContent = 'Ticked · ' + done.length;
       tog.addEventListener('click', function(){ home.listDoneOpen = !home.listDoneOpen; hrChecklistInto(wrap, rid); });
-      wrap.appendChild(tog);
+      var bar = document.createElement('div'); bar.className = 'hl-done-bar';
+      bar.appendChild(tog);
+      wrap.appendChild(bar);
       if (shown){
         var dl = document.createElement('div'); dl.className = 'hl-list hl-done-list';
         done.forEach(function(it){ dl.appendChild(hlRow(r, it, editor)); });
         wrap.appendChild(dl);
+      }
+      // a standing list starts again: what's been got goes, in one tap
+      if (editor && r.kind === 'list'){
+        var clr = document.createElement('button'); clr.type = 'button'; clr.className = 'btn-link hl-clear'; clr.id = 'hlClearTicked';
+        clr.textContent = done.length === 1 ? 'Clear the ticked item' : 'Clear ' + done.length + ' ticked items';
+        clr.addEventListener('click', function(){ clr.disabled = true; listClearTicked(homeReq(rid) || r, done); });
+        bar.appendChild(clr);
       }
     }
   }
@@ -16953,16 +17081,32 @@
       wrap.appendChild(sk);
       return;
     }
-    // the add control, and who is at Home
+    // pinned (2026-11-03): the standing lists and each person's daily tasks, at the top
+    if (!home.filter) homePinnedInto(wrap);
+    // one slim row: the counts, each a way in, and Add
     var top = document.createElement('div'); top.className = 'hs-top';
-    var who = document.createElement('p'); who.className = 'hs-who';
-    var names = homeActiveMembers().map(function(m){ return m.uid === homeMe() ? null : m.displayName; }).filter(Boolean);
-    who.textContent = names.length ? 'You, ' + names.join(', ') : 'Just you so far';
     var add = document.createElement('button'); add.type = 'button'; add.className = 'hs-add'; add.id = 'hsAdd';
     add.innerHTML = BK_PLUS_SVG + '<span>Add</span>';
     add.setAttribute('aria-haspopup', 'dialog');
     add.addEventListener('click', openHomeAddMenu);
-    top.appendChild(who);
+    var c = homeCounts();
+    var sum = document.createElement('div'); sum.className = 'hs-sum'; sum.setAttribute('role', 'group'); sum.setAttribute('aria-label', 'Filter Home');
+    // Overdue is a warning: there only when something is (or while it's the filter)
+    [['mine', c.mine, 'For me'], ['others', c.others, 'Others'], ['overdue', c.overdue, 'Overdue']].filter(function(x){
+      return x[0] !== 'overdue' || x[1] || home.filter === 'overdue';
+    }).forEach(function(x){
+      var b = document.createElement('button'); b.type = 'button';
+      b.className = 'hs-stat' + (home.filter === x[0] ? ' sel' : '') + (x[0] === 'overdue' && x[1] ? ' warn' : '') + (x[1] ? '' : ' zero');
+      b.dataset.hsFilter = x[0];
+      b.setAttribute('aria-pressed', home.filter === x[0] ? 'true' : 'false');
+      b.setAttribute('aria-label', HS_FILTERS[x[0]] + ': ' + x[1]);
+      b.innerHTML = '<span class="hs-stat-l"></span><span class="hs-stat-n"></span>';
+      b.querySelector('.hs-stat-n').textContent = String(x[1]);
+      b.querySelector('.hs-stat-l').textContent = x[2];
+      b.addEventListener('click', function(){ home.filter = home.filter === x[0] ? null : x[0]; home.allShown = 30; homeChanged(); });
+      sum.appendChild(b);
+    });
+    top.appendChild(sum);
     // Ask Claude at Home (2026-10-30): for a Home admin who isn't the owner — Shaun has his own
     if (askClaudeHomeAvailable()){
       var cl = document.createElement('button'); cl.type = 'button'; cl.className = 'hs-add hs-claude'; cl.id = 'hsClaude';
@@ -16972,24 +17116,9 @@
       var acts = document.createElement('div'); acts.className = 'hs-top-acts';
       acts.appendChild(cl); acts.appendChild(add);
       top.appendChild(acts);
+      top.classList.add('two');
     } else top.appendChild(add);
     wrap.appendChild(top);
-    // the summary: three counts, each a way in
-    var c = homeCounts();
-    var sum = document.createElement('div'); sum.className = 'hs-sum'; sum.setAttribute('role', 'group'); sum.setAttribute('aria-label', 'Summary');
-    [['mine', c.mine, 'For me'], ['others', c.others, 'Assigned to others'], ['overdue', c.overdue, 'Overdue']].forEach(function(x){
-      var b = document.createElement('button'); b.type = 'button';
-      b.className = 'hs-stat' + (home.filter === x[0] ? ' sel' : '') + (x[0] === 'overdue' && x[1] ? ' warn' : '') + (x[1] ? '' : ' zero');
-      b.dataset.hsFilter = x[0];
-      b.setAttribute('aria-pressed', home.filter === x[0] ? 'true' : 'false');
-      b.innerHTML = '<span class="hs-stat-n"></span><span class="hs-stat-l"></span>';
-      b.querySelector('.hs-stat-n').textContent = String(x[1]);
-      b.querySelector('.hs-stat-l').textContent = x[2];
-      b.addEventListener('click', function(){ home.filter = home.filter === x[0] ? null : x[0]; home.allShown = 30; homeChanged(); });
-      sum.appendChild(b);
-    });
-    wrap.appendChild(sum);
-    if (!home.filter) homeDailyInto(wrap);
     var me = homeMe();
     if (home.filter){
       var bar = document.createElement('div'); bar.className = 'hs-filter-bar';
@@ -17018,6 +17147,7 @@
       hsSection(wrap, 'Upcoming', upcoming, { max: 8, moreLabel: function(n){ return n + ' more'; }, onShowMore: function(){ home.filter = 'all'; homeChanged(); } });
       homeOngoingInto(wrap);
       homeRecurringInto(wrap, false);
+      homeListsInto(wrap);
       var recent = vis.filter(function(r){ return !hrOpen(r) || r.latestUpdateType === 'comment'; }).sort(hrNewest)
         .filter(function(r){ return (r.latestUpdateAt || r.updatedAt || '') >= fmtDate(addDays(todayStr(), -14)); });
       hsRecentInto(wrap, recent);
@@ -17327,6 +17457,7 @@
         '<button type="button" class="act-row" id="hamSelf"><span class="act-ic">' + UI_ICON.user + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Something I’ll do</span><span class="lc-row-m">Your own idea, or something asked of you in person</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
         '<button type="button" class="act-row" id="hamList"><span class="act-ic">' + CHECK_SVG + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Today\u2019s plan, shopping or checklist</span><span class="lc-row-m">One request with a list to tick off</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
         '<button type="button" class="act-row" id="hamRecur"><span class="act-ic">' + RC_ICON + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Recurring responsibility</span><span class="lc-row-m">Set it up once — it comes round by itself</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
+        (homeIsAdmin() ? '<button type="button" class="act-row" id="hamPinList"><span class="act-ic">' + LIST_ICON + '</span><span class="act-label lc-row-x"><span class="lc-row-t">A list for everyone</span><span class="lc-row-m">Food shopping, the week’s food plan — pinned at the top, never finished</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' : '') +
         (homeIsAdmin() ? '<button type="button" class="act-row" id="hamDaily"><span class="act-ic">' + DAILY_ICON + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Daily tasks</span><span class="lc-row-m">A list for each day — repeating tasks come by themselves</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' : '') +
         (homeIsAdmin() ? '<button type="button" class="act-row" id="hamOngoing"><span class="act-ic">' + OG_ICON + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Ongoing task</span><span class="lc-row-m">Bigger than a day — steps for different people</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' : '') +
         '<button type="button" class="act-row" id="hamMany"><span class="act-ic">' + UI_ICON.list + '</span><span class="act-label lc-row-x"><span class="lc-row-t">Add several tasks</span><span class="lc-row-m">Paste or type a list — each line becomes its own request</span></span><span class="act-chev">' + UI_ICON.chevronRight + '</span></button>' +
@@ -17338,6 +17469,206 @@
     sh.querySelector('#hamRecur').addEventListener('click', function(){ openHomeRecurring(null); });
     var og = sh.querySelector('#hamOngoing'); if (og) og.addEventListener('click', function(){ openOngoingForm(null, null); });
     var dl = sh.querySelector('#hamDaily'); if (dl) dl.addEventListener('click', openDailySetup);
+    var pl = sh.querySelector('#hamPinList'); if (pl) pl.addEventListener('click', function(){ openListNew(); });
+  }
+
+  // ---- standing lists (2026-11-03) ----
+  // Food shopping, the week's food plan: a list that never finishes. One request, kind
+  // 'list', id L…, shared with the whole Home; an admin makes it and pins it, anyone at
+  // Home ticks and adds. Pinned lists sit at the top of Home beside each person's daily
+  // tasks; what's been ticked folds away and is cleared in one tap. No date, nobody is
+  // asked: making one tells nobody.
+  var LIST_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="9.5" y1="7" x2="19" y2="7"/><line x1="9.5" y1="12" x2="19" y2="12"/><line x1="9.5" y1="17" x2="19" y2="17"/><circle cx="5.2" cy="7" r="1"/><circle cx="5.2" cy="12" r="1"/><circle cx="5.2" cy="17" r="1"/></svg>';
+  var PIN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><line x1="12" y1="16" x2="12" y2="21"/></svg>';
+  var LIST_IDEAS = ['Food shopping', 'Food plan for the week'];
+  function homeLists(){
+    return (home.lists || []).slice().sort(function(a, b){ return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1; });
+  }
+  function listOpenItems(rid){ return hrItems(rid).filter(function(i){ return !i.done; }); }
+  function listMeta(r){
+    var its = home.items[r.id];
+    if (!its) return '';
+    var open = its.filter(function(i){ return !i.done; }).length;
+    if (!its.length) return 'Nothing on it yet';
+    if (!open) return 'All ticked';
+    return open === 1 ? '1 item' : open + ' items';
+  }
+  // the first few things still on it, starred first: enough to read at a glance
+  function listPeek(rid){ return listOpenItems(rid).slice(0, 4).map(function(i){ return i.text; }).join(', '); }
+  function pinCard(cls, icon, title, meta, peek){
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'hs-pin ' + cls;
+    b.innerHTML = '<span class="hs-pin-top"><span class="hs-pin-ic" aria-hidden="true">' + icon + '</span><span class="hs-pin-t"></span></span>' +
+      '<span class="hs-pin-m"></span><span class="hs-pin-p"></span>';
+    b.querySelector('.hs-pin-t').textContent = title;
+    b.querySelector('.hs-pin-m').textContent = meta;
+    var pk = b.querySelector('.hs-pin-p');
+    if (peek) pk.textContent = peek; else pk.remove();
+    return b;
+  }
+  function homePinnedInto(wrap){
+    var lists = homeLists().filter(function(r){ return r.pinned; }), people = dailyPeople();
+    var invite = homeIsAdmin() && !homeLists().length;
+    if (!lists.length && !people.length && !invite) return;
+    var grid = document.createElement('div'); grid.className = 'hs-pins'; grid.setAttribute('role', 'group'); grid.setAttribute('aria-label', 'Pinned');
+    lists.forEach(function(r){
+      var b = pinCard('pin-list', LIST_ICON, r.text, listMeta(r), listPeek(r.id));
+      b.dataset.list = r.id;
+      b.addEventListener('click', function(){ openListSheet(r.id); });
+      grid.appendChild(b);
+    });
+    people.forEach(function(uid){
+      var dr = dailyList(uid, todayStr());
+      var b = pinCard('dl-row', DAILY_ICON, dailyWhose(uid), dailyRowMeta(uid), dr ? listPeek(dr.id) : '');
+      b.dataset.daily = uid;
+      b.addEventListener('click', function(){ openDailySheet(uid, todayStr()); });
+      grid.appendChild(b);
+    });
+    if (invite){
+      var n = pinCard('hs-pin-new', PIN_ICON, 'Pin a list', 'Food shopping, the week’s food plan', '');
+      n.id = 'hsPinNew';
+      n.addEventListener('click', function(){ openListNew(); });
+      grid.appendChild(n);
+    }
+    grid.classList.toggle('one', grid.children.length === 1);
+    wrap.appendChild(grid);
+  }
+  // lists that aren't pinned: further down, out of the way
+  function homeListsInto(wrap){
+    var list = homeLists().filter(function(r){ return !r.pinned; });
+    if (!list.length) return;
+    var sec = document.createElement('section'); sec.className = 'hs-sec';
+    var head = document.createElement('div'); head.className = 'hs-sec-head';
+    head.innerHTML = '<h3 class="cz-sec-title">Lists</h3><span class="cz-sec-count"></span>';
+    head.querySelector('.cz-sec-count').textContent = String(list.length);
+    sec.appendChild(head);
+    var box = document.createElement('div'); box.className = 'hs-list';
+    list.forEach(function(r){
+      var row = document.createElement('button'); row.type = 'button'; row.className = 'commitment-item hs-row rc-row ls-row'; row.dataset.list = r.id;
+      row.innerHTML = '<span class="rc-mark" aria-hidden="true">' + LIST_ICON + '</span><span class="commitment-body hs-row-body"><span class="commitment-title"></span><span class="commitment-meta"></span></span>' +
+        '<span class="chev">' + UI_ICON.chevronRight + '</span>';
+      row.querySelector('.commitment-title').textContent = r.text;
+      row.querySelector('.commitment-meta').textContent = listMeta(r);
+      row.addEventListener('click', function(){ openListSheet(r.id); });
+      box.appendChild(row);
+    });
+    sec.appendChild(box);
+    wrap.appendChild(sec);
+  }
+  function listClearTicked(r, done){
+    if (!done.length) return Promise.resolve();
+    var b = dbRef.batch();
+    done.slice(0, 400).forEach(function(it){ b.delete(hrItemsRef(r.id).doc(it.id)); });
+    return b.commit().then(function(){ showPinToast(done.length === 1 ? 'Cleared' : done.length + ' cleared', false, CHECK_SVG); }).catch(hrFail('clear them'));
+  }
+  function listSetPinned(r, on){
+    return homeRef(r.id).update({ pinned: !!on, updatedAt: new Date().toISOString() })
+      .then(function(){ showPinToast(on ? 'Pinned to the top of Home' : 'Unpinned — it’s under Lists', false, CHECK_SVG); }).catch(hrFail(on ? 'pin it' : 'unpin it'));
+  }
+  // a new list: its name, pinned or not, and (if you like) what goes on it
+  function openListNew(){
+    if (!homeIsAdmin()) return;
+    var st = { pinned: true };
+    var have = homeLists().map(function(r){ return r.text.toLowerCase(); });
+    var ideas = LIST_IDEAS.filter(function(t){ return have.indexOf(t.toLowerCase()) === -1; });
+    var sh = homeHost().open('<div class="sheet-handle"></div>' + sheetHead('', 'New list', 'For everyone at Home — anyone can tick and add', '') +
+      '<div class="field"><label for="lnName">Name</label><input type="text" id="lnName" maxlength="80" placeholder="Food shopping" autocomplete="off"></div>' +
+      (ideas.length ? '<div class="ln-ideas" id="lnIdeas"></div>' : '') +
+      '<div class="field"><label for="lnItems">On it <span class="pp-opt">optional · one per line</span></label><textarea id="lnItems" rows="3" maxlength="4000" placeholder="Milk&#10;Eggs"></textarea></div>' +
+      '<div class="set-card"><button type="button" class="set-row" id="lnPin" role="switch"><span class="set-row-label">Pin to the top of Home</span><span class="ls-switch" aria-hidden="true"></span></button></div>' +
+      '<p class="auth-error" id="lnErr" role="alert"></p>' +
+      '<button type="button" class="btn-primary" id="lnSave">Make the list</button>');
+    var name = sh.querySelector('#lnName'), err = sh.querySelector('#lnErr'), save = sh.querySelector('#lnSave'), pin = sh.querySelector('#lnPin');
+    doneKeysIn(sh);
+    var ib = sh.querySelector('#lnIdeas');
+    if (ib) ideas.forEach(function(t){
+      var c = document.createElement('button'); c.type = 'button'; c.className = 'bk-filter-chip'; c.textContent = t;
+      c.addEventListener('click', function(){ name.value = t; name.focus(); });
+      ib.appendChild(c);
+    });
+    function paintPin(){ pin.setAttribute('aria-checked', st.pinned ? 'true' : 'false'); pin.classList.toggle('on', st.pinned); }
+    pin.addEventListener('click', function(){ st.pinned = !st.pinned; paintPin(); });
+    paintPin();
+    save.addEventListener('click', function(){
+      var t = name.value.replace(/\s+/g, ' ').trim();
+      if (!t){ err.textContent = 'Give it a name.'; name.focus(); return; }
+      if (!dbRef || !homeOn()){ err.textContent = 'You’re offline — try again when you’re connected.'; return; }
+      save.disabled = true; err.textContent = '';
+      var me = homeMe(), now = new Date().toISOString(), id = 'L' + dbRef.collection(HOME_REQ).doc().id.slice(0, 30), readAt = {};
+      readAt[me] = now;
+      var b = dbRef.batch();
+      b.set(homeRef(id), { homeId: home.me.homeId, text: t.slice(0, 80), note: null, requestedTiming: 'none', requestedDate: null,
+        requesterUid: me, assigneeUid: me, createdByUid: me, participants: [me], visibility: 'home', status: 'requested',
+        createdAt: now, updatedAt: now, latestUpdateAt: now, latestUpdateByUid: me, latestUpdateType: 'created', readAt: readAt,
+        hasChecklist: true, kind: 'list', pinned: st.pinned });
+      hbParse(sh.querySelector('#lnItems').value).slice(0, 60).forEach(function(line, i){ b.set(hrItemsRef(id).doc(), hrItemDoc(line.slice(0, 200), i + 1)); });
+      b.commit().then(function(){
+        showPinToast(st.pinned ? 'Pinned to the top of Home' : 'Made — it’s under Lists', false, CHECK_SVG);
+        openListSheet(id);
+      }).catch(function(e){ console.error('home list failed', e); save.disabled = false; err.textContent = 'Couldn’t make it — check your connection and try again.'; });
+    });
+    setTimeout(function(){ try { name.focus(); } catch(e){} }, 60);
+  }
+  // a list, open: what's on it, add, tick, clear; an admin pins, renames, and (whoever
+  // made it) removes it
+  function openListSheet(rid){
+    if (!homeReq(rid)) return;
+    var sh = homeHost().open('<div class="sheet-handle"></div>' +
+      '<div class="sheet-head rq-head"><div class="sheet-title-wrap"><p class="rq-kicker" id="lsKicker"></p><div class="sheet-title rq-title" id="lsTitle"></div></div>' +
+        '<button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<div class="hl-wrap" id="lsList"></div>' +
+      '<div class="ls-acts" id="lsActs"></div>');
+    var listEl = sh.querySelector('#lsList'), actsEl = sh.querySelector('#lsActs'), sig = '';
+    homeSyncItems(rid);
+    function open(){ return document.body.contains(listEl) && !!listEl.closest('.sheet-backdrop.open'); }
+    function paint(){
+      if (!open()) return false;
+      var r = homeReq(rid);
+      if (!r){ homeCloseAll(); return false; }
+      sh.querySelector('#lsKicker').textContent = r.pinned ? 'Pinned list' : 'List';
+      if (!sh.querySelector('#lsRename')) sh.querySelector('#lsTitle').textContent = r.text;
+      hrChecklistInto(listEl, rid);
+      var mine = r.createdByUid === homeMe(), s2 = [r.pinned, homeIsAdmin(), mine, r.text].join('|');
+      if (s2 !== sig){
+        sig = s2; actsEl.innerHTML = '';
+        if (homeIsAdmin()){
+          var card = document.createElement('div'); card.className = 'set-card';
+          card.innerHTML = '<button type="button" class="set-row" id="lsPin" role="switch"><span class="set-row-label">Pinned to the top of Home</span><span class="ls-switch" aria-hidden="true"></span></button>' +
+            '<button type="button" class="set-row" id="lsRenameBtn"><span class="set-row-label">Rename</span></button>' +
+            (mine ? '<button type="button" class="set-row ls-remove" id="lsRemove"><span class="set-row-label">Remove the list</span></button>' : '');
+          var pb = card.querySelector('#lsPin');
+          pb.setAttribute('aria-checked', r.pinned ? 'true' : 'false'); pb.classList.toggle('on', !!r.pinned);
+          pb.addEventListener('click', function(){ var x = homeReq(rid); if (x) listSetPinned(x, !x.pinned); });
+          card.querySelector('#lsRenameBtn').addEventListener('click', rename);
+          var rm = card.querySelector('#lsRemove');
+          if (rm) rm.addEventListener('click', function(){
+            var x = homeReq(rid);
+            if (!x || !confirm('Remove “' + x.text + '”? Everything on it goes too.')) return;
+            hrDelete(x).then(function(){ homeCloseAll(); showPinToast('List removed', false, CHECK_SVG); }).catch(hrFail('remove it'));
+          });
+          actsEl.appendChild(card);
+        }
+      }
+      return true;
+    }
+    function rename(){
+      var r = homeReq(rid), t = sh.querySelector('#lsTitle');
+      if (!r || sh.querySelector('#lsRename')) return;
+      var inp = document.createElement('input'); inp.type = 'text'; inp.id = 'lsRename'; inp.className = 'ls-rename'; inp.maxLength = 80; inp.value = r.text;
+      inp.setAttribute('aria-label', 'Name of the list'); inp.enterKeyHint = 'done';
+      t.textContent = ''; t.appendChild(inp); inp.focus(); inp.select();
+      var gone = false;
+      function finish(keep){
+        if (gone) return; gone = true;
+        var x = homeReq(rid), v = inp.value.replace(/\s+/g, ' ').trim().slice(0, 80);
+        t.textContent = x ? x.text : '';
+        if (keep && x && v && v !== x.text){ t.textContent = v; hrWrite(x, { text: v }, 'edited', null, { fromText: String(x.text).slice(0, 280) }).catch(hrFail('rename it')); }
+      }
+      inp.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); finish(true); } else if (e.key === 'Escape'){ e.preventDefault(); finish(false); } });
+      inp.addEventListener('blur', function(){ finish(true); });
+    }
+    paint();
+    home.listRefresh = null;
+    home.detailRefresh = function(){ if (!paint()) home.detailRefresh = null; };
   }
 
   // ---- daily tasks (docs/HOME_DAILY.md, 2026-10-30) ----
@@ -17443,29 +17774,6 @@
     var from = its.filter(function(x){ return !x.done && x.carriedFrom; }).length;
     if (!open) return 'Today · all ' + its.length + ' done';
     return 'Today · ' + done + ' of ' + its.length + ' done' + (from ? ' · ' + from + ' from before' : '');
-  }
-  // on the Home screen: one row a person, today's progress
-  function homeDailyInto(wrap){
-    var people = dailyPeople();
-    if (!people.length) return;
-    var sec = document.createElement('section'); sec.className = 'hs-sec dl-sec';
-    var head = document.createElement('div'); head.className = 'hs-sec-head';
-    head.innerHTML = '<h3 class="cz-sec-title">Daily tasks</h3><span class="cz-sec-count"></span>';
-    sec.appendChild(head);
-    var box = document.createElement('div'); box.className = 'hs-list';
-    people.forEach(function(uid){
-      var b = document.createElement('button'); b.type = 'button';
-      b.className = 'commitment-item hs-row rc-row dl-row'; b.dataset.daily = uid;
-      b.innerHTML = '<span class="rc-mark" aria-hidden="true">' + DAILY_ICON + '</span>' +
-        '<span class="commitment-body hs-row-body"><span class="commitment-title"></span><span class="commitment-meta"></span></span>' +
-        '<span class="chev">' + UI_ICON.chevronRight + '</span>';
-      b.querySelector('.commitment-title').textContent = dailyWhose(uid);
-      b.querySelector('.commitment-meta').textContent = dailyRowMeta(uid);
-      b.addEventListener('click', function(){ openDailySheet(uid, todayStr()); });
-      box.appendChild(b);
-    });
-    sec.appendChild(box);
-    wrap.appendChild(sec);
   }
   // one person's day: the list (ticked, starred, moved on as any checklist), what repeats
   // will come that morning, photos, and (an admin) the setup
@@ -18811,6 +19119,7 @@
     var r0 = homeReq(rid);
     if (!r0) return;
     if (r0.kind === 'daily'){ openDailySheet(r0.dailyUid, r0.dailyDate); return; }
+    if (r0.kind === 'list'){ openListSheet(r0.id); return; }
     var sh = homeHost().open('<div class="sheet-handle"></div>' +
       '<div class="sheet-head rq-head"><div class="sheet-title-wrap">' +
         '<p class="rq-kicker" id="hdKicker"></p><div class="sheet-title rq-title" id="hdTitle"></div>' +

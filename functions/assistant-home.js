@@ -28,6 +28,7 @@ const SYSTEM = [
   '- When the proposal is ready, call present_proposal with a one-line summary, then stop. Make each change once.',
   '- Something that happens on set days every week is a repeating task (propose_daily_repeat); something for one day is a daily task (propose_daily_tasks). Check the repeating tasks first, so nothing is added twice.',
   '- Daily tasks only go to people whose daily tasks are switched on (home_people says who).',
+  '- Standing lists (list: true in list_requests) are the Home\'s lists that never finish, such as Food shopping or the week\'s food plan. To put something on one, use propose_checklist_items with its id; never make a new request for it.',
   '- If the request is unclear (who, which day), ask one short question instead of guessing. Keep what you write short and plain, in British English, using their words.',
   '- Dates are YYYY-MM-DD in their time zone; "today" is the date given with the message. Never plan a day before today.',
   '- You may read the schedule the owner has chosen to share (get_shared_schedule) to plan around it. You cannot see or change anything else of his.',
@@ -232,7 +233,7 @@ function createHomeTools({ db }) {
       const out = [];
       for (const r of rows) {
         out.push({ id: r.id, text: clip(r.text, 200), from: await nameOf(r.requesterUid), for: r.assigneeUid ? await nameOf(r.assigneeUid) : 'anyone',
-          status: r.status, day: dayOf(r), checklist: !!r.hasChecklist });
+          status: r.status, day: dayOf(r), checklist: !!r.hasChecklist, list: r.kind === 'list' });
       }
       return { requests: out };
     }
@@ -242,7 +243,7 @@ function createHomeTools({ db }) {
       const items = (await db.collection(REQ).doc(r.id).collection('items').get()).docs
         .map((d) => d.data() || {}).sort((a, b) => (a.order || 0) - (b.order || 0)).map((x) => ({ text: clip(x.text, 200), done: !!x.done }));
       return { id: r.id, text: clip(r.text, 280), note: r.note ? clip(r.note, 500) : null, from: await nameOf(r.requesterUid),
-        for: r.assigneeUid ? await nameOf(r.assigneeUid) : 'anyone', status: r.status, day: dayOf(r), checklist: items };
+        for: r.assigneeUid ? await nameOf(r.assigneeUid) : 'anyone', status: r.status, day: dayOf(r), checklist: items, list: r.kind === 'list' };
     }
     if (name === 'get_shared_schedule') {
       if (!DATE_RE.test(input.from || '') || !DATE_RE.test(input.to || '')) return { error: 'from and to must be YYYY-MM-DD' };

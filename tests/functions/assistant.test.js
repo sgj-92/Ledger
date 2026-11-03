@@ -205,6 +205,23 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
   check(!(await get('ledger_home_daily/magdaH/repeats/' + 'x')) && (await get('ledger_home_daily/magdaH/repeats/beds')), 'nothing at Home changed: it is only a proposal');
   out = await createAssistant({ db, client: fakeClient([]) }).handle({ uid: 'magdaH', message: 'hi', today: TODAY });
   check(out.status === 403, 'Magda (at Home, not an admin) has no Claude');
+  // a standing list (2026-11-03): Claude sees it as one, and adds to it rather than asking anew
+  await db.doc('ledger_home_requests/Lshop').set({ homeId: 'hhome', text: 'Food shopping', requesterUid: 'hadmin', assigneeUid: 'hadmin', createdByUid: 'hadmin', participants: ['hadmin'],
+    visibility: 'home', status: 'requested', requestedTiming: 'none', requestedDate: null, hasChecklist: true, kind: 'list', pinned: true, createdAt: '2026-10-27T09:00:00Z' });
+  client = fakeClient([
+    (params) => {
+      check(/Standing lists/.test(params.system[0].text), 'her system prompt explains standing lists');
+      return turn('tool_use', use('list_requests', { status: 'open', person_id: null, from: null, to: null }), use('propose_checklist_items', { request_id: 'Lshop', items: ['Oat milk'] }));
+    },
+    (params) => {
+      const r = lastResults(params), rows = JSON.parse(r[0].content.split('\n').slice(1).join('\n')).requests;
+      check(rows.find((x) => x.id === 'Lshop').list === true && rows.find((x) => x.id === 'hq1').list === false, 'list_requests marks the standing list', rows);
+      check(!r[1].is_error, 'items go onto the list');
+      return turn('tool_use', use('present_proposal', { summary: 'Oat milk on the shopping' }));
+    }
+  ]);
+  out = await createAssistant({ db, client }).handle({ uid: 'hadmin', message: 'Add oat milk to the shopping', today: TODAY });
+  check(out.status === 200 && out.body.proposal.changes.map((c) => c.kind + ':' + c.requestId).join() === 'checklist_add:Lshop', 'one change: items on Food shopping', out.body.proposal && out.body.proposal.changes);
   await db.doc('ledger_assistant_usage/hadmin_2026-10-29').set({ ownerUid: 'hadmin', date: '2026-10-29', count: 50 });
   client = fakeClient([]);
   out = await createAssistant({ db, client }).handle({ uid: 'hadmin', message: 'one more', today: '2026-10-29' });

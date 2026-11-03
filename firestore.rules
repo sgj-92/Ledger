@@ -419,6 +419,12 @@ service cloud.firestore {
               && ongoingOpenAfter(n.ongoingId, o.homeId))
       );
     }
+    // a standing list's own change: any admin pins or unpins it. (Removing it is the soft
+    // delete every request has: by whoever made it.) Kept out of homeReqUpdate and tried
+    // after it, which already sits near Firestore's 1,000-expression limit.
+    function listUpdate(o, n, keys) {
+      return keys.hasOnly(['pinned', 'updatedAt']) && n.pinned is bool && homeAdmin(o.homeId);
+    }
     match /ledger_home_requests/{rid} {
       allow read: if canSee(resource.data);
       // anyone at Home asks for themselves; an admin may also ask on someone's behalf.
@@ -426,7 +432,7 @@ service cloud.firestore {
       // them), or something another member asked of them in person (requester = that
       // member). The creator is always the signed-in user, so it always shows who wrote it;
       // requester and assignee are active members.
-      allow create: if (dailyList(rid, request.resource.data)) || (rid.matches('^[A-Za-z0-9]{1,40}$')
+      allow create: if dailyList(rid, request.resource.data) || standingList(rid, request.resource.data) || (rid.matches('^[A-Za-z0-9]{1,40}$')
                     && inHome(request.resource.data.homeId)
                     && request.resource.data.keys().hasOnly(['homeId', 'text', 'note', 'why', 'requestedTiming', 'requestedDate',
                          'requesterUid', 'assigneeUid', 'createdByUid', 'participants', 'visibility', 'status',
@@ -453,7 +459,9 @@ service cloud.firestore {
                     && homeText(request.resource.data));
       allow update: if notDeleted(resource.data) && canSee(resource.data)
                     && request.resource.data.homeId == resource.data.homeId
-                    && homeReqUpdate(resource.data, request.resource.data, request.resource.data.diff(resource.data).affectedKeys());
+                    && (homeReqUpdate(resource.data, request.resource.data, request.resource.data.diff(resource.data).affectedKeys())
+                        || (resource.data.get('kind', null) == 'list'
+                            && listUpdate(resource.data, request.resource.data, request.resource.data.diff(resource.data).affectedKeys())));
       allow delete: if false;
 
       // Its history: append-only. Every entry is written by the signed-in user at the
@@ -470,13 +478,13 @@ service cloud.firestore {
         allow read: if canSee(get(homeReqPath()).data);
         allow create: if itemId.matches('^[A-Za-z0-9]{1,40}$')
                       && existsAfter(homeReqPath())
-                      && listEditor(getAfter(homeReqPath()).data) && notDeleted(getAfter(homeReqPath()).data)
+                      && itemEditor(getAfter(homeReqPath()).data) && notDeleted(getAfter(homeReqPath()).data)
                       && itemShape(request.resource.data)
                       && request.resource.data.createdByUid == request.auth.uid
                       && request.resource.data.updatedByUid == request.auth.uid
                       && ((request.resource.data.done == false && request.resource.data.get('doneByUid', null) == null)
                           || (request.resource.data.done == true && request.resource.data.doneByUid == request.auth.uid));
-        allow update: if listEditor(get(homeReqPath()).data) && notDeleted(get(homeReqPath()).data)
+        allow update: if itemEditor(get(homeReqPath()).data) && notDeleted(get(homeReqPath()).data)
                       && itemShape(request.resource.data)
                       && request.resource.data.createdByUid == resource.data.createdByUid
                       && request.resource.data.createdAt == resource.data.createdAt
@@ -487,7 +495,7 @@ service cloud.firestore {
                           : (request.resource.data.done == true
                              ? (request.resource.data.doneByUid == request.auth.uid && request.resource.data.doneAt is string)
                              : (request.resource.data.get('doneByUid', null) == null && request.resource.data.get('doneAt', null) == null)));
-        allow delete: if listEditor(get(homeReqPath()).data) && notDeleted(get(homeReqPath()).data);
+        allow delete: if itemEditor(get(homeReqPath()).data) && notDeleted(get(homeReqPath()).data);
       }
       // Photos (2026-10-29): phone-quality JPEGs, one document each. Seen by whoever can
       // see the request; added by the people who can edit its checklist, as themselves;
@@ -621,6 +629,26 @@ service cloud.firestore {
           && d.visibility == 'private' && d.status == 'requested' && d.hasChecklist == true
           && d.requestedTiming == 'date' && d.requestedDate == d.dailyDate
           && d.get('plannedDate', null) == null && d.get('linkedActionId', null) == null
+          && d.get('latestUpdateByUid', request.auth.uid) == request.auth.uid
+          && d.get('readAt', {}).keys().hasOnly([request.auth.uid])
+          && homeText(d);
+    }
+    // ---- Standing lists at Home (2026-11-03): Food Shopping, the week's food plan ----
+    // A list that never finishes: one request, kind 'list', with its checklist. An admin
+    // makes it (for themselves, shared with the whole Home); any admin pins or unpins it;
+    // anyone at Home ticks and adds to it (itemEditor). It has no date and is never sent.
+    function standingList(rid, d) {
+      return d.get('kind', null) == 'list'
+          && rid.matches('^L[A-Za-z0-9]{1,39}$')
+          && d.keys().hasOnly(['homeId', 'text', 'note', 'requestedTiming', 'requestedDate', 'requesterUid', 'assigneeUid', 'createdByUid',
+                               'participants', 'visibility', 'status', 'createdAt', 'updatedAt',
+                               'latestUpdateAt', 'latestUpdateByUid', 'latestUpdateType', 'readAt', 'hasChecklist', 'kind', 'pinned'])
+          && homeAdmin(d.homeId)
+          && d.createdByUid == request.auth.uid && d.requesterUid == request.auth.uid && d.assigneeUid == request.auth.uid
+          && d.participants.hasOnly([request.auth.uid]) && d.participants.hasAll([request.auth.uid])
+          && d.visibility == 'home' && d.status == 'requested' && d.hasChecklist == true
+          && d.requestedTiming == 'none' && d.get('requestedDate', null) == null
+          && d.pinned is bool
           && d.get('latestUpdateByUid', request.auth.uid) == request.auth.uid
           && d.get('readAt', {}).keys().hasOnly([request.auth.uid])
           && homeText(d);
@@ -785,6 +813,10 @@ service cloud.firestore {
                     && request.resource.data.requestIds.size() > 0 && request.resource.data.requestIds.size() <= 40
                     && request.resource.data.count == request.resource.data.requestIds.size()
                     && request.resource.data.createdAt is string;
+    }
+    // a checklist's items: on a standing list, anyone at Home; otherwise its list editors
+    function itemEditor(p) {
+      return p.get('kind', null) == 'list' ? inHome(p.homeId) : listEditor(p);
     }
     // who may edit a checklist: the people in the request, and (2026-10-28) any admin, as
     // admins already correct any open request

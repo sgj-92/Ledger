@@ -763,6 +763,20 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-03 — Home's top: pinned lists; headings collapse on scroll (Shaun's answers)
+- **Standing lists:** a Home list that never finishes (Food shopping, the week's food plan):
+  shared with everyone at Home; Shaun or Abi make and pin them; anyone ticks and adds; what's
+  ticked is cleared in one tap. Stored as a Home request, kind `list` (id `L…`), so checklists,
+  photos, "tell me when ticked" and Claude's list tools all work on it. Only its maker removes
+  it (Firestore's expression limit on request updates ruled out "any admin").
+- **Pinned at the top of Home:** the pinned lists and each person's daily tasks, as cards with
+  what's still on them. Unpinned lists sit under **Lists**, further down.
+- **The three count tiles became one slim row of chips** (For me · Others · Overdue, the last
+  only when something is) beside Add.
+- **Headings, every tab (phones):** the large heading scrolls away with the page and a slim
+  frosted bar with the small title (and Plan's / Today's arrows) fades in; tap it to go back
+  to the top. Nothing changes size in the flow (UX_PLAYBOOK §11). Wider screens unchanged.
+
 ### 2026-11-02 — Keep in touch (Shaun's answers)
 - **A list of people**, separate from conversations: each has a rhythm and links to their
   conversations. Not a CRM: name, rhythm, category, a note.
@@ -2558,7 +2572,14 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy, then try it)
+Owner: Shaun and Abi (deploy, then try it)
+**Pinned lists on Home; headings that collapse** — built 2026-11-03 (Decisions above).
+- **Deploy needed:** "Deploy Firebase", everything: Rules (standing lists; until then making a
+  list is refused) and functions (Claude sees lists). This also carries Keep in touch below.
+- **Try:** Home → Add → "A list for everyone" → Food shopping (and the week's food plan).
+  Magda's daily tasks pin there once Abi switches them on.
+
+**Before that** — Owner: Shaun (deploy, then try it)
 **Keep in touch** — built 2026-11-02 (Communications above).
 - **Deploy needed:** "Deploy Firebase", everything: Rules (`ledger_people`; until then
   people don't save beyond the device) and functions (Claude's `list_people` and
@@ -2776,6 +2797,10 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-11-03) — **Home's top and collapsing headings** (decision above). Tests: rules 781,
+  Home e2e 382 (H27), functions assistant 102; partner-sharing 209, assistant e2e 62,
+  comms-capture 30, native-shell 86, goals 23, settings 9, execution 81.
 
 - (2026-11-02) — **Keep in touch** (decision above): People in Comms, the person sheet
   (rhythm, category, note, linked conversations, Spoke today, pause), Today's line, a
