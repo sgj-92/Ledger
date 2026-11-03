@@ -156,7 +156,10 @@ function fakeBridgeWhenAsked(){
   check(await until(A, () => /Finish the quarterly plan/.test(document.querySelector('main').innerText), null, 25000), 'Android: Shaun signs in with his password and gets his Ledger');
   check((await calls(A)).includes('SystemBars.setStyle {"style":"DARK"}'), 'Android: the status bar is set for the dark theme (light text)', (await calls(A)).join(' | '));
   check(await A.evaluate(() => (window.__nat.listeners['App.backButton'] || []).length === 1), 'Android: one back-button listener');
-  check(await A.evaluate(() => !window.__nat.calls.some(c => /^LedgerWidget/.test(c))), 'Android: no widget calls yet (the widget is iOS first)');
+  // Android's widgets (2026-11-03): the same snapshot as the iPhone's, through the same plugin
+  check(await until(A, () => (window.__nat.snapshots || []).length > 0, null, 10000), 'Android widgets: Today is published once his data has loaded');
+  check(await A.evaluate(() => { const s = window.__nat.snapshots.slice(-1)[0]; return s.v === 4 && s.items.some(i => i.title === 'Finish the quarterly plan' && /^luxe\.sgj\.ledger:\/\/open\?openAction=/.test(i.link)) && Array.isArray(s.flow); }),
+    'Android widgets: version 4, his Action with its link, and the Flow');
   check(await A.evaluate(async () => !navigator.serviceWorker || (await navigator.serviceWorker.getRegistrations()).length === 0), 'Android: no web service worker in the app');
   // the five tabs
   for (const v of ['plan', 'log', 'me', 'comms', 'home']){
@@ -277,14 +280,15 @@ function fakeBridgeWhenAsked(){
   await I.click('.tab-btn[data-view="log"]');
   check(await until(I, () => { const b = document.getElementById('nowTimer'); return !!b && b.classList.contains('on') && /^2[45]:\d\d$/.test(b.textContent); }), 'Focus timer: the Focus card counts down ("24:59")');
   // the Live Activity (2026-10-29): the iPhone starts one countdown, with the focus's title,
-  // when it ends and when this run began; Android has none
+  // when it ends and when this run began; Android the same, as an ongoing notification
   const act = await until(I, e => window.__nat.calls.some(c => /^LedgerWidget\.focusActivity /.test(c) && c.indexOf(e) > -1), endsAt, 12000);
   const actCall = (await calls(I)).filter(c => /^LedgerWidget\.focusActivity /.test(c)).pop() || '';
   const actOpts = actCall ? JSON.parse(actCall.slice(actCall.indexOf(' ') + 1)) : {};
   check(act && actOpts.title === 'Call the plumber' && actOpts.context === 'Action \u00b7 09:15' && actOpts.endsAt === endsAt
       && Math.abs(new Date(actOpts.endsAt) - new Date(actOpts.startedAt) - 25 * 60000) < 2000,
     'Live Activity: the iPhone starts the countdown — title, context, start and end', actCall);
-  check(!(await calls(A)).some(c => /^LedgerWidget/.test(c)), 'Live Activity: none on Android');
+  check(await until(A, e => window.__nat.calls.some(c => /^LedgerWidget\.focusActivity /.test(c) && c.indexOf(e) > -1 && /Call the plumber/.test(c)), endsAt, 12000),
+    'Android: the same countdown, in the notification shade (a Live Update on Android 16)');
   // the full-screen focus: the timer button opens it, the screen stays on, it closes again
   await I.click('#nowTimer');
   check(await until(I, () => !document.getElementById('focusFull').hidden && /^2[45]:\d\d$/.test(document.getElementById('ffTime').textContent)

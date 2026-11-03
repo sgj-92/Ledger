@@ -42,6 +42,29 @@
         <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/ledger_gold" />
         <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="general" />
 
+        <!-- Home Screen widgets (Today, Focus, Flow): drawn from the snapshot the page hands
+             over (LedgerWidget.publish); read-only, each tap opens Ledger -->
+        <receiver android:name=".WidgetToday" android:label="@string/widget_today_name" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_today_info" />
+        </receiver>
+        <receiver android:name=".WidgetFocus" android:label="@string/widget_focus_name" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_focus_info" />
+        </receiver>
+        <receiver android:name=".WidgetFlow" android:label="@string/widget_flow_name" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_flow_info" />
+        </receiver>
+        <!-- the widgets' clock: a timer's end, a Flow step's start, midnight; and the phone's
+             own clock or time zone changing -->
+        <receiver android:name=".WidgetTick" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -59,4 +82,6 @@
     <!-- progress photos: "Take photo" in the web app's photo field -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Android 16: the focus timer's countdown may show as a Live Update in the status bar -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 </manifest>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ledger's Focus widget (WidgetFocus.java): the Current Focus, its timer counting down,
+     and what it is; with none set, a way to choose one -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:clipToOutline="true"
+    android:orientation="vertical"
+    android:padding="@dimen/widget_pad">
+
+    <TextView
+        android:id="@+id/w_kicker"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:letterSpacing="0.16"
+        android:maxLines="1"
+        android:text="FOCUS"
+        android:textColor="@color/widget_gold"
+        android:textSize="10sp" />
+
+    <TextView
+        android:id="@+id/f_title"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="6dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:fontFamily="serif"
+        android:maxLines="4"
+        android:text="No focus set"
+        android:textColor="@color/widget_text"
+        android:textSize="18sp" />
+
+    <LinearLayout
+        android:id="@+id/f_timer_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/f_timer_icon"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginEnd="6dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_widget_timer" />
+
+        <Chronometer
+            android:id="@+id/f_timer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFeatureSettings="tnum"
+            android:textColor="@color/widget_gold"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/f_timesup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Time’s up"
+            android:textColor="@color/widget_gold"
+            android:textSize="14sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/f_context"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="Tap to choose what to focus on"
+        android:textColor="@color/widget_text2"
+        android:textSize="12sp" />
+</LinearLayout>

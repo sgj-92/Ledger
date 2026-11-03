@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- before Android 12 the launcher draws no corners of its own -->
+    <dimen name="widget_radius">22dp</dimen>
+    <dimen name="widget_pad">14dp</dimen>
+</resources>

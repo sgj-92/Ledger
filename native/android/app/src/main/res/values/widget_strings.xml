@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Today</string>
+    <string name="widget_today_desc">Today\'s Actions in your Flow order, with Morning Prime, exercise and communications.</string>
+    <string name="widget_focus_name">Focus</string>
+    <string name="widget_focus_desc">The one thing you\'re focusing on now, with its timer.</string>
+    <string name="widget_flow_name">Flow</string>
+    <string name="widget_flow_desc">Today\'s Flow in your order, with times and where you are now.</string>
+    <string name="widget_open_ledger">Open Ledger to see today</string>
+    <string name="widget_signed_out">Sign in to Ledger to see your day here</string>
+    <string name="focus_channel_name">Focus timer countdown</string>
+    <string name="focus_channel_desc">The time left on a focus timer, while it runs</string>
+</resources>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ledger's widgets, light (values-night has the dark): the same palette as the iPhone's
+     (native/ios/App/LedgerWidget, Palette) and the web app's tokens. -->
+<resources>
+    <color name="widget_ground">#F2EADD</color>
+    <color name="widget_text">#261D16</color>
+    <color name="widget_text2">#5A4D3E</color>
+    <color name="widget_text3">#73624D</color>
+    <color name="widget_gold">#866325</color>
+    <color name="widget_track">#E2D7C4</color>
+    <!-- the categories (QUICK_CAPTURE_CATEGORIES) -->
+    <color name="widget_cat_success">#4F7A39</color>
+    <color name="widget_cat_work">#566E80</color>
+    <color name="widget_cat_communicate">#3D7169</color>
+    <color name="widget_cat_family">#6F5C74</color>
+    <color name="widget_cat_personal">#96545C</color>
+    <color name="widget_cat_training">#92693A</color>
+</resources>

@@ -8,6 +8,9 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Ledger's own plugin (widgets, the focus countdown, keep-awake): registered before
+        // Capacitor starts, so the page finds it like any other
+        registerPlugin(LedgerWidgetPlugin.class);
         // Capacitor first: it switches from the launch theme to AppTheme.NoActionBar and
         // builds the window. Asking for edge to edge before that made Android build the
         // window with the launch theme — and give it an action bar titled "Ledger".

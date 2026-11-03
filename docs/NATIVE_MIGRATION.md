@@ -711,6 +711,39 @@ at a preview with `LEDGER_APP_URL`.
 - **Not verified:** the Swift compiles, and how the Live Activity looks. Both are checked
   by the Xcode Cloud build and on Shaun's iPhone.
 
+## 12e. Android: widgets, the focus countdown and keep-awake, as built (2026-11-03)
+
+Shaun: "build out the android app and have similar features such as widgets". Android now
+matches the iPhone, through the same `LedgerWidget` plugin (same name and methods) and the
+same snapshot (§4.1); the page only stopped limiting these to iOS.
+
+- **Plugin** (`LedgerWidgetPlugin.java`):
+  - `publish` and `clear` keep the snapshot in the app's private storage (`WidgetStore`,
+    64 KB at most, its shape checked) and redraw every widget;
+  - `focusActivity` and `endFocusActivity` show the focus timer as one ongoing notification
+    on the `focus-live` channel (quiet), counting down by itself (a chronometer), gone when
+    time's up (`setTimeoutAfter`), when the "Time's up" alert takes over. On Android 16
+    (36.1 on) it asks to be a Live Update through `android.requestPromotedOngoing`, with
+    `POST_PROMOTED_NOTIFICATIONS` in the manifest;
+  - `keepAwake` sets `FLAG_KEEP_SCREEN_ON`.
+- **Widgets** (`WidgetToday`, `WidgetFocus`, `WidgetFlow`): RemoteViews, Java, no new
+  libraries. Rows are added to fit the widget's height; colours follow the phone's light or
+  dark mode with the iPhone's palette; the corner radius is the launcher's own on Android
+  12+. Taps open `luxe.sgj.ledger://open?…` links in `MainActivity` (an explicit intent), which
+  Capacitor hands to the page as `appUrlOpen`, exactly as on iOS. Only Ledger's own links
+  open; anything else opens Today.
+- **The clock** (`WidgetTick`): one inexact alarm, always the next of: a timer's end, a Flow
+  step's start, midnight. Also the phone's time or time zone changing, and the 30-minute
+  update period.
+- **Not on Android yet:** the iPhone's per-widget options (Edit Widget: Morning Prime, exercise,
+  Communications), which Android would need a configuration screen for; a lock-screen widget
+  (Android has none for phones).
+- **Verified here:** the Java compiles against the Android 16 framework (Robolectric's
+  `android-all`; Google's Maven isn't reachable from Claude's sessions, so not a full Gradle
+  build); every resource it names exists; the layouts use only views a widget may hold; the
+  page's side is in `tests/e2e/native-shell.test.js` (87). The real build and a look on a phone
+  are Shaun's: Android Studio → Run.
+
 ## 12d. Xcode Cloud: building the iPhone app without the Mac (2026-10-29)
 
 Shaun's request: build from GitHub while away from the Mac. Xcode Cloud builds on Apple's

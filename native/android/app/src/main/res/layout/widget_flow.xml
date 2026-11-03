@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ledger's Flow widget (WidgetFlow.java): the day in Flow order with times, what's
+     ticked, and the now line; a long day shows the stretch around now -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:clipToOutline="true"
+    android:orientation="vertical"
+    android:padding="@dimen/widget_pad">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/w_kicker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:letterSpacing="0.16"
+            android:maxLines="1"
+            android:text="FLOW"
+            android:textColor="@color/widget_text3"
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/w_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFeatureSettings="tnum"
+            android:maxLines="1"
+            android:textColor="@color/widget_text2"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/w_rows"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical" />
+
+    <TextView
+        android:id="@+id/w_message"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:text="@string/widget_open_ledger"
+        android:textColor="@color/widget_text2"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/w_more"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:paddingTop="2dp"
+        android:textColor="@color/widget_text3"
+        android:textSize="11sp"
+        android:visibility="gone" />
+</LinearLayout>

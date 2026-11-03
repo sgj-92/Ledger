@@ -8832,11 +8832,12 @@
     });
   }
   // the countdown on the iPhone's Lock Screen and in its Dynamic Island (a Live Activity,
-  // app builds from 2026-10-29): one while a timer runs, updated when its time or the focus
-  // changes (the next exercise keeps the timer), ended with it. The phone ticks it itself.
-  // Earlier builds don't know these methods and answer nothing, which is fine.
+  // app builds from 2026-10-29), and on Android in the notification shade and lock screen (a
+  // Live Update in Android 16's status bar; app builds from 2026-11-03): one while a timer
+  // runs, updated when its time or the focus changes (the next exercise keeps the timer),
+  // ended with it. The phone ticks it itself. Earlier builds don't know these methods and
+  // answer nothing, which is fine.
   function nativeFocusActivitySync(f, at){
-    if (window.Capacitor.getPlatform() !== 'ios') return;
     var w = at ? widgetFocus() : null;            // in the Focus widget's own words
     var title = at ? clipText(w ? w.title : f.title, 200) : '';
     var ctx = w && w.context ? w.context : '';
@@ -8941,14 +8942,14 @@
     if (tries < 40) setTimeout(function(){ nativeFocusPicker(tries + 1); }, 400);
   }
 
-  // ---- the Today widget (iOS; docs/NATIVE_MIGRATION.md §4) ----
+  // ---- the Home Screen widgets (iOS, and Android from 2026-11-03; docs/NATIVE_MIGRATION.md §4) ----
   // What it shows is worked out here, by Ledger's own rules — today's Actions in Flow order —
   // and handed to the app as a small snapshot that the widget only draws. Titles, times and
   // categories only: never notes, Comms, Home, health or anyone else's data. Only the
   // confirmed owner's; signing out, or any other role, clears it.
   var WIDGET_MAX = 12, widgetTimer = null, widgetLast = '';
   function nativeWidgetOn(){
-    return NATIVE && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() === 'ios';
+    return NATIVE && typeof window.Capacitor.getPlatform === 'function' && /^(ios|android)$/.test(window.Capacitor.getPlatform());
   }
   // Version 2 adds, for the widget to show or not (Edit Widget): Morning Prime while it's
   // not done, today's exercise, and Communications as counts only (as on Today: never
@@ -22768,7 +22769,7 @@
   // button opens it once a timer runs, and so does choosing a length; Done, +5 min and Stop
   // work here as on the Focus card. It closes by itself when the focus ends. The screen
   // stays awake while it's open: the Screen Wake Lock where the browser has one, and in the
-  // iPhone app the app's own switch (LedgerWidget.keepAwake, app build 8).
+  // iPhone and Android apps the app's own switch (LedgerWidget.keepAwake; iPhone build 8, Android 2026-11-03).
   var ffOpen = false, ffMode = '', ffWake = null, ffWaking = false, FF_RING = 2 * Math.PI * 94;
   function openFocusFull(){
     if (!focusTarget()) return;
@@ -22814,7 +22815,7 @@
     var stop = btns.querySelector('[data-ff-stop]'); if (stop) stop.addEventListener('click', function(){ setFocusTimer(null); });
   }
   function ffKeepAwake(on){
-    if (NATIVE && window.Capacitor.getPlatform() === 'ios') nativeCall('LedgerWidget', 'keepAwake', { on: on });
+    if (NATIVE) nativeCall('LedgerWidget', 'keepAwake', { on: on });
     if (!on){
       if (ffWake){ ffWake.release().catch(function(){}); ffWake = null; }
       return;

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+: the launcher's own widget corner, so Ledger's sit with the rest -->
+    <dimen name="widget_radius">@android:dimen/system_app_widget_background_radius</dimen>
+    <dimen name="widget_pad">16dp</dimen>
+</resources>

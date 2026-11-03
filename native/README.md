@@ -206,7 +206,7 @@ They sign in, then Settings → Notifications → **Enable notifications**.
     notifications come to the app later;
   - the Build sheet names the app's version.
 - **Not in Phase 1:** native notifications and Universal / App Links (Phase 2,
-  above), widgets (Phase 3), store submission.
+  above), widgets (Phase 3; iOS 2026-10-25, Android 2026-11-03), store submission.
 
 ## The Today widget (iOS)
 
@@ -225,6 +225,26 @@ through the App Group `group.luxe.sgj.ledger`.
 
 The page must include the widget's web side (in `main`, or a preview via
 `LEDGER_APP_URL`) for the widget to fill.
+
+## Android: widgets and the focus countdown (2026-11-03)
+
+The same as the iPhone's, from the same snapshot and the same `LedgerWidget` plugin
+(`android/app/src/main/java/luxe/sgj/ledger/`):
+- **Widgets** (long-press the Home Screen → Widgets → Ledger):
+  - **Today:** the day's progress, then Morning Prime, exercise and the Actions still to do,
+    in Flow order, with Communications as counts;
+  - **Focus:** the Current Focus, its timer counting down, then "Time's up";
+  - **Flow:** the day in order with times, what's ticked, and the now line.
+  They follow the phone's light or dark mode and resize. Tapping an Action opens it;
+  anywhere else opens Today (or Flow, or Communications).
+- **The focus timer** counts down in the notification shade and on the lock screen while
+  it runs. On Android 16 phones that support Live Updates it also shows as a countdown
+  chip in the status bar. It goes when time's up, when the "Time's up" alert takes over.
+- **The full-screen focus** keeps the screen on.
+
+The widgets redraw whenever Ledger changes the day, and by themselves when a timer ends,
+at each Flow step's start and at midnight. They need the app build from 2026-11-03 or
+later: `npm install && npm run bump && npm run sync`, then build and send it as usual.
 
 ## Tests
 

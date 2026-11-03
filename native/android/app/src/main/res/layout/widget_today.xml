@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ledger's Today widget (WidgetToday.java fills it): the day's progress, then what's still
+     to do in Flow order, then Communications as counts. Only views a widget may hold. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:clipToOutline="true"
+    android:orientation="vertical"
+    android:padding="@dimen/widget_pad">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/w_kicker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:letterSpacing="0.16"
+            android:maxLines="1"
+            android:text="TODAY"
+            android:textColor="@color/widget_text3"
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/w_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFeatureSettings="tnum"
+            android:maxLines="1"
+            android:textColor="@color/widget_text2"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/w_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@drawable/widget_progress" />
+
+    <LinearLayout
+        android:id="@+id/w_rows"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical" />
+
+    <TextView
+        android:id="@+id/w_message"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:text="@string/widget_open_ledger"
+        android:textColor="@color/widget_text2"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/w_more"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:paddingTop="2dp"
+        android:textColor="@color/widget_text3"
+        android:textSize="11sp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/w_comms"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="6dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/w_comms_icon"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_marginEnd="6dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_widget_comms" />
+
+        <TextView
+            android:id="@+id/w_comms_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/widget_text2"
+            android:textSize="11sp" />
+    </LinearLayout>
+</LinearLayout>

@@ -763,6 +763,12 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-03 — Android gets the iPhone's widgets and focus countdown (Shaun)
+- Today, Focus and Flow widgets, the focus timer counting down in the notification shade (a
+  Live Update on Android 16), and keep-awake for the full-screen focus. Same plugin and
+  snapshot as iOS; native Java with RemoteViews, no new libraries
+  (`docs/NATIVE_MIGRATION.md` §12e). Per-widget options are iOS-only for now.
+
 ### 2026-11-03 — Ask Claude: Shaun's tools go without strict (fix)
 - Shaun's Ask Claude failed on every request since phase 2 ("Claude could not be reached"):
   his 32–42 strict tools were over the API's limits for strict tool use (20 tools, 16 union
@@ -2579,7 +2585,12 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy functions, then try Ask Claude again)
+Owner: Shaun (build and send the Android app)
+**Android widgets** (§12e): `cd native && git pull && npm install && npm run bump && npm run
+sync`, Android Studio → Run on the phone, add the widgets; then a signed APK to App
+Distribution as usual. The page's side is already live.
+
+**Before that** — Owner: Shaun (deploy functions, then try Ask Claude again)
 **Ask Claude fix** (decision above): "Deploy Firebase" → functions. Pinned lists and their
 rules are already live (Firebase 21191db, 2026-11-03 04:59).
 
@@ -2809,6 +2820,9 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-11-03) — **Android: widgets and the focus countdown** (decision above). Java compiled
+  against the Android 16 framework here; native-shell e2e 87. Needs an app build.
 
 - (2026-11-03) — **Home's top and collapsing headings** (decision above). Tests: rules 781,
   Home e2e 382 (H27), functions assistant 102; partner-sharing 209, assistant e2e 62,
