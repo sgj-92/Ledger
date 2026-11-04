@@ -4548,6 +4548,45 @@
   .hf-rb-text { min-width: 0; overflow-wrap: anywhere; }
   .hf-rb-text.clamped { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+
+  /* ---- Comms sweep (2026-11-04): the Replies card, the line in Comms, the sweep sheet ---- */
+  #view-log #sweepCard .tsec-title { font-size: 17px; }
+  #view-log #sweepCard .tsec-status { font-size: 12.5px; color: var(--text-2); }
+  #view-log #sweepCard .tsec-chev { color: var(--text-2); }
+  #view-log #sweepCard .tcard > .tsec:first-child { margin-top: 0; }
+  @media (max-width: 767px) { #view-log #sweepCard .tcard { margin-left: -6px; margin-right: -6px; } }
+  .sw-list[hidden] { display: none; }
+  .sw-row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+  .sw-row:last-child { border-bottom: none; }
+  .sw-row .commitment-status-dot { flex-shrink: 0; }
+  .sw-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .sw-name { font-size: 14.5px; color: var(--text); overflow-wrap: anywhere; }
+  .sw-meta { font-size: 12px; color: var(--text-3); }
+  .sw-row.done .sw-name { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--line-2); }
+  .sw-rm { flex-shrink: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; background: none; color: var(--text-3); cursor: pointer; border-radius: 50%; }
+  .sw-rm svg { width: 14px; height: 14px; }
+  .sw-rm:active { background: var(--surface-2); }
+  .sw-chans { display: flex; flex-wrap: wrap; gap: 8px; margin: var(--sp-2) 0 var(--sp-2); }
+  .sw-chan { display: inline-flex; align-items: center; gap: 5px; }
+  .sw-chan.checked:not(.sel) { color: var(--text-3); }
+  .sw-chan-ok { display: inline-flex; width: 13px; height: 13px; color: var(--gold); }
+  .sw-chan-ok svg { width: 100%; height: 100%; }
+  .sw-hint { margin: 0 0 6px; font-size: 12.5px; color: var(--text-3); }
+  .sw-add { margin: 0 0 var(--sp-4); }
+  .sw-sheet-list { margin-bottom: var(--sp-4); }
+  .sw-line {
+    display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; margin: 0 0 var(--sp-3); padding: 0 12px;
+    border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface);
+    font-family: var(--sans); font-size: 13.5px; color: var(--text); cursor: pointer; text-align: left;
+  }
+  .sw-line:active { background: var(--surface-2); }
+  .sw-line-ic, .sw-line .chev { flex-shrink: 0; display: flex; width: 16px; height: 16px; color: var(--text-3); }
+  .sw-line-ic svg, .sw-line .chev svg { width: 100%; height: 100%; }
+  .sw-line.due .sw-line-ic { color: var(--gold); }
+  .sw-line-t { flex: 1; min-width: 0; font-weight: 500; }
+  .sw-line-v { font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .sw-line.due .sw-line-v { color: var(--gold); }
+  html[data-theme="light"] .sw-line.due .sw-line-v, html[data-theme="light"] .sw-line.due .sw-line-ic { color: var(--gold-2); }
   /* ---- Today on cards (2026-10-27, Shaun: "the sections blend into each other") ----
      Supersedes "text-first; no cards" for Today: each section sits on its own surface,
      with the same header shape inside. Day notes, Quick log and Recorded activity share
@@ -5767,6 +5806,7 @@
     <!-- active context: Communications, then Health & fitness. On a phone the wrappers
          are transparent, so this follows the Actions exactly as before. -->
     <div class="today-side">
+    <div id="sweepCard"></div>
     <div id="commsSummary"></div>
     <div id="todayPlanWidget" class="today-plan-widget"></div>
     </div>
@@ -5934,6 +5974,7 @@
 
   <section class="view" id="view-comms">
     <div class="comms-list-col">
+      <div id="commsSweep"></div>
       <label class="comms-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><line x1="16" y1="16" x2="20.5" y2="20.5"/></svg><input type="search" id="commsSearch" placeholder="Search matters and people" aria-label="Search communications" autocomplete="off"></label>
       <div class="freq-period comms-cat" id="commsCat" role="tablist" aria-label="Category">
         <button type="button" role="tab" data-comms-cat="all">All</button>
@@ -11826,6 +11867,263 @@
     });
   }
 
+  // ============ Comms sweep (2026-11-04) ============
+  // Shaun's daily sweep of every channel: who is waiting on a reply, and where. Each day's
+  // names sit on that day's plan (plan.sweep), never as conversations, so Communications
+  // stays uncluttered. Started from Morning Prime (its Plan step), ticked off on Today's
+  // Replies card, and reachable from Comms. Anything not replied to carries forward to the
+  // next days ("from Tue") until it is ticked or removed. The channels are his own list
+  // (Settings → Comms sweep channels).
+  var SWEEP_DEFAULT_CHANNELS = ['WhatsApp', 'Email', 'Text', 'LinkedIn', 'Instagram', 'Voicemail'];
+  var SWEEP_CARRY_DAYS = 14, SWEEP_OPEN_KEY = 'ledger_sweep_open', sweepSheetPaint = null;
+  function sweepChannels(){
+    var c = presets && Array.isArray(presets.sweepChannels)
+      ? presets.sweepChannels.filter(function(x){ return typeof x === 'string' && x.trim(); }) : null;
+    return c && c.length ? c : SWEEP_DEFAULT_CHANNELS.slice();
+  }
+  function sweepOf(dateStr){ var p = getPlanForDate(dateStr); return (p && p.sweep) || {}; }
+  // a day's list: what's still open from the days before (oldest first), then that day's own
+  function sweepList(dateStr){
+    var out = [];
+    for (var i = SWEEP_CARRY_DAYS; i >= 1; i--){
+      var d = fmtDate(addDays(dateStr, -i));
+      // still open, or replied to on this day (so a tick doesn't make it vanish)
+      (sweepOf(d).items || []).forEach(function(it){
+        if (!it.done || (it.doneAt && fmtDate(new Date(it.doneAt)) === dateStr)) out.push({ date: d, item: it, carried: true });
+      });
+    }
+    (sweepOf(dateStr).items || []).forEach(function(it){ out.push({ date: dateStr, item: it, carried: false }); });
+    return out;
+  }
+  // every change builds on the day's plan as it is, and on its sweep as it is
+  function sweepPatch(dateStr, fn){
+    var plan = getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
+    var sw = Object.assign({}, plan.sweep || {});
+    sw.items = (sw.items || []).map(function(x){ return Object.assign({}, x); });
+    sw.checked = (sw.checked || []).slice();
+    fn(sw);
+    sw.updatedAt = new Date().toISOString();
+    return savePlanForDate(dateStr, Object.assign({}, plan, { sweep: sw }));
+  }
+  function sweepAdd(dateStr, entries){
+    return sweepPatch(dateStr, function(sw){
+      var now = new Date().toISOString();
+      entries.slice(0, 60).forEach(function(e){
+        sw.items.push({ id: uid(), name: String(e.name).slice(0, 80), channel: e.channel ? String(e.channel).slice(0, 40) : null, done: false, doneAt: null, at: now });
+      });
+    });
+  }
+  function sweepTick(dateStr, id){
+    return sweepPatch(dateStr, function(sw){
+      sw.items.forEach(function(x){ if (x.id === id){ x.done = !x.done; x.doneAt = x.done ? new Date().toISOString() : null; } });
+    });
+  }
+  function sweepRemove(dateStr, id){
+    return sweepPatch(dateStr, function(sw){ sw.items = sw.items.filter(function(x){ return x.id !== id; }); });
+  }
+  function sweepChannelChecked(dateStr, ch, on){
+    return sweepPatch(dateStr, function(sw){
+      sw.checked = sw.checked.filter(function(c){ return c !== ch; });
+      if (on) sw.checked.push(ch);
+    });
+  }
+  // "James — WhatsApp", "Sarah, email", "Tom (LinkedIn)", "Ana: text" or "Mo WhatsApp" (a
+  // channel of his as the last word); otherwise the channel chosen above the field
+  function sweepParse(text, fallback){
+    var chans = sweepChannels();
+    function known(c){ var k = chans.filter(function(x){ return x.toLowerCase() === String(c).toLowerCase(); })[0]; return k || c; }
+    return hbParse(text).map(function(line){
+      var name = line, ch = null;
+      var m = line.match(/^(.+?)(?:\s+[-–—]\s+|\s*[–—]\s*|\s*,\s*|\s*:\s*|\s*\()(.+?)\)?$/);
+      if (m && m[1].trim() && m[2].trim()){ name = m[1].trim(); ch = known(m[2].trim()); }
+      else chans.forEach(function(c){
+        if (ch) return;
+        var tail = ' ' + c.toLowerCase();
+        if (line.length > tail.length && line.toLowerCase().slice(-tail.length) === tail){ ch = c; name = line.slice(0, -tail.length).trim(); }
+      });
+      return { name: name.slice(0, 80), channel: ch || fallback || null };
+    }).filter(function(e){ return e.name; });
+  }
+  function sweepFromLabel(dateStr, today){
+    if (dateStr === fmtDate(addDays(today, -1))) return 'from yesterday';
+    return 'from ' + new Date(dateStr + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' });
+  }
+  // one name: a tick, who, where (and from when), and a way to take it off
+  function sweepRowEl(x, today, opts){
+    opts = opts || {};
+    var it = x.item;
+    var row = document.createElement('div'); row.className = 'sw-row' + (it.done ? ' done' : ''); row.dataset.sweep = it.id;
+    var tick = document.createElement('button'); tick.type = 'button'; tick.className = 'commitment-status-dot' + (it.done ? ' completed' : '');
+    tick.setAttribute('aria-label', (it.done ? 'Not replied: ' : 'Replied: ') + it.name);
+    tick.addEventListener('click', function(){ sweepTick(x.date, it.id); });
+    var body = document.createElement('div'); body.className = 'sw-body';
+    var nm = document.createElement('span'); nm.className = 'sw-name'; nm.textContent = it.name;
+    var meta = document.createElement('span'); meta.className = 'sw-meta';
+    meta.textContent = [it.channel || '', x.carried ? sweepFromLabel(x.date, today) : ''].filter(Boolean).join(' · ');
+    body.appendChild(nm); if (meta.textContent) body.appendChild(meta);
+    row.appendChild(tick); row.appendChild(body);
+    if (opts.remove){
+      var rm = document.createElement('button'); rm.type = 'button'; rm.className = 'sw-rm'; rm.innerHTML = CLOSE_SVG;
+      rm.setAttribute('aria-label', 'Remove ' + it.name);
+      rm.addEventListener('click', function(){ sweepRemove(x.date, it.id); });
+      row.appendChild(rm);
+    }
+    return row;
+  }
+  function sweepCounts(dateStr){
+    var list = sweepList(dateStr), open = list.filter(function(x){ return !x.item.done; });
+    return { list: list, open: open, done: list.length - open.length };
+  }
+
+  // Today: the Replies card, while there is anyone on today's list
+  function renderSweepCard(){
+    var wrap = document.getElementById('sweepCard');
+    if (!wrap) return;
+    renderSweepLine();            // Comms's line follows the same day's plan
+    var today = todayStr();
+    if (viewedDate !== today){ wrap.innerHTML = ''; return; }
+    var c = sweepCounts(today);
+    if (sweepSheetPaint) sweepSheetPaint();
+    if (!c.list.length){ wrap.innerHTML = ''; return; }
+    // open unless closed today on this device
+    var m = dayOpenMap(SWEEP_OPEN_KEY), open = !(today in m) || !!m[today];
+    wrap.innerHTML = '';
+    var card = document.createElement('div'); card.className = 'tcard sw-card';
+    card.innerHTML = '<div class="tsec"><button type="button" class="tsec-main" id="sweepToggle" aria-controls="sweepBody">' +
+      '<span class="tsec-title">Replies</span><span class="tsec-status" id="sweepStatus"></span>' +
+      '<span class="tsec-chev tsec-expand">' + TSEC_CHEV_DOWN + '</span></button>' +
+      '<span class="tsec-extra"><button type="button" class="sec-add" id="sweepAdd" aria-label="Comms sweep">' + BK_PLUS_SVG + '</button></span></div>' +
+      '<div class="sw-list" id="sweepBody"></div>';
+    var tg = card.querySelector('#sweepToggle'), body = card.querySelector('#sweepBody');
+    tg.setAttribute('aria-expanded', open ? 'true' : 'false');
+    body.hidden = !open;
+    card.querySelector('#sweepStatus').textContent = c.open.length ? c.open.length + ' to reply' : 'All replied';
+    tg.setAttribute('aria-label', 'Replies: ' + (c.open.length ? c.open.length + ' to reply' : 'all replied'));
+    // what's open, then today's replied ones, quiet
+    c.open.forEach(function(x){ body.appendChild(sweepRowEl(x, today)); });
+    c.list.filter(function(x){ return x.item.done; }).forEach(function(x){ body.appendChild(sweepRowEl(x, today)); });
+    tg.addEventListener('click', function(){
+      var on = tg.getAttribute('aria-expanded') !== 'true';
+      var mm = dayOpenMap(SWEEP_OPEN_KEY); mm[today] = on ? 1 : 0;
+      lsSet(SWEEP_OPEN_KEY, JSON.stringify(mm));
+      tg.setAttribute('aria-expanded', on ? 'true' : 'false'); body.hidden = !on;
+    });
+    card.querySelector('#sweepAdd').addEventListener('click', function(){ openSweepSheet(today); });
+    wrap.appendChild(card);
+  }
+  // Comms: one line at the top, the way into the sweep, never among the conversations
+  function renderSweepLine(){
+    var el = document.getElementById('commsSweep');
+    if (!el) return;
+    var today = todayStr(), c = sweepCounts(today), swept = !!sweepOf(today).sweptAt;
+    el.innerHTML = '<button type="button" class="sw-line" id="sweepLine"><span class="sw-line-ic" aria-hidden="true">' + UI_ICON.chat + '</span>' +
+      '<span class="sw-line-t">Today’s sweep</span><span class="sw-line-v"></span><span class="chev" aria-hidden="true">' + UI_ICON.chevronRight + '</span></button>';
+    var v = el.querySelector('.sw-line-v');
+    v.textContent = c.open.length ? c.open.length + ' to reply' : (swept ? 'All replied' : 'Not done yet');
+    el.querySelector('.sw-line').classList.toggle('due', !!c.open.length || !swept);
+    el.querySelector('#sweepLine').addEventListener('click', function(){ openSweepSheet(today); });
+  }
+
+  // the sweep itself: each channel in turn, the names, and the list as it grows
+  function openSweepSheet(dateStr){
+    editingId = null;
+    var st = { channel: null };
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.chat, 'Comms sweep', 'Go through each channel. Note who needs a reply.', '') +
+      '<div class="sw-chans" id="swChans" role="group" aria-label="Channels"></div>' +
+      '<p class="sw-hint" id="swHint"></p>' +
+      '<div class="hl-add sw-add"><textarea id="swText" rows="2" maxlength="4000" aria-label="Who needs a reply"></textarea>' +
+        '<button type="button" class="rq-send" id="swAddBtn" disabled>Add</button></div>' +
+      '<div class="sw-list sw-sheet-list" id="swList"></div>' +
+      '<button type="button" class="btn-primary" id="swDone">Done sweeping</button>' +
+      '<button type="button" class="btn-quiet" id="swEdit">Edit channels</button>';
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    var ta = document.getElementById('swText'), addBtn = document.getElementById('swAddBtn');
+    var chansEl = document.getElementById('swChans'), hint = document.getElementById('swHint'), listEl = document.getElementById('swList');
+    function size(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; addBtn.disabled = !ta.value.trim(); }
+    function paint(){
+      if (!document.body.contains(listEl) || !backdrop.classList.contains('open')){ sweepSheetPaint = null; return; }
+      var checked = sweepOf(dateStr).checked || [];
+      chansEl.innerHTML = '';
+      sweepChannels().forEach(function(ch){
+        var b = document.createElement('button'); b.type = 'button';
+        var done = checked.indexOf(ch) > -1;
+        b.className = 'bk-filter-chip sw-chan' + (st.channel === ch ? ' sel' : '') + (done ? ' checked' : '');
+        b.setAttribute('aria-pressed', st.channel === ch ? 'true' : 'false');
+        b.innerHTML = (done ? '<span class="sw-chan-ok" aria-hidden="true">' + CHECK_SVG + '</span>' : '') + '<span></span>';
+        b.querySelector('span:last-child').textContent = ch;
+        b.addEventListener('click', function(){
+          // choosing a channel means you're going through it: it counts as checked
+          st.channel = st.channel === ch ? null : ch;
+          if (st.channel && !done) sweepChannelChecked(dateStr, ch, true);
+          paint(); ta.focus();
+        });
+        chansEl.appendChild(b);
+      });
+      hint.textContent = st.channel ? 'Names from ' + st.channel + ', one per line' : 'Choose a channel, or write “Name — channel”';
+      ta.placeholder = st.channel ? 'James\nSarah' : 'James — WhatsApp\nSarah — Email';
+      var c = sweepCounts(dateStr);
+      listEl.innerHTML = '';
+      if (c.list.length){
+        var h = document.createElement('div'); h.className = 'hs-sec-head';
+        h.innerHTML = '<h3 class="cz-sec-title">To reply</h3><span class="cz-sec-count"></span>';
+        h.querySelector('.cz-sec-count').textContent = c.open.length ? String(c.open.length) : 'all done';
+        listEl.appendChild(h);
+        c.open.forEach(function(x){ listEl.appendChild(sweepRowEl(x, dateStr, { remove: true })); });
+        c.list.filter(function(x){ return x.item.done; }).forEach(function(x){ listEl.appendChild(sweepRowEl(x, dateStr, { remove: true })); });
+      }
+      document.getElementById('swDone').textContent = sweepOf(dateStr).sweptAt ? 'Done' : 'Done sweeping';
+    }
+    function add(){
+      var entries = sweepParse(ta.value, st.channel);
+      if (!entries.length) return;
+      ta.value = ''; size();
+      sweepAdd(dateStr, entries);
+      ta.focus();
+    }
+    ta.addEventListener('input', size);
+    addBtn.addEventListener('click', add);
+    document.getElementById('swDone').addEventListener('click', function(){
+      if (ta.value.trim()) add();
+      var first = !sweepOf(dateStr).sweptAt;
+      sweepSheetPaint = null;
+      closeSheet();
+      if (first) sweepPatch(dateStr, function(sw){ sw.sweptAt = new Date().toISOString(); }).then(function(){
+        var n = sweepCounts(dateStr).open.length;
+        showPinToast(n ? 'Swept — ' + n + ' to reply' : 'Swept — nobody waiting', false, CHECK_SVG);
+      });
+    });
+    document.getElementById('swEdit').addEventListener('click', function(){ sweepSheetPaint = null; openSweepChannelsSheet(false, dateStr); });
+    sweepSheetPaint = paint;
+    activeSheetRefresh = paint;
+    paint(); size();
+  }
+  // his channels: one per line, in the order he goes through them
+  function openSweepChannelsSheet(fromSettings, backTo){
+    editingId = null;
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.chat, 'Comms sweep channels', 'The places you check for messages, in the order you go through them.', '') +
+      '<div class="field"><label for="swChText">Channels <span class="pp-opt">one per line</span></label><textarea id="swChText" rows="7" maxlength="800"></textarea></div>' +
+      '<button type="button" class="btn-primary" id="swChSave">Save</button>' +
+      '<button type="button" class="btn-quiet" id="swChBack">' + (fromSettings ? 'Back to settings' : 'Back to the sweep') + '</button>';
+    backdrop.classList.add('open');
+    activeSheetRefresh = null;
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    var ta = document.getElementById('swChText');
+    ta.value = sweepChannels().join('\n');
+    function back(){ if (fromSettings) openSettingsSheet(); else openSweepSheet(backTo || todayStr()); }
+    document.getElementById('swChBack').addEventListener('click', back);
+    document.getElementById('swChSave').addEventListener('click', async function(){
+      var seen = {}, list = hbParse(ta.value).map(function(x){ return x.slice(0, 40); }).filter(function(x){
+        var k = x.toLowerCase(); if (seen[k]) return false; seen[k] = true; return true;
+      }).slice(0, 20);
+      presets.sweepChannels = list.length ? list : SWEEP_DEFAULT_CHANNELS.slice();
+      await savePresets();
+      back();
+    });
+  }
+
   // ---- the Communications Centre ----
   var COMMS_FILTER_KEY = 'ledger_comms_filter';
   var commsFilter = (function(){ var f = lsGet(COMMS_FILTER_KEY, 'needs'); return ['needs', 'waiting', 'follow', 'people', 'all'].indexOf(f) > -1 ? f : 'needs'; })();
@@ -11911,6 +12209,7 @@
   function renderComms(){
     var rowsEl = document.getElementById('commsRows');
     if (!rowsEl) return;
+    renderSweepLine();
     document.querySelectorAll('[data-comms-cat]').forEach(function(b){
       var on = b.dataset.commsCat === commsCat;
       b.classList.toggle('sel', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -20124,7 +20423,7 @@
     weighIn: RT_WEIGHT_SVG, bodyPhoto: RT_PHOTO_SVG, supplements: UI_ICON.box,
     water: UI_ICON.glass, stretch: TRAINING_ICON_SVG.yoga,
     foodLog: UI_ICON.cutlery, dayQuality: UI_ICON.chart, gluten: UI_ICON.alert,
-    accountability: UI_ICON.chat, reviewTomorrow: UI_ICON.calendar
+    accountability: UI_ICON.chat, reviewTomorrow: UI_ICON.calendar, sweep: UI_ICON.chat
   };
   function routineIcon(item){
     return (item.key && ROUTINE_ICON[item.key]) || UI_ICON.note;
@@ -20137,7 +20436,9 @@
       { id: 'plan-meals',     key: 'meals',     label: 'Plan main meals',         enabled: true },
       { id: 'plan-keys',      key: 'keys',      label: 'Choose key tasks',        enabled: true },
       { id: 'plan-plan',      key: 'plan',      label: 'Review today\'s plan',    enabled: true },
-      { id: 'plan-intention', key: 'intention', label: 'One-line intention',      enabled: true }
+      { id: 'plan-intention', key: 'intention', label: 'One-line intention',      enabled: true },
+      // the daily sweep of every channel (2026-11-04): who needs a reply, and where
+      { id: 'plan-sweep',     key: 'sweep',     label: 'Comms sweep',             enabled: true }
     ],
     move: [
       { id: 'move-weigh',   key: 'weighIn',     label: 'Toilet & weigh-in',   enabled: true },
@@ -20291,6 +20592,10 @@
       var text = (mpIntentionValue(dateStr) || '').trim();
       return { done: !!text, value: '' };
     }
+    if (key === 'sweep'){
+      var sw = sweepOf(dateStr), left = sweepList(dateStr).filter(function(x){ return !x.item.done; }).length;
+      return { done: !!sw.sweptAt, value: sw.sweptAt ? (left ? left + ' to reply' : 'All replied') : '' };
+    }
     if (key === 'weighIn'){
       var w = sessions.find(function(x){ return x.type === 'weight' && x.date === dateStr; });
       return { done: !!w, value: (w && w.weightKg) ? w.weightKg + ' kg' : (w ? 'Logged' : ''), soft: true };
@@ -20325,7 +20630,7 @@
 
   // The keys Ledger holds a real record for. Everything else — supplements,
   // water, a stretch, anything custom — is a plain checklist item.
-  var ROUTINE_RECORD_KEYS = ['meals','keys','plan','intention','weighIn','bodyPhoto',
+  var ROUTINE_RECORD_KEYS = ['meals','keys','plan','intention', 'sweep','weighIn','bodyPhoto',
                              'foodLog','dayQuality','gluten','reviewTomorrow'];
   function routineHasRecord(key){ return ROUTINE_RECORD_KEYS.indexOf(key) > -1; }
 
@@ -20368,6 +20673,7 @@
     // Actions are chosen in the key-task step; this one lands on Health & fitness
     if (k === 'plan'){ openPlanSheet(dateStr, getPlanForDate(dateStr), { returnToMorningPrime: true, sections: ['health'], focus: 'health' }); return true; }
     if (k === 'intention'){ openIntentionSheet(dateStr); return true; }
+    if (k === 'sweep'){ openSweepSheet(dateStr); return true; }
     if (k === 'weighIn'){
       openSheet('weight', sessions.find(function(x){ return x.type === 'weight' && x.date === dateStr; }) || null, dateStr);
       return true;
@@ -23795,6 +24101,7 @@
         '<span class="set-group-label">Morning Prime</span>' +
         '<div class="set-card">' +
           settingsRow('setPlanRoutine', 'Plan routine', routineSummary('plan')) +
+          settingsRow('setSweepChannels', 'Comms sweep channels', String(sweepChannels().length)) +
           settingsRow('setMoveRoutine', 'Move routine', routineSummary('move')) +
         '</div>' +
         '<p class="set-note">Plan is what you can do from the phone before getting up. ' +
@@ -23844,6 +24151,7 @@
       btn.addEventListener('click', function(){ setThemePref(btn.dataset.themeSet); });
     });
     document.getElementById('setPlanRoutine').addEventListener('click', function(){ openRoutineEditor('plan'); });
+    document.getElementById('setSweepChannels').addEventListener('click', function(){ openSweepChannelsSheet(true); });
     document.getElementById('setMoveRoutine').addEventListener('click', function(){ openRoutineEditor('move'); });
     document.getElementById('setWindRoutine').addEventListener('click', function(){ openRoutineEditor('windDown'); });
     document.getElementById('setWindHour').addEventListener('click', openWindDownHourSheet);
@@ -24227,6 +24535,7 @@
     if (key === 'keys') return 'key tasks';
     if (key === 'plan') return "the day's plan";
     if (key === 'intention') return 'the intention field';
+    if (key === 'sweep') return 'the comms sweep';
     if (key === 'weighIn') return 'the weight log';
     if (key === 'bodyPhoto') return 'the daily photo';
     if (key === 'foodLog') return 'nutrition (closed)';
@@ -24507,6 +24816,7 @@
     renderSprintEntry();
     renderSprintSection();
     renderSprintHistory();
+    renderSweepCard();
     renderCommsSummary();
     renderMorningPrime();
     renderDayNotes();

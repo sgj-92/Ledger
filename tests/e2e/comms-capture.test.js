@@ -198,11 +198,32 @@ async function oobLink(email){
   check(((await all('ledger_people')).find(x => x.id === 'pp1').spoke || []).join() === TODAY, '…stored on their record, today');
   await S2.click('nav.tabbar .tab-btn[data-view="comms"]'); await S2.click('[data-comms-filter="people"]');
   check(await until(S2, () => /In 14 days/.test(document.getElementById('commsRows').innerText), null, 15000), 'the Mac follows: In 14 days');
+  // the daily sweep (2026-11-04): names to reply to, on the day's plan — never conversations
+  const convsBefore = (await convs()).length;
+  await S.click('#sweepLine');
+  check(await until(S, () => !!document.getElementById('swText')), 'Sweep: Comms → "Today’s sweep" opens the sweep');
+  await S.evaluate(() => [...document.querySelectorAll('#swChans .sw-chan')].find(c => c.textContent === 'Email').click());
+  await S.fill('#swText', 'Priya\nOwen — WhatsApp');
+  await S.click('#swAddBtn');
+  check(await until(S, () => document.querySelectorAll('#swList .sw-row').length === 2), 'Sweep: two names on the list');
+  await S.click('#swDone');
+  let plan = null;
+  for (let k = 0; k < 30; k++){ await sleep(250); plan = (await all('ledger_plans')).find(x => x.id === TODAY); if (plan && plan.sweep && plan.sweep.sweptAt) break; }
+  const items = plan && plan.sweep ? plan.sweep.items : [];
+  check(items.map(i => i.name + '/' + i.channel).join() === 'Priya/Email,Owen/WhatsApp' && plan.sweep.checked.indexOf('Email') > -1 && !!plan.sweep.sweptAt,
+    'Sweep: stored on today\'s plan — who, where, Email checked, swept', plan && plan.sweep);
+  check((await convs()).length === convsBefore, 'Sweep: no conversation made — Communications stays as it was');
+  await S2.click('nav.tabbar .tab-btn[data-view="log"]');
+  check(await until(S2, () => /Replies/.test((document.getElementById('sweepCard') || {}).innerText || '') && /2 to reply/.test(document.getElementById('sweepCard').innerText), null, 15000),
+    'Sweep: the Mac\'s Today shows Replies, 2 to reply, live');
+  await S2.evaluate(() => [...document.querySelectorAll('#sweepCard .sw-row')].find(r => /Priya/.test(r.innerText)).querySelector('.commitment-status-dot').click());
+  check(await until(S, () => /1 to reply/.test(document.getElementById('commsSweep').innerText), null, 15000), 'Sweep: ticked on the Mac, the phone\'s Comms line says 1 to reply');
+  await S2.screenshot({ path: `${shots}/1440-${theme}-CQ5-replies.png` });
   // owner-private: a partner can't read any of it
   const A = await session('abi');
   await signIn(A, ABI);
   await until(A, () => !document.getElementById('partnerApp').hidden, null, 20000);
-  const probe = await A.evaluate(async () => { const out = {}; for (const c of ['ledger_conversations', 'ledger_matters', 'ledger_people']) { try { await firebase.firestore().collection(c).get(); out[c] = 'ALLOWED'; } catch (e){ out[c] = e.code; } } return out; });
+  const probe = await A.evaluate(async () => { const out = {}; for (const c of ['ledger_conversations', 'ledger_matters', 'ledger_people', 'ledger_plans']) { try { await firebase.firestore().collection(c).get(); out[c] = 'ALLOWED'; } catch (e){ out[c] = e.code; } } return out; });
   check(Object.values(probe).every(v => v === 'permission-denied'), 'Abi is refused Communications: ' + JSON.stringify(probe));
   check(!/Fail me|WhatsApp about meeting|this one fails|Clem/.test(await A.evaluate(() => document.body.innerText)), 'nothing captured is on her screen');
   for (const p of [S, S2, A]) check(!p.errs.length, p.name + ': no page errors ' + p.errs.slice(0, 3).join(' | ').slice(0, 400));

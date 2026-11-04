@@ -763,6 +763,18 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-04 — The daily comms sweep (Shaun's answers)
+- A **Comms sweep** step in Morning Prime's Plan routine opens the sweep: his channels as
+  chips (Settings → Comms sweep channels; WhatsApp, Email, Text, LinkedIn, Instagram,
+  Voicemail to start), tap one and write the names, or "Name — channel". Done sweeping ticks
+  the step.
+- The names are a **checklist on the day's plan** (`ledger_plans/<date>.sweep`), never
+  conversations, so Communications stays uncluttered. They show on Today as a **Replies** card
+  and as one line at the top of Comms (a line, not a filter tab: a sixth tab didn't fit a
+  phone).
+- **Not replied to carries forward** (up to 14 days, marked "from Tue") until ticked or removed.
+- Recurring Actions for himself in general: later, as their own feature (Issue #21).
+
 ### 2026-11-03 — Android gets the iPhone's widgets and focus countdown (Shaun)
 - Today, Focus and Flow widgets, the focus timer counting down in the notification shade (a
   Live Update on Android 16), and keep-awake for the full-screen focus. Same plugin and
@@ -2585,7 +2597,11 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (build and send the Android app)
+Owner: Shaun (try it)
+**Comms sweep** — live on the web (decision above): Morning Prime → Comms sweep tomorrow
+morning; Settings → Comms sweep channels to set his own.
+
+**Before that** — Owner: Shaun (build and send the Android app)
 **Android widgets** (§12e): `cd native && git pull && npm install && npm run bump && npm run
 sync`, Android Studio → Run on the phone, add the widgets; then a signed APK to App
 Distribution as usual. The page's side is already live.
@@ -2820,6 +2836,10 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-11-04) — **Comms sweep** (decision above). Tests: comms-capture 36 (the sweep from the
+  phone, stored on the plan, no conversation made, live on the Mac); execution 81,
+  partner-sharing 209, settings 9, goals 23, native-shell 87, assistant 62.
 
 - (2026-11-03) — **Android: widgets and the focus countdown** (decision above). Java compiled
   against the Android 16 framework here; native-shell e2e 87. Needs an app build.
