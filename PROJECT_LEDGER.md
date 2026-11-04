@@ -774,6 +774,9 @@ Conventions that should not be casually changed.
   phone).
 - **Not replied to carries forward** (up to 14 days, marked "from Tue") until ticked or removed.
 - Recurring Actions for himself in general: later, as their own feature (Issue #21).
+- **By channel** (later the same day, Shaun): choose a channel and jot names, Return after
+  each; the list (sweep and Today's card) is grouped by channel in his order, each chip shows
+  its count. WhatsApp starts as two channels, Personal and Business.
 
 ### 2026-11-03 — Android gets the iPhone's widgets and focus countdown (Shaun)
 - Today, Focus and Flow widgets, the focus timer counting down in the notification shade (a

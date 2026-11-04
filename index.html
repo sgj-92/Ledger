@@ -4570,6 +4570,11 @@
   .sw-chan { display: inline-flex; align-items: center; gap: 5px; }
   .sw-chan.checked:not(.sel) { color: var(--text-3); }
   .sw-chan-ok { display: inline-flex; width: 13px; height: 13px; color: var(--gold); }
+  .sw-chan-n { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; opacity: 0.75; }
+  .sw-group { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 0 2px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+  .sw-list > .sw-group:first-child, .hs-sec-head + .sw-group { padding-top: 4px; }
+  .sw-group-n { font-variant-numeric: tabular-nums; letter-spacing: 0; text-transform: none; font-weight: 500; }
   .sw-chan-ok svg { width: 100%; height: 100%; }
   .sw-hint { margin: 0 0 6px; font-size: 12.5px; color: var(--text-3); }
   .sw-add { margin: 0 0 var(--sp-4); }
@@ -11874,7 +11879,8 @@
   // Replies card, and reachable from Comms. Anything not replied to carries forward to the
   // next days ("from Tue") until it is ticked or removed. The channels are his own list
   // (Settings → Comms sweep channels).
-  var SWEEP_DEFAULT_CHANNELS = ['WhatsApp', 'Email', 'Text', 'LinkedIn', 'Instagram', 'Voicemail'];
+  // WhatsApp twice, Personal and Business, as Shaun goes through them (2026-11-04)
+  var SWEEP_DEFAULT_CHANNELS = ['WhatsApp Personal', 'WhatsApp Business', 'Email', 'Text', 'LinkedIn', 'Instagram', 'Voicemail'];
   var SWEEP_CARRY_DAYS = 14, SWEEP_OPEN_KEY = 'ledger_sweep_open', sweepSheetPaint = null;
   function sweepChannels(){
     var c = presets && Array.isArray(presets.sweepChannels)
@@ -11932,10 +11938,12 @@
   function sweepParse(text, fallback){
     var chans = sweepChannels();
     function known(c){ var k = chans.filter(function(x){ return x.toLowerCase() === String(c).toLowerCase(); })[0]; return k || c; }
+    function isKnown(c){ return chans.some(function(x){ return x.toLowerCase() === String(c).toLowerCase(); }); }
     return hbParse(text).map(function(line){
       var name = line, ch = null;
       var m = line.match(/^(.+?)(?:\s+[-–—]\s+|\s*[–—]\s*|\s*,\s*|\s*:\s*|\s*\()(.+?)\)?$/);
-      if (m && m[1].trim() && m[2].trim()){ name = m[1].trim(); ch = known(m[2].trim()); }
+      // with a channel chosen, "Smith, John" stays a name: only one of his channels redirects it
+      if (m && m[1].trim() && m[2].trim() && (!fallback || isKnown(m[2].trim()))){ name = m[1].trim(); ch = known(m[2].trim()); }
       else chans.forEach(function(c){
         if (ch) return;
         var tail = ' ' + c.toLowerCase();
@@ -11959,7 +11967,7 @@
     var body = document.createElement('div'); body.className = 'sw-body';
     var nm = document.createElement('span'); nm.className = 'sw-name'; nm.textContent = it.name;
     var meta = document.createElement('span'); meta.className = 'sw-meta';
-    meta.textContent = [it.channel || '', x.carried ? sweepFromLabel(x.date, today) : ''].filter(Boolean).join(' · ');
+    meta.textContent = [opts.grouped ? '' : (it.channel || ''), x.carried ? sweepFromLabel(x.date, today) : ''].filter(Boolean).join(' \u00b7 ');
     body.appendChild(nm); if (meta.textContent) body.appendChild(meta);
     row.appendChild(tick); row.appendChild(body);
     if (opts.remove){
@@ -11969,6 +11977,28 @@
       row.appendChild(rm);
     }
     return row;
+  }
+  // a list by channel, in his channel order (others after, then no channel), open first in each
+  function sweepGroups(list){
+    var order = sweepChannels(), by = {}, keys = [];
+    list.forEach(function(x){
+      var k = x.item.channel || '';
+      if (!by[k]){ by[k] = []; keys.push(k); }
+      by[k].push(x);
+    });
+    function rank(k){ if (!k) return 9999; var i = order.indexOf(k); return i < 0 ? 5000 : i; }
+    keys.sort(function(a, b){ return rank(a) - rank(b) || (a < b ? -1 : 1); });
+    return keys.map(function(k){
+      var rows = by[k].filter(function(x){ return !x.item.done; }).concat(by[k].filter(function(x){ return x.item.done; }));
+      return { channel: k, rows: rows, open: rows.filter(function(x){ return !x.item.done; }).length };
+    });
+  }
+  function sweepGroupHead(g){
+    var h = document.createElement('div'); h.className = 'sw-group';
+    h.innerHTML = '<span class="sw-group-t"></span><span class="sw-group-n"></span>';
+    h.querySelector('.sw-group-t').textContent = g.channel || 'No channel';
+    h.querySelector('.sw-group-n').textContent = g.open ? String(g.open) : 'replied';
+    return h;
   }
   function sweepCounts(dateStr){
     var list = sweepList(dateStr), open = list.filter(function(x){ return !x.item.done; });
@@ -11999,9 +12029,11 @@
     body.hidden = !open;
     card.querySelector('#sweepStatus').textContent = c.open.length ? c.open.length + ' to reply' : 'All replied';
     tg.setAttribute('aria-label', 'Replies: ' + (c.open.length ? c.open.length + ' to reply' : 'all replied'));
-    // what's open, then today's replied ones, quiet
-    c.open.forEach(function(x){ body.appendChild(sweepRowEl(x, today)); });
-    c.list.filter(function(x){ return x.item.done; }).forEach(function(x){ body.appendChild(sweepRowEl(x, today)); });
+    // by channel, so replying goes one app at a time: what's open, then what's replied, quiet
+    sweepGroups(c.list).forEach(function(g){
+      body.appendChild(sweepGroupHead(g));
+      g.rows.forEach(function(x){ body.appendChild(sweepRowEl(x, today, { grouped: true })); });
+    });
     tg.addEventListener('click', function(){
       var on = tg.getAttribute('aria-expanded') !== 'true';
       var mm = dayOpenMap(SWEEP_OPEN_KEY); mm[today] = on ? 1 : 0;
@@ -12032,7 +12064,7 @@
       sheetHead(UI_ICON.chat, 'Comms sweep', 'Go through each channel. Note who needs a reply.', '') +
       '<div class="sw-chans" id="swChans" role="group" aria-label="Channels"></div>' +
       '<p class="sw-hint" id="swHint"></p>' +
-      '<div class="hl-add sw-add"><textarea id="swText" rows="2" maxlength="4000" aria-label="Who needs a reply"></textarea>' +
+      '<div class="hl-add sw-add"><textarea id="swText" rows="1" maxlength="4000" enterkeyhint="next" aria-label="Who needs a reply"></textarea>' +
         '<button type="button" class="rq-send" id="swAddBtn" disabled>Add</button></div>' +
       '<div class="sw-list sw-sheet-list" id="swList"></div>' +
       '<button type="button" class="btn-primary" id="swDone">Done sweeping</button>' +
@@ -12045,14 +12077,17 @@
     function paint(){
       if (!document.body.contains(listEl) || !backdrop.classList.contains('open')){ sweepSheetPaint = null; return; }
       var checked = sweepOf(dateStr).checked || [];
+      var c = sweepCounts(dateStr), per = {};
+      c.open.forEach(function(x){ var k = x.item.channel || ''; per[k] = (per[k] || 0) + 1; });
       chansEl.innerHTML = '';
       sweepChannels().forEach(function(ch){
         var b = document.createElement('button'); b.type = 'button';
         var done = checked.indexOf(ch) > -1;
         b.className = 'bk-filter-chip sw-chan' + (st.channel === ch ? ' sel' : '') + (done ? ' checked' : '');
         b.setAttribute('aria-pressed', st.channel === ch ? 'true' : 'false');
-        b.innerHTML = (done ? '<span class="sw-chan-ok" aria-hidden="true">' + CHECK_SVG + '</span>' : '') + '<span></span>';
-        b.querySelector('span:last-child').textContent = ch;
+        b.innerHTML = (done ? '<span class="sw-chan-ok" aria-hidden="true">' + CHECK_SVG + '</span>' : '') + '<span class="sw-chan-t"></span>';
+        b.querySelector('.sw-chan-t').textContent = ch;
+        if (per[ch]){ var n = document.createElement('span'); n.className = 'sw-chan-n'; n.textContent = String(per[ch]); b.appendChild(n); }
         b.addEventListener('click', function(){
           // choosing a channel means you're going through it: it counts as checked
           st.channel = st.channel === ch ? null : ch;
@@ -12061,17 +12096,18 @@
         });
         chansEl.appendChild(b);
       });
-      hint.textContent = st.channel ? 'Names from ' + st.channel + ', one per line' : 'Choose a channel, or write “Name — channel”';
-      ta.placeholder = st.channel ? 'James\nSarah' : 'James — WhatsApp\nSarah — Email';
-      var c = sweepCounts(dateStr);
+      hint.textContent = st.channel ? 'Writing for ' + st.channel + ' \u2014 a name, then return' : 'Choose a channel, then write the names \u2014 or \u201cName \u2014 channel\u201d';
+      ta.placeholder = st.channel ? 'Name' : 'James \u2014 Email';
       listEl.innerHTML = '';
       if (c.list.length){
         var h = document.createElement('div'); h.className = 'hs-sec-head';
         h.innerHTML = '<h3 class="cz-sec-title">To reply</h3><span class="cz-sec-count"></span>';
         h.querySelector('.cz-sec-count').textContent = c.open.length ? String(c.open.length) : 'all done';
         listEl.appendChild(h);
-        c.open.forEach(function(x){ listEl.appendChild(sweepRowEl(x, dateStr, { remove: true })); });
-        c.list.filter(function(x){ return x.item.done; }).forEach(function(x){ listEl.appendChild(sweepRowEl(x, dateStr, { remove: true })); });
+        sweepGroups(c.list).forEach(function(g){
+          listEl.appendChild(sweepGroupHead(g));
+          g.rows.forEach(function(x){ listEl.appendChild(sweepRowEl(x, dateStr, { remove: true, grouped: true })); });
+        });
       }
       document.getElementById('swDone').textContent = sweepOf(dateStr).sweptAt ? 'Done' : 'Done sweeping';
     }
@@ -12083,6 +12119,11 @@
       ta.focus();
     }
     ta.addEventListener('input', size);
+    // jotting: return adds the name and stays on the channel (shift+return for a new line;
+    // a pasted list adds line by line)
+    ta.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); if (ta.value.trim()) add(); }
+    });
     addBtn.addEventListener('click', add);
     document.getElementById('swDone').addEventListener('click', function(){
       if (ta.value.trim()) add();

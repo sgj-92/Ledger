@@ -203,14 +203,17 @@ async function oobLink(email){
   await S.click('#sweepLine');
   check(await until(S, () => !!document.getElementById('swText')), 'Sweep: Comms → "Today’s sweep" opens the sweep');
   await S.evaluate(() => [...document.querySelectorAll('#swChans .sw-chan')].find(c => c.textContent === 'Email').click());
-  await S.fill('#swText', 'Priya\nOwen — WhatsApp');
-  await S.click('#swAddBtn');
+  // jotting: a name and return, on the channel chosen; another channel by name
+  await S.type('#swText', 'Priya'); await S.keyboard.press('Enter');
+  await S.type('#swText', 'Owen — WhatsApp Business'); await S.keyboard.press('Enter');
   check(await until(S, () => document.querySelectorAll('#swList .sw-row').length === 2), 'Sweep: two names on the list');
+  check(await S.evaluate(() => [...document.querySelectorAll('#swList .sw-group-t')].map(e => e.textContent).join() === 'WhatsApp Business,Email'),
+    'Sweep: grouped by channel, in his channel order', await S.evaluate(() => document.getElementById('swList').innerText));
   await S.click('#swDone');
   let plan = null;
   for (let k = 0; k < 30; k++){ await sleep(250); plan = (await all('ledger_plans')).find(x => x.id === TODAY); if (plan && plan.sweep && plan.sweep.sweptAt) break; }
   const items = plan && plan.sweep ? plan.sweep.items : [];
-  check(items.map(i => i.name + '/' + i.channel).join() === 'Priya/Email,Owen/WhatsApp' && plan.sweep.checked.indexOf('Email') > -1 && !!plan.sweep.sweptAt,
+  check(items.map(i => i.name + '/' + i.channel).join() === 'Priya/Email,Owen/WhatsApp Business' && plan.sweep.checked.indexOf('Email') > -1 && !!plan.sweep.sweptAt,
     'Sweep: stored on today\'s plan — who, where, Email checked, swept', plan && plan.sweep);
   check((await convs()).length === convsBefore, 'Sweep: no conversation made — Communications stays as it was');
   await S2.click('nav.tabbar .tab-btn[data-view="log"]');
