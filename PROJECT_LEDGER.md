@@ -763,6 +763,17 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-06 — Training: Save and finish later (Shaun asked)
+
+- Every training log sheet (Strength, Padel, Cardio, HIIT, Yoga) on today or an earlier day
+  offers **Save and finish later** next to Log activity. It replaces "Save to plan" there;
+  ahead of the day it is still Save to plan. A session that wasn't planned joins that day's
+  plan.
+- The plan entry gets `inProgress` and `startedAt`, and keeps what only a log holds
+  (bodyweight; a match's result and sets). Today and Flow say "In progress", and the sheet's
+  badge reads In progress. **Log activity** records the session and clears the mark. Nothing
+  counts as done until then.
+
 ### 2026-11-06 — Strength: each set its own line (Shaun's answer)
 
 - An exercise's sets are logged one per line: reps and weight per set, one unit for the
@@ -2639,6 +2650,8 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Shaun (try it)
+**Save and finish later** on training — live on the web.
+
 **Per-set strength logging** — live on the web: Sets on an exercise → a line per set, +
 Add set. For Ask Claude to see each set, deploy functions (Actions → Deploy Firebase).
 
@@ -2884,6 +2897,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-06) — **Training: Save and finish later** (decision above). Browser-checked: save
+  half a workout from Flow, reload, carry on, log it (one session, plan Recorded, no stray
+  fields); an unplanned HIIT from Quick log joins today's plan in progress. Execution 81.
 - (2026-11-06) — **Per-set strength logging** (decision above). Browser-checked: an old
   3×12 at 20 kg record opens as three sets; varied sets, Add set, remove a set and save
   all round-trip. Functions tests: assistant 107. The server change needs a functions deploy.

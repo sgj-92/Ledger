@@ -8047,7 +8047,10 @@
   // the plan it just made rather than whatever an older read held. Log-only
   // evidence — match result and sets, bodyweight — is hidden in plan mode and
   // never copied here.
-  function saveTrainingPlanDetails(type, dateStr, raw){
+  // later: "Save and finish later" while training (2026-11-06). The plan entry is marked
+  // inProgress and also keeps what only a log has (bodyweight, a match's result and sets),
+  // so reopening it from Today carries on; logging it clears the mark.
+  function saveTrainingPlanDetails(type, dateStr, raw, later){
     var plan = getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
     var newPlan = Object.assign({}, plan);
     newPlan.trainingTypes = (plan.trainingTypes || []).slice();
@@ -8062,6 +8065,12 @@
     if (type === 'yoga'){ details.focus = raw.focus; }
     if (type === 'hiit'){ details.outline = raw.outline; }
     if (type === 'resistance'){ details.exercises = raw.exercises; }
+    if (later){
+      details.inProgress = true;
+      details.startedAt = details.startedAt || new Date().toISOString();
+      if (type === 'resistance') details.bodyweight = raw.bodyweight != null ? raw.bodyweight : null;
+      if (type === 'padel'){ details.result = raw.result || null; details.sets = raw.sets || []; }
+    }
     newPlan.trainingDetails = Object.assign({}, plan.trainingDetails || {});
     newPlan.trainingDetails[type] = details;
     savePlanForDate(dateStr, newPlan);   // local state is already this plan when this returns
@@ -8092,6 +8101,7 @@
     details.completed = true;
     details.completedAt = details.completedAt || new Date().toISOString();
     details.sessionId = sessionId;
+    details.inProgress = false;
     newPlan.trainingDetails[type] = details;
     savePlanForDate(dateStr, newPlan);
   }
@@ -8122,7 +8132,7 @@
       openSheet(type, existingSession || null, dateStr, { planDate: dateStr });
     } else {
       var seed = Object.assign({ type: type, date: dateStr }, details);
-      delete seed.completed; delete seed.completedAt; delete seed.sessionId;
+      delete seed.completed; delete seed.completedAt; delete seed.sessionId; delete seed.inProgress; delete seed.startedAt;
       openSheet(type, seed, dateStr, { planDate: dateStr });
     }
   }
@@ -27699,6 +27709,11 @@
   // Health & fitness is an execution surface, not a read-only echo of Plan:
   // training cards open the log sheet, meal rows tick into Nutrition, the
   // roadblock stays readable. "Edit plan" is the only route back to intent.
+  function trainingInProgress(type, dateStr){
+    var p = dateStr ? getPlanForDate(dateStr) : null;
+    var det = p && p.trainingDetails && p.trainingDetails[type];
+    return !!(det && det.inProgress && !det.completed);
+  }
   function planTrainingSub(t, details){
     if (details.completed){
       var sess = details.sessionId ? sessions.find(function(x){ return x.id === details.sessionId; }) : null;
@@ -27707,6 +27722,7 @@
       return done.join(' · ');
     }
     var bits = [];
+    if (details.inProgress) bits.push('In progress');
     if (details.activityTime) bits.push(details.activityTime);
     if (details.durationMin) bits.push(details.durationMin + ' min');
     if (t === 'yoga' && details.focus) bits.push(details.focus);
@@ -30609,7 +30625,7 @@
   function buildFormHtml(type, d, mode, fromPlan){
     var html = '<div class="sheet-handle"></div>';
     html += sheetHead(SESSION_ICON_SVG[type] || '', TYPE_LABEL[type], SHEET_SUB[type] || '',
-      mode === 'plan' ? ' <span class="sheet-mode-badge">Planning</span>' : (fromPlan ? ' <span class="sheet-mode-badge">From plan</span>' : ''));
+      mode === 'plan' ? ' <span class="sheet-mode-badge">Planning</span>' : (fromPlan ? ' <span class="sheet-mode-badge">' + (trainingInProgress(type, d.date) ? 'In progress' : 'From plan') + '</span>' : ''));
     html += '<div class="field-row">' +
       fieldDate('f_date', 'Date', d.date || todayStr()) +
       '<div class="field"><label>Time</label><div class="time-with-now">' +
@@ -30779,9 +30795,12 @@
         (!editingId ? '<div class="act-rows">' +
           (canFocusT ? '<button type="button" class="act-row focus-set-btn' + (onT ? ' on' : '') + '" id="trainFocusBtn"><span class="act-ic">' + UI_ICON.target + '</span>' +
             '<span class="act-label">' + (onT ? 'Current focus \u2713' : 'Set as current focus') + '</span>' + (onT ? '<span class="act-meta">Clear</span>' : '') + '</button>' : '') +
-          '<button type="button" class="act-row form-alt-btn" id="savePlanOnlyBtn"><span class="act-label">Save to plan</span></button></div>' : '');
+          // on the day itself (or after), half a session is kept to finish; ahead of it, it is planning
+          '<button type="button" class="act-row form-alt-btn" id="savePlanOnlyBtn"' + ((d.date || todayStr()) <= todayStr() ? ' data-later="1"><span class="act-label">Save and finish later</span>' : '><span class="act-label">Save to plan</span>') + '</button></div>' : '');
     } else {
-      html += '<button class="save-btn" id="saveBtn">Save</button>';
+      html += '<button class="save-btn" id="saveBtn">Save</button>' +
+        (!editingId && PLAN_TRAINING_TYPES.indexOf(type) > -1
+          ? '<div class="act-rows"><button type="button" class="act-row form-alt-btn" id="saveLaterBtn"><span class="act-label">Save and finish later</span></button></div>' : '');
     }
     if (mode === 'plan') html += '<button type="button" class="delete-btn" id="removeFromPlanBtn">Remove from plan</button>';
     else if (editingId) html += '<button class="delete-btn" id="deleteBtn">Delete</button>';
@@ -31470,9 +31489,18 @@
     });
     var savePlanOnly = document.getElementById('savePlanOnlyBtn');
     if (savePlanOnly) savePlanOnly.addEventListener('click', function(){
-      saveTrainingPlanDetails(type, opts.planDate, collectFormData());
+      var later = savePlanOnly.hasAttribute('data-later');
+      saveTrainingPlanDetails(type, opts.planDate, collectFormData(), later);
       closeSheet();
-      showPinToast('Saved to plan', false, CHECK_SVG);
+      showPinToast(later ? 'Saved \u00b7 finish it from Today' : 'Saved to plan', false, CHECK_SVG);
+    });
+    // not planned: it joins that day's plan, in progress, and carries on from Today
+    var saveLater = document.getElementById('saveLaterBtn');
+    if (saveLater) saveLater.addEventListener('click', function(){
+      var out = collectFormData();
+      saveTrainingPlanDetails(type, out.date || todayStr(), out, true);
+      closeSheet();
+      showPinToast('Saved \u00b7 finish it from Today', false, CHECK_SVG);
     });
 
     if (type === 'nutrition'){
