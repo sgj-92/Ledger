@@ -22940,6 +22940,9 @@
   var LEDGER_REPO = 'sgj-92/Ledger';
   var BUILD_CHECK_KEY = 'ledger_build_check';
   var BUILD_CHECK_EVERY = 10 * 60 * 1000;   // GitHub allows 60 anonymous reads an hour
+  // what this host serves is our own small file, so it is asked far more often: the
+  // update offer depends only on it (2026-11-06)
+  var SERVED_CHECK_EVERY = 2 * 60 * 1000;
   var BUILD_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   // A stamp is only believed when it looks like one; the local placeholder or an
@@ -22969,12 +22972,13 @@
   var PAGES_LABEL = { current: 'Up to date', pending: 'Deploying newer build', unknown: 'Unable to verify', checking: 'Checking\u2026' };
 
   // the last result survives a reload, but only for the build it was taken on
-  var buildState = { checking: false, served: null, latest: null, at: null, pending: null };
+  var buildState = { checking: false, served: null, latest: null, at: null, servedAt: null, pending: null };
   (function(){
     try {
       var c = JSON.parse(localStorage.getItem(BUILD_CHECK_KEY) || 'null');
       if (c && c.loaded && c.loaded === loadedBuild().sha){
         buildState.served = c.served; buildState.latest = c.latest; buildState.at = c.at;
+        buildState.servedAt = c.servedAt || c.at;
       }
     } catch(e){}
   })();
@@ -22996,21 +23000,25 @@
     var loaded = loadedBuild().sha;
     if (!loaded){ renderBuildFooter(); return Promise.resolve(); }
     if (buildState.checking) return buildState.pending;
-    if (!force && buildState.at && Date.now() - buildState.at < BUILD_CHECK_EVERY){
+    var now = Date.now();
+    var needLatest = force || !buildState.at || now - buildState.at >= BUILD_CHECK_EVERY;
+    var needServed = needLatest || !buildState.servedAt || now - buildState.servedAt >= SERVED_CHECK_EVERY;
+    if (!needServed){
       renderBuildFooter(); maybeOfferUpdate(); return Promise.resolve();
     }
     buildState.checking = true;
     renderBuildFooter();
-    var served = null, latest = null;
+    var served = null, latest = buildState.latest;
     buildState.pending = Promise.all([
       fetchServedSha().then(function(v){ served = v; }, function(){}),
-      fetchLatestSha().then(function(v){ latest = v; }, function(){})
+      needLatest ? fetchLatestSha().then(function(v){ latest = v; }, function(){ latest = null; }) : null
     ]).then(function(){
       buildState.checking = false;
-      buildState.served = served; buildState.latest = latest; buildState.at = Date.now();
+      buildState.served = served; buildState.latest = latest; buildState.servedAt = Date.now();
+      if (needLatest) buildState.at = buildState.servedAt;
       try {
         localStorage.setItem(BUILD_CHECK_KEY, JSON.stringify({
-          loaded: loaded, served: served, latest: latest, at: buildState.at }));
+          loaded: loaded, served: served, latest: latest, at: buildState.at, servedAt: buildState.servedAt }));
       } catch(e){}
       renderBuildFooter();
       maybeOfferUpdate();
@@ -23139,6 +23147,8 @@
   document.addEventListener('focusin', function(e){
     if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) hideUpdateBar();
   });
+  // and finishing typing brings it back (only when nothing else has focus by then)
+  document.addEventListener('focusout', function(){ setTimeout(maybeOfferUpdate, 600); });
   // In a sheet, the field being typed in stays in view once the keyboard is up. The
   // keyboard shrinks the page (the app's web view; Safari's visual viewport) after the
   // focus, so a scroll at the moment of focus can leave the field under it or under the
@@ -25372,6 +25382,10 @@
   document.addEventListener('visibilitychange', function(){
     if (document.visibilityState === 'visible') checkBuild(false);
   });
+  // a Ledger left open (the phone apps stay alive for hours) still hears of a new build;
+  // checkBuild itself keeps to its own pace, so this only wakes it
+  window.addEventListener('focus', function(){ checkBuild(false); });
+  setInterval(function(){ if (document.visibilityState === 'visible') checkBuild(false); }, 60 * 1000);
 
   document.getElementById('actionsToggle').addEventListener('click', function(){
     actionsCollapsed = !actionsCollapsed;
@@ -30454,6 +30468,8 @@
     activeSheetRefresh = null;
     rqStopDetail();
     reviewSheetClosed();      // an errand from Catch-up returns to it
+    // an update held back while the sheet was open is offered now
+    setTimeout(function(){ if (!backdrop.classList.contains('open')) maybeOfferUpdate(); }, 400);
   }
   backdrop.addEventListener('click', function(e){ if (e.target === backdrop) closeSheet(); });
 

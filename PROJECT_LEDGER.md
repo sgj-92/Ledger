@@ -2897,6 +2897,13 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-06) — **New-build offer now reaches an app left open.** Shaun saw no "New
+  Ledger build available". Before, the check ran only at start and on return to the
+  foreground (10-minute floor), and an offer held back by an open sheet or typing waited for
+  the next check. Now the site's own `buildInfo.js` is asked every 2 minutes while the app is
+  visible (GitHub still at most every 10), on window focus too, and a held-back offer
+  appears once the sheet closes or typing stops. Browser-checked on a fake clock;
+  native-shell 87.
 - (2026-11-06) — **Undo in the exercise editor**: removing an exercise or a set shows the
   app's Undo toast ("T-Bar Row removed · Undo") for 5 seconds, putting it back in its
   place with its sets. Browser-checked; undo after the sheet has closed does nothing.
