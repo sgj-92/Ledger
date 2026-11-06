@@ -188,7 +188,12 @@ function createLedgerTools({ db, now = () => new Date() }) {
     if (TRAINING.indexOf(s.type) > -1) {
       v.label = TRAINING_LABEL[s.type];
       ['activityTime', 'durationMin', 'venue', 'padelType', 'result', 'cardioType', 'distance', 'distanceUnit', 'focus', 'outline'].forEach((k) => { if (s[k] != null && s[k] !== '') v[k] = typeof s[k] === 'string' ? clip(s[k], 200) : s[k]; });
-      if (Array.isArray(s.exercises) && s.exercises.length) v.exercises = s.exercises.slice(0, 30).map((e) => ({ name: clip(e.name, 60), sets: e.sets || null, reps: e.reps || null, value: e.value || null, unit: e.unit || null }));
+      if (Array.isArray(s.exercises) && s.exercises.length) v.exercises = s.exercises.slice(0, 30).map((e) => {
+        const x = { name: clip(e.name, 60), sets: e.sets || null, reps: e.reps || null, value: e.value || null, unit: e.unit || null };
+        // since 2026-11-06 each set can differ: value is then the heaviest; per_set has each one
+        if (Array.isArray(e.setList) && e.setList.length) x.per_set = e.setList.slice(0, 20).map((st) => ({ reps: st && st.reps != null ? st.reps : null, value: st && st.value != null ? st.value : null }));
+        return x;
+      });
       if (s.notes) v.notes = clip(s.notes, 300);
     } else if (s.type === 'weight') v.kg = s.weightKg;
     else if (s.type === 'steps') v.steps = s.steps;

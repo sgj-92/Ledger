@@ -763,6 +763,16 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-06 — Strength: each set its own line (Shaun's answer)
+
+- An exercise's sets are logged one per line: reps and weight per set, one unit for the
+  exercise. **+ Add set** copies the last set. The rows are labelled Set · Reps · Weight.
+- Stored as `setList: [{ reps, value }]` on the exercise. `sets`, `reps` and `value` stay
+  as a summary (the count, the reps when every set shares them, the heaviest weight), so
+  older readers still work. Old records, and Ask Claude's logs, read as that many
+  identical sets. `exSummary` writes "3×12 · 20 kg", or "12 @ 20 · 10 @ 22.5 · 8 @ 25 kg"
+  when the sets differ. Ask Claude reads each set as `per_set`.
+
 ### 2026-11-06 — Flow: choose several and move them together (Shaun asked; design by Claude Code)
 
 Shaun asked for multi-select in Flow so a batch can be moved after an event. No design
@@ -2629,6 +2639,9 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Shaun (try it)
+**Per-set strength logging** — live on the web: Sets on an exercise → a line per set, +
+Add set. For Ask Claude to see each set, deploy functions (Actions → Deploy Firebase).
+
 **Flow Select** — live on the web: Today → Flow → Select, choose, then After this on an
 event (or Move after… / Tomorrow / hold one to drag the group).
 
@@ -2871,6 +2884,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-06) — **Per-set strength logging** (decision above). Browser-checked: an old
+  3×12 at 20 kg record opens as three sets; varied sets, Add set, remove a set and save
+  all round-trip. Functions tests: assistant 107. The server change needs a functions deploy.
 - (2026-11-06) — **Flow multi-select** (decision above). Browser-checked at 390 and 1280:
   After this on Padel, Move after… to an untimed step, a group drag, Tomorrow, and
   persistence through a reload. Execution 81.

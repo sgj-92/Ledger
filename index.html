@@ -2509,8 +2509,20 @@
   /* ---------- exercise / simple rows ---------- */
   .exercise-row { margin-bottom: 8px; }
   .exercise-row .ex-main, .exercise-row .ex-nums { display: flex; gap: 8px; align-items: center; }
-  .exercise-row .ex-nums { margin-top: 8px; }
+  .exercise-row .ex-nums { margin-top: 8px; flex-direction: column; align-items: stretch; gap: 6px; padding-left: 4px; }
   .exercise-row .ex-nums[hidden] { display: none; }
+  .exercise-row .ex-set, .exercise-row .ex-set-head { display: grid; grid-template-columns: 28px minmax(0,1fr) minmax(0,1fr) 36px; gap: 8px; align-items: center; }
+  .exercise-row .ex-set-head span { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); padding-left: 2px; }
+  .exercise-row .ex-set-head span:first-child { text-align: center; padding-left: 0; }
+  .exercise-row .ex-set-n { text-align: center; font-size: 13px; font-weight: 600; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .exercise-row .ex-set input { width: 100%; box-sizing: border-box; }
+  .exercise-row .ex-set-rm { width: 36px; height: 36px; padding: 0; border: none; background: none; color: var(--text-3); cursor: pointer; font-size: 14px; border-radius: 50%; }
+  .exercise-row .ex-set-foot { display: flex; align-items: center; gap: 8px; }
+  .exercise-row .ex-set-add {
+    flex: 1; min-height: 40px; border-radius: 10px; cursor: pointer; background: none;
+    border: 1px dashed var(--line-2); color: var(--gold); font-family: var(--sans); font-size: 13px; font-weight: 500;
+  }
+  .exercise-row .ex-set-add:active { opacity: 0.6; }
   .exercise-row input { flex: 1; min-width: 0; }
   .exercise-row select.ex-unit { flex: 0 0 74px; font-size: 13px; padding: 12px 6px; }
   .exercise-row .ex-more {
@@ -11173,7 +11185,7 @@
           a.type === 'padel' ? ({ match: 'Match', tournament: 'Tournament', social: 'Social', training: 'Training' })[a.padelType] || '' : '',
           a.focus || ''].filter(Boolean).join(' \u00b7 '));
         (a.exercises || []).forEach(function(e){
-          lines.push(e.name + (e.sets && e.reps ? ' ' + e.sets + '\u00d7' + e.reps : (e.sets ? ' ' + e.sets + ' sets' : '')) + (e.value != null ? ' \u00b7 ' + e.value + ' ' + (e.unit || '') : ''));
+          lines.push(e.name + (exSummary(e) ? ' ' + exSummary(e) : ''));
         });
         if (a.outline) lines.push(a.outline);
         if (a.notes) lines.push(a.notes);
@@ -11189,7 +11201,7 @@
         verb = 'Correct';
         var LBL = { date: 'Day', activityTime: 'Time', durationMin: 'Length', venue: 'Where', distance: 'Distance', weightKg: 'Weight', steps: 'Steps', foodDiary: 'Food diary', dayRating: 'The day', notes: 'Notes' };
         Object.keys(pt0).forEach(function(k){
-          if (k === 'exercises'){ lines.push('Exercises \u2192 ' + (pt0.exercises || []).map(function(e){ return e.name + (e.sets && e.reps ? ' ' + e.sets + '\u00d7' + e.reps : '') + (e.value != null ? ' ' + e.value + (e.unit || '') : ''); }).join(', ')); return; }
+          if (k === 'exercises'){ lines.push('Exercises \u2192 ' + (pt0.exercises || []).map(function(e){ return e.name + (exSummary(e) ? ' ' + exSummary(e) : ''); }).join(', ')); return; }
           var f = function(v){ return v == null || v === '' ? 'none' : k === 'date' ? day(v) : k === 'durationMin' ? fmtDuration(v) : k === 'steps' ? fmtSteps(v) : k === 'weightKg' ? v + ' kg' : String(v).replace(/\n/g, '; '); };
           lines.push((LBL[k] || k) + ': ' + f(b0[k]) + arrow + f(pt0[k]));
         });
@@ -30541,6 +30553,37 @@
   }
 
   var UNIT_OPTIONS = ['kg','lb','reps','sec','m'];
+  // An exercise's sets. Since 2026-11-06 each set is its own { reps, value } in setList;
+  // older records (and Ask Claude's) have one line, sets x reps at value, read as that many
+  // identical sets. sets/reps/value are still written as the summary: the count, the reps
+  // when every set shares them, and the heaviest value.
+  function exSetsOf(e){
+    if (!e) return [];
+    if (Array.isArray(e.setList)) return e.setList.map(function(x){ return { reps: x && x.reps != null ? x.reps : null, value: x && x.value != null ? x.value : null }; });
+    if (!e.sets && !e.reps && (e.value == null || e.value === '')) return [];
+    var n = Math.max(1, Math.min(20, Number(e.sets) || 1)), out = [];
+    for (var k = 0; k < n; k++) out.push({ reps: e.reps ? Number(e.reps) : null, value: e.value != null && e.value !== '' ? Number(e.value) : null });
+    return out;
+  }
+  function exSetFields(list){
+    if (!list.length) return { sets: null, reps: null, value: null, setList: null };
+    var reps = list.every(function(x){ return x.reps === list[0].reps; }) ? list[0].reps : null;
+    var vals = list.map(function(x){ return x.value; }).filter(function(v){ return v != null; });
+    return { sets: list.length, reps: reps, value: vals.length ? Math.max.apply(null, vals) : null, setList: list };
+  }
+  // "3×12 · 20 kg" when the sets match; "12 @ 20 · 10 @ 22.5 · 8 @ 25 kg" when they don't
+  function exSummary(e){
+    var L = exSetsOf(e), u = (e && e.unit) || '';
+    if (!L.length) return '';
+    var same = L.every(function(x){ return x.reps === L[0].reps && x.value === L[0].value; });
+    if (same){
+      var head = L[0].reps != null ? L.length + '\u00d7' + L[0].reps : L.length + (L.length === 1 ? ' set' : ' sets');
+      return head + (L[0].value != null ? ' \u00b7 ' + L[0].value + ' ' + u : '');
+    }
+    return L.map(function(x){
+      return x.reps != null && x.value != null ? x.reps + ' @ ' + x.value : x.reps != null ? String(x.reps) : x.value != null ? '@ ' + x.value : '\u2013';
+    }).join(' \u00b7 ') + (L.some(function(x){ return x.value != null; }) ? ' ' + u : ' reps');
+  }
 
   // Wraps HTML that only makes sense once an activity has actually happened (results, sets,
   // bodyweight, etc) so it's present in the DOM (collectFormData still reads it) but hidden
@@ -31082,8 +31125,10 @@
 
       // An exercise is its name; sets, reps and weight are there when wanted, never asked
       // for. Return in a name adds the next one, and a pasted list becomes one each.
-      function blankExercise(){ return { name: '', sets: '', reps: '', value: '', unit: 'kg' }; }
-      function hasNumbers(ex){ return !!(ex.sets || ex.reps || ex.value); }
+      // Each set is its own line (2026-11-06): reps and weight per set, one unit for the exercise.
+      function blankExercise(){ return { name: '', unit: 'kg', list: [] }; }
+      function hasNumbers(ex){ return ex.list.length > 0; }
+      exerciseState.forEach(function(ex){ if (!ex.list) ex.list = exSetsOf(ex).map(function(x){ return { reps: x.reps == null ? '' : String(x.reps), value: x.value == null ? '' : String(x.value) }; }); });
       // once a name is typed: written another way, it becomes the name already used; a
       // letter or two out, Ledger asks ("Did you mean Bench press?") unless told to keep it
       function settleName(ex){
@@ -31111,17 +31156,23 @@
             '<div class="ex-hint" hidden><span class="ex-hint-text"></span>' +
               '<button type="button" class="ex-hint-use">Use</button><button type="button" class="ex-hint-keep">Keep mine</button></div>' +
             '<div class="ex-nums"'+(open?'':' hidden')+'>' +
-              '<input class="ex-sets" placeholder="Sets" type="number" inputmode="numeric" aria-label="Sets">' +
-              '<input class="ex-reps" placeholder="Reps" type="number" inputmode="numeric" aria-label="Reps">' +
-              '<input class="ex-value" placeholder="Weight" type="number" inputmode="decimal" aria-label="Weight">' +
-              '<select class="ex-unit" data-picker-title="Unit">'+unitOptsHtml+'</select>' +
+              (ex.list.length ? '<div class="ex-set-head" aria-hidden="true"><span>Set</span><span>Reps</span><span>Weight</span><span></span></div>' : '') +
+              ex.list.map(function(st, k){
+                return '<div class="ex-set" data-set="'+k+'"><span class="ex-set-n">'+(k+1)+'</span>' +
+                  '<input class="ex-reps" placeholder="Reps" type="number" inputmode="numeric" aria-label="Set '+(k+1)+' reps">' +
+                  '<input class="ex-value" placeholder="Weight" type="number" inputmode="decimal" aria-label="Set '+(k+1)+' weight">' +
+                  '<button type="button" class="ex-set-rm" aria-label="Remove set '+(k+1)+'">✕</button></div>';
+              }).join('') +
+              '<div class="ex-set-foot"><button type="button" class="ex-set-add">+ Add set</button>' +
+                '<select class="ex-unit" data-picker-title="Unit" aria-label="Unit">'+unitOptsHtml+'</select></div>' +
             '</div>';
           // what was typed goes in as values, never as markup
           var nameEl = row.querySelector('.ex-name');
           nameEl.value = ex.name || '';
-          row.querySelector('.ex-sets').value = ex.sets || '';
-          row.querySelector('.ex-reps').value = ex.reps || '';
-          row.querySelector('.ex-value').value = ex.value || '';
+          row.querySelectorAll('.ex-set').forEach(function(sr, k){
+            sr.querySelector('.ex-reps').value = ex.list[k].reps || '';
+            sr.querySelector('.ex-value').value = ex.list[k].value || '';
+          });
           var sug = row.querySelector('.ex-suggest'), hint = row.querySelector('.ex-hint');
           // the name's hint and suggestions, drawn in place so focus never moves
           function paintHint(){
@@ -31194,17 +31245,34 @@
             Array.prototype.splice.apply(exerciseState, [at, 0].concat(add));
             renderRows(at + add.length - 1);
           });
-          row.querySelector('.ex-sets').addEventListener('input', function(e){ exerciseState[i].sets = e.target.value; });
-          row.querySelector('.ex-reps').addEventListener('input', function(e){ exerciseState[i].reps = e.target.value; });
-          row.querySelector('.ex-value').addEventListener('input', function(e){ exerciseState[i].value = e.target.value; });
+          row.querySelectorAll('.ex-set').forEach(function(sr, k){
+            sr.querySelector('.ex-reps').addEventListener('input', function(e){ exerciseState[i].list[k].reps = e.target.value; });
+            sr.querySelector('.ex-value').addEventListener('input', function(e){ exerciseState[i].list[k].value = e.target.value; });
+            sr.querySelector('.ex-set-rm').addEventListener('click', function(){
+              exerciseState[i].list.splice(k, 1);
+              exerciseState[i]._open = true;
+              renderRows();
+              focusSet(i, Math.min(k, exerciseState[i].list.length - 1), '.ex-set-add');
+            });
+          });
           row.querySelector('.ex-unit').addEventListener('change', function(e){ exerciseState[i].unit = e.target.value; });
+          // a new set starts as a copy of the last, so straight sets are one tap each
+          function addSet(){
+            var L = exerciseState[i].list, last = L[L.length - 1];
+            L.push({ reps: last ? last.reps : '', value: last ? last.value : '' });
+            exerciseState[i]._open = true;
+            renderRows();
+            focusSet(i, L.length - 1);
+          }
+          row.querySelector('.ex-set-add').addEventListener('click', addSet);
           var more = row.querySelector('.ex-more'), nums = row.querySelector('.ex-nums');
           more.addEventListener('click', function(){
             var on = nums.hidden;
-            nums.hidden = !on;
             exerciseState[i]._open = on;
+            if (on && !exerciseState[i].list.length){ addSet(); return; }
+            nums.hidden = !on;
             more.setAttribute('aria-expanded', on ? 'true' : 'false');
-            if (on) row.querySelector('.ex-sets').focus();
+            if (on) focusSet(i, 0);
           });
           row.querySelector('.ex-rm').addEventListener('click', function(){
             exerciseState.splice(i,1); renderRows();
@@ -31215,6 +31283,14 @@
           var f = rowsWrap.children[focusIndex].querySelector('.ex-name');
           if (f) f.focus();
         }
+      }
+      // focus a set's reps (or, with no set left, the given control) without scrolling away
+      function focusSet(i, k, fallback){
+        var r = rowsWrap.children[i];
+        if (!r) return;
+        var el = k > -1 ? r.querySelectorAll('.ex-set .ex-reps')[k] : null;
+        el = el || (fallback ? r.querySelector(fallback) : null);
+        if (el) try { el.focus({ preventScroll: true }); } catch(e){}
       }
       renderRows();
       document.getElementById('addExerciseBtn').addEventListener('click', function(){
@@ -31277,8 +31353,11 @@
         var finalExercises = exerciseState.filter(function(e){ return e.name && e.name.trim(); }).map(function(e){
           // the same exercise written another way is saved under the name already used
           var name = e.name.trim(), same = exResolve(name);
-          return { name: same || name, sets: e.sets ? Number(e.sets) : null, reps: e.reps ? Number(e.reps) : null,
-                   value: e.value ? Number(e.value) : null, unit: e.unit || 'kg' };
+          var num = function(v){ return v === '' || v == null || !isFinite(Number(v)) ? null : Number(v); };
+          var list = (e.list || []).map(function(x){ return { reps: num(x.reps), value: num(x.value) }; });
+          // one untouched set is no set; two or more were added on purpose
+          if (list.length === 1 && list[0].reps == null && list[0].value == null) list = [];
+          return Object.assign(exSetFields(list), { name: same || name, unit: e.unit || 'kg' });
         });
         out.exercises = finalExercises;
         out.bodyweight = numOrNull('f_bodyweight');
