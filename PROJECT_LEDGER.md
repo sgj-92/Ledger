@@ -2897,6 +2897,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-06) — **Undo in the exercise editor**: removing an exercise or a set shows the
+  app's Undo toast ("T-Bar Row removed · Undo") for 5 seconds, putting it back in its
+  place with its sets. Browser-checked; undo after the sheet has closed does nothing.
 - (2026-11-06) — **Training: Save and finish later** (decision above). Browser-checked: save
   half a workout from Flow, reload, carry on, log it (one session, plan Recorded, no stray
   fields); an unplanned HIIT from Quick log joins today's plan in progress. Execution 81.

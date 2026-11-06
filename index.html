@@ -31268,10 +31268,17 @@
             sr.querySelector('.ex-reps').addEventListener('input', function(e){ exerciseState[i].list[k].reps = e.target.value; });
             sr.querySelector('.ex-value').addEventListener('input', function(e){ exerciseState[i].list[k].value = e.target.value; });
             sr.querySelector('.ex-set-rm').addEventListener('click', function(){
-              exerciseState[i].list.splice(k, 1);
-              exerciseState[i]._open = true;
+              var ex = exerciseState[i], gone = ex.list.splice(k, 1)[0];
+              ex._open = true;
               renderRows();
-              focusSet(i, Math.min(k, exerciseState[i].list.length - 1), '.ex-set-add');
+              focusSet(i, Math.min(k, ex.list.length - 1), '.ex-set-add');
+              offerUndo('Set ' + (k + 1) + ' removed', function(){
+                var at = exerciseState.indexOf(ex);
+                if (at < 0) return;
+                ex.list.splice(Math.min(k, ex.list.length), 0, gone);
+                renderRows();
+                focusSet(at, k);
+              });
             });
           });
           row.querySelector('.ex-unit').addEventListener('change', function(e){ exerciseState[i].unit = e.target.value; });
@@ -31294,7 +31301,13 @@
             if (on) focusSet(i, 0);
           });
           row.querySelector('.ex-rm').addEventListener('click', function(){
-            exerciseState.splice(i,1); renderRows();
+            var gone = exerciseState.splice(i, 1)[0];
+            renderRows();
+            var nm = (gone.name || '').trim();
+            offerUndo(nm ? nm + ' removed' : 'Exercise removed', function(){
+              exerciseState.splice(Math.min(i, exerciseState.length), 0, gone);
+              renderRows();
+            });
           });
           rowsWrap.appendChild(row);
         });
@@ -31302,6 +31315,10 @@
           var f = rowsWrap.children[focusIndex].querySelector('.ex-name');
           if (f) f.focus();
         }
+      }
+      // a removal can be taken back for a few seconds, while this sheet is still open
+      function offerUndo(text, undo){
+        showActionToast(text, 'Undo', function(){ if (document.body.contains(rowsWrap)) undo(); });
       }
       // focus a set's reps (or, with no set left, the given control) without scrolling away
       function focusSet(i, k, fallback){
