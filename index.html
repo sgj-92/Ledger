@@ -4550,16 +4550,24 @@
 
 
   /* ---- Comms sweep (2026-11-04): the Replies card, the line in Comms, the sweep sheet ---- */
-  #view-log #sweepCard .tsec-title { font-size: 17px; }
-  #view-log #sweepCard .tsec-status { font-size: 12.5px; color: var(--text-2); }
-  #view-log #sweepCard .tsec-chev { color: var(--text-2); }
-  #view-log #sweepCard .tcard > .tsec:first-child { margin-top: 0; }
-  @media (max-width: 767px) { #view-log #sweepCard .tcard { margin-left: -6px; margin-right: -6px; } }
   .sw-list[hidden] { display: none; }
-  .sw-row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 4px 0; border-bottom: 1px solid var(--line); }
-  .sw-row:last-child { border-bottom: none; }
+  .sw-item { border-bottom: 1px solid var(--line); }
+  .sw-item:last-child { border-bottom: none; }
+  .sw-row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 2px 0; }
   .sw-row .commitment-status-dot { flex-shrink: 0; }
-  .sw-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .sw-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding: 8px 0; border: none; background: none;
+    text-align: left; font-family: var(--sans); color: inherit; cursor: pointer; }
+  .sw-body:active { opacity: 0.6; }
+  .sw-star { color: var(--gold); margin-right: 6px; font-size: 12px; }
+  html[data-theme="light"] .sw-star { color: var(--gold-2); }
+  .sw-tools { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 12px 38px; }
+  .sw-tool { font-size: 12.5px; }
+  .sw-tool.warn { color: var(--danger); }
+  .sw-empty { margin: 6px 0 10px; font-size: 13px; color: var(--text-3); }
+  .sw-sheet-add { display: inline-flex; align-items: center; gap: 7px; margin: 4px 0 var(--sp-4); padding: 8px 0; font-size: 13px; color: var(--gold); }
+  .sw-sheet-add svg { width: 14px; height: 14px; }
+  html[data-theme="light"] .sw-sheet-add { color: var(--gold-2); }
+  .commit-sweep { margin: 0 0 4px; }
   .sw-name { font-size: 14.5px; color: var(--text); overflow-wrap: anywhere; }
   .sw-meta { font-size: 12px; color: var(--text-3); }
   .sw-row.done .sw-name { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--line-2); }
@@ -4579,19 +4587,27 @@
   .sw-hint { margin: 0 0 6px; font-size: 12.5px; color: var(--text-3); }
   .sw-add { margin: 0 0 var(--sp-4); }
   .sw-sheet-list { margin-bottom: var(--sp-4); }
-  .sw-line {
-    display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; margin: 0 0 var(--sp-3); padding: 0 12px;
-    border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface);
-    font-family: var(--sans); font-size: 13.5px; color: var(--text); cursor: pointer; text-align: left;
-  }
-  .sw-line:active { background: var(--surface-2); }
-  .sw-line-ic, .sw-line .chev { flex-shrink: 0; display: flex; width: 16px; height: 16px; color: var(--text-3); }
-  .sw-line-ic svg, .sw-line .chev svg { width: 100%; height: 100%; }
-  .sw-line.due .sw-line-ic { color: var(--gold); }
-  .sw-line-t { flex: 1; min-width: 0; font-weight: 500; }
-  .sw-line-v { font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
-  .sw-line.due .sw-line-v { color: var(--gold); }
-  html[data-theme="light"] .sw-line.due .sw-line-v, html[data-theme="light"] .sw-line.due .sw-line-ic { color: var(--gold-2); }
+  /* Comms: Replies at the top, a card of its own above the conversations */
+  .swc { margin: 0 0 var(--sp-3); padding: 2px 13px 6px; border: 1px solid var(--line-2); border-radius: var(--r-lg); background: var(--surface); }
+  .swc-head { display: flex; align-items: center; gap: 4px; min-height: 46px; }
+  .swc-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0; border: none; background: none;
+    cursor: pointer; text-align: left; font-family: var(--sans); color: var(--text); }
+  .swc-t { font-size: 16px; font-weight: 600; }
+  .swc-v { margin-left: auto; font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .swc.due .swc-v { color: var(--gold); }
+  html[data-theme="light"] .swc.due .swc-v { color: var(--gold-2); }
+  .swc-toggle[aria-expanded="true"] .tsec-expand { transform: rotate(180deg); }
+  .swc-btn { flex-shrink: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: none; background: none;
+    border-radius: 50%; color: var(--text-2); cursor: pointer; }
+  .swc-btn svg { width: 17px; height: 17px; }
+  .swc-btn:active { background: var(--surface-2); }
+  .swc-btn.on { color: var(--gold); background: rgba(var(--gold-rgb),0.1); }
+  .swc-btn[hidden] { display: none; }
+  .swc-body[hidden] { display: none; }
+  .swc-add { display: flex; gap: 8px; align-items: center; padding: 8px 0 6px; border-top: 1px solid var(--line); }
+  .swc-add .lp-trigger { flex: 0 1 42%; min-width: 0; width: auto; height: 40px; min-height: 40px; margin: 0; font-size: 13px; }
+  .swc-add input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-2);
+    background: var(--surface-2); color: var(--text); font-family: var(--sans); font-size: 14px; }
   /* ---- Today on cards (2026-10-27, Shaun: "the sections blend into each other") ----
      Supersedes "text-first; no cards" for Today: each section sits on its own surface,
      with the same header shape inside. Day notes, Quick log and Recorded activity share
@@ -5811,7 +5827,6 @@
     <!-- active context: Communications, then Health & fitness. On a phone the wrappers
          are transparent, so this follows the Actions exactly as before. -->
     <div class="today-side">
-    <div id="sweepCard"></div>
     <div id="commsSummary"></div>
     <div id="todayPlanWidget" class="today-plan-widget"></div>
     </div>
@@ -8808,6 +8823,12 @@
     if (next === 'completed') cleanupPinsForCompletedAction(c.id);
     // done is no longer what is being done now
     if (next === 'completed' && focusIsAction(c.id)) clearCurrentFocus();
+    if (c.sourceType === 'sweep'){
+      var swList = sweepCounts(c.date > todayStr() ? todayStr() : c.date).list;
+      saveCommitment(Object.assign({}, c, { status: next, sweepDoneAt: next === 'completed' ? new Date().toISOString() : null }));
+      if (next === 'completed') sweepMarkAllReplied(swList);
+      return;
+    }
     saveCommitment(Object.assign({}, c, { status: next }));
     if (next === 'completed') afterLinkedCompletion(c);
   }
@@ -9502,6 +9523,10 @@
     if (c.sourceType === 'partner_request' || c.sourceType === 'home_request') bits.push('From ' + (c.sourceLabel || 'your partner'));
     var listReq = actionChecklistReq(c), listProg = listReq && hrProgress(listReq);
     if (listProg && listProg.total) bits.push(listProg.done + ' of ' + listProg.total + (listProg.total === 1 ? ' item' : ' items'));
+    if (c.sourceType === 'sweep'){
+      var sp = sweepCounts(c.date > todayStr() ? todayStr() : c.date), starred = sp.open.filter(function(x){ return x.item.starred; }).length;
+      bits.push(sp.open.length ? sp.open.length + ' to reply' + (starred ? ' \u00b7 \u2605 ' + starred : '') : (sp.list.length ? 'All replied' : 'Nobody yet'));
+    }
     var meta = row.querySelector('.commitment-meta');
     meta.textContent = bits.join(' · ');
     // the wider matter an action belongs to, quietly
@@ -10250,6 +10275,8 @@
         '<div class="field"><label>Action</label><input type="text" id="f_commitTitle" placeholder="e.g. Strength session" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
         (isEditing && existing.sourceType === 'home_request' && homeReq(existing.sourceRequestId) && homeReq(existing.sourceRequestId).why ? '<p class="rq-why commit-why" id="commitWhy"></p>' : '') +
         (isEditing && actionChecklistReq(existing) ? '<div class="hl-wrap commit-list" id="commitList"></div>' : '') +
+        (isEditing && existing.sourceType === 'sweep' ? '<div class="sw-list commit-sweep" id="commitSweep"></div>' +
+          '<button type="button" class="btn-link sw-sheet-add" id="commitSweepAdd">' + BK_PLUS_SVG + '<span>Sweep your channels</span></button>' : '') +
         fieldSelect('f_commitCategory', 'Category',
           [{value:'', label:'No category'}].concat(QUICK_CAPTURE_CATEGORIES.map(function(c){ return {value:c.key, label:c.label, dot:c.color}; })),
           existing ? (existing.category || '') : (opts.category || qcLastCategory)) +
@@ -10405,6 +10432,14 @@
     sheetEl.innerHTML = buildHtml();
     var commitWhy = document.getElementById('commitWhy');
     if (commitWhy) hrWhyInto(commitWhy, homeReq(existing.sourceRequestId).why);
+    // the Replies Action: the list, by channel, ticked here as anywhere
+    var commitSweep = document.getElementById('commitSweep');
+    if (commitSweep){
+      var swDate = existing.date > todayStr() ? todayStr() : existing.date;
+      var swPaint = function(){ if (!document.body.contains(commitSweep)) return false; sweepListInto(commitSweep, swDate, 'Nobody on it yet.'); return true; };
+      sweepOnPaint(swPaint); swPaint();
+      document.getElementById('commitSweepAdd').addEventListener('click', function(){ openSweepSheet(todayStr()); });
+    }
     var commitList = document.getElementById('commitList');
     if (commitList){
       commitList.dataset.rid = existing.sourceRequestId;
@@ -11881,7 +11916,7 @@
   // (Settings → Comms sweep channels).
   // WhatsApp twice, Personal and Business, as Shaun goes through them (2026-11-04)
   var SWEEP_DEFAULT_CHANNELS = ['WhatsApp Personal', 'WhatsApp Business', 'Email', 'Text', 'LinkedIn', 'Instagram', 'Voicemail'];
-  var SWEEP_CARRY_DAYS = 14, SWEEP_OPEN_KEY = 'ledger_sweep_open', sweepSheetPaint = null;
+  var SWEEP_CARRY_DAYS = 14;
   function sweepChannels(){
     var c = presets && Array.isArray(presets.sweepChannels)
       ? presets.sweepChannels.filter(function(x){ return typeof x === 'string' && x.trim(); }) : null;
@@ -11956,27 +11991,86 @@
     if (dateStr === fmtDate(addDays(today, -1))) return 'from yesterday';
     return 'from ' + new Date(dateStr + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' });
   }
-  // one name: a tick, who, where (and from when), and a way to take it off
+  // one name: a tick, who (★ when starred), and from when; tapped, what can be done with it
+  var sweepToolsFor = null;
   function sweepRowEl(x, today, opts){
     opts = opts || {};
     var it = x.item;
-    var row = document.createElement('div'); row.className = 'sw-row' + (it.done ? ' done' : ''); row.dataset.sweep = it.id;
+    var wrap = document.createElement('div'); wrap.className = 'sw-item';
+    var row = document.createElement('div'); row.className = 'sw-row' + (it.done ? ' done' : '') + (it.starred ? ' starred' : ''); row.dataset.sweep = it.id;
     var tick = document.createElement('button'); tick.type = 'button'; tick.className = 'commitment-status-dot' + (it.done ? ' completed' : '');
     tick.setAttribute('aria-label', (it.done ? 'Not replied: ' : 'Replied: ') + it.name);
     tick.addEventListener('click', function(){ sweepTick(x.date, it.id); });
-    var body = document.createElement('div'); body.className = 'sw-body';
-    var nm = document.createElement('span'); nm.className = 'sw-name'; nm.textContent = it.name;
+    var body = document.createElement('button'); body.type = 'button'; body.className = 'sw-body';
+    body.setAttribute('aria-expanded', sweepToolsFor === it.id ? 'true' : 'false');
+    var nm = document.createElement('span'); nm.className = 'sw-name';
+    if (it.starred){ var st = document.createElement('span'); st.className = 'sw-star'; st.setAttribute('aria-label', 'Starred'); st.textContent = '★'; nm.appendChild(st); }
+    nm.appendChild(document.createTextNode(it.name));
     var meta = document.createElement('span'); meta.className = 'sw-meta';
-    meta.textContent = [opts.grouped ? '' : (it.channel || ''), x.carried ? sweepFromLabel(x.date, today) : ''].filter(Boolean).join(' \u00b7 ');
+    meta.textContent = [opts.grouped ? '' : (it.channel || ''), x.carried ? sweepFromLabel(x.date, today) : ''].filter(Boolean).join(' · ');
     body.appendChild(nm); if (meta.textContent) body.appendChild(meta);
+    body.addEventListener('click', function(){ sweepToolsFor = sweepToolsFor === it.id ? null : it.id; sweepChanged(); });
     row.appendChild(tick); row.appendChild(body);
-    if (opts.remove){
-      var rm = document.createElement('button'); rm.type = 'button'; rm.className = 'sw-rm'; rm.innerHTML = CLOSE_SVG;
-      rm.setAttribute('aria-label', 'Remove ' + it.name);
-      rm.addEventListener('click', function(){ sweepRemove(x.date, it.id); });
-      row.appendChild(rm);
-    }
-    return row;
+    wrap.appendChild(row);
+    if (sweepToolsFor === it.id) wrap.appendChild(sweepToolsEl(x));
+    return wrap;
+  }
+  // star it; make it an Action of its own; move it into Comms; keep in touch; remove
+  function sweepToolsEl(x){
+    var it = x.item, bar = document.createElement('div'); bar.className = 'sw-tools';
+    [[it.starred ? 'Unstar' : 'Star', function(){ sweepStar(x); }],
+     ['Make an Action', function(){ sweepToAction(x); }],
+     ['Move to Comms', function(){ sweepToComms(x); }],
+     ['Keep in touch', function(){ sweepToPeople(x); }],
+     ['Remove', function(){ sweepToolsFor = null; sweepRemove(x.date, it.id); }]].forEach(function(t, i){
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'bk-filter-chip sw-tool' + (i === 4 ? ' warn' : '');
+      b.textContent = t[0];
+      b.addEventListener('click', t[1]);
+      bar.appendChild(b);
+    });
+    return bar;
+  }
+  function sweepStar(x){
+    return sweepPatch(x.date, function(sw){ sw.items.forEach(function(i){ if (i.id === x.item.id) i.starred = !i.starred; }); });
+  }
+  // a channel says Personal or Business when its name does
+  function sweepCategoryOf(ch){ return /business|work|linkedin/i.test(ch || '') ? 'business' : (/personal/i.test(ch || '') ? 'personal' : null); }
+  function sweepToAction(x){
+    var it = x.item, now = new Date().toISOString(), today = todayStr();
+    sweepToolsFor = null;
+    saveCommitment({ id: uid(), date: today, originalDate: today, title: ('Reply to ' + it.name + (it.channel ? ' (' + it.channel + ')' : '')).slice(0, 200),
+      category: 'communicate', status: 'planned', priorityId: null, minVersion: null, disruptionReason: null, createdAt: now });
+    sweepRemove(x.date, it.id).then(function(){ showPinToast('Now an Action today', false, CHECK_SVG); });
+  }
+  // something that will run on: a conversation, Needs me, on its channel
+  function sweepToComms(x){
+    var it = x.item, now = new Date().toISOString(), ch = it.channel || '';
+    var src = /whatsapp/i.test(ch) ? 'whatsapp' : (/mail/i.test(ch) ? 'email' : (/call|voicemail|phone/i.test(ch) ? 'phone' : 'other'));
+    var rec = { id: uid(), title: it.name.slice(0, 120), matterId: null, participants: [{ name: it.name.slice(0, 120), role: '' }],
+      category: sweepCategoryOf(ch) || defaultConvCategory(), tags: [], channel: src, externalRef: null, attentionState: 'needs_me', waitingOn: '',
+      capturedAt: now, lastActivityAt: now, nextFollowUpAt: null, summary: '', notes: '',
+      log: [{ at: now, kind: 'state', text: 'Started · Needs me' }, { at: now, kind: 'received', text: 'From the sweep' + (ch ? ' · ' + ch : '') }] };
+    sweepToolsFor = null;
+    saveCommsRecord('ledger_conversations', rec);
+    sweepRemove(x.date, it.id).then(function(){ showPinToast('In Comms · Needs me', false, CHECK_SVG); });
+  }
+  function sweepToPeople(x){
+    var name = x.item.name, low = name.toLowerCase();
+    sweepToolsFor = null; sweepChanged();
+    if (people.some(function(p){ return String(p.name || '').toLowerCase() === low; })){ showPinToast(name + ' is already in People', false, CHECK_SVG); return; }
+    savePerson({ name: name.slice(0, 80), everyDays: 14, category: sweepCategoryOf(x.item.channel), note: '', spoke: [] });
+    showPinToast('Added to People · every 2 weeks', false, CHECK_SVG);
+  }
+  // marking a whole list replied (the Replies Action ticked off)
+  function sweepMarkAllReplied(list){
+    var byDate = {};
+    list.forEach(function(x){ if (!x.item.done) (byDate[x.date] = byDate[x.date] || []).push(x.item.id); });
+    return Promise.all(Object.keys(byDate).map(function(d){
+      return sweepPatch(d, function(sw){
+        var now = new Date().toISOString();
+        sw.items.forEach(function(i){ if (byDate[d].indexOf(i.id) > -1 && !i.done){ i.done = true; i.doneAt = now; } });
+      });
+    }));
   }
   // a list by channel, in his channel order (others after, then no channel), open first in each
   function sweepGroups(list){
@@ -11989,7 +12083,9 @@
     function rank(k){ if (!k) return 9999; var i = order.indexOf(k); return i < 0 ? 5000 : i; }
     keys.sort(function(a, b){ return rank(a) - rank(b) || (a < b ? -1 : 1); });
     return keys.map(function(k){
-      var rows = by[k].filter(function(x){ return !x.item.done; }).concat(by[k].filter(function(x){ return x.item.done; }));
+      var open = by[k].filter(function(x){ return !x.item.done; });
+      open = open.filter(function(x){ return x.item.starred; }).concat(open.filter(function(x){ return !x.item.starred; }));
+      var rows = open.concat(by[k].filter(function(x){ return x.item.done; }));
       return { channel: k, rows: rows, open: rows.filter(function(x){ return !x.item.done; }).length };
     });
   }
@@ -12005,55 +12101,127 @@
     return { list: list, open: open, done: list.length - open.length };
   }
 
-  // Today: the Replies card, while there is anyone on today's list
-  function renderSweepCard(){
-    var wrap = document.getElementById('sweepCard');
-    if (!wrap) return;
-    renderSweepLine();            // Comms's line follows the same day's plan
-    var today = todayStr();
-    if (viewedDate !== today){ wrap.innerHTML = ''; return; }
-    var c = sweepCounts(today);
-    if (sweepSheetPaint) sweepSheetPaint();
-    if (!c.list.length){ wrap.innerHTML = ''; return; }
-    // open unless closed today on this device
-    var m = dayOpenMap(SWEEP_OPEN_KEY), open = !(today in m) || !!m[today];
-    wrap.innerHTML = '';
-    var card = document.createElement('div'); card.className = 'tcard sw-card';
-    card.innerHTML = '<div class="tsec"><button type="button" class="tsec-main" id="sweepToggle" aria-controls="sweepBody">' +
-      '<span class="tsec-title">Replies</span><span class="tsec-status" id="sweepStatus"></span>' +
-      '<span class="tsec-chev tsec-expand">' + TSEC_CHEV_DOWN + '</span></button>' +
-      '<span class="tsec-extra"><button type="button" class="sec-add" id="sweepAdd" aria-label="Comms sweep">' + BK_PLUS_SVG + '</button></span></div>' +
-      '<div class="sw-list" id="sweepBody"></div>';
-    var tg = card.querySelector('#sweepToggle'), body = card.querySelector('#sweepBody');
-    tg.setAttribute('aria-expanded', open ? 'true' : 'false');
-    body.hidden = !open;
-    card.querySelector('#sweepStatus').textContent = c.open.length ? c.open.length + ' to reply' : 'All replied';
-    tg.setAttribute('aria-label', 'Replies: ' + (c.open.length ? c.open.length + ' to reply' : 'all replied'));
-    // by channel, so replying goes one app at a time: what's open, then what's replied, quiet
+  // A list into an element: by channel, with each name's tools
+  function sweepListInto(el, dateStr, empty){
+    el.innerHTML = '';
+    var c = sweepCounts(dateStr);
+    if (!c.list.length){
+      if (empty){ var p = document.createElement('p'); p.className = 'sw-empty'; p.textContent = empty; el.appendChild(p); }
+      return;
+    }
     sweepGroups(c.list).forEach(function(g){
-      body.appendChild(sweepGroupHead(g));
-      g.rows.forEach(function(x){ body.appendChild(sweepRowEl(x, today, { grouped: true })); });
+      el.appendChild(sweepGroupHead(g));
+      g.rows.forEach(function(x){ el.appendChild(sweepRowEl(x, todayStr(), { grouped: true })); });
     });
-    tg.addEventListener('click', function(){
-      var on = tg.getAttribute('aria-expanded') !== 'true';
-      var mm = dayOpenMap(SWEEP_OPEN_KEY); mm[today] = on ? 1 : 0;
-      lsSet(SWEEP_OPEN_KEY, JSON.stringify(mm));
-      tg.setAttribute('aria-expanded', on ? 'true' : 'false'); body.hidden = !on;
-    });
-    card.querySelector('#sweepAdd').addEventListener('click', function(){ openSweepSheet(today); });
-    wrap.appendChild(card);
   }
-  // Comms: one line at the top, the way into the sweep, never among the conversations
-  function renderSweepLine(){
+  // Every view of the list repaints from here: Comms's Replies, an open sweep, an open
+  // Replies Action. A painter whose element has gone returns false and is dropped.
+  var sweepPainters = [];
+  function sweepOnPaint(fn){ sweepPainters.push(fn); }
+  function sweepChanged(){
+    renderSweepComms();
+    sweepPainters = sweepPainters.filter(function(fn){ return fn() !== false; });
+    scheduleSweepAction();
+  }
+
+  // ---- the Replies Action (2026-11-06) ----
+  // The day's list as one Action, "Replies", so it has its place in Overview and Flow: a
+  // time, an order, a key task, the Focus. The app keeps it: made when the first name is
+  // noted (id sweep-<date>), moved on with what's left (an open one from an earlier day
+  // becomes today's), done once everyone is replied to, open again when a name is added.
+  // Ticking it off marks everyone on it replied.
+  var sweepActTimer = null, sweepActBusy = false;
+  function sweepActionFor(date){ return commitments.find(function(c){ return c.sourceType === 'sweep' && c.date === date; }) || null; }
+  function scheduleSweepAction(){ clearTimeout(sweepActTimer); sweepActTimer = setTimeout(reconcileSweepAction, 700); }
+  function reconcileSweepAction(){
+    if (sweepActBusy) return;
+    if (!(widgetHas('commitments', commitments) && widgetHas('plans', plans))) return;
+    if (dbReady && !ownerDataStarted) return;
+    var today = todayStr(), c = sweepCounts(today), act = sweepActionFor(today), now = new Date().toISOString(), job = null;
+    if (!act){
+      if (!c.open.length) return;                      // nobody waiting: no Action
+      var prev = commitments.filter(function(x){ return x.sourceType === 'sweep' && x.date < today && x.status !== 'completed'; })
+        .sort(function(a, b){ return a.date < b.date ? 1 : -1; })[0];
+      job = prev ? Object.assign({}, prev, { date: today, status: 'planned' })
+        : { id: 'sweep-' + today, date: today, originalDate: today, title: 'Replies', category: 'communicate', status: 'planned',
+            priorityId: null, minVersion: null, disruptionReason: null, sourceType: 'sweep', createdAt: now };
+    } else if (act.status === 'completed' && c.open.length){
+      var since = act.sweepDoneAt || '';
+      // a name noted after it was done opens it again; done another way, it marks the rest replied
+      if (since && c.open.some(function(x){ return (x.item.at || '') > since; })) job = Object.assign({}, act, { status: 'planned', sweepDoneAt: null });
+      else { sweepActBusy = true; sweepMarkAllReplied(c.list).then(function(){ sweepActBusy = false; }); if (!since) saveCommitment(Object.assign({}, act, { sweepDoneAt: now })); return; }
+    } else if (act.status !== 'completed' && c.list.length && !c.open.length){
+      if (focusIsAction(act.id)) clearCurrentFocus();
+      job = Object.assign({}, act, { status: 'completed', sweepDoneAt: now });
+    } else if (act.status !== 'completed' && !c.list.length){
+      sweepActBusy = true;
+      deleteCommitment(act.id).then(function(){ sweepActBusy = false; }, function(){ sweepActBusy = false; });
+      return;
+    }
+    if (!job) return;
+    sweepActBusy = true;
+    saveCommitment(job).then(function(){ sweepActBusy = false; }, function(){ sweepActBusy = false; });
+  }
+  // the Current Focus on the whole list
+  function sweepFocus(){
+    var act = sweepActionFor(todayStr());
+    if (!act || act.status === 'completed'){ showPinToast('Add a name first — then Replies can be the focus', true); return; }
+    if (focusIsAction(act.id)){ clearCurrentFocus(); showPinToast('Focus cleared', false, CHECK_SVG); }
+    else { setCurrentFocus(focusForAction(act)); showPinToast('Current focus · Replies', false, CHECK_SVG); }
+    renderSweepComms();
+  }
+
+  // Comms: Replies at the top, the list itself, with a way to add a name there and then
+  var SWEEP_COMMS_OPEN_KEY = 'ledger_comms_replies_open', SWEEP_LAST_CHAN_KEY = 'ledger_sweep_channel';
+  function renderSweepComms(){
     var el = document.getElementById('commsSweep');
     if (!el) return;
-    var today = todayStr(), c = sweepCounts(today), swept = !!sweepOf(today).sweptAt;
-    el.innerHTML = '<button type="button" class="sw-line" id="sweepLine"><span class="sw-line-ic" aria-hidden="true">' + UI_ICON.chat + '</span>' +
-      '<span class="sw-line-t">Today’s sweep</span><span class="sw-line-v"></span><span class="chev" aria-hidden="true">' + UI_ICON.chevronRight + '</span></button>';
-    var v = el.querySelector('.sw-line-v');
-    v.textContent = c.open.length ? c.open.length + ' to reply' : (swept ? 'All replied' : 'Not done yet');
-    el.querySelector('.sw-line').classList.toggle('due', !!c.open.length || !swept);
-    el.querySelector('#sweepLine').addEventListener('click', function(){ openSweepSheet(today); });
+    var today = todayStr();
+    if (!el.querySelector('.swc')){
+      el.innerHTML = '<section class="swc">' +
+        '<div class="swc-head"><button type="button" class="swc-toggle" id="swcToggle" aria-controls="swcBody">' +
+          '<span class="swc-t">Replies</span><span class="swc-v" id="swcStatus"></span><span class="tsec-chev tsec-expand">' + TSEC_CHEV_DOWN + '</span></button>' +
+          '<button type="button" class="swc-btn" id="swcFocus">' + UI_ICON.target + '</button>' +
+          '<button type="button" class="swc-btn" id="swcSweep" aria-label="Comms sweep">' + BK_PLUS_SVG + '</button></div>' +
+        '<div class="swc-body" id="swcBody"><div class="sw-list" id="swcList"></div>' +
+          '<div class="swc-add"><select id="swcChan" aria-label="Channel"></select>' +
+          '<input type="text" id="swcName" maxlength="200" enterkeyhint="next" placeholder="Add a name" autocomplete="off" aria-label="Who needs a reply">' +
+          '<button type="button" class="rq-send" id="swcAdd">Add</button></div></div></section>';
+      var tg = el.querySelector('#swcToggle'), name = el.querySelector('#swcName'), chan = el.querySelector('#swcChan');
+      tg.addEventListener('click', function(){ lsSet(SWEEP_COMMS_OPEN_KEY, lsGet(SWEEP_COMMS_OPEN_KEY, '1') === '1' ? '0' : '1'); renderSweepComms(); });
+      el.querySelector('#swcFocus').addEventListener('click', sweepFocus);
+      el.querySelector('#swcSweep').addEventListener('click', function(){ openSweepSheet(todayStr()); });
+      chan.addEventListener('change', function(){ lsSet(SWEEP_LAST_CHAN_KEY, chan.value); });
+      function add(){
+        var entries = sweepParse(name.value, chan.value || null);
+        if (!entries.length) return;
+        name.value = '';
+        sweepAdd(todayStr(), entries);
+        name.focus();
+      }
+      name.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); add(); } });
+      el.querySelector('#swcAdd').addEventListener('click', add);
+    }
+    var c = sweepCounts(today), swept = !!sweepOf(today).sweptAt, open = lsGet(SWEEP_COMMS_OPEN_KEY, '1') === '1';
+    var tg2 = el.querySelector('#swcToggle');
+    tg2.setAttribute('aria-expanded', open ? 'true' : 'false');
+    el.querySelector('#swcBody').hidden = !open;
+    var stEl = el.querySelector('#swcStatus');
+    stEl.textContent = c.open.length ? c.open.length + ' to reply' : (c.list.length ? 'All replied' : (swept ? 'Nobody waiting' : 'Not swept yet'));
+    el.querySelector('.swc').classList.toggle('due', !!c.open.length);
+    var act = sweepActionFor(today), fb = el.querySelector('#swcFocus'), on = !!(act && focusIsAction(act.id));
+    fb.classList.toggle('on', on); fb.setAttribute('aria-pressed', on ? 'true' : 'false');
+    fb.setAttribute('aria-label', on ? 'Replies is the focus' : 'Focus on replies');
+    fb.hidden = !c.open.length;
+    // the channels, kept as chosen while they're still his
+    var chan2 = el.querySelector('#swcChan'), chans = sweepChannels(), want = chan2.value || lsGet(SWEEP_LAST_CHAN_KEY, chans[0]);
+    if (chan2.dataset.list !== chans.join('|')){
+      chan2.innerHTML = '';
+      chans.concat(['']).forEach(function(ch){ var o = document.createElement('option'); o.value = ch; o.textContent = ch || 'No channel'; chan2.appendChild(o); });
+      chan2.dataset.list = chans.join('|');
+    }
+    chan2.value = chans.indexOf(want) > -1 || want === '' ? want : chans[0];
+    if (open) sweepListInto(el.querySelector('#swcList'), today, swept ? 'Nobody waiting on a reply.' : 'Not swept yet today — tap + to go through your channels, or add a name below.');
   }
 
   // the sweep itself: each channel in turn, the names, and the list as it grows
@@ -12075,7 +12243,7 @@
     var chansEl = document.getElementById('swChans'), hint = document.getElementById('swHint'), listEl = document.getElementById('swList');
     function size(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; addBtn.disabled = !ta.value.trim(); }
     function paint(){
-      if (!document.body.contains(listEl) || !backdrop.classList.contains('open')){ sweepSheetPaint = null; return; }
+      if (!document.body.contains(listEl) || !backdrop.classList.contains('open')) return false;
       var checked = sweepOf(dateStr).checked || [];
       var c = sweepCounts(dateStr), per = {};
       c.open.forEach(function(x){ var k = x.item.channel || ''; per[k] = (per[k] || 0) + 1; });
@@ -12098,18 +12266,15 @@
       });
       hint.textContent = st.channel ? 'Writing for ' + st.channel + ' \u2014 a name, then return' : 'Choose a channel, then write the names \u2014 or \u201cName \u2014 channel\u201d';
       ta.placeholder = st.channel ? 'Name' : 'James \u2014 Email';
-      listEl.innerHTML = '';
+      sweepListInto(listEl, dateStr, '');
       if (c.list.length){
         var h = document.createElement('div'); h.className = 'hs-sec-head';
         h.innerHTML = '<h3 class="cz-sec-title">To reply</h3><span class="cz-sec-count"></span>';
         h.querySelector('.cz-sec-count').textContent = c.open.length ? String(c.open.length) : 'all done';
-        listEl.appendChild(h);
-        sweepGroups(c.list).forEach(function(g){
-          listEl.appendChild(sweepGroupHead(g));
-          g.rows.forEach(function(x){ listEl.appendChild(sweepRowEl(x, dateStr, { remove: true, grouped: true })); });
-        });
+        listEl.insertBefore(h, listEl.firstChild);
       }
       document.getElementById('swDone').textContent = sweepOf(dateStr).sweptAt ? 'Done' : 'Done sweeping';
+      return true;
     }
     function add(){
       var entries = sweepParse(ta.value, st.channel);
@@ -12128,15 +12293,14 @@
     document.getElementById('swDone').addEventListener('click', function(){
       if (ta.value.trim()) add();
       var first = !sweepOf(dateStr).sweptAt;
-      sweepSheetPaint = null;
       closeSheet();
       if (first) sweepPatch(dateStr, function(sw){ sw.sweptAt = new Date().toISOString(); }).then(function(){
         var n = sweepCounts(dateStr).open.length;
         showPinToast(n ? 'Swept — ' + n + ' to reply' : 'Swept — nobody waiting', false, CHECK_SVG);
       });
     });
-    document.getElementById('swEdit').addEventListener('click', function(){ sweepSheetPaint = null; openSweepChannelsSheet(false, dateStr); });
-    sweepSheetPaint = paint;
+    document.getElementById('swEdit').addEventListener('click', function(){ openSweepChannelsSheet(false, dateStr); });
+    sweepOnPaint(paint);
     activeSheetRefresh = paint;
     paint(); size();
   }
@@ -12250,7 +12414,7 @@
   function renderComms(){
     var rowsEl = document.getElementById('commsRows');
     if (!rowsEl) return;
-    renderSweepLine();
+    renderSweepComms();
     document.querySelectorAll('[data-comms-cat]').forEach(function(b){
       var on = b.dataset.commsCat === commsCat;
       b.classList.toggle('sel', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -24857,7 +25021,7 @@
     renderSprintEntry();
     renderSprintSection();
     renderSprintHistory();
-    renderSweepCard();
+    sweepChanged();
     renderCommsSummary();
     renderMorningPrime();
     renderDayNotes();

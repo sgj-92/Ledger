@@ -763,6 +763,20 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-06 — Replies in Comms, as an Action, and per name (Shaun's answers)
+- **One "Replies" Action** stands for the day's list (id `sweep-<date>`, `sourceType: 'sweep'`,
+  Communicate), so it has a place in Overview and Flow (time, order, key task, Focus). The app
+  keeps it: made with the first name, an open one moved on to today with what's left, done
+  when everyone is replied to, open again when a name is added. Ticking it off marks everyone
+  replied. Its sheet holds the list. It replaces Today's separate Replies card.
+- **Comms:** the Replies list itself sits at the top (collapsible, by channel), with a channel
+  picker and a name field to add there and then, the Focus button (focus on Replies) and the
+  sweep (+).
+- **Each name** (tap it): Star (starred first in its channel; the Action shows ★ n), Make an
+  Action ("Reply to James (WhatsApp Business)", off the list), Move to Comms (a conversation,
+  Needs me, on its channel, Business or Personal from the channel's name; off the list), Keep
+  in touch (People, every 2 weeks; it stays on the list), Remove.
+
 ### 2026-11-04 — The daily comms sweep (Shaun's answers)
 - A **Comms sweep** step in Morning Prime's Plan routine opens the sweep: his channels as
   chips (Settings → Comms sweep channels; WhatsApp, Email, Text, LinkedIn, Instagram,
@@ -2839,6 +2853,10 @@ minutes before", recurring/accountability).
 ---
 
 ## Recently Completed
+
+- (2026-11-06) — **Replies in Comms, as an Action, per name** (decision above). Tests:
+  comms-capture 42 (the Action made and done, Move to Comms, live across devices); execution 81,
+  partner-sharing 209, settings 9, goals 23, native-shell 87, assistant 62.
 
 - (2026-11-04) — **Comms sweep** (decision above). Tests: comms-capture 36 (the sweep from the
   phone, stored on the plan, no conversation made, live on the Mac); execution 81,

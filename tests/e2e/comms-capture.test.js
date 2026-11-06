@@ -198,10 +198,12 @@ async function oobLink(email){
   check(((await all('ledger_people')).find(x => x.id === 'pp1').spoke || []).join() === TODAY, '…stored on their record, today');
   await S2.click('nav.tabbar .tab-btn[data-view="comms"]'); await S2.click('[data-comms-filter="people"]');
   check(await until(S2, () => /In 14 days/.test(document.getElementById('commsRows').innerText), null, 15000), 'the Mac follows: In 14 days');
-  // the daily sweep (2026-11-04): names to reply to, on the day's plan — never conversations
+  // the daily sweep (2026-11-04): names to reply to, on the day's plan — never conversations;
+  // the list as one "Replies" Action (2026-11-06), and each name's own way on
   const convsBefore = (await convs()).length;
-  await S.click('#sweepLine');
-  check(await until(S, () => !!document.getElementById('swText')), 'Sweep: Comms → "Today’s sweep" opens the sweep');
+  check(await until(S, () => /Replies/.test((document.getElementById('commsSweep') || {}).innerText || '')), 'Sweep: Replies sits at the top of Comms');
+  await S.click('#swcSweep');
+  check(await until(S, () => !!document.getElementById('swText')), 'Sweep: its + opens the sweep');
   await S.evaluate(() => [...document.querySelectorAll('#swChans .sw-chan')].find(c => c.textContent === 'Email').click());
   // jotting: a name and return, on the channel chosen; another channel by name
   await S.type('#swText', 'Priya'); await S.keyboard.press('Enter');
@@ -216,12 +218,27 @@ async function oobLink(email){
   check(items.map(i => i.name + '/' + i.channel).join() === 'Priya/Email,Owen/WhatsApp Business' && plan.sweep.checked.indexOf('Email') > -1 && !!plan.sweep.sweptAt,
     'Sweep: stored on today\'s plan — who, where, Email checked, swept', plan && plan.sweep);
   check((await convs()).length === convsBefore, 'Sweep: no conversation made — Communications stays as it was');
+  let rep = null;
+  for (let k = 0; k < 30 && !rep; k++){ await sleep(250); rep = (await all('ledger_commitments')).find(c => c.sourceType === 'sweep'); }
+  check(rep && rep.id === 'sweep-' + TODAY && rep.title === 'Replies' && rep.date === TODAY && rep.status === 'planned' && rep.category === 'communicate',
+    'Replies Action: one Action for the list, today, Communicate', rep);
   await S2.click('nav.tabbar .tab-btn[data-view="log"]');
-  check(await until(S2, () => /Replies/.test((document.getElementById('sweepCard') || {}).innerText || '') && /2 to reply/.test(document.getElementById('sweepCard').innerText), null, 15000),
-    'Sweep: the Mac\'s Today shows Replies, 2 to reply, live');
-  await S2.evaluate(() => [...document.querySelectorAll('#sweepCard .sw-row')].find(r => /Priya/.test(r.innerText)).querySelector('.commitment-status-dot').click());
-  check(await until(S, () => /1 to reply/.test(document.getElementById('commsSweep').innerText), null, 15000), 'Sweep: ticked on the Mac, the phone\'s Comms line says 1 to reply');
+  check(await until(S2, () => [...document.querySelectorAll('#commitmentsList .commitment-item')].some(r => /Replies/.test(r.innerText) && /2 to reply/.test(r.innerText)), null, 15000),
+    'Replies Action: on the Mac\'s Today, "2 to reply"');
   await S2.screenshot({ path: `${shots}/1440-${theme}-CQ5-replies.png` });
+  // a name that will run on: into Comms, Needs me, and off the list
+  await S.evaluate(() => [...document.querySelectorAll('#swcList .sw-row')].find(r => /Owen/.test(r.innerText)).querySelector('.sw-body').click());
+  await S.evaluate(() => [...document.querySelectorAll('#swcList .sw-tool')].find(b => b.textContent === 'Move to Comms').click());
+  let owen = null;
+  for (let k = 0; k < 30 && !owen; k++){ await sleep(250); owen = (await convs()).find(c => c.title === 'Owen'); }
+  check(owen && owen.attentionState === 'needs_me' && owen.channel === 'whatsapp' && owen.category === 'business', 'Sweep → Comms: Owen is a conversation, Needs me, WhatsApp, Business', owen);
+  // ticked on the Mac (in its Comms), the phone follows; everyone replied, the Action is done
+  await S2.click('nav.tabbar .tab-btn[data-view="comms"]');
+  check(await until(S2, () => [...document.querySelectorAll('#swcList .sw-row')].some(r => /Priya/.test(r.innerText)), null, 15000), 'Sweep: the Mac\'s Comms lists Priya');
+  await S2.evaluate(() => [...document.querySelectorAll('#swcList .sw-row')].find(r => /Priya/.test(r.innerText)).querySelector('.commitment-status-dot').click());
+  check(await until(S, () => /All replied/.test(document.getElementById('swcStatus').textContent), null, 15000), 'Sweep: ticked on the Mac, the phone says "All replied"');
+  for (let k = 0; k < 30; k++){ await sleep(250); rep = (await all('ledger_commitments')).find(c => c.sourceType === 'sweep'); if (rep && rep.status === 'completed') break; }
+  check(rep && rep.status === 'completed', 'Replies Action: done once everyone is replied to', rep && rep.status);
   // owner-private: a partner can't read any of it
   const A = await session('abi');
   await signIn(A, ABI);
