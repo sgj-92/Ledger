@@ -763,6 +763,20 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-06 — Flow: choose several and move them together (Shaun asked; design by Claude Code)
+
+Shaun asked for multi-select in Flow so a batch can be moved after an event. No design
+questions were asked; these are Claude Code's calls, open to change:
+- **Select** under Flow's heading (shown when two or more things can be chosen). Only
+  unfinished, untimed Actions and training can be chosen. Timed items and sprints are
+  where the chosen ones go, not things to choose.
+- Tap a row to choose it. Each timed item or sprint shows **After this**. A floating bar
+  offers **Move after…** (the start of the day, then every other step, timed ones first)
+  and **Tomorrow** (Actions only; done ones and the Replies Action stay). Holding one
+  chosen row drags the whole group, which stays in its own order.
+- The choice is per screen and never saved. Changing tab or mode ends it. Moves go
+  through `saveDayFlow`, as a drag does.
+
 ### 2026-11-06 — Replies in Comms, as an Action, and per name (Shaun's answers)
 - **One "Replies" Action** stands for the day's list (id `sweep-<date>`, `sourceType: 'sweep'`,
   Communicate), so it has a place in Overview and Flow (time, order, key task, Focus). The app
@@ -2615,7 +2629,10 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Shaun (try it)
-**Comms sweep** — live on the web (decision above): Morning Prime → Comms sweep tomorrow
+**Flow Select** — live on the web: Today → Flow → Select, choose, then After this on an
+event (or Move after… / Tomorrow / hold one to drag the group).
+
+**Before that**: **Comms sweep** — live on the web (decision above): Morning Prime → Comms sweep tomorrow
 morning; Settings → Comms sweep channels to set his own.
 
 **Before that** — Owner: Shaun (build and send the Android app)
@@ -2854,6 +2871,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-06) — **Flow multi-select** (decision above). Browser-checked at 390 and 1280:
+  After this on Padel, Move after… to an untimed step, a group drag, Tomorrow, and
+  persistence through a reload. Execution 81.
 - (2026-11-06) — **Replies in Comms, as an Action, per name** (decision above). Tests:
   comms-capture 42 (the Action made and done, Move to Comms, live across devices); execution 81,
   partner-sharing 209, settings 9, goals 23, native-shell 87, assistant 62.

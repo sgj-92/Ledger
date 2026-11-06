@@ -493,6 +493,51 @@
   .flow-done-toggle { display: block; margin: -6px 0 6px auto; padding: 6px 2px; background: none; border: none; cursor: pointer;
     font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text-3); letter-spacing: 0.01em; }
   .flow-done-toggle:active { opacity: 0.6; }
+  /* Flow Select: quiet words under the heading; the bar floats above the tab bar */
+  .flow-tools { display: flex; justify-content: flex-end; gap: 14px; margin: -6px 0 6px; }
+  .flow-tools .flow-done-toggle { margin: 0; }
+  .flow-tools #flowSelectToggle[aria-pressed="true"] { color: var(--gold); font-weight: 600; }
+  .flow-sel-hint { margin: -2px 0 8px; font-size: 12px; color: var(--text-3); line-height: 1.45; }
+  .tl-pick {
+    width: 24px; height: 24px; margin-right: 1px; padding: 0; border-radius: 50%; cursor: pointer;
+    border: 1.5px solid var(--text-3); background: none; color: transparent;
+    display: flex; align-items: center; justify-content: center; transition: background 0.14s ease, border-color 0.14s ease;
+  }
+  .tl-pick svg { width: 13px; height: 13px; display: block; }
+  .tl-pick[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .tl-pick:active { transform: scale(0.92); }
+  .tl-pick-none { width: 24px; }
+  .tl-row.timed .tl-pick, .tl-row.timed .tl-after { align-self: start; margin-top: 8px; }
+  .tl-after {
+    padding: 6px 11px; border-radius: 100px; cursor: pointer; white-space: nowrap;
+    border: 1px solid rgba(var(--gold-rgb),0.45); background: rgba(var(--gold-rgb),0.08); color: var(--gold);
+    font-family: var(--sans); font-size: 12px; font-weight: 600;
+  }
+  .tl-after:active { opacity: 0.6; }
+  .tl-row.sel { background: rgba(var(--gold-rgb),0.07); }
+  .tl-list.sorting-group .tl-row.sel:not(.dragging) { opacity: 0.35; }
+  .tl-row .tl-body[aria-disabled="true"] { cursor: default; }
+  .flow-selbar {
+    position: fixed; z-index: 23; left: 50%; transform: translateX(-50%);
+    bottom: calc(84px + env(safe-area-inset-bottom)); width: calc(100% - 32px); max-width: 528px; box-sizing: border-box;
+    display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px;
+    background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 100px; box-shadow: var(--shadow-lift);
+  }
+  .fsb-count { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fsb-btn {
+    padding: 8px 13px; border-radius: 100px; border: none; cursor: pointer; white-space: nowrap;
+    background: var(--gold); color: var(--ink); font-family: var(--sans); font-size: 13px; font-weight: 600;
+  }
+  .fsb-btn + .fsb-btn { background: rgba(var(--gold-rgb),0.12); color: var(--gold); }
+  .fsb-btn:disabled { opacity: 0.4; cursor: default; }
+  .fsb-btn:not(:disabled):active { opacity: 0.7; }
+  .fsb-x { width: 34px; height: 34px; padding: 0; border: none; background: none; color: var(--text-3); cursor: pointer;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .fsb-x svg { width: 16px; height: 16px; display: block; }
+  /* while choosing, the + steps aside and a toast clears the bar */
+  body.flow-selecting .global-fab { display: none; }
+  body.flow-selecting .pin-toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
+  body.flow-selecting main { padding-bottom: calc(220px + env(safe-area-inset-bottom)); }
   .act-group-label.roadblock { color: rgba(var(--danger-rgb),0.85); }
   .commitment-group-title { /* legacy alias */
     font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.2em;
@@ -4775,6 +4820,8 @@
     .global-fab.tucked, .global-fab.typing { transform: none; opacity: 1; pointer-events: auto; }
     .update-bar { bottom: 28px; }
     .pin-toast { bottom: 32px; }
+    .flow-selbar { bottom: 24px; left: calc(50% + var(--side-w) / 2); }
+    body.flow-selecting .pin-toast { bottom: 96px; }
 
 
     /* Calendar filter: wider screens keep the chips, wrapped — never scrolling sideways */
@@ -8421,6 +8468,7 @@
   function meSub(){ var v = lsGet(ME_SUB_KEY, 'calendar'); return ME_VIEWS.indexOf(v) > -1 ? v : 'calendar'; }
   function tabFor(view){ return ME_VIEWS.indexOf(view) > -1 ? 'me' : view; }
   function goView(view){
+    flowSelEnd();
     if (view === 'me') view = meSub();
     if (!document.getElementById('view-' + view)) view = 'log';
     currentView = view;
@@ -9281,6 +9329,8 @@
   var actionsCollapsed = lsGet(ACTIONS_COLLAPSED_KEY, '0') === '1';
   var actionsDoneOpen = lsGet(ACTIONS_DONE_OPEN_KEY, '0') === '1';
   var flowHideDone = lsGet(FLOW_HIDE_DONE_KEY, '0') === '1';
+  // Flow's Select mode, for this screen only: { date, keys: { flowKey: true } } or null
+  var flowSel = null;
   // Reordering what is shown never moves what is not: the shown ids, in their new order,
   // fill the slots they held in the full sequence. A completed Action keeps its place, so
   // reopening it puts it back exactly where it was.
@@ -9425,6 +9475,8 @@
         sortDragActive = true;
         row.classList.add('dragging');
         container.classList.add('sorting');
+        // in Flow's Select mode, lifting a selected row carries the rest of the selection
+        if (row.classList.contains('sel')) container.classList.add('sorting-group');
 
         function siblings(){
           return Array.prototype.filter.call(container.children, function(el){
@@ -9469,6 +9521,7 @@
           row.style.transform = '';
           row.classList.remove('dragging');
           container.classList.remove('sorting');
+          container.classList.remove('sorting-group');
           sortDragActive = false;
           // a handle that is also tappable must not open what was just dragged
           if (moved){
@@ -9477,7 +9530,7 @@
             setTimeout(function(){ window.removeEventListener('click', swallow, true); }, 80);
           }
           var after = siblings().map(function(el){ return el.dataset.sortItem; });
-          if (after.join('|') !== before) onCommit(after);   // a tap is not a reorder
+          if (after.join('|') !== before) onCommit(after, row.dataset.sortItem);   // a tap is not a reorder
         }
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', finish);
@@ -9710,6 +9763,7 @@
   // time sits at its time.
   var todayMode = lsGet(TODAY_MODE_KEY, 'overview') === 'flow' ? 'flow' : 'overview';
   function setTodayMode(mode){
+    flowSelEnd();
     todayMode = mode === 'flow' ? 'flow' : 'overview';
     lsSet(TODAY_MODE_KEY, todayMode);
     renderTodayMode();
@@ -9875,6 +9929,14 @@
     var doneActs = items.filter(function(it){ return it.kind === 'action' && it.c.status === 'completed'; }).length;
     var hideDone = flowHideDone && doneActs > 0;
     var shown = hideDone ? items.filter(function(it){ return !(it.kind === 'action' && it.c.status === 'completed'); }) : items;
+    // Select: pick several, then move them together. A new day starts with nothing picked.
+    if (flowSel && flowSel.date !== dateStr) flowSel = null;
+    var selecting = !!flowSel;
+    var selKeys = flowSelKeys(dateStr);
+    var selSet = {};
+    selKeys.forEach(function(k){ selSet[k] = true; });
+    var pickableN = shown.filter(function(it){ return flowSelectable(it, plan); }).length;
+    document.body.classList.toggle('flow-selecting', selecting);
 
     function trainDet(type){ return (plan && plan.trainingDetails && plan.trainingDetails[type]) || {}; }
     function itemTime(it){
@@ -9904,9 +9966,19 @@
       var color = it.kind === 'action' ? actionCapColor(it.c) : it.kind === 'sprint' ? 'var(--gold)' : (TRAINING_COLOR[it.type] || 'var(--gold)');
       var icon = it.kind === 'action' ? actionCapIcon(it.c) : it.kind === 'sprint' ? UI_ICON.list : TRAINING_ICON_SVG[it.type];
       var h = t && dur ? Math.round(Math.min(112, Math.max(40, 40 + (dur - 15) * 0.8))) : 0;
+      var pickable = selecting && flowSelectable(it, plan);
       var cls = 'tl-row' + (isDone ? ' done' : '') + (t ? ' timed' : '') + (it.kind === 'training' ? ' training' : '') +
-        (it.kind === 'sprint' ? ' sprint' : '') + (it.kind === 'action' && it.c.isKeyTask ? ' key' : '') + (isFocus(it) ? ' is-focus' : '');
-      var check = it.kind === 'sprint'
+        (it.kind === 'sprint' ? ' sprint' : '') + (it.kind === 'action' && it.c.isKeyTask ? ' key' : '') + (isFocus(it) ? ' is-focus' : '') +
+        (pickable ? ' pickable' : '') + (selSet[key] ? ' sel' : '');
+      // in Select mode a row is picked, or is somewhere the picked ones can go
+      var openAttr = !selecting ? ' data-flow-open="' + key + '"' : pickable ? ' data-flow-pick="' + key + '"' : ' tabindex="-1"';
+      var check = selecting
+        ? (pickable
+            ? '<button type="button" class="tl-pick" data-flow-pick="' + key + '" aria-pressed="' + (selSet[key] ? 'true' : 'false') + '" aria-label="Choose">' + CHECK_SVG + '</button>'
+            : (selKeys.length && (t || it.kind === 'sprint')
+                ? '<button type="button" class="tl-after" data-flow-after="' + key + '">After this</button>'
+                : '<span class="tl-pick-none"></span>'))
+        : it.kind === 'sprint'
         ? '<button type="button" class="commitment-status-dot' + (isDone ? ' completed' : '') + '" data-flow-open="' + key + '" aria-label="Open the sprint"></button>'
         : it.kind === 'action'
         ? '<button type="button" class="commitment-status-dot ' + it.c.status + '" data-flow-done="' + it.c.id + '"' +
@@ -9917,15 +9989,15 @@
         '<span class="tl-time">' + (t || '') + '</span>' +
         // tapping the capsule opens the item, like its text; holding an untimed one lifts it
         '<span class="tl-rail">' + capsuleHtml(color, icon, { done: isDone, h: h,
-          attrs: ' data-flow-open="' + key + '" aria-hidden="true"' + (t ? '' : ' data-drag-handle data-drag-hold') }) + '</span>' +
-        '<button type="button" class="tl-body" data-flow-open="' + key + '">' +
+          attrs: openAttr + ' aria-hidden="true"' + (t ? '' : ' data-drag-handle data-drag-hold') }) + '</span>' +
+        '<button type="button" class="tl-body"' + openAttr + (selecting && !pickable ? ' aria-disabled="true"' : '') + '>' +
           (isFocus(it) ? '<span class="tl-focus">Now</span>' : '') +
           '<span class="tl-when" data-flow-when="' + key + '"></span>' +
           '<span class="tl-title">' + (it.kind === 'action' && it.c.isKeyTask ? '<span class="flow-key" aria-label="Key task">' + STAR_SVG + '</span>' : '') +
             '<span data-flow-title="' + key + '"></span></span>' +
           '<span class="tl-meta" data-flow-meta="' + key + '"></span>' +
         '</button>' +
-        (it.kind === 'sprint' ? '' : '<button type="button" class="tl-more" data-flow-more="' + key + '" aria-label="Move or open">' +
+        (it.kind === 'sprint' || selecting ? '' : '<button type="button" class="tl-more" data-flow-more="' + key + '" aria-label="Move or open">' +
           '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg></button>') +
         check +
       '</div>';
@@ -9975,14 +10047,30 @@
       '<div class="sec-head flow-head"><span class="sec-label">' + (isToday ? 'Today’s flow' : 'Flow') + '</span>' +
         '<span class="sec-rule"></span>' +
         (items.length ? '<span class="sec-value">' + done + ' of ' + items.length + ' done</span>' : '') + '</div>' +
-      (doneActs ? '<button type="button" class="flow-done-toggle" id="flowDoneToggle" aria-pressed="' + (hideDone ? 'true' : 'false') + '">' +
-        (hideDone ? 'Show completed · ' + doneActs : 'Hide completed') + '</button>' : '') +
+      ((doneActs && !selecting) || pickableN > 1 || selecting
+        ? '<div class="flow-tools">' +
+            (pickableN > 1 || selecting
+              ? '<button type="button" class="flow-done-toggle" id="flowSelectToggle" aria-pressed="' + (selecting ? 'true' : 'false') + '">' +
+                  (selecting ? 'Done' : 'Select') + '</button>' : '') +
+            (doneActs && !selecting ? '<button type="button" class="flow-done-toggle" id="flowDoneToggle" aria-pressed="' + (hideDone ? 'true' : 'false') + '">' +
+              (hideDone ? 'Show completed · ' + doneActs : 'Hide completed') + '</button>' : '') +
+          '</div>' : '') +
+      (selecting ? '<p class="flow-sel-hint">Tap to choose. Hold one to drag them together, or tap After this on an event.</p>' : '') +
       '<p class="flow-intention" id="flowIntention" hidden></p>' +
       (shown.length
         ? '<div class="tl-list sort-list" id="flowList">' + parts.join('') + '</div>'
         : items.length
           ? '<div class="flow-empty"><p>Everything here is done.</p></div>'
           : '<div class="flow-empty"><p>Nothing in the day yet.</p></div>') +
+      (selecting
+        ? '<div class="flow-selbar" id="flowSelBar" role="toolbar" aria-label="Move the chosen items">' +
+            '<span class="fsb-count" aria-live="polite">' + (selKeys.length ? selKeys.length + ' chosen' : 'Choose items') + '</span>' +
+            '<button type="button" class="fsb-btn" id="flowSelAfter"' + (selKeys.length ? '' : ' disabled') + '>Move after…</button>' +
+            '<button type="button" class="fsb-btn" id="flowSelNext"' + (flowSelNextActs(dateStr, selKeys).length ? '' : ' disabled') + '>' +
+              (isToday ? 'Tomorrow' : 'Next day') + '</button>' +
+            '<button type="button" class="fsb-x" id="flowSelClose" aria-label="Stop choosing">' + CLOSE_SVG + '</button>' +
+          '</div>'
+        : '') +
       '<div class="flow-add">' +
         '<button type="button" class="dpa-add-btn" id="flowAddAction">' + BK_PLUS_SVG + 'Add action</button>' +
         (flowBacklogN ? '<button type="button" class="dpa-add-btn quiet" id="flowBacklog">' + UI_ICON.box + 'Backlog · ' + flowBacklogN + '</button>' : '') +
@@ -10085,7 +10173,39 @@
     });
     var list = document.getElementById('flowList');
     var allKeys = items.map(flowKey);
-    if (list) makeSortable(list, function(keys){ saveDayFlow(dateStr, mergeSubsetOrder(allKeys, keys)); });
+    if (list) makeSortable(list, function(keys, moved){
+      // a picked row carries the others: they close up around it, in their own order
+      var group = flowSelKeys(dateStr);
+      if (group.length > 1 && group.indexOf(moved) > -1){
+        var rest = keys.filter(function(k){ return k === moved || group.indexOf(k) === -1; });
+        var p = rest.indexOf(moved);
+        keys = rest.slice(0, p).concat(group, rest.slice(p + 1));
+      }
+      saveDayFlow(dateStr, mergeSubsetOrder(allKeys, keys));
+    });
+    wrap.querySelectorAll('[data-flow-pick]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var k = el.dataset.flowPick;
+        if (flowSel.keys[k]) delete flowSel.keys[k]; else flowSel.keys[k] = true;
+        renderFlow();
+        var again = wrap.querySelector('.tl-pick[data-flow-pick="' + k + '"]');
+        if (again && el.classList.contains('tl-pick')) try { again.focus({ preventScroll: true }); } catch(e){}
+      });
+    });
+    wrap.querySelectorAll('[data-flow-after]').forEach(function(el){
+      el.addEventListener('click', function(){ flowSelMoveAfter(dateStr, el.dataset.flowAfter); });
+    });
+    var selToggle = document.getElementById('flowSelectToggle');
+    if (selToggle) selToggle.addEventListener('click', function(){
+      if (flowSel) flowSelEnd(); else flowSel = { date: dateStr, keys: {} };
+      renderFlow();
+      var t = document.getElementById('flowSelectToggle'); if (t) try { t.focus({ preventScroll: true }); } catch(e){}
+    });
+    if (selecting){
+      document.getElementById('flowSelClose').addEventListener('click', function(){ flowSelEnd(); renderFlow(); });
+      document.getElementById('flowSelAfter').addEventListener('click', function(){ openFlowSelAfterPicker(dateStr, this); });
+      document.getElementById('flowSelNext').addEventListener('click', function(){ flowSelToNextDay(dateStr); });
+    }
     var doneToggle = document.getElementById('flowDoneToggle');
     if (doneToggle) doneToggle.addEventListener('click', function(){
       flowHideDone = !hideDone;
@@ -10130,6 +10250,94 @@
     var j = keys.indexOf(key);
     saveDayFlow(dateStr, keys.slice(0, j + 1).concat(moving, keys.slice(j + 1)));
     return moving.length;
+  }
+
+  // ---- Flow Select: choose several untimed items, then move them as one ----
+  // Only what is placed by hand can be chosen: an unfinished Action or training without a
+  // time. A timed item sits at its time and a sprint where it ran, so those are where the
+  // chosen ones go. The choice belongs to this screen only and is never saved.
+  function flowSelectable(it, plan){
+    if (it.kind === 'sprint' || flowItemDone(it, plan)) return false;
+    if (it.kind === 'action') return !actionTime(it.c);
+    return !hhmm(((plan && plan.trainingDetails && plan.trainingDetails[it.type]) || {}).activityTime);
+  }
+  // what is chosen and still choosable, in the day's order
+  function flowSelKeys(dateStr){
+    if (!flowSel || flowSel.date !== dateStr) return [];
+    var plan = getPlanForDate(dateStr);
+    return flowItemsWithSprints(dateStr).filter(function(it){
+      return flowSel.keys[flowKey(it)] && flowSelectable(it, plan);
+    }).map(flowKey);
+  }
+  function flowSelEnd(){
+    flowSel = null;
+    document.body.classList.remove('flow-selecting');
+  }
+  // afterKey null: the start of the day. The group keeps its own order.
+  function moveFlowGroupAfter(dateStr, moving, afterKey){
+    var keys = flowItemsWithSprints(dateStr).map(flowKey);
+    var set = {};
+    moving.forEach(function(k){ set[k] = true; });
+    var group = keys.filter(function(k){ return set[k]; });
+    var rest = keys.filter(function(k){ return !set[k]; });
+    var j = afterKey ? rest.indexOf(afterKey) + 1 : 0;
+    if (!group.length || (afterKey && j === 0)) return 0;
+    saveDayFlow(dateStr, rest.slice(0, j).concat(group, rest.slice(j)));
+    return group.length;
+  }
+  function flowKeyTitle(dateStr, key){
+    var kind = key.charAt(0), id = key.slice(2);
+    if (kind === 'a'){ var c = commitments.find(function(x){ return x.id === id; }); return c ? c.title : ''; }
+    if (kind === 's') return 'Reset sprint';
+    return SHORT_TYPE_LABEL[id] || TYPE_LABEL[id] || '';
+  }
+  function flowSelMoveAfter(dateStr, afterKey){
+    var n = moveFlowGroupAfter(dateStr, flowSelKeys(dateStr), afterKey);
+    flowSelEnd();
+    renderFlow();
+    if (n) showPinToast((n === 1 ? '1 item' : n + ' items') + ' moved ' +
+      (afterKey ? 'after ' + flowKeyTitle(dateStr, afterKey) : 'to the start'), false, CHECK_SVG);
+  }
+  // Every other place in the day, timed ones first, then the rest in order
+  function openFlowSelAfterPicker(dateStr, anchor){
+    var plan = getPlanForDate(dateStr);
+    var chosen = {};
+    flowSelKeys(dateStr).forEach(function(k){ chosen[k] = true; });
+    var items = flowItemsWithSprints(dateStr).filter(function(it){ return !chosen[flowKey(it)]; });
+    function timeOf(it){
+      if (it.kind === 'sprint') return sprintClock(it.s);
+      if (it.kind === 'action') return actionTime(it.c);
+      return hhmm(((plan && plan.trainingDetails && plan.trainingDetails[it.type]) || {}).activityTime);
+    }
+    function opt(it){
+      var k = flowKey(it), t = timeOf(it);
+      var hint = [t, flowItemDone(it, plan) ? 'Done' : ''].filter(function(x){ return !!x; }).join(' · ');
+      return { value: k, label: flowKeyTitle(dateStr, k), hint: hint || null };
+    }
+    var timed = items.filter(timeOf), untimed = items.filter(function(it){ return !timeOf(it); });
+    openPicker({
+      title: 'Move after',
+      anchor: anchor,
+      search: false,
+      options: [{ value: '__start', label: 'The start of the day' }]
+        .concat(timed.map(opt), untimed.map(opt)),
+      onPick: function(v){ flowSelMoveAfter(dateStr, v === '__start' ? null : v); }
+    });
+  }
+  // The chosen Actions go to the next day; training belongs to its day's plan, so it stays
+  function flowSelNextActs(dateStr, keys){
+    return keys.filter(function(k){ return k.charAt(0) === 'a'; }).map(function(k){
+      return commitments.find(function(x){ return x.id === k.slice(2); });
+    }).filter(function(c){ return c && c.status !== 'completed' && c.sourceType !== 'sweep'; });
+  }
+  function flowSelToNextDay(dateStr){
+    var acts = flowSelNextActs(dateStr, flowSelKeys(dateStr));
+    var to = fmtDate(addDays(dateStr, 1));
+    acts.forEach(function(c){ moveActionToDate(c, to); });
+    flowSelEnd();
+    renderFlow();
+    if (acts.length) showPinToast((acts.length === 1 ? '1 Action' : acts.length + ' Actions') + ' moved to ' +
+      (dateStr === todayStr() ? 'tomorrow' : relativeDayLabel(to).toLowerCase()), false, CHECK_SVG);
   }
 
   // The non-drag way to reorder, and a way in to the item itself.
