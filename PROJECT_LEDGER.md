@@ -763,6 +763,15 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-07 — Review/Catch-up: a Journal inside Overall day (Shaun asked)
+
+- The separate Notes block is gone. Its text box is now **Journal**, a sub-section of Overall
+  day under the verdict: "A few lines on how it went", a bigger box, and four prompt chips
+  (Went well · Got in the way · Grateful for · For tomorrow). Each chip starts a line
+  ("Went well: ") at the end and leaves the cursor there.
+- Same data: `ledger_day_status.notes`. No new field, and nothing is required to close the
+  day.
+
 ### 2026-11-06 — Training: Save and finish later (Shaun asked)
 
 - Every training log sheet (Strength, Padel, Cardio, HIIT, Yoga) on today or an earlier day
@@ -2897,6 +2906,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-07) — **Journal in Review/Catch-up** (decision above). Browser-checked: two
+  prompts and typing give "Went well: …" and "Tomorrow: …"; closing the day stores them as
+  the day's notes.
 - (2026-11-06) — **New-build offer now reaches an app left open.** Shaun saw no "New
   Ledger build available". Before, the check ran only at start and on return to the
   foreground (10-minute floor), and an offer held back by an open sheet or typing waited for

@@ -2294,6 +2294,19 @@
     color: var(--text); outline: none;
   }
   .cu-notes:focus { border-color: rgba(var(--gold-rgb),0.35); }
+  /* the journal sits inside Overall day, under the verdict */
+  .cu-journal { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .cu-journal-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .cu-journal-title { font-family: var(--serif); font-size: 15px; color: var(--text); }
+  .cu-journal-sub { font-size: 11.5px; color: var(--text-3); }
+  .cu-prompts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .cu-prompt {
+    min-height: 32px; padding: 0 11px; border-radius: 999px; cursor: pointer;
+    border: 1px solid rgba(var(--gold-rgb),0.3); background: rgba(var(--gold-rgb),0.06);
+    font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--gold);
+  }
+  .cu-prompt:active { opacity: 0.6; }
+  .cu-journal .cu-notes { min-height: 96px; }
   .cu-foot {
     display: flex; gap: 10px; align-items: flex-start;
     margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--line);
@@ -22459,6 +22472,13 @@
     }, 250);
   }
 
+  // Journal prompts in Review/Catch-up: each starts a line, never a form to fill
+  var CU_JOURNAL_PROMPTS = [
+    { label: 'Went well', starter: 'Went well:' },
+    { label: 'Got in the way', starter: 'Got in the way:' },
+    { label: 'Grateful for', starter: 'Grateful for:' },
+    { label: 'For tomorrow', starter: 'Tomorrow:' }
+  ];
   function cuBlock(icon, title, bodyHtml, headExtraHtml, step){
     return '<div class="cu-block"' + (step ? ' data-cu-step="' + step + '"' : '') + '>' +
       '<span class="iring sz-40 cu-ic">' + icon + '</span>' +
@@ -22645,19 +22665,26 @@
       html += cuBlock(LC_ICON, 'Life context', lcBlockHtml(dateStr, { noTitle: false }), '', 'context');
 
       // --- the one judgement no record can make for you ---
+      // ... and, inside it, a few lines in his own words: the day's journal (2026-11-07).
+      // Still the day's notes (ledger_day_status.notes); a prompt only starts a line.
       html += cuBlock(UI_ICON.chart, 'Overall day',
         cuSeg('status', [
           { value: 'completed', label: 'Completed' },
           { value: 'partial', label: 'Partially completed' },
           { value: 'disrupted', label: 'Disrupted' },
           { value: 'unknown', label: 'Unknown' }
-        ], statusVal, true));
-
-      html += cuBlock(UI_ICON.note, 'Notes <span class="cu-optional">(optional)</span>',
-        '<textarea id="cuNotes" class="cu-notes" rows="2" placeholder="Anything worth remembering about this day…"></textarea>');
+        ], statusVal, true) +
+        '<div class="cu-journal">' +
+          '<div class="cu-journal-head"><span class="cu-journal-title">Journal</span>' +
+            '<span class="cu-journal-sub">A few lines on how it went</span></div>' +
+          '<div class="cu-prompts" role="group" aria-label="Start a line">' +
+            CU_JOURNAL_PROMPTS.map(function(q, k){ return '<button type="button" class="cu-prompt" data-cu-prompt="' + k + '">' + q.label + '</button>'; }).join('') +
+          '</div>' +
+          '<textarea id="cuNotes" class="cu-notes" rows="4" placeholder="What went well, what got in the way, what you\u2019d keep for tomorrow\u2026"></textarea>' +
+        '</div>');
 
       html += '<div class="cu-foot"><span class="cu-foot-ic">' + UI_ICON.alert + '</span>' +
-        '<span>Saves onto this day\'s record: action tally, training and nutrition state, overall status and notes.</span></div>';
+        '<span>Saves onto this day\'s record: action tally, training and nutrition state, overall status and journal.</span></div>';
 
       html += '<div class="sheet-actionbar">' +
         '<button type="button" class="btn-primary" id="cuCloseDayBtn">' +
@@ -22684,6 +22711,17 @@
       var el = document.getElementById('cuNotes');
       if (el) notesVal = el.value;
     }
+    // a prompt starts its own line at the end and leaves the cursor after it
+    function addPrompt(k){
+      var el = document.getElementById('cuNotes'), q = CU_JOURNAL_PROMPTS[k];
+      if (!el || !q) return;
+      var v = el.value.replace(/\s+$/, '');
+      el.value = (v ? v + '\n' : '') + q.starter + ' ';
+      notesVal = el.value;
+      el.focus();
+      try { el.setSelectionRange(el.value.length, el.value.length); } catch(e){}
+      el.scrollTop = el.scrollHeight;
+    }
 
     function render(){
       sheetEl.innerHTML = build();
@@ -22692,6 +22730,10 @@
 
       // keep the draft live so an external re-render never drops typing
       document.getElementById('cuNotes').addEventListener('input', function(e){ notesVal = e.target.value; });
+      sheetEl.querySelectorAll('[data-cu-prompt]').forEach(function(b){
+        b.addEventListener('pointerdown', function(e){ e.preventDefault(); });   // the keyboard stays up
+        b.addEventListener('click', function(){ addPrompt(Number(b.dataset.cuPrompt)); });
+      });
 
       sheetEl.querySelectorAll('[data-cu-seg]').forEach(function(btn){
         btn.addEventListener('click', function(){
