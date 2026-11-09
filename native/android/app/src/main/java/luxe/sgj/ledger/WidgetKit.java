@@ -36,6 +36,7 @@ final class WidgetKit {
     static int category(Context ctx, String key) {
         if (key == null) return color(ctx, R.color.widget_text3);
         switch (key) {
+            case "mind": return color(ctx, R.color.widget_cat_mind);
             case "success": return color(ctx, R.color.widget_cat_success);
             case "work": return color(ctx, R.color.widget_cat_work);
             case "communicate": return color(ctx, R.color.widget_cat_communicate);

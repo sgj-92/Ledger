@@ -8,7 +8,10 @@
     <color name="widget_text3">#73624D</color>
     <color name="widget_gold">#866325</color>
     <color name="widget_track">#E2D7C4</color>
+    <color name="widget_pill">#24866325</color>
+    <color name="widget_pill_line">#59866325</color>
     <!-- the categories (QUICK_CAPTURE_CATEGORIES) -->
+    <color name="widget_cat_mind">#6A5599</color>
     <color name="widget_cat_success">#4F7A39</color>
     <color name="widget_cat_work">#566E80</color>
     <color name="widget_cat_communicate">#3D7169</color>

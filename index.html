@@ -8870,6 +8870,8 @@
   // Fast capture lanes used by Quick Capture. Not a permanent taxonomy —
   // just enough structure to classify a thought in one tap.
   var QUICK_CAPTURE_CATEGORIES = [
+    // Mind Dump (2026-11-09): whatever is on his mind, sorted later; Quick add starts here
+    { key: 'mind', label: 'Mind Dump', color: 'var(--hiit)' },
     { key: 'success', label: 'Success', color: 'var(--day-good)' },
     { key: 'work', label: 'Work', color: 'var(--weight)' },
     { key: 'communicate', label: 'Communicate', color: 'var(--cardio)' },
@@ -9077,6 +9079,8 @@
       if (p.get('mode') === 'flow') setTodayMode('flow');     // the Flow widget
       return;
     }
+    // its Quick add button (2026-11-09): Quick add for today, once Ledger is ready
+    if (p.get('add') === 'capture'){ nativeQuickAdd(0); return; }
     // its Communications line
     if (p.get('view') === 'comms' && authRole === 'owner'){ goView('comms'); return; }
     // the Focus widget with no focus: choose one (once today's Actions have loaded)
@@ -9084,6 +9088,13 @@
     openLedgerLink(url);
   }
 
+  function nativeQuickAdd(tries){
+    if (authRole === 'owner' && ownerDataStarted){
+      viewedDate = todayStr(); goView('log'); renderAll(); openQuickCaptureSheet(todayStr());
+      return;
+    }
+    if (tries < 40) setTimeout(function(){ nativeQuickAdd(tries + 1); }, 400);
+  }
   function nativeFocusPicker(tries){
     if (authRole === 'owner' && ownerDataStarted && czLoaded.commitments && execLoaded.sprints){
       viewedDate = todayStr(); goView('log'); renderAll(); openFocusPicker();
@@ -9183,6 +9194,8 @@
       prime: widgetPrime(date), exercise: widgetExercise(date), comms: widgetComms(), focus: widgetFocus(),
       flow: widgetFlow(date),
       done: acts.filter(function(c){ return c.status === 'completed'; }).length,
+      // still to do, as the widgets show it ("4 left"): planned or partly done
+      left: acts.filter(function(c){ return c.status !== 'completed' && c.status !== 'disrupted'; }).length,
       items: acts.slice(0, WIDGET_MAX).map(function(c){
         return {
           id: String(c.id), title: String(c.title || '').slice(0, 120), time: actionTime(c), category: c.category || null,
@@ -10882,7 +10895,7 @@
     qcTargetDate = targetDate || viewedDate || todayStr();
     qcRows = [];
     qcRowSeq = 0;
-    qcLastCategory = 'work';
+    qcLastCategory = 'mind';      // Quick add is a mind dump first; sort it later
 
     var note = dateNoteLabel(qcTargetDate);
     sheetEl.innerHTML =
@@ -13802,6 +13815,7 @@
   // ever carried forward automatically — an item only rejoins an active day when
   // it is deliberately pulled there via "Add to today" or "Pick a day".
   var CATEGORY_ICON = {
+    mind:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 15.5a4 4 0 0 1-.6-7.95A5 5 0 0 1 16.4 6.6a3.75 3.75 0 0 1 .6 7.4c-.3.9-1.2 1.5-2.2 1.5H7.5z"/><circle cx="8" cy="19" r="1.2"/><circle cx="5" cy="21.2" r="0.7"/></svg>',
     success:     UI_ICON.flame,
     work:        UI_ICON.briefcase,
     communicate: UI_ICON.chat,

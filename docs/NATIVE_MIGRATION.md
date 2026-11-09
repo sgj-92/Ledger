@@ -744,6 +744,21 @@ same snapshot (§4.1); the page only stopped limiting these to iOS.
   page's side is in `tests/e2e/native-shell.test.js` (87). The real build and a look on a phone
   are Shaun's: Android Studio → Run.
 
+## 12f. The Today widget: what's left, and Quick add (2026-11-09)
+
+Shaun asked for a Quick add button and the number left, instead of "0 of 4 done".
+
+- **iPhone** (`TodayWidget.swift`): on medium and large, the left column shows "4 left" and a
+  gold **Quick add** pill. The small widget's header says "4 left"; it has no bar.
+- **Android** (`WidgetToday.java`, `widget_today.xml`): the header shows "4 left" and a
+  **+ Quick add** pill (`widget_pill.xml`). The progress bar is gone.
+- **The link** is `luxe.sgj.ledger://open?add=capture`. The page (`nativeOpenLink`) waits
+  until the owner's data has loaded, then opens Quick add for today.
+- **The snapshot** gains an optional `left`: Actions still to do (not done, not disrupted).
+  Older snapshots fall back to total minus done. It stays version 4.
+- **Mind Dump** (category `mind`) gets the purple used for HIIT on both platforms.
+- **Needs a new app build** on both phones: the widget is part of the app, not the page.
+
 ## 12d. Xcode Cloud: building the iPhone app without the Mac (2026-10-29)
 
 Shaun's request: build from GitHub while away from the Mac. Xcode Cloud builds on Apple's

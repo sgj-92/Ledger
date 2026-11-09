@@ -103,6 +103,10 @@ struct TodaySnapshot: Codable, Equatable {
     let comms: Comms?            // counts only, never names
     let focus: Focus?            // the Current Focus, if one is set and still live
     var flow: [FlowItem]? = nil  // today's Flow, done steps included (version 4)
+    var left: Int? = nil         // Actions still to do (2026-11-09); older snapshots: total - done
+
+    /// What the widgets show as "4 left".
+    var leftCount: Int { left ?? max(0, total - done) }
 }
 
 #if canImport(ActivityKit)

@@ -7,6 +7,9 @@
     <color name="widget_text3">#766A5B</color>
     <color name="widget_gold">#DCB878</color>
     <color name="widget_track">#241D16</color>
+    <color name="widget_pill">#24DCB878</color>
+    <color name="widget_pill_line">#59DCB878</color>
+    <color name="widget_cat_mind">#8F7AB8</color>
     <color name="widget_cat_success">#7AA561</color>
     <color name="widget_cat_work">#7D93A6</color>
     <color name="widget_cat_communicate">#5B978F</color>

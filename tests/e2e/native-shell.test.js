@@ -212,6 +212,7 @@ function fakeBridgeWhenAsked(){
   check(snap && snap.v === 4 && snap.date === new Date().toLocaleDateString('en-CA') && snap.total === 1 && snap.items[0].title === 'Finish the quarterly plan'
     && snap.items[0].link === 'luxe.sgj.ledger://open?openAction=k1' && typeof snap.generatedAt === 'string',
     'iOS widget: version 4, today, his Action with its link', JSON.stringify(snap));
+  check(snap && snap.done === 1 && snap.left === 0, 'iOS widget: the snapshot says how many are left (none: it was ticked)', JSON.stringify(snap && [snap.done, snap.left]));
   check(snap && snap.prime && /Plan|Move|of/.test(snap.prime.label) && Array.isArray(snap.exercise) && 'comms' in snap,
     'iOS widget: Morning Prime while it isn\'t done, today\'s exercise, and Communications (counts only)', JSON.stringify(snap && { p: snap.prime, e: snap.exercise, c: snap.comms }));
   check(snap && (!snap.comms || Object.keys(snap.comms).sort().join() === 'due,needs,waiting'), 'iOS widget: Communications are counts — never names');
@@ -222,6 +223,7 @@ function fakeBridgeWhenAsked(){
   await put('ledger_commitments/k2', { date: TODAY, originalDate: TODAY, title: 'Call the plumber', category: 'personal', status: 'planned', time: '09:15', priorityId: null, minVersion: null, disruptionReason: null, createdAt: '2026-10-20T10:00:00.000Z' });
   check(await until(I, n => (window.__nat.snapshots || []).length > n && window.__nat.snapshots[window.__nat.snapshots.length - 1].total === 2, published, 12000), 'iOS widget: a new Action today is published again');
   snap = await lastSnap(I);
+  check(snap.left === 1, 'iOS widget: …and 1 left now', JSON.stringify(snap.left));
   // Ledger's Flow order: untimed Actions keep their place; a time orders only timed ones
   check(snap.items.map(i => i.title + ' ' + i.time).join(' | ') === 'Finish the quarterly plan null | Call the plumber 09:15',
     'iOS widget: in Ledger\'s own Flow order, with times', snap.items.map(i => i.title + ' ' + i.time).join(' | '));
@@ -341,6 +343,13 @@ function fakeBridgeWhenAsked(){
   await openLink(I, 'luxe.sgj.ledger://open?view=focus');
   check(await until(I, () => document.getElementById('sheetBackdrop').classList.contains('open') && /Current focus/.test(document.getElementById('sheetBackdrop').innerText)
       && document.querySelector('.view.active').id === 'view-log'), 'Focus widget with no focus: a tap opens Today and the focus picker');
+  await I.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
+  // the Today widget's Quick add button: Quick add for today, starting on Mind Dump
+  await I.click('.tab-btn[data-view="comms"]');
+  await openLink(I, 'luxe.sgj.ledger://open?add=capture');
+  check(await until(I, () => document.getElementById('sheetBackdrop').classList.contains('open') && /Quick add/.test(document.getElementById('sheetBackdrop').innerText)
+      && /Mind Dump/.test(document.getElementById('sheetBackdrop').innerText) && document.querySelector('.view.active').id === 'view-log'),
+    'iOS widget: Quick add opens Quick add on Today, on Mind Dump');
   await I.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
   // notifications in the app (Phase 2): FCM, from a tap, the device his alone
   const subs = async () => {

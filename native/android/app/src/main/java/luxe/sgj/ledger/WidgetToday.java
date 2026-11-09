@@ -12,7 +12,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Ledger's "Today" widget, as on the iPhone (TodayWidget.swift): the day's progress, then
+ * Ledger's "Today" widget, as on the iPhone (TodayWidget.swift): what's left and Quick add, then
  * Morning Prime while it isn't done, today's exercise, and the Actions still to do in Flow
  * order; below, Communications as counts only. Read-only: an Action opens itself, the
  * Communications line opens Communications, anywhere else opens Today.
@@ -44,17 +44,19 @@ public class WidgetToday extends AppWidgetProvider {
         if (s == null) {
             message(rv, ctx.getString(all == null ? R.string.widget_signed_out : R.string.widget_open_ledger));
             rv.setTextViewText(R.id.w_count, "");
-            rv.setViewVisibility(R.id.w_progress, View.GONE);
+            rv.setViewVisibility(R.id.w_add, View.GONE);
             rv.setViewVisibility(R.id.w_more, View.GONE);
             rv.setViewVisibility(R.id.w_comms, View.GONE);
             mgr.updateAppWidget(id, rv);
             return;
         }
         int total = s.optInt("total", 0), done = s.optInt("done", 0);
+        // what's left, and a way to add to it (2026-11-09: no "x of y" or bar)
+        int left = s.has("left") ? s.optInt("left", 0) : Math.max(0, total - done);
         rv.setTextViewText(R.id.w_kicker, ("Today · " + s.optString("dayLabel", "")).toUpperCase());
-        rv.setTextViewText(R.id.w_count, total > 0 ? done + " of " + total : "");
-        rv.setViewVisibility(R.id.w_progress, total > 0 ? View.VISIBLE : View.GONE);
-        rv.setProgressBar(R.id.w_progress, 100, total > 0 ? Math.round(100f * done / total) : 0, false);
+        rv.setTextViewText(R.id.w_count, total > 0 ? left + " left" : "");
+        rv.setViewVisibility(R.id.w_add, View.VISIBLE);
+        rv.setOnClickPendingIntent(R.id.w_add, WidgetKit.open(ctx, WidgetStore.QUICK_ADD_URL));
 
         // Communications: counts only, never names ("2 need you · 1 due")
         String comms = commsText(s.optJSONObject("comms"));
@@ -78,9 +80,9 @@ public class WidgetToday extends AppWidgetProvider {
         }
         rv.setViewVisibility(R.id.w_message, View.GONE);
         rv.setViewVisibility(R.id.w_rows, View.VISIBLE);
-        // as many rows as fit: the header and progress take ~40dp, a row ~31dp
+        // as many rows as fit: the header takes ~36dp, a row ~31dp
         int h = WidgetKit.heightDp(mgr, id, 180);
-        int room = h - 32 - 40 - (showComms ? 22 : 0) - 16;
+        int room = h - 32 - 36 - (showComms ? 22 : 0) - 16;
         int limit = Math.max(1, room / 31);
         if (rows.size() > limit) limit = Math.max(1, (room - 14) / 31);
         int shown = Math.min(limit, rows.size());

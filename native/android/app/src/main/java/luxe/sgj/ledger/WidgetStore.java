@@ -21,6 +21,7 @@ final class WidgetStore {
     static final String TODAY_URL = SCHEME + "://open?view=today";
     static final String FLOW_URL = SCHEME + "://open?view=today&mode=flow";
     static final String COMMS_URL = SCHEME + "://open?view=comms";
+    static final String QUICK_ADD_URL = SCHEME + "://open?add=capture";   // Quick add for today
     static final String FOCUS_URL = SCHEME + "://open?view=focus";
 
     private static final String PREFS = "ledger_widget";

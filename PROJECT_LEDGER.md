@@ -763,6 +763,16 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-09 — Mind Dump, and the Today widget's Quick add (Shaun asked)
+
+- New Action category **Mind Dump** (`mind`): first in the list, purple (`--hiit`), with a
+  thought-bubble icon. **Quick add opens on Mind Dump.** Other ways of adding an Action keep
+  their own defaults. Ask Claude accepts `mind` too (needs a functions deploy).
+- **Today widget:** "0 of 4 · done" and the bar are replaced by "**N left**" and a **Quick
+  add** button, which opens Quick add for today (`?add=capture`). The snapshot gains
+  optional `left`. Same change on Android. Both phones need a new app build
+  (`docs/NATIVE_MIGRATION.md` §12f).
+
 ### 2026-11-07 — Review/Catch-up: a Journal inside Overall day (Shaun asked)
 
 - The separate Notes block is gone. Its text box is now **Journal**, a sub-section of Overall
@@ -2658,8 +2668,12 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (try it)
-**Save and finish later** on training — live on the web.
+Owner: Shaun (build the apps)
+**Widget Quick add + "N left"**: rebuild the iPhone app (Xcode or Xcode Cloud) and the Android
+app to get the new widget. Mind Dump is already live on the web. Deploy functions for Ask
+Claude to use it.
+
+**Before that**: **Save and finish later** on training — live on the web.
 
 **Per-set strength logging** — live on the web: Sets on an exercise → a line per set, +
 Add set. For Ask Claude to see each set, deploy functions (Actions → Deploy Firebase).
@@ -2906,6 +2920,11 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-09) — **Mind Dump + widget Quick add** (decision above). Browser-checked: Quick
+  add opens on Mind Dump and the saved Action is `mind`, with its own icon. native-shell 90
+  (adds: `left`, and Quick add from the widget link). assistant 107. The Android widget
+  classes compile (javac against android-36). Swift was reviewed by eye; no Swift compiler
+  here.
 - (2026-11-07) — **Journal in Review/Catch-up** (decision above). Browser-checked: two
   prompts and typing give "Went well: …" and "Tomorrow: …"; closing the day stores them as
   the day's notes.

@@ -87,6 +87,7 @@ enum Palette {
     // the categories' colours (QUICK_CAPTURE_CATEGORIES)
     static func category(_ key: String?) -> Color {
         switch key {
+        case "mind": return .ledger(0x8F7AB8, 0x6A5599)
         case "success": return .ledger(0x7AA561, 0x4F7A39)
         case "work": return .ledger(0x7D93A6, 0x566E80)
         case "communicate": return .ledger(0x5B978F, 0x3D7169)
@@ -114,6 +115,8 @@ struct TodayWidget: Widget {
 
 private let todayURL = URL(string: "\(LedgerShared.appScheme)://open?view=today")!
 private let commsURL = URL(string: "\(LedgerShared.appScheme)://open?view=comms")!
+// opens Quick add for today (index.html, nativeOpenLink)
+private let quickAddURL = URL(string: "\(LedgerShared.appScheme)://open?add=capture")!
 
 // One line of the list: Morning Prime, an exercise, or an Action
 private enum Row: Identifiable {
@@ -194,22 +197,6 @@ private struct Kicker: View {
             .font(.system(size: 10, weight: .medium))
             .tracking(1.6)
             .foregroundStyle(Palette.text3)
-    }
-}
-
-private struct Progress: View {
-    let done: Int
-    let total: Int
-    var body: some View {
-        GeometryReader { g in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Palette.track)
-                Capsule().fill(Palette.gold)
-                    .frame(width: total > 0 ? max(4, g.size.width * CGFloat(done) / CGFloat(total)) : 0)
-                    .widgetAccentable()
-            }
-        }
-        .frame(height: 4)
     }
 }
 
@@ -355,11 +342,12 @@ private struct SmallView: View {
             HStack {
                 Kicker(text: "Today")
                 Spacer()
-                Text("\(s.done)/\(s.total)")
-                    .font(.system(size: 12, weight: .medium).monospacedDigit())
-                    .foregroundStyle(Palette.text2)
+                if s.total > 0 {
+                    Text("\(s.leftCount) left")
+                        .font(.system(size: 12, weight: .medium).monospacedDigit())
+                        .foregroundStyle(Palette.text2)
+                }
             }
-            Progress(done: s.done, total: s.total)
             Spacer(minLength: 0)
             if let next = next {
                 VStack(alignment: .leading, spacing: 3) {
@@ -407,7 +395,7 @@ private struct SmallView: View {
     }
 }
 
-// MARK: - Medium and large: the count beside the list
+// MARK: - Medium and large: what's left and Quick add, beside the list
 
 private struct ListView: View {
     let s: TodaySnapshot
@@ -425,18 +413,34 @@ private struct ListView: View {
                     .foregroundStyle(Palette.text2)
                     .lineLimit(1)
                 Spacer(minLength: 0)
-                Text("\(s.done)")
-                    .font(.system(size: 34, weight: .regular, design: .serif).monospacedDigit())
-                    .foregroundStyle(Palette.text)
-                + Text(" of \(s.total)")
-                    .font(.system(size: 15, design: .serif))
-                    .foregroundStyle(Palette.text2)
-                Progress(done: s.done, total: s.total)
-                Text("done")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Palette.text3)
+                // what's left, then a way to add to it (2026-11-09: no "x of y done")
+                if s.total > 0 {
+                    Text("\(s.leftCount)")
+                        .font(.system(size: 34, weight: .regular, design: .serif).monospacedDigit())
+                        .foregroundStyle(Palette.text)
+                    + Text(" left")
+                        .font(.system(size: 15, design: .serif))
+                        .foregroundStyle(Palette.text2)
+                }
+                Spacer(minLength: 0)
+                Link(destination: quickAddURL) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("Quick add")
+                            .font(.system(size: 12, weight: .semibold))
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                    .foregroundStyle(Palette.gold)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(Capsule().fill(Palette.gold.opacity(0.14)))
+                    .overlay(Capsule().stroke(Palette.gold.opacity(0.35), lineWidth: 1))
+                    .widgetAccentable()
+                }
             }
-            .frame(width: 84, alignment: .leading)
+            .frame(width: 96, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 0) {
                 if rows.isEmpty {

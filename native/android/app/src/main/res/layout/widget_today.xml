@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Ledger's Today widget (WidgetToday.java fills it): the day's progress, then what's still
+<!-- Ledger's Today widget (WidgetToday.java fills it): what's left and Quick add, then what's still
      to do in Flow order, then Communications as counts. Only views a widget may hold. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root"
@@ -13,6 +13,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -33,20 +34,26 @@
             android:layout_height="wrap_content"
             android:fontFeatureSettings="tnum"
             android:maxLines="1"
-            android:textColor="@color/widget_text2"
-            android:textSize="12sp" />
-    </LinearLayout>
+            android:textColor="@color/widget_text"
+            android:textSize="13sp" />
 
-    <ProgressBar
-        android:id="@+id/w_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="4dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="4dp"
-        android:max="100"
-        android:progress="0"
-        android:progressDrawable="@drawable/widget_progress" />
+        <TextView
+            android:id="@+id/w_add"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/widget_pill"
+            android:contentDescription="Quick add"
+            android:maxLines="1"
+            android:paddingStart="10dp"
+            android:paddingTop="5dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="5dp"
+            android:text="+ Quick add"
+            android:textColor="@color/widget_gold"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/w_rows"
