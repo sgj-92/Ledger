@@ -20894,11 +20894,13 @@
   var ROUTINE_SECTION_LABEL = { plan: 'Plan', move: 'Move', windDown: 'Evening Wind-down' };
 
   var DEFAULT_ROUTINES = {
+    // In the Day Plan's order (2026-11-09): Direction (the intention), Actions (key tasks),
+    // Health & fitness (meals, then the rest of the plan); then what only Prime covers.
     plan: [
-      { id: 'plan-meals',     key: 'meals',     label: 'Plan main meals',         enabled: true },
-      { id: 'plan-keys',      key: 'keys',      label: 'Choose key tasks',        enabled: true },
-      { id: 'plan-plan',      key: 'plan',      label: 'Review today\'s plan',    enabled: true },
       { id: 'plan-intention', key: 'intention', label: 'One-line intention',      enabled: true },
+      { id: 'plan-keys',      key: 'keys',      label: 'Choose key tasks',        enabled: true },
+      { id: 'plan-meals',     key: 'meals',     label: 'Plan main meals',         enabled: true },
+      { id: 'plan-plan',      key: 'plan',      label: 'Review today\'s plan',    enabled: true },
       // the daily sweep of every channel (2026-11-04): who needs a reply, and where
       { id: 'plan-sweep',     key: 'sweep',     label: 'Comms sweep',             enabled: true }
     ],
@@ -20947,6 +20949,19 @@
     defs.forEach(function(d){
       if (!out.some(function(it){ return it.id === d.id; })) out.push(Object.assign({}, d));
     });
+    // A Plan order still in the old default sequence takes the new one (2026-11-09); an
+    // order Shaun arranged himself is his. Custom steps keep their places.
+    if (section === 'plan'){
+      var OLD = ['plan-meals', 'plan-keys', 'plan-plan', 'plan-intention', 'plan-sweep'];
+      var NEW = defs.map(function(d){ return d.id; });
+      var seq = out.filter(function(it){ return OLD.indexOf(it.id) > -1; }).map(function(it){ return it.id; });
+      if (seq.join('|') === OLD.join('|')){
+        var byId = {};
+        out.forEach(function(it){ byId[it.id] = it; });
+        var k = 0;
+        out = out.map(function(it){ return OLD.indexOf(it.id) > -1 ? byId[NEW[k++]] : it; });
+      }
+    }
     return out;
   }
   function enabledRoutine(section){
@@ -21357,7 +21372,7 @@
       ? 'Completed ' + mpTimeLabel(st.completedAt)
       : (expanded ? 'Set yourself up for a focused day.' : mpProgressLabel(st));
 
-    // the intention is Plan's last step: it folds away with Plan
+    // the intention's field sits right under its own step, wherever that is in Plan
     var intentionHtml = st.intentionEnabled
       ? '<div class="mp-intention-wrap">' +
           '<textarea id="mpIntention" rows="2" maxlength="' + MP_INTENTION_MAX + '" placeholder="Focused, consistent and calm."></textarea>' +
@@ -21377,7 +21392,10 @@
       '<div class="mp-body' + (expanded ? '' : ' collapsed') + '" id="mpBody"><div class="mp-body-inner">' +
         (st.planSec.total
           ? '<div class="mp-group mp-group-plan">' + mpSectionHead('Plan', st.planSec) + mpItemsOpen('plan') +
-            st.planSec.items.map(function(x, i){ return routineRowHtml(x, { num: i + 1, skipMode: skipMode }); }).join('') + intentionHtml + '</div></div>'
+            st.planSec.items.map(function(x, i){
+              return routineRowHtml(x, { num: i + 1, skipMode: skipMode }) + (x.item && x.item.key === 'intention' ? intentionHtml : '');
+            }).join('') +
+            (st.planSec.items.some(function(x){ return x.item && x.item.key === 'intention'; }) ? '' : intentionHtml) + '</div></div>'
           : intentionHtml) +
         (st.moveSec.total
           ? '<div class="mp-group mp-group-move">' + mpSectionHead('Move', st.moveSec) + mpItemsOpen('move') +

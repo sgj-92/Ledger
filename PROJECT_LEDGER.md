@@ -763,6 +763,18 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-09 — Morning Prime's Plan follows the Day Plan's order (Shaun asked)
+
+- Plan steps now run as the Day Plan reads:
+  1. One-line intention (Direction)
+  2. Choose key tasks (Actions)
+  3. Plan main meals, then Review today's plan (Health & fitness)
+  4. Comms sweep, which only Prime covers, last
+- The intention's text box sits directly under its own step, wherever that step is. It used
+  to sit after the whole list, below Comms sweep.
+- A saved routine still in the old default order takes the new one when read. An order Shaun
+  arranged himself is left alone.
+
 ### 2026-11-09 — Mind Dump, and the Today widget's Quick add (Shaun asked)
 
 - New Action category **Mind Dump** (`mind`): first in the list, purple (`--hiit`), with a
@@ -2920,6 +2932,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-09) — **Prime Plan order = Day Plan order** (decision above). Browser-checked:
+  default, saved old order (moves) and a custom order (kept), with the intention box under
+  its step. Execution 81.
 - (2026-11-09) — **Mind Dump + widget Quick add** (decision above). Browser-checked: Quick
   add opens on Mind Dump and the saved Action is `mind`, with its own icon. native-shell 90
   (adds: `left`, and Quick add from the widget link). assistant 107. The Android widget
