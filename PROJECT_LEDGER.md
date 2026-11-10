@@ -2932,6 +2932,10 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-10) — **Replies: each channel folds.** The channel heading is a button with a
+  chevron, wherever the list appears (Comms, the sweep, the Replies Action). The choice is
+  remembered per device (`ledger_sweep_folded`). Until he chooses, a channel with everyone
+  replied to starts folded. Browser-checked; comms-capture 42.
 - (2026-11-09) — **Prime Plan order = Day Plan order** (decision above). Browser-checked:
   default, saved old order (moves) and a custom order (kept), with the intention box under
   its step. Execution 81.

@@ -4652,7 +4652,15 @@
   .sw-group { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 0 2px;
     font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
   .sw-list > .sw-group:first-child, .hs-sec-head + .sw-group { padding-top: 4px; }
-  .sw-group-n { font-variant-numeric: tabular-nums; letter-spacing: 0; text-transform: none; font-weight: 500; }
+  .sw-group-n { font-variant-numeric: tabular-nums; letter-spacing: 0; text-transform: none; font-weight: 500; margin-left: auto; }
+  /* each channel folds: the heading is the button */
+  button.sw-group { width: 100%; background: none; border: none; cursor: pointer; text-align: left; font-family: var(--sans);
+    padding-left: 0; padding-right: 0; align-items: center; justify-content: flex-start; }
+  button.sw-group:active { opacity: 0.6; }
+  .sw-group-chev { display: flex; color: var(--text-3); transition: transform 0.18s ease; }
+  .sw-group-chev svg { width: 13px; height: 13px; display: block; }
+  .sw-group.folded .sw-group-chev { transform: rotate(-90deg); }
+  .sw-item[hidden], .sw-row[hidden] { display: none !important; }
   .sw-chan-ok svg { width: 100%; height: 100%; }
   .sw-hint { margin: 0 0 6px; font-size: 12.5px; color: var(--text-3); }
   .sw-add { margin: 0 0 var(--sp-4); }
@@ -12345,9 +12353,15 @@
       return { channel: k, rows: rows, open: rows.filter(function(x){ return !x.item.done; }).length };
     });
   }
+  // Each channel folds (2026-11-10), remembered per device. Until he chooses, a channel
+  // with everyone replied to starts folded and one with names waiting starts open.
+  var SWEEP_FOLD_KEY = 'ledger_sweep_folded';
+  function sweepFolds(){ try { return JSON.parse(lsGet(SWEEP_FOLD_KEY, '{}')) || {}; } catch(e){ return {}; } }
+  function sweepFolded(g){ var f = sweepFolds(), k = g.channel || ''; return k in f ? !!f[k] : g.open === 0; }
   function sweepGroupHead(g){
-    var h = document.createElement('div'); h.className = 'sw-group';
-    h.innerHTML = '<span class="sw-group-t"></span><span class="sw-group-n"></span>';
+    var h = document.createElement('button'); h.type = 'button'; h.className = 'sw-group';
+    h.innerHTML = '<span class="sw-group-t"></span><span class="sw-group-n"></span>' +
+      '<span class="sw-group-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>';
     h.querySelector('.sw-group-t').textContent = g.channel || 'No channel';
     h.querySelector('.sw-group-n').textContent = g.open ? String(g.open) : 'replied';
     return h;
@@ -12366,8 +12380,21 @@
       return;
     }
     sweepGroups(c.list).forEach(function(g){
-      el.appendChild(sweepGroupHead(g));
-      g.rows.forEach(function(x){ el.appendChild(sweepRowEl(x, todayStr(), { grouped: true })); });
+      var head = sweepGroupHead(g), rows = [];
+      el.appendChild(head);
+      g.rows.forEach(function(x){ var r = sweepRowEl(x, todayStr(), { grouped: true }); rows.push(r); el.appendChild(r); });
+      function show(folded){
+        head.classList.toggle('folded', folded);
+        head.setAttribute('aria-expanded', folded ? 'false' : 'true');
+        rows.forEach(function(r){ r.hidden = folded; });
+      }
+      show(sweepFolded(g));
+      head.addEventListener('click', function(){
+        var f = sweepFolds(), now = !head.classList.contains('folded');
+        f[g.channel || ''] = now;
+        lsSet(SWEEP_FOLD_KEY, JSON.stringify(f));
+        show(now);
+      });
     });
   }
   // Every view of the list repaints from here: Comms's Replies, an open sweep, an open
