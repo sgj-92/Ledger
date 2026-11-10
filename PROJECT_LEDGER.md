@@ -2932,6 +2932,12 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-10) — **Fix: Comms sweep channels reset to the defaults.** The presets listener
+  rebuilds presets field by field and had no line for `sweepChannels`. The list saved, but
+  other devices and reloads never read it back, and their next presets save wrote the
+  defaults over it. It now reads `sweepChannels` and keeps any field it doesn't name
+  (`PRESET_NAMED`), so a new preset can't be lost this way again. settings-sync 13 (4 new;
+  3 fail on the old code). Shaun needs to enter his channels once more.
 - (2026-11-10) — **Replies: each channel folds.** The channel heading is a button with a
   chevron, wherever the list appears (Comms, the sweep, the Replies Action). The choice is
   remembered per device (`ledger_sweep_folded`). Until he chooses, a channel with everyone

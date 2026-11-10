@@ -7754,6 +7754,12 @@
           // lost when another device saves these presets
           presets.claudeUrl = data.claudeUrl || null;
           presets.exerciseAliases = data.exerciseAliases || null;   // Settings → Exercises merges
+          presets.sweepChannels = data.sweepChannels || null;       // Comms sweep channels (2026-11-10 fix)
+          // anything else on the document is kept as it is: a field this handler doesn't
+          // name must never be lost when this device next saves the presets (2026-11-10)
+          Object.keys(data).forEach(function(k){
+            if (PRESET_NAMED.indexOf(k) === -1) presets[k] = data[k];
+          });
           applyWeekPreference();
           if (currentView === 'calendar') renderCalendar();
           if (currentView === 'focus') renderFocus();
@@ -7861,6 +7867,9 @@
     tryHandleDeepLink();
   }
 
+  // the fields the presets listener sets itself (with their defaults); any other field is copied as stored
+  var PRESET_NAMED = ['cardioTypes', 'exercises', 'targetWeightKg', 'prioritiesSeeded', 'routines', 'weekStartsOn',
+    'trainingTarget', 'shareTemplates', 'claudeUrl', 'exerciseAliases', 'sweepChannels'];
   async function savePresets(){
     if (dbReady && dbRef){
       try { await dbRef.collection('ledger_meta').doc('presets').set(presets); return; }

@@ -40,7 +40,8 @@ async function presets(){
   const r = await fetch(`${FS}/ledger_meta/presets`, { headers: ADMIN });
   const j = r.ok ? await r.json() : {};
   const f = j.fields || {};
-  return { claudeUrl: f.claudeUrl ? f.claudeUrl.stringValue || null : undefined, weekStartsOn: f.weekStartsOn ? f.weekStartsOn.stringValue : undefined };
+  const chans = f.sweepChannels && f.sweepChannels.arrayValue ? (f.sweepChannels.arrayValue.values || []).map(v => v.stringValue).join('|') : undefined;
+  return { claudeUrl: f.claudeUrl ? f.claudeUrl.stringValue || null : undefined, weekStartsOn: f.weekStartsOn ? f.weekStartsOn.stringValue : undefined, sweepChannels: chans };
 }
 
 (async () => {
@@ -113,6 +114,27 @@ async function presets(){
   for (let i = 0; i < 20 && !cleared; i++){ await sleep(300); cleared = !(await presets()).claudeUrl; }
   await openSettings(mac);
   check(cleared && await until(mac, () => /Claude conversation\s*Not set/.test(document.getElementById('setClaudeUrl').innerText)), 'Cleared on the phone: Not set on the Mac');
+
+  // Comms sweep channels (2026-11-10): the presets listener once had no line for them, so
+  // they never reached another device and the next save there put the defaults back
+  const CH = ['WhatsApp - UK', 'WhatsApp - DXB', 'WhatsApp - S&J', 'Email - S&J', 'Teams - S&J', 'LinkedIn', 'Instagram'];
+  await openSettings(phone); await phone.click('#setSweepChannels');
+  await phone.waitForSelector('#swChText'); await phone.fill('#swChText', CH.join('\n')); await phone.click('#swChSave');
+  let chSaved = false;
+  for (let i = 0; i < 20 && !chSaved; i++){ await sleep(300); chSaved = (await presets()).sweepChannels === CH.join('|'); }
+  check(chSaved, 'Phone: his sweep channels are saved to his account');
+  await openSettings(mac); await mac.click('#setSweepChannels'); await mac.waitForSelector('#swChText');
+  check(await until(mac, v => document.getElementById('swChText').value === v, CH.join('\n')), 'Mac: the same channels, in his order');
+  // the Mac saves something else: the channels must survive it
+  await openSettings(mac);
+  const wk2 = (await presets()).weekStartsOn === 'sunday' ? 'monday' : 'sunday';
+  await mac.click(`[data-week-start="${wk2}"]`);
+  let after2 = {};
+  for (let i = 0; i < 20; i++){ await sleep(300); after2 = await presets(); if (after2.weekStartsOn === wk2) break; }
+  check(after2.weekStartsOn === wk2 && after2.sweepChannels === CH.join('|'), 'Mac saves another setting: the channels are still saved', JSON.stringify(after2));
+  await phone.reload(); await phone.waitForFunction(() => document.getElementById('authGate').hidden, null, { timeout: 25000 });
+  await openSettings(phone); await phone.click('#setSweepChannels'); await phone.waitForSelector('#swChText');
+  check(await until(phone, v => document.getElementById('swChText').value === v, CH.join('\n')), 'Phone, reloaded: still his channels, not the defaults');
   for (const p of [phone, mac]) check(!p.errs.length, p.name + ': no page errors ' + p.errs.join(' | ').slice(0, 300));
   await b.close(); server.close();
   console.log(`\n${ok.length} passed, ${bad.length} failed`);
