@@ -18,7 +18,7 @@ const NOW = () => firebase.firestore.FieldValue.serverTimestamp();
 const PRIVATE = [
   'ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_day_status',
   'ledger_priorities', 'ledger_focus', 'ledger_meals', 'ledger_meta',
-  'ledger_matters', 'ledger_conversations', 'ledger_challenges', 'ledger_sprints', 'ledger_life_context', 'ledger_weeks', 'ledger_people'
+  'ledger_matters', 'ledger_conversations', 'ledger_challenges', 'ledger_sprints', 'ledger_life_context', 'ledger_weeks', 'ledger_people', 'ledger_quarters'
 ];
 
 // a device subscription as the client writes it
@@ -134,6 +134,9 @@ async function check(name, fn){
   await check('no profile: cannot read a week', () => assertFails(stranger.doc('ledger_weeks/2026-10-26').get()));
   await check('partner: cannot write a week', () => assertFails(partner.doc('ledger_weeks/2026-10-26').set({ outcomes: [] })));
   await check('owner: writes a week', () => assertSucceeds(owner.doc('ledger_weeks/2026-10-26').set({ outcomes: [{ id: 'o1', text: 'Send 5 proposals', area: 'business' }] })));
+  await check('no profile: cannot read a quarter review', () => assertFails(stranger.doc('ledger_quarters/2026-Q4').get()));
+  await check('partner: cannot read or write a quarter review', () => assertFails(partner.doc('ledger_quarters/2026-Q4').get()).then(() => assertFails(partner.doc('ledger_quarters/2026-Q4').set({ at: 'x' }))));
+  await check('owner: closes a quarter', () => assertSucceeds(owner.doc('ledger_quarters/2026-Q4').set({ at: '2026-12-27T18:00:00Z', goals: [{ id: 'g1', result: 'carried' }] })));
   await check('no profile: cannot read push subscriptions', () => assertFails(stranger.collection('ledger_push_subscriptions').get()));
 
   // ---- Partner Sharing: signed out ----
@@ -1048,7 +1051,7 @@ async function check(name, fn){
   await check('delete: never removed outright', () => assertFails(owner.doc(HR + '/hr1').delete()));
   await check('checklist: a deleted request\'s list is frozen', () => assertFails(partner.doc(HR + '/a1/items/x1').set(item('partner1'))));
   // the boundary: the nanny reaches nothing private, nothing of Partner Sharing
-  for (const c of ['ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_life_context', 'ledger_weeks', 'ledger_people', 'ledger_meta', 'ledger_action_updates', 'ledger_day_status'])
+  for (const c of ['ledger_commitments', 'ledger_plans', 'ledger_sessions', 'ledger_life_context', 'ledger_weeks', 'ledger_quarters', 'ledger_people', 'ledger_meta', 'ledger_action_updates', 'ledger_day_status'])
     await check('nanny: cannot read ' + c, () => assertFails(nanny.collection(c).get()));
   await check('nanny: cannot read published snapshots', () => assertFails(nanny.doc('ledger_shared_snapshots/owner1_partner1_day_2026-10-07').get()));
   await check('nanny: cannot read Partner Sharing requests', () => assertFails(nanny.doc('ledger_shared_requests/reqA').get()));

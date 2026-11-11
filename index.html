@@ -1172,6 +1172,67 @@
   .wk-goalline { padding: 12px 0 4px; }
   .wk-panel.folded .wk-goalline { padding-bottom: 12px; }
   .wd-goalline { padding: 4px 0 12px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+  /* Me → Goals: this week, at the top (2026-11-11) */
+  #goalsWeek:empty { display: none; }
+  .gw-card { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); padding: 14px 16px 14px; margin: 0 0 var(--sp-5); }
+  .gw-kicker { font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; }
+  .gw-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; margin-top: 12px; padding: 8px 0;
+    background: none; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--text); font-family: var(--sans); font-size: 14px; text-align: left; cursor: pointer; }
+  .gw-row:active { opacity: 0.6; }
+  .gw-row .gw-val { margin-left: auto; font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .gw-reviews { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; }
+  .gw-review svg { width: 12px; height: 12px; vertical-align: -1px; }
+  .gw-review svg:first-child { margin-right: 4px; }
+  .gw-review span + svg { margin-left: 5px; }
+  .gw-review.due { border-color: rgba(var(--gold-rgb),0.55); color: var(--gold); }
+  .rm-hint { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+  /* a goal's own page */
+  .gp-why { margin: 0 0 var(--sp-5); font-size: 14.5px; line-height: 1.5; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .gp-why-add { margin: -4px 0 var(--sp-4); }
+  .gp-kid { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 0; background: none; border: 0; border-bottom: 1px solid var(--line);
+    color: var(--text); font-family: var(--sans); text-align: left; cursor: pointer; }
+  .gp-kid:active { opacity: 0.6; }
+  .gp-kid-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .gp-kid-body .goal-kicker { margin-bottom: 0; }
+  .gp-kid-t { font-size: 15px; overflow-wrap: anywhere; }
+  .gp-kid-m { font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .gp-now { margin: 0 0 10px; font-family: var(--serif); font-size: 19px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .gp-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .gp-axis { stroke: var(--line-2); stroke-width: 1; }
+  .gp-target { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 4 4; }
+  .gp-line { fill: none; stroke: var(--gold); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .gp-dot { fill: var(--gold); stroke: var(--bg); stroke-width: 2; }
+  .gp-bar { fill: var(--gold); }
+  .gp-bar-open { fill: none; stroke: var(--gold); stroke-width: 1.2; }
+  .gp-zero { stroke: var(--line-2); stroke-width: 2; stroke-linecap: round; }
+  .gp-lbl { fill: var(--text-3); font-family: var(--sans); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .gp-lbl-t, .gp-lbl-v { fill: var(--text-2); }
+  .gp-add { display: flex; align-items: flex-end; gap: 8px; margin-top: 14px; }
+  .gp-add .field { flex: 1; margin: 0; }
+  .gp-add .btn-secondary { flex: 0 0 auto; width: auto; margin: 0; padding-left: 18px; padding-right: 18px; }
+  .goal-values.gp-values { margin: 12px 2px 0; }
+  .gp-cap { margin: 0 0 8px; font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .gp-legend { display: flex; gap: 16px; margin: 8px 0 0; font-size: 11.5px; color: var(--text-3); }
+  .gp-key { display: inline-flex; align-items: center; gap: 6px; }
+  .gp-key::before { content: ''; width: 9px; height: 9px; border-radius: 2px; background: var(--gold); }
+  .gp-key.open::before { background: none; border: 1.2px solid var(--gold); }
+  .gp-hist-wk { font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); padding: 14px 0 4px; }
+  .gp-hist-o { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 6px 0; font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
+  .gp-hist-r { flex-shrink: 0; font-size: 12.5px; color: var(--text-3); }
+  .gp-hist-r.set { color: var(--text-2); }
+  .gp-hist-q { border-bottom: 1px solid var(--line); }
+  .gp-hist-rv { display: block; width: 100%; padding: 4px 0 8px; background: none; border: 0; text-align: left; cursor: pointer;
+    font-family: var(--sans); font-size: 13px; line-height: 1.45; color: var(--text-2); overflow-wrap: anywhere; }
+  .gp-hist-rl { color: var(--text); font-weight: 500; margin-right: 6px; }
+  /* the quarter review */
+  .qr-goal .goal-kicker { margin-bottom: 2px; }
+  .qr-yg { padding: 12px 0 2px; font-size: 14px; font-weight: 500; color: var(--text); overflow-wrap: anywhere; }
+  .qr-next { display: flex; align-items: baseline; gap: 8px; padding: 6px 0 6px 14px; font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
+  .qr-tag { flex-shrink: 0; margin-left: auto; font-size: 11.5px; color: var(--text-3); }
+  .qr-add { display: flex; align-items: center; gap: 8px; padding: 4px 0 6px; }
+  .qr-add.under { padding-left: 14px; }
+  .qr-add .field { flex: 1; margin: 0; min-width: 0; }
+  .qr-add .cd-chip svg { width: 12px; height: 12px; margin-right: 3px; vertical-align: -1px; }
   .wk-empty { font-size: 13px; color: var(--text-3); margin: 0; padding: 13px 0 9px; line-height: 1.45; }
   .wk-area { font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); padding: 12px 0 2px; }
   .wk-row {
@@ -1318,32 +1379,6 @@
   .detail-trend strong { color: var(--text); font-weight: 500; }
 
   /* ---------- Focus ---------- */
-  .player-card {
-    border: 1px solid var(--line); border-radius: var(--r-lg);
-    background: linear-gradient(158deg, var(--surface-3), var(--surface));
-    padding: 20px; margin-bottom: var(--sp-7);
-    display: flex; align-items: center; gap: 18px;
-  }
-  .avatar-ring-wrap { position: relative; width: 70px; height: 70px; flex-shrink: 0; cursor: pointer; transition: transform 0.12s ease; }
-  .avatar-ring-wrap:active { transform: scale(0.94); }
-  .avatar-ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-  .avatar-ring-bg { fill: none; stroke: var(--line-2); stroke-width: 3; }
-  .avatar-ring-fg { fill: none; stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 0.4s ease; }
-  .avatar-figure { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-  .avatar-figure svg { width: 44px; height: 44px; }
-  .avatar-level-chip {
-    position: absolute; bottom: -2px; right: -2px; width: 21px; height: 21px;
-    border-radius: 50%; border: 2px solid var(--bg);
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--serif); font-size: 11px; font-weight: 500; color: var(--ink);
-  }
-  .player-info { flex: 1; min-width: 0; }
-  .player-rank { font-family: var(--serif); font-size: 19px; font-weight: 400; color: var(--text); }
-  .player-xp-text { font-size: 12px; color: var(--text-2); margin-top: 3px; }
-  .xp-bar-track { width: 100%; height: 4px; background: var(--line-2); border-radius: 100px; margin-top: 11px; overflow: hidden; }
-  .xp-bar-fill { height: 100%; border-radius: 100px; transition: width 0.4s ease; }
-  .streak-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-2); margin-top: 10px; }
-  .streak-badge svg { width: 13px; height: 13px; display: block; color: var(--gold); }
   .plan-roadblock .rb-ic { display: flex; flex-shrink: 0; }
   .plan-roadblock .rb-ic svg { width: 14px; height: 14px; display: block; }
   .focus-item {
@@ -2973,16 +3008,14 @@
   html[data-theme="light"] .bk-meta .bk-state { color: var(--gold-2); }
   html[data-theme="light"] .exposure-note-ic,
   html[data-theme="light"] .bk-btn.moved svg { color: var(--gold); }
-  /* rank colours are meaning, not decoration — darken the chip instead of restyling them */
-  html[data-theme="light"] .avatar-level-chip { box-shadow: inset 0 0 0 999px rgba(28,20,10,0.34); }
   html[data-theme="light"] .cal-cell.today { color: var(--gold-2); }
   html[data-theme="light"] .view-switch button:not(.sel),
   html[data-theme="light"] .theme-switch button:not(.sel) { color: var(--text-2); }
   /* Light needs edges that dark gets from luminance: a card is lifted, never outlined
      heavily. Dark is untouched by all of this. */
   html[data-theme="light"] .mp-card:not(.done),
-  html[data-theme="light"] .player-card,
   html[data-theme="light"] #focusEvidence,
+  html[data-theme="light"] .gw-card,
   html[data-theme="light"] .bk-panel { border-color: var(--line); box-shadow: var(--shadow-card); }
   /* the chosen mode is a raised ivory tab in a stone track */
   html[data-theme="light"] .today-mode { background: var(--surface-2); border-color: transparent; }
@@ -6106,10 +6139,8 @@
 
   <section class="view" id="view-focus">
     <div class="focus-col-main">
-    <div class="section-kicker">Progress identity</div>
-    <div id="playerCard"></div>
-
     <h2 class="section-title">Goals</h2>
+    <div id="goalsWeek"></div>
     <div id="prioritiesList"></div>
 
     <h2 class="section-title">Active focus</h2>
@@ -7872,6 +7903,7 @@
           seedPrioritiesIfNeeded();
           if (currentView === 'focus') renderFocus();
           if (currentView === 'stats') renderStats();
+          if (activeSheetRefresh && activeSheetRefresh.onGoals) activeSheetRefresh();
         }, function(err){ console.error('priorities snapshot error', err); });
       confirmedSnapshot(dbRef.collection('ledger_commitments'), 'commitments', function(snap){
           commitments = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
@@ -7903,6 +7935,7 @@
       startExecListeners();
       startLifeContextListener();
       startWeeksListener();
+      startQuartersListener();
       startPeopleListener();
       // Partner Sharing: the owner's side of the shared namespace (see firestore.rules)
       startSharingListeners();
@@ -7933,6 +7966,7 @@
     localLoadExec();
     lcLocalLoad();
     weeksLocalLoad();
+    quartersLocalLoad();
     peopleLocalLoad();
     czLoaded = { commitments: true, plans: true, challenges: true };
     presetsLoaded = true;
@@ -8321,6 +8355,7 @@
     localSavePriorities();
     renderPriorities();
     if (currentView === 'stats') renderStats();
+    if (activeSheetRefresh && activeSheetRefresh.onGoals) activeSheetRefresh();
   }
 
   // Goals are never deleted by Shaun (achieved or dropped instead); only Undo of a goal
@@ -24815,7 +24850,9 @@
     { kind: 'sweep', label: 'Comms sweep', time: '12:00', days: [1, 2, 3, 4, 5] },
     // the weekly reviews' prompts: on unless he turns them off (as the server assumes)
     { kind: 'reviewBusiness', label: 'Friday review', time: '15:00', days: [5], on: true },
-    { kind: 'reviewPersonal', label: 'Sunday review', time: '17:00', days: [0], on: true }
+    { kind: 'reviewPersonal', label: 'Sunday review', time: '17:00', days: [0], on: true },
+    // the quarter review: that day in the quarter's last week (the last Sunday, unless he changes it)
+    { kind: 'reviewQuarter', label: 'Quarter review', hint: 'In the quarter’s last week', time: '18:00', days: [0], on: true }
   ];
   var REMIND_DAYS = [{ v: 1, l: 'M' }, { v: 2, l: 'T' }, { v: 3, l: 'W' }, { v: 4, l: 'T' }, { v: 5, l: 'F' }, { v: 6, l: 'S' }, { v: 0, l: 'S' }];
   var REMIND_LOCAL_KEY = 'ledger_reminders_fallback';
@@ -24866,7 +24903,7 @@
     var items = remindItems();
     function draw(){
       sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
-        sheetHead(BELL_SVG, 'Reminders', 'A notification on your devices at these times. Morning Prime, Wind-down, the sweep and the weekly reviews stay quiet once they’re done.', '') +
+        sheetHead(BELL_SVG, 'Reminders', 'A notification on your devices at these times. Morning Prime, Wind-down, the sweep and the reviews stay quiet once they’re done.', '') +
         '<div class="rm-list" id="rmList"></div>' +
         '<button type="button" class="dpa-add-btn" id="rmAdd">' + BK_PLUS_SVG + 'Add a reminder</button>' +
         '<p class="set-note rm-note">' + (LOCAL_ONLY
@@ -24896,7 +24933,10 @@
               }).join('') +
             '</div>' +
           '</div>';
-        if (b) el.querySelector('.rm-name').textContent = b.label;
+        if (b){
+          el.querySelector('.rm-name').textContent = b.label;
+          if (b.hint){ var hn = document.createElement('span'); hn.className = 'rm-hint'; hn.textContent = b.hint; el.querySelector('.rm-name').appendChild(hn); }
+        }
         else { var tx = el.querySelector('.rm-text'); tx.value = it.text || ''; tx.addEventListener('input', function(){ items[i].text = tx.value; }); }
         var tm = el.querySelector('.rm-time');
         tm.value = it.time || '09:00';
@@ -24941,10 +24981,11 @@
     backdrop.classList.add('open');
   }
 
-  // a link from a reminder: ?open=prime | winddown | sweep
+  // a link from a reminder: ?open=prime | winddown | sweep | review-business | review-personal | review-quarter
   function openFromReminder(what){
     var t = todayStr();
     var ra = reviewAreaFromOpen(what);
+    if (what === 'review-quarter'){ viewedDate = t; goView('log'); renderAll(); openQuarterReviewSheet(quarterDue() || quarterOf(t)); return true; }
     if (ra){ viewedDate = t; goView('log'); renderAll(); openWeekReviewSheet(ra, ra === 'personal' && new Date().getDay() === 1 ? reviewWeekFor(ra, fmtDate(addDays(t, -1))) : reviewWeekFor(ra, t)); return true; }
     if (what === 'prime'){ openPrimeOnToday(); return true; }
     if (what === 'sweep'){ viewedDate = t; goView('log'); renderAll(); openSweepSheet(t); return true; }
@@ -28073,169 +28114,6 @@
     });
   }
 
-  // ---------- gamification (player card) ----------
-  var LEVEL_TIERS = [
-    { min: 1,  max: 2,  color: '#8c8171', name: 'Rookie' },
-    { min: 3,  max: 5,  color: '#b99669', name: 'Grinder' },
-    { min: 6,  max: 9,  color: '#c6a15c', name: 'Contender' },
-    { min: 10, max: 14, color: '#4c8c86', name: 'Competitor' },
-    { min: 15, max: 20, color: '#8b7a8f', name: 'Veteran' },
-    { min: 21, max: Infinity, color: '#a85c48', name: 'Elite' }
-  ];
-  function computeXP(){
-    var sessionXP = sessions.length * 10;
-    var focusXP = focusItems.filter(function(f){ return f.done; }).length * 25;
-    return sessionXP + focusXP;
-  }
-
-  function computeLevelInfo(xp){
-    var level = 1, threshold = 100, remaining = xp;
-    while (remaining >= threshold){
-      remaining -= threshold;
-      level++;
-      threshold = level * 100;
-    }
-    return { level: level, into: remaining, needed: threshold };
-  }
-
-  function tierFor(level){
-    for (var i=0; i<LEVEL_TIERS.length; i++){
-      if (level >= LEVEL_TIERS[i].min && level <= LEVEL_TIERS[i].max) return LEVEL_TIERS[i];
-    }
-    return LEVEL_TIERS[LEVEL_TIERS.length-1];
-  }
-
-  // ---------- avatar characters, one per rank tier ----------
-  function avatarSvg(tierIdx, color){
-    var sw = 3;
-    var head = '<circle cx="24" cy="10" r="6" fill="none" stroke="'+color+'" stroke-width="'+sw+'"/>';
-    var shirt = '<path d="M18 20 L19.5 31 L28.5 31 L30 20 Z" fill="'+color+'" fill-opacity="0.28" stroke="none"/>';
-    var leftArmPlain = '<line x1="24" y1="20" x2="16" y2="26"/>';
-    var rightArmRacket = '<line x1="24" y1="20" x2="33" y2="24"/><line x1="33" y1="24" x2="39" y2="19"/><ellipse cx="41" cy="16" rx="4" ry="5.5" transform="rotate(35 41 16)"/>';
-    var torsoLegsStanding = '<line x1="24" y1="16" x2="24" y2="32"/><line x1="24" y1="32" x2="18" y2="44"/><line x1="24" y1="32" x2="30" y2="44"/>';
-    var torsoLegsWide = '<line x1="24" y1="16" x2="24" y2="32"/><line x1="24" y1="32" x2="14" y2="44"/><line x1="24" y1="32" x2="34" y2="44"/>';
-
-    var body, extras = '';
-
-    if (tierIdx === 0){
-      // Rookie: plain stance, racket at side
-      body = head + torsoLegsStanding + leftArmPlain + rightArmRacket;
-
-    } else if (tierIdx === 1){
-      // Grinder: headband, same stance
-      body = head +
-        '<line x1="19" y1="8" x2="29" y2="8" stroke-width="2.5"/>' +
-        torsoLegsStanding + leftArmPlain + rightArmRacket;
-
-    } else if (tierIdx === 2){
-      // Contender: shirt + one arm raised in celebration, racket still in hand
-      body = shirt + head +
-        torsoLegsStanding +
-        '<line x1="24" y1="20" x2="14" y2="13"/><circle cx="14" cy="13" r="2" fill="'+color+'" stroke="none"/>' +
-        rightArmRacket;
-
-    } else if (tierIdx === 3){
-      // Competitor: shirt + wide athletic stance + racket extended mid-swing
-      body = shirt + head + torsoLegsWide + leftArmPlain +
-        '<line x1="24" y1="20" x2="35" y2="26"/><line x1="35" y1="26" x2="42" y2="22"/>' +
-        '<ellipse cx="44" cy="19" rx="4" ry="5.5" transform="rotate(35 44 19)"/>';
-
-    } else if (tierIdx === 4){
-      // Veteran: shirt + medal + cape + racket
-      body = '<path d="M19 20 Q11 30 15 42 L19.5 38 Q17 29 20.5 21 Z" fill="'+color+'" fill-opacity="0.22" stroke="none"/>' +
-        shirt + head +
-        '<circle cx="24" cy="25" r="2.2" fill="'+color+'" stroke="none"/>' +
-        torsoLegsStanding + leftArmPlain + rightArmRacket;
-
-    } else {
-      // Elite: crown, both arms raised in victory, star-burst aura, no racket needed
-      extras = '<g stroke="'+color+'" stroke-width="1.6" stroke-linecap="round" opacity="0.7">' +
-        '<line x1="4" y1="24" x2="8" y2="24"/>' +
-        '<line x1="40" y1="24" x2="44" y2="24"/>' +
-        '<line x1="9" y1="38" x2="12" y2="35"/>' +
-        '<line x1="39" y1="38" x2="36" y2="35"/>' +
-        '</g>';
-      body = shirt +
-        '<circle cx="18" cy="2.5" r="1.1" fill="'+color+'" stroke="none"/>' +
-        '<circle cx="24" cy="1" r="1.5" fill="'+color+'" stroke="none"/>' +
-        '<circle cx="30" cy="2.5" r="1.1" fill="'+color+'" stroke="none"/>' +
-        head +
-        torsoLegsStanding +
-        '<line x1="24" y1="20" x2="15" y2="12"/><circle cx="15" cy="12" r="2" fill="'+color+'" stroke="none"/>' +
-        '<line x1="24" y1="20" x2="33" y2="12"/><circle cx="33" cy="12" r="2" fill="'+color+'" stroke="none"/>';
-    }
-
-    var common = '<g fill="none" stroke="'+color+'" stroke-width="'+sw+'" stroke-linecap="round" stroke-linejoin="round">';
-    return '<svg viewBox="0 0 48 48">' + extras + common + body + '</g></svg>';
-  }
-
-  function computeStreak(){
-    var uniqueDays = {};
-    sessions.forEach(function(s){ uniqueDays[s.date] = true; });
-    var streak = 0;
-    var cursor = new Date();
-    // if nothing logged today yet, streak can still count from yesterday backward
-    if (!uniqueDays[fmtDate(cursor)]) cursor.setDate(cursor.getDate() - 1);
-    while (uniqueDays[fmtDate(cursor)]){
-      streak++;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-    return streak;
-  }
-
-  var AVATAR_FILES = ['rookie','grinder','contender','competitor','veteran','elite'];
-
-  function renderPlayerCard(){
-    var wrap = document.getElementById('playerCard');
-    var xp = computeXP();
-    var info = computeLevelInfo(xp);
-    var tier = tierFor(info.level);
-    var tierIdx = LEVEL_TIERS.indexOf(tier);
-    var streak = computeStreak();
-    var pct = Math.round((info.into / info.needed) * 100);
-    var r = 31, circ = 2 * Math.PI * r;
-    var offset = circ * (1 - info.into / info.needed);
-    var avatarFile = AVATAR_FILES[tierIdx];
-
-    wrap.innerHTML =
-      '<div class="player-card">' +
-        '<div class="avatar-ring-wrap" id="avatarRingWrap">' +
-          '<svg viewBox="0 0 74 74">' +
-            '<circle class="avatar-ring-bg" cx="37" cy="37" r="'+r+'"/>' +
-            '<circle class="avatar-ring-fg" cx="37" cy="37" r="'+r+'" stroke="'+tier.color+'" stroke-dasharray="'+circ.toFixed(1)+'" stroke-dashoffset="'+offset.toFixed(1)+'"/>' +
-          '</svg>' +
-          '<div class="avatar-figure" id="avatarFigure">' +
-            '<img src="avatars/' + avatarFile + '.png" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">' +
-            '<div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;position:absolute;inset:0;">' + avatarSvg(tierIdx, tier.color) + '</div>' +
-          '</div>' +
-          '<div class="avatar-level-chip" style="background:'+tier.color+'">' + info.level + '</div>' +
-        '</div>' +
-        '<div class="player-info">' +
-          '<div class="player-rank">' + tier.name + '</div>' +
-          '<div class="player-xp-text">' + info.into + ' / ' + info.needed + ' XP to Level ' + (info.level+1) + '</div>' +
-          '<div class="xp-bar-track"><div class="xp-bar-fill" style="width:' + pct + '%; background:' + tier.color + '"></div></div>' +
-          (streak > 0 ? '<div class="streak-badge">' + UI_ICON.flame + streak + ' day streak</div>' : '') +
-        '</div>' +
-      '</div>';
-
-    document.getElementById('avatarRingWrap').addEventListener('click', function(){
-      openAvatarDetailSheet(tierIdx, tier);
-    });
-  }
-
-  function openAvatarDetailSheet(tierIdx, tier){
-    editingId = null;
-    var avatarFile = AVATAR_FILES[tierIdx];
-    sheetEl.innerHTML =
-      '<div class="sheet-handle"></div>' +
-      '<div class="sheet-head"><div class="sheet-title">' + tier.name + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
-      '<div style="display:flex;justify-content:center;">' +
-        '<img src="avatars/' + avatarFile + '_full.png" alt="" style="max-width:100%;border-radius:16px;" onerror="this.style.display=\'none\';">' +
-      '</div>';
-    backdrop.classList.add('open');
-    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
-  }
-
   // ---------- plan tab ----------
   // Health & fitness is an execution surface, not a read-only echo of Plan:
   // training cards open the log sheet, meal rows tick into Nutrition, the
@@ -30119,7 +29997,366 @@
     return el;
   }
 
+  // ---- Me → Goals, at the top: this week (2026-11-11) ----
+  // The goal line, the week's outcomes and the reviews, each a tap from where it's done.
+  function personalReviewWeek(){
+    var t = todayStr();
+    if (new Date().getDay() === 1){
+      var last = reviewWeekFor('personal', fmtDate(addDays(t, -1)));
+      if (!weekReview(last, 'personal')) return last;
+    }
+    return reviewWeekFor('personal', t);
+  }
+  function renderGoalsWeek(){
+    var box = document.getElementById('goalsWeek');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!activeGoals().length) return;
+    var t = todayStr(), ws = weekOf(t);
+    var card = document.createElement('section');
+    card.className = 'gw-card';
+    card.setAttribute('aria-label', 'This week');
+    card.innerHTML = '<div class="gw-kicker">This week</div>';
+    var gl = goalLineEl(ws, null, 'gw-line');
+    if (gl) card.appendChild(gl);
+    var outs = weekOutcomes(ws), done = outs.filter(function(o){ return o.result === 'done'; }).length;
+    var ob = document.createElement('button');
+    ob.type = 'button'; ob.className = 'gw-row'; ob.dataset.role = 'gw-outcomes';
+    ob.innerHTML = '<span class="gw-label">Outcomes</span><span class="gw-val"></span><span class="chev">' + UI_ICON.chevronRight + '</span>';
+    ob.querySelector('.gw-val').textContent = outs.length ? done + ' of ' + outs.length + ' done' : 'None set yet';
+    ob.addEventListener('click', function(){
+      goView('plan'); goPlanWeek(toLocalDate(ws));
+      var el = document.getElementById('planOutcomes');
+      if (el) setTimeout(function(){ el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+    });
+    card.appendChild(ob);
+    var due = reviewsDue();
+    var rv = document.createElement('div'); rv.className = 'gw-reviews';
+    [{ a: 'business', ws: ws }, { a: 'personal', ws: personalReviewWeek() }].forEach(function(x){
+      var ok = !!weekReview(x.ws, x.a);
+      var isDue = due.some(function(d){ return d.area === x.a && d.ws === x.ws; });
+      var b = document.createElement('button'); b.type = 'button';
+      b.className = 'cd-chip gw-review' + (ok ? ' sel' : '') + (isDue ? ' due' : '');
+      b.dataset.review = x.a;
+      b.innerHTML = (ok ? CHECK_SVG : '') + '<span></span>' + (isDue ? UI_ICON.arrowRight : '');
+      b.querySelector('span').textContent = REVIEWS[x.a].title;
+      b.setAttribute('aria-label', REVIEWS[x.a].title + (ok ? ', done' : isDue ? ', due now' : ''));
+      b.addEventListener('click', function(){ openWeekReviewSheet(x.a, x.ws); });
+      rv.appendChild(b);
+    });
+    var qd = quarterDue();
+    if (qd){
+      var qb = document.createElement('button'); qb.type = 'button';
+      qb.className = 'cd-chip gw-review due'; qb.dataset.review = 'quarter';
+      qb.innerHTML = '<span></span>' + UI_ICON.arrowRight;
+      qb.querySelector('span').textContent = 'Quarter review';
+      qb.addEventListener('click', function(){ openQuarterReviewSheet(qd); });
+      rv.appendChild(qb);
+    }
+    card.appendChild(rv);
+    box.appendChild(card);
+  }
+
+  // ---- a goal's own page (2026-11-11) ----
+  // Why it matters, its 90-day goals (or the year goal it's part of), its measure over
+  // time, the effort each week, and its history: the weeks' outcomes, what the reviews
+  // said, and the quarter reviews. Counts and the gap only — never a score.
+  var GP_SHORT = { day: 'numeric', month: 'short' };
+  function shortDate(ds){ return toLocalDate(ds).toLocaleDateString(undefined, GP_SHORT); }
+  function svgEsc(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function goalChartSvg(p){
+    var m = goalMeasure(p), vals = goalValues(p);
+    if (!m || !vals.length) return '';
+    var W = 320, H = 140, L = 6, R = 6, T = 20, B = 22;
+    var target = Number(m.target), unit = m.unit || '';
+    var ys = vals.map(function(v){ return Number(v.value); }).concat(target);
+    var lo = Math.min.apply(null, ys), hi = Math.max.apply(null, ys);
+    if (hi === lo){ hi += 1; lo -= 1; }
+    var pad = (hi - lo) * 0.1; hi += pad; lo -= pad;
+    var t0 = toLocalDate(vals[0].date).getTime(), t1 = toLocalDate(vals[vals.length - 1].date).getTime();
+    function x(ds){ return t1 === t0 ? W / 2 : L + (toLocalDate(ds).getTime() - t0) / (t1 - t0) * (W - L - R); }
+    function y(v){ return T + (hi - Number(v)) / (hi - lo) * (H - T - B); }
+    var ty = y(target);
+    var tLabel = 'Target ' + fmtMeasure(target, unit);
+    var lblY = ty - 6 < 10 ? ty + 13 : ty - 6;
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + svgEsc(p.title + ': ' + vals.length + ' values, the latest ' + fmtMeasure(vals[vals.length - 1].value, unit) + ', target ' + fmtMeasure(target, unit)) + '">';
+    s += '<line class="gp-axis" x1="0" x2="' + W + '" y1="' + (H - B) + '" y2="' + (H - B) + '"/>';
+    s += '<line class="gp-target" x1="0" x2="' + W + '" y1="' + ty.toFixed(1) + '" y2="' + ty.toFixed(1) + '"/>';
+    s += '<text class="gp-lbl gp-lbl-t" x="' + W + '" y="' + lblY.toFixed(1) + '" text-anchor="end">' + svgEsc(tLabel) + '</text>';
+    if (vals.length > 1){
+      s += '<polyline class="gp-line" points="' + vals.map(function(v){ return x(v.date).toFixed(1) + ',' + y(v.value).toFixed(1); }).join(' ') + '"/>';
+    }
+    vals.forEach(function(v, i){
+      s += '<circle class="gp-dot" cx="' + x(v.date).toFixed(1) + '" cy="' + y(v.value).toFixed(1) + '" r="4"><title>' + svgEsc(shortDate(v.date) + ': ' + fmtMeasure(v.value, unit)) + '</title></circle>';
+    });
+    var last = vals[vals.length - 1], lx = x(last.date), ly = y(last.value);
+    var vy = Math.abs(ly - ty) < 14 ? (ly > ty ? ly + 16 : ly - 9) : ly - 9;
+    if (vy < 10) vy = ly + 16;
+    s += '<text class="gp-lbl gp-lbl-v" x="' + Math.min(Math.max(lx, 20), W - 20).toFixed(1) + '" y="' + vy.toFixed(1) + '" text-anchor="middle">' + svgEsc(fmtMeasure(last.value, unit)) + '</text>';
+    s += '<text class="gp-lbl" x="0" y="' + (H - 6) + '">' + svgEsc(shortDate(vals[0].date)) + '</text>';
+    if (vals.length > 1) s += '<text class="gp-lbl" x="' + W + '" y="' + (H - 6) + '" text-anchor="end">' + svgEsc(shortDate(last.date)) + '</text>';
+    return s + '</svg>';
+  }
+  // Actions for it in each of the last n weeks: done, and (this week) still planned
+  function goalEffortWeeks(p, n){
+    var ws0 = weekOf(todayStr()), out = [];
+    for (var i = n - 1; i >= 0; i--){
+      var ws = fmtDate(addDays(ws0, -7 * i)), end = fmtDate(addDays(ws, 6));
+      var acts = commitments.filter(function(c){ return c.date >= ws && c.date <= end && c.category !== 'roadblock' && actionServesGoal(c, p); });
+      var done = acts.filter(function(c){ return c.status === 'completed'; }).length;
+      out.push({ ws: ws, done: done, open: i === 0 ? acts.filter(function(c){ return c.status === 'planned'; }).length : 0 });
+    }
+    return out;
+  }
+  function goalEffortSvg(wks){
+    var W = 320, H = 120, T = 16, B = 20, slot = W / wks.length, bw = 16, r = 4;
+    var max = Math.max.apply(null, wks.map(function(w){ return w.done + w.open; }).concat(1));
+    var base = H - B, span = base - T;
+    function bar(x, top, h, cls){
+      if (h <= 0) return '';
+      var rr = Math.min(r, h);
+      return '<path class="' + cls + '" d="M' + x + ',' + (top + h) + ' V' + (top + rr) + ' Q' + x + ',' + top + ' ' + (x + rr) + ',' + top +
+        ' H' + (x + bw - rr) + ' Q' + (x + bw) + ',' + top + ' ' + (x + bw) + ',' + (top + rr) + ' V' + (top + h) + ' Z"/>';
+    }
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + svgEsc('Actions done for it, by week: ' + wks.map(function(w){ return shortDate(w.ws) + ' ' + w.done; }).join(', ')) + '">';
+    s += '<line class="gp-axis" x1="0" x2="' + W + '" y1="' + base + '" y2="' + base + '"/>';
+    wks.forEach(function(w, i){
+      var x = Math.round(i * slot + (slot - bw) / 2);
+      var hd = w.done / max * span, ho = w.open / max * span;
+      s += '<g><title>' + svgEsc('Week of ' + shortDate(w.ws) + ': ' + plural(w.done, 'Action') + ' done' + (w.open ? ', ' + w.open + ' still planned' : '')) + '</title>';
+      s += '<rect x="' + (i * slot) + '" y="0" width="' + slot + '" height="' + H + '" fill="transparent"/>';
+      if (!w.done && !w.open) s += '<line class="gp-zero" x1="' + (x + 3) + '" x2="' + (x + bw - 3) + '" y1="' + (base - 1) + '" y2="' + (base - 1) + '"/>';
+      s += bar(x, base - hd, hd, 'gp-bar');
+      if (ho > 0) s += bar(x + 0.6, base - hd - ho - (hd ? 2 : 0) + 0.6, Math.max(ho - 1.2, 1), 'gp-bar-open');
+      var top = base - hd - ho - (hd && ho ? 2 : 0);
+      if (w.done || w.open) s += '<text class="gp-lbl gp-lbl-v" x="' + (x + bw / 2) + '" y="' + (top - 5).toFixed(1) + '" text-anchor="middle">' + (w.done + (w.open ? '+' + w.open : '')) + '</text>';
+      if (i % 2 === wks.length % 2 || i === wks.length - 1) s += '<text class="gp-lbl" x="' + (x + bw / 2) + '" y="' + (H - 5) + '" text-anchor="middle">' + svgEsc(i === wks.length - 1 ? 'This wk' : shortDate(w.ws)) + '</text>';
+      s += '</g>';
+    });
+    return s + '</svg>';
+  }
+  // the weeks a goal shows up in: its outcomes (and, for a year goal, its 90-day goals'),
+  // that week's review in its area, and any review that names it
+  function goalHistory(p){
+    var ids = [p.id];
+    if (goalHorizon(p) === 'year') priorities.forEach(function(q){ if (q.parentId === p.id) ids.push(q.id); });
+    var area = goalArea(p), title = String(p.title || '').trim().toLowerCase();
+    var out = [];
+    Object.keys(weeks).sort().reverse().forEach(function(ws){
+      var outs = weekOutcomes(ws).filter(function(o){ return ids.indexOf(o.goalId) > -1; });
+      var revs = [];
+      ['business', 'personal'].forEach(function(a){
+        var r = weekReview(ws, a);
+        if (!r) return;
+        var text = REVIEW_FIELDS.map(function(f){ return r[f.k] || ''; }).join(' ').toLowerCase();
+        if ((outs.length && a === area) || (title.length >= 4 && text.indexOf(title) > -1)) revs.push({ area: a, r: r });
+      });
+      if (outs.length || revs.length) out.push({ ws: ws, outs: outs, revs: revs });
+    });
+    return out;
+  }
+  function goalQuarterResults(p){
+    return Object.keys(quarters).sort().reverse().map(function(q){
+      var hit = ((quarters[q] && quarters[q].goals) || []).filter(function(x){ return x && x.id === p.id; })[0];
+      return hit && quarters[q].at ? { q: q, result: hit.result } : null;
+    }).filter(Boolean);
+  }
+  var QR_RESULT_LABEL = { achieved: 'Achieved', carried: 'Carried over', dropped: 'Dropped' };
+  function reviewExcerpt(r){
+    var t = String(r.summary || r.wins || r.misses || r.next || '').trim().replace(/\s+/g, ' ');
+    return t.length > 180 ? t.slice(0, 179).trim() + '…' : t;
+  }
+
+  function openGoalPage(id){
+    editingId = null;
+    var showAll = false;
+    function back(){ openGoalPage(id); }
+    function draw(){
+      var p = goalById(id);
+      if (!p){ closeSheet(); return; }
+      var st = goalStatus(p), hz = goalHorizon(p), area = goalArea(p);
+      var kick = [area ? GOAL_AREA_LABEL[area] : null, hz === 'quarter' ? '90 days · ' + quarterLabel(goalPeriod(p)) : 'This year' + (goalPeriod(p) !== todayStr().slice(0, 4) ? ' · ' + goalPeriod(p) : '')].filter(Boolean).join(' · ');
+      var m = goalMeasure(p);
+      var effort = goalEffortWeeks(p, 8);
+      var hist = goalHistory(p), qres = goalQuarterResults(p);
+      sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+        sheetHead(UI_ICON.target, '<span id="gpTitle"></span>', kick, '') +
+        (st !== 'active' ? '<p class="wr-done gp-closed">' + (st === 'achieved' ? CHECK_SVG : CLOSE_SVG) + '<span></span></p>' : '') +
+        '<div id="gpWhy"></div>' +
+        '<div class="wr-sec" id="gpTree"></div>' +
+        '<div class="wr-sec" id="gpMeasure"></div>' +
+        '<div class="wr-sec"><div class="sec-head"><span class="sec-label">Effort by week</span><span class="sec-rule"></span></div><div id="gpEffort"></div></div>' +
+        '<div class="wr-sec"><div class="sec-head"><span class="sec-label">History</span><span class="sec-rule"></span></div><div id="gpHist"></div></div>' +
+        '<div class="sheet-actionbar"><button type="button" class="btn-secondary" id="gpEdit">Edit goal</button></div>';
+      document.getElementById('gpTitle').textContent = p.title;
+      if (st !== 'active') sheetEl.querySelector('.gp-closed span').textContent = (st === 'achieved' ? 'Achieved' : 'Dropped') + (p.closedAt ? ' ' + new Date(p.closedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+
+      // why it matters
+      var whyBox = document.getElementById('gpWhy'), why = p.why || p.note;
+      if (why){
+        var wp = document.createElement('p'); wp.className = 'gp-why'; wp.textContent = why; whyBox.appendChild(wp);
+      } else {
+        var wb = document.createElement('button'); wb.type = 'button'; wb.className = 'prio-link gp-why-add';
+        wb.innerHTML = BK_PLUS_SVG + 'Why it matters';
+        wb.addEventListener('click', function(){ openPrioritySheet(p, { after: back }); });
+        whyBox.appendChild(wb);
+      }
+
+      // its 90-day goals, or the year goal it's part of
+      var tree = document.getElementById('gpTree');
+      function kidRow(q, kicker){
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'gp-kid';
+        b.innerHTML = '<span class="gp-kid-body"><span class="goal-kicker"></span><span class="gp-kid-t"></span><span class="gp-kid-m"></span></span><span class="chev">' + UI_ICON.chevronRight + '</span>';
+        b.querySelector('.goal-kicker').textContent = kicker;
+        b.querySelector('.gp-kid-t').textContent = q.title;
+        var ml = measureLine(q);
+        if (ml) b.querySelector('.gp-kid-m').textContent = ml.text; else b.querySelector('.gp-kid-m').remove();
+        b.addEventListener('click', function(){ openGoalPage(q.id); });
+        return b;
+      }
+      if (hz === 'year'){
+        var kids = priorities.filter(function(q){ return goalHorizon(q) === 'quarter' && q.parentId === p.id && goalStatus(q) === 'active'; }).sort(byGoalOrder);
+        tree.innerHTML = '<div class="sec-head"><span class="sec-label">90-day goals</span><span class="sec-rule"></span>' +
+          (st === 'active' && area ? '<button type="button" class="sec-link" id="gpAddQ">' + BK_PLUS_SVG + '90-day goal</button>' : '') + '</div>';
+        kids.forEach(function(q){ tree.appendChild(kidRow(q, quarterLabel(goalPeriod(q)))); });
+        if (!kids.length){
+          var e = document.createElement('p'); e.className = 'wk-empty';
+          e.textContent = 'What does this quarter deliver towards it? A 90-day goal or two makes the year concrete.';
+          tree.appendChild(e);
+        }
+        var aq = document.getElementById('gpAddQ');
+        if (aq) aq.addEventListener('click', function(){ openPrioritySheet(null, { area: area, horizon: 'quarter', parentId: p.id, after: back }); });
+      } else {
+        var par = goalById(p.parentId);
+        if (par){
+          tree.innerHTML = '<div class="sec-head"><span class="sec-label">Part of</span><span class="sec-rule"></span></div>';
+          tree.appendChild(kidRow(par, 'This year' + (goalPeriod(par) !== todayStr().slice(0, 4) ? ' · ' + goalPeriod(par) : '')));
+        } else tree.remove();
+      }
+
+      // the measure over time
+      var mBox = document.getElementById('gpMeasure');
+      var sig = prioritySignals(p).filter(function(l){ return !/linked action/.test(l.text) || p.evidenceType === 'actions'; });
+      if (m){
+        mBox.innerHTML = '<div class="sec-head"><span class="sec-label">Measure</span><span class="sec-rule"></span></div>' +
+          '<p class="gp-now"></p><div class="gp-chart"></div>' +
+          (st === 'active' ? '<div class="gp-add"><div class="field"><label for="gpVal"></label><input type="number" inputmode="decimal" step="any" id="gpVal"></div><button type="button" class="btn-secondary" id="gpValAdd">Add</button></div>' : '') +
+          '<div class="goal-values gp-values"></div>';
+        var ml = measureLine(p);
+        mBox.querySelector('.gp-now').textContent = ml ? ml.text : '';
+        mBox.querySelector('.gp-chart').innerHTML = goalChartSvg(p);
+        var vals = goalValues(p);
+        if (!vals.length){ var nv = document.createElement('p'); nv.className = 'wk-empty'; nv.textContent = 'No values yet. Add today’s and the chart starts.'; mBox.querySelector('.gp-chart').appendChild(nv); }
+        var vb = mBox.querySelector('.gp-values');
+        vals.slice(-5).reverse().forEach(function(v){
+          var r = document.createElement('div'); r.className = 'goal-value';
+          r.innerHTML = '<span></span><span></span>';
+          r.firstChild.textContent = fmtMeasure(v.value, m.unit);
+          r.lastChild.textContent = (v.date >= fmtDate(addDays(todayStr(), -6)) ? relativeDayLabel(v.date) : shortDate(v.date)) + (v.note ? ' · ' + v.note : '');
+          vb.appendChild(r);
+        });
+        var vin = document.getElementById('gpVal');
+        if (vin){
+          mBox.querySelector('label[for="gpVal"]').textContent = 'Value today' + (m.unit ? ' (' + m.unit + ')' : '');
+          var addVal = function(){
+            var raw = vin.value;
+            if (raw === '' || !isFinite(Number(raw))){ vin.focus(); return; }
+            var g = goalById(id), t = todayStr();
+            var next = goalValues(g).filter(function(x){ return x.date !== t; }).concat({ date: t, value: Number(raw), note: null })
+              .sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }).slice(-GOAL_VALUES_MAX);
+            savePriority(Object.assign({}, g, { values: next }));
+            showPinToast('Value saved', false, CHECK_SVG);
+          };
+          document.getElementById('gpValAdd').addEventListener('click', addVal);
+          vin.addEventListener('keydown', function(ev){ if (ev.key === 'Enter') addVal(); });
+        }
+      } else if (p.evidenceType && st === 'active'){
+        mBox.innerHTML = '<div class="sec-head"><span class="sec-label">Evidence</span><span class="sec-rule"></span></div>';
+        appendSignals(mBox, sig);
+        if (EVIDENCE_WITH_DETAIL.indexOf(p.evidenceType) !== -1){
+          var lk = document.createElement('button'); lk.type = 'button'; lk.className = 'prio-link';
+          lk.innerHTML = 'View progress' + UI_ICON.arrowRight;
+          lk.addEventListener('click', function(){ openProgressFor(p.evidenceType); });
+          mBox.appendChild(lk);
+        }
+      } else if (st === 'active'){
+        mBox.innerHTML = '<div class="sec-head"><span class="sec-label">Measure</span><span class="sec-rule"></span></div>' +
+          '<p class="wk-empty">Not measured. That’s fine; the effort below still shows.</p>' +
+          '<button type="button" class="prio-link" id="gpAddM">' + BK_PLUS_SVG + 'Add a number to track</button>';
+        document.getElementById('gpAddM').addEventListener('click', function(){ openPrioritySheet(p, { after: back }); });
+      } else mBox.remove();
+
+      // effort by week
+      var eBox = document.getElementById('gpEffort');
+      var total = effort.reduce(function(n, w){ return n + w.done; }, 0);
+      var none = effort.filter(function(w){ return !w.done; }).length;
+      var cap = document.createElement('p'); cap.className = 'gp-cap';
+      cap.textContent = total ? plural(total, 'Action') + ' done for it in 8 weeks' + (none ? ' · none in ' + none + ' of them' : ' · every week') : 'No Actions done for it in the last 8 weeks';
+      eBox.appendChild(cap);
+      var ch = document.createElement('div'); ch.className = 'gp-chart gp-effort'; ch.innerHTML = goalEffortSvg(effort);
+      eBox.appendChild(ch);
+      if (effort[effort.length - 1].open){
+        var lg = document.createElement('p'); lg.className = 'gp-legend';
+        lg.innerHTML = '<span class="gp-key"></span><span class="gp-key open"></span>';
+        lg.firstChild.textContent = 'Done'; lg.lastChild.textContent = 'Still planned this week';
+        eBox.appendChild(lg);
+      }
+
+      // its history
+      var hBox = document.getElementById('gpHist');
+      qres.forEach(function(x){
+        var r = document.createElement('div'); r.className = 'gp-hist-o gp-hist-q';
+        r.innerHTML = '<span></span><span class="gp-hist-r"></span>';
+        r.firstChild.textContent = 'Quarter review · ' + quarterLabel(x.q);
+        r.lastChild.textContent = QR_RESULT_LABEL[x.result] || x.result;
+        hBox.appendChild(r);
+      });
+      if (!hist.length && !qres.length){
+        var he = document.createElement('p'); he.className = 'wk-empty';
+        he.textContent = 'Nothing yet. The weeks’ outcomes for it and what the reviews say will build up here.';
+        hBox.appendChild(he);
+      }
+      var thisWs = weekOf(todayStr());
+      (showAll ? hist : hist.slice(0, 6)).forEach(function(h){
+        var wk = document.createElement('div'); wk.className = 'gp-hist-wk';
+        wk.textContent = h.ws === thisWs ? 'This week' : 'Week of ' + toLocalDate(h.ws).toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
+        hBox.appendChild(wk);
+        h.outs.forEach(function(o){
+          var r = document.createElement('div'); r.className = 'gp-hist-o';
+          r.innerHTML = '<span></span><span class="gp-hist-r"></span>';
+          r.firstChild.textContent = o.text;
+          var res = OUTCOME_RESULTS.filter(function(x){ return x.value === (o.result || ''); })[0];
+          r.lastChild.textContent = o.result ? res.label : (h.ws === thisWs ? 'Open' : 'No result');
+          if (o.result) r.lastChild.classList.add('set');
+          hBox.appendChild(r);
+        });
+        h.revs.forEach(function(x){
+          var b = document.createElement('button'); b.type = 'button'; b.className = 'gp-hist-rv';
+          b.innerHTML = '<span class="gp-hist-rl"></span><span class="gp-hist-rt"></span>';
+          b.firstChild.textContent = REVIEWS[x.area].title;
+          b.lastChild.textContent = reviewExcerpt(x.r) || 'Approved, no notes';
+          b.addEventListener('click', function(){ openWeekReviewSheet(x.area, h.ws); });
+          hBox.appendChild(b);
+        });
+      });
+      if (!showAll && hist.length > 6){
+        var more = document.createElement('button'); more.type = 'button'; more.className = 'prio-link';
+        more.textContent = 'Show all ' + hist.length + ' weeks';
+        more.addEventListener('click', function(){ showAll = true; draw(); });
+        hBox.appendChild(more);
+      }
+
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      document.getElementById('gpEdit').addEventListener('click', function(){ openPrioritySheet(p, { after: back }); });
+    }
+    draw.onGoals = true;
+    activeSheetRefresh = draw;
+    draw();
+    backdrop.classList.add('open');
+  }
+
   function renderPriorities(){
+    renderGoalsWeek();
     var list = document.getElementById('prioritiesList');
     if (!list) return;
     list.innerHTML = '';
@@ -30222,7 +30459,7 @@
     chev.className = 'chev';
     chev.innerHTML = UI_ICON.chevronRight;
     row.appendChild(chev);
-    row.addEventListener('click', function(){ openPrioritySheet(p); });
+    row.addEventListener('click', function(){ openGoalPage(p.id); });
     return row;
   }
 
@@ -30248,7 +30485,7 @@
     return card;
   }
 
-  // opts (new goal): area, horizon ('year' | 'quarter'), parentId
+  // opts (new goal): area, horizon ('year' | 'quarter'), parentId, period; opts.after: where to go once saved
   function openPrioritySheet(existing, opts){
     opts = opts || {};
     editingId = null;
@@ -30257,7 +30494,7 @@
     var area = goalArea(g) || opts.area || 'business';
     var horizon = existing ? goalHorizon(g) : (opts.horizon || 'year');
     var cq = curQuarter(), nq = nextQuarterOf(cq);
-    var period = existing && goalHorizon(g) === 'quarter' && g.period ? g.period : cq;
+    var period = existing && goalHorizon(g) === 'quarter' && g.period ? g.period : (opts.period || cq);
     var m = g.measure && g.measure.kind === 'number' ? g.measure : null;
     var mKind = m ? 'number' : (g.evidenceType ? 'records' : 'none');
     var st = goalStatus(g);
@@ -30402,12 +30639,13 @@
         createdAt: existing ? existing.createdAt : new Date().toISOString()
       });
       savePriority(out);
-      closeSheet();
+      finished();
     });
+    function finished(){ if (opts.after) opts.after(); else closeSheet(); }
     function setStatus(next){
       var now = new Date().toISOString();
       savePriority(Object.assign({}, existing, { status: next, closedAt: next === 'active' ? null : now }));
-      closeSheet();
+      finished();
     }
     if (isEditing){
       var a = document.getElementById('gAchieved'), d = document.getElementById('gDrop'), r = document.getElementById('gReopen');
@@ -30665,6 +30903,17 @@
       b.addEventListener('click', function(){ openWeekReviewSheet(r.area, r.ws); });
       box.appendChild(b);
     });
+    var q = quarterDue();
+    if (q){
+      var qb = document.createElement('button');
+      qb.type = 'button'; qb.className = 'wr-card'; qb.dataset.quarter = q;
+      qb.innerHTML = '<span class="wr-ic" aria-hidden="true">' + UI_ICON.target + '</span>' +
+        '<span class="wr-body"><span class="wr-title"></span><span class="wr-sub"></span></span><span class="chev">' + UI_ICON.chevronRight + '</span>';
+      qb.querySelector('.wr-title').textContent = 'Quarter review · ' + quarterLabel(q).split(' · ')[0];
+      qb.querySelector('.wr-sub').textContent = (quarters[q] && quarters[q].draft) ? 'Started: finish closing the quarter' : 'Close out the quarter’s goals, then set the next one’s.';
+      qb.addEventListener('click', function(){ openQuarterReviewSheet(q); });
+      box.appendChild(qb);
+    }
   }
 
   // what the records say about the week, for one area
@@ -30867,6 +31116,255 @@
   }
   function reviewAreaFromOpen(what){ return what === 'review-business' ? 'business' : what === 'review-personal' ? 'personal' : null; }
 
+  // ============ The quarter review (2026-11-11; docs/GOALS_AND_REVIEW.md §5) ============
+  // In a quarter's last week: each 90-day goal achieved, carried over or dropped (and in
+  // Q4, each of the year's goals), then next quarter's set. One record per quarter,
+  // ledger_quarters/{2026-Q4}: { at, goals: [{ id, title, horizon, area, result }], notes,
+  // draft }. Carrying a goal over moves it to the next period, so its measure and history
+  // stay one record (carriedFrom notes where it came from). Owner-only, like the weeks.
+  var QUARTERS_LOCAL = 'ledger_quarters_fallback';
+  var quarters = {};
+  var QR_RESULTS = [{ v: 'achieved', l: 'Achieved' }, { v: 'carried', l: 'Carry over' }, { v: 'dropped', l: 'Drop' }];
+  function quartersLocalSave(){ try { localStorage.setItem(QUARTERS_LOCAL, JSON.stringify(quarters)); } catch(e){} }
+  function quartersLocalLoad(){ try { quarters = JSON.parse(localStorage.getItem(QUARTERS_LOCAL) || '{}') || {}; } catch(e){ quarters = {}; } }
+  function startQuartersListener(){
+    dbRef.collection('ledger_quarters').onSnapshot(function(snap){
+      var next = {};
+      snap.docs.forEach(function(d){ next[d.id] = d.data() || {}; });
+      quarters = next;
+      quartersLocalSave();
+      quartersChanged();
+    }, function(err){ console.error('quarters snapshot error', err); });
+  }
+  function quartersChanged(){
+    if (currentView === 'focus') renderFocus();
+    if (currentView === 'log') renderWeekReviewCard();
+    if (activeSheetRefresh) activeSheetRefresh();
+  }
+  function saveQuarterPatch(q, fn){
+    var now = new Date().toISOString();
+    var rec = JSON.parse(JSON.stringify(quarters[q] || {}));
+    fn(rec);
+    rec.updatedAt = now;
+    if (!rec.createdAt) rec.createdAt = now;
+    quarters[q] = rec;
+    quartersLocalSave();
+    quartersChanged();
+    if (dbReady && dbRef) return dbRef.collection('ledger_quarters').doc(q).set(rec).catch(function(e){ console.error('quarter save failed', e); });
+    return Promise.resolve();
+  }
+  function quarterStart(q){ return q.slice(0, 4) + '-' + ('0' + ((Number(q.slice(6)) - 1) * 3 + 1)).slice(-2) + '-01'; }
+  function quarterEnd(q){ return fmtDate(new Date(Number(q.slice(0, 4)), Number(q.slice(6)) * 3, 0)); }
+  function prevQuarterOf(q){ var y = Number(q.slice(0, 4)), n = Number(q.slice(6)); return n === 1 ? (y - 1) + '-Q4' : y + '-Q' + (n - 1); }
+  function quarterReview(q){ var r = quarters[q]; return r && r.at ? r : null; }
+  function quarterOpenGoals(q){
+    return activeGoals().filter(function(p){ return goalHorizon(p) === 'quarter' && goalPeriod(p) === q; });
+  }
+  // due: from the quarter's last seven days, and for two weeks into the next while its goals are open
+  function quarterDue(){
+    var t = todayStr(), q = quarterOf(t);
+    if (fmtDate(addDays(quarterEnd(q), -6)) <= t && !quarterReview(q) && activeGoals().length) return q;
+    var pq = prevQuarterOf(q);
+    if (t <= fmtDate(addDays(quarterStart(q), 13)) && !quarterReview(pq) && quarterOpenGoals(pq).length) return pq;
+    return null;
+  }
+
+  function openQuarterReviewSheet(q){
+    editingId = null;
+    var nq = nextQuarterOf(q), year = q.slice(0, 4), isQ4 = q.slice(6) === '4', ny = String(Number(year) + 1);
+    var rec0 = quarters[q] || {}, d0 = rec0.draft || {};
+    var st = { results: Object.assign({}, d0.results || {}), notes: rec0.notes || d0.notes || '', adds: {} };
+    // the goals it decides: the quarter's open 90-day goals, and in Q4 the year's
+    function underReview(){
+      var list = quarterOpenGoals(q);
+      if (isQ4) list = list.concat(activeGoals().filter(function(p){ return goalHorizon(p) === 'year' && goalPeriod(p) === year; }));
+      return list;
+    }
+    function persistDraft(){
+      saveQuarterPatch(q, function(rec){ rec.draft = { results: st.results, notes: st.notes, savedAt: new Date().toISOString() }; });
+    }
+    function draw(){
+      var rec = quarters[q] || {}, done = quarterReview(q);
+      var goals = underReview();
+      var qs = quarterStart(q), qe = quarterEnd(q), t = todayStr();
+      sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+        sheetHead(UI_ICON.target, 'Quarter review', quarterLabel(q) + (q.slice(0, 4) === t.slice(0, 4) ? ' ' + year : '') + '. Close out the quarter’s goals, then set the next one’s.', '') +
+        (done ? '<p class="wr-done">' + CHECK_SVG + '<span></span></p>' : '') +
+        '<div class="wr-sec"><div class="sec-head"><span class="sec-label">The quarter</span><span class="sec-rule"></span></div><div id="qrSum"></div></div>' +
+        '<div class="wr-sec"><div class="sec-head"><span class="sec-label">' + (done ? 'Decided' : 'Each goal') + '</span><span class="sec-rule"></span></div><div id="qrGoals"></div></div>' +
+        '<div class="wr-sec"><div class="sec-head"><span class="sec-label">Next quarter · ' + quarterLabel(nq).split(' · ')[0] + '</span><span class="sec-rule"></span></div><div id="qrNext"></div></div>' +
+        '<div class="wr-sec"><div class="sec-head"><span class="sec-label">What the quarter taught you</span><span class="sec-rule"></span></div>' +
+          '<div class="field"><textarea id="qrNotes" aria-label="What the quarter taught you" rows="3" maxlength="2000" placeholder="Optional: what worked, what to change"></textarea></div></div>' +
+        '<p class="field-hint" id="qrLeft" hidden></p>' +
+        '<div class="sheet-actionbar">' +
+          '<button type="button" class="btn-primary" id="qrClose">' + (done ? 'Save notes' : 'Close the quarter') + '</button>' +
+          (done ? '' : '<button type="button" class="btn-secondary" id="qrLater">Finish later</button>') +
+        '</div>';
+      if (done) sheetEl.querySelector('.wr-done span').textContent = 'Closed ' + new Date(done.at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) + '.';
+
+      // the quarter in counts
+      var sum = document.getElementById('qrSum');
+      function line(txt, quiet){ var p = document.createElement('p'); p.className = 'wr-line' + (quiet ? ' quiet' : ''); p.textContent = txt; sum.appendChild(p); }
+      var wks = [], w = weekOf(qs);
+      while (w <= qe && w <= t){ wks.push(w); w = fmtDate(addDays(w, 7)); }
+      var outs = [];
+      wks.forEach(function(x){ outs = outs.concat(weekOutcomes(x)); });
+      var od = outs.filter(function(o){ return o.result === 'done'; }).length;
+      line(outs.length ? 'Outcomes: ' + od + ' of ' + outs.length + ' done' : 'No weekly outcomes were set this quarter', !outs.length);
+      var rb = wks.filter(function(x){ return weekReview(x, 'business'); }).length, rp = wks.filter(function(x){ return weekReview(x, 'personal'); }).length;
+      line('Friday reviews ' + rb + ' of ' + wks.length + ' · Sunday reviews ' + rp + ' of ' + wks.length);
+      var acts = commitments.filter(function(c){ return c.date >= qs && c.date <= qe && c.status === 'completed' && c.category !== 'roadblock'; });
+      var moving = acts.filter(function(c){ return actionGoalIds(c).length > 0; }).length;
+      line(acts.length ? moving + ' of ' + plural(acts.length, 'Action') + ' done moved a goal' : 'No Actions done this quarter', !acts.length);
+
+      // each goal: achieved, carry over or drop
+      var gBox = document.getElementById('qrGoals');
+      if (done){
+        (rec.goals || []).forEach(function(x){
+          var r = document.createElement('div'); r.className = 'gp-hist-o';
+          r.innerHTML = '<span></span><span class="gp-hist-r set"></span>';
+          r.firstChild.textContent = x.title;
+          r.lastChild.textContent = QR_RESULT_LABEL[x.result] || x.result;
+          gBox.appendChild(r);
+        });
+        if (!(rec.goals || []).length){ var n0 = document.createElement('p'); n0.className = 'wk-empty'; n0.textContent = 'No goals were decided.'; gBox.appendChild(n0); }
+      } else {
+        if (!goals.length){ var n1 = document.createElement('p'); n1.className = 'wk-empty'; n1.textContent = 'No 90-day goals for ' + quarterLabel(q).split(' · ')[0] + '. Set the next quarter’s below.'; gBox.appendChild(n1); }
+        goals.forEach(function(p){
+          var isYear = goalHorizon(p) === 'year';
+          var row = document.createElement('div'); row.className = 'wr-out qr-goal'; row.dataset.goal = p.id;
+          row.innerHTML = '<div class="goal-kicker"></div><div class="wr-out-t"></div><div class="wr-out-m"></div><div class="wr-chips"></div>';
+          row.querySelector('.goal-kicker').textContent = [goalArea(p) ? GOAL_AREA_LABEL[goalArea(p)] : null, isYear ? 'This year’s goal' : null].filter(Boolean).join(' · ');
+          row.querySelector('.wr-out-t').textContent = p.title;
+          var bits = [];
+          var ml = measureLine(p); if (ml) bits.push(ml.text);
+          var po = [];
+          Object.keys(weeks).forEach(function(x){ if (x >= fmtDate(addDays(qs, -6)) && x <= qe) po = po.concat(weekOutcomes(x).filter(function(o){ return o.goalId === p.id; })); });
+          if (po.length) bits.push(plural(po.length, 'outcome') + ', ' + po.filter(function(o){ return o.result === 'done'; }).length + ' done');
+          var pa = commitments.filter(function(c){ return c.date >= qs && c.date <= qe && c.status === 'completed' && actionServesGoal(c, p); }).length;
+          bits.push(pa ? plural(pa, 'Action') + ' done for it' : 'No Actions done for it');
+          row.querySelector('.wr-out-m').textContent = bits.join(' · ');
+          QR_RESULTS.forEach(function(r){
+            var c = document.createElement('button'); c.type = 'button';
+            var on = st.results[p.id] === r.v;
+            c.className = 'cd-chip' + (on ? ' sel' : '');
+            c.setAttribute('aria-pressed', on ? 'true' : 'false');
+            c.textContent = r.v === 'carried' ? (isYear ? 'Carry into ' + ny : 'Carry over') : r.l;
+            c.addEventListener('click', function(){
+              if (st.results[p.id] === r.v) delete st.results[p.id]; else st.results[p.id] = r.v;
+              persistDraft();
+            });
+            row.querySelector('.wr-chips').appendChild(c);
+          });
+          gBox.appendChild(row);
+        });
+      }
+
+      // next quarter's goals, under the year goals they serve
+      var nBox = document.getElementById('qrNext');
+      var nYear = nq.slice(0, 4), nLabel = quarterLabel(nq).split(' · ')[0];
+      GOAL_AREAS.forEach(function(a){
+        var years = activeGoals().filter(function(p){
+          if (goalHorizon(p) !== 'year' || goalArea(p) !== a.key) return false;
+          var per = goalPeriod(p);
+          if (per === nYear) return true;
+          return per === year && (!isQ4 || st.results[p.id] === 'carried' || (!st.results[p.id] && !done));
+        }).sort(byGoalOrder);
+        var head = document.createElement('div'); head.className = 'wk-area'; head.textContent = a.label;
+        nBox.appendChild(head);
+        function addRow(parent){
+          var key = a.key + ':' + (parent ? parent.id : '');
+          var wrap = document.createElement('div'); wrap.className = 'qr-add' + (parent ? ' under' : '');
+          wrap.innerHTML = '<div class="field"><input type="text" maxlength="200"></div><button type="button" class="cd-chip">' + BK_PLUS_SVG + 'Add</button>';
+          var inp = wrap.querySelector('input');
+          inp.placeholder = 'A ' + nLabel + ' goal' + (parent ? '' : ' for ' + a.label.toLowerCase());
+          inp.setAttribute('aria-label', 'New ' + nLabel + ' goal' + (parent ? ' under ' + parent.title : ''));
+          inp.value = st.adds[key] || '';
+          inp.addEventListener('input', function(){ st.adds[key] = inp.value; });
+          function add(){
+            var title = inp.value.trim();
+            if (!title){ inp.focus(); return; }
+            st.adds[key] = '';
+            savePriority({ title: title, why: null, area: a.key, horizon: 'quarter', period: nq, parentId: parent ? parent.id : null,
+              status: 'active', evidenceType: null, measure: null, values: [], createdAt: new Date().toISOString() });
+            showPinToast(nLabel + ' goal added', false, CHECK_SVG);
+          }
+          wrap.querySelector('button').addEventListener('click', add);
+          inp.addEventListener('keydown', function(ev){ if (ev.key === 'Enter') add(); });
+          return wrap;
+        }
+        function nextRow(title, tag){
+          var r = document.createElement('div'); r.className = 'qr-next';
+          r.innerHTML = '<span></span>' + (tag ? '<span class="qr-tag"></span>' : '');
+          r.firstChild.textContent = title;
+          if (tag) r.lastChild.textContent = tag;
+          return r;
+        }
+        function kidsOf(pid){
+          var set = activeGoals().filter(function(p){ return goalHorizon(p) === 'quarter' && goalPeriod(p) === nq && goalArea(p) === a.key && (p.parentId || null) === pid; });
+          var carry = done ? [] : quarterOpenGoals(q).filter(function(p){ return st.results[p.id] === 'carried' && goalArea(p) === a.key && (p.parentId || null) === pid; });
+          return { set: set.sort(byGoalOrder), carry: carry };
+        }
+        years.forEach(function(yg){
+          var yr = document.createElement('div'); yr.className = 'qr-yg'; yr.textContent = yg.title;
+          nBox.appendChild(yr);
+          var k = kidsOf(yg.id);
+          k.set.forEach(function(p){ nBox.appendChild(nextRow(p.title, (p.carriedFrom || []).length ? 'Carried over' : '')); });
+          k.carry.forEach(function(p){ nBox.appendChild(nextRow(p.title, 'Carrying over')); });
+          nBox.appendChild(addRow(yg));
+        });
+        var loose = kidsOf(null);
+        loose.set.forEach(function(p){ nBox.appendChild(nextRow(p.title, (p.carriedFrom || []).length ? 'Carried over' : '')); });
+        loose.carry.forEach(function(p){ nBox.appendChild(nextRow(p.title, 'Carrying over')); });
+        if (!years.length) nBox.appendChild(addRow(null));
+      });
+
+      var notes = document.getElementById('qrNotes');
+      notes.value = st.notes;
+      notes.addEventListener('input', function(){ st.notes = notes.value; });
+      var undecided = done ? 0 : goals.filter(function(p){ return !st.results[p.id]; }).length;
+      if (undecided){
+        var left = document.getElementById('qrLeft'); left.hidden = false;
+        left.textContent = plural(undecided, 'goal') + ' not decided yet: ' + (undecided === 1 ? 'it stays' : 'they stay') + ' as ' + (undecided === 1 ? 'it is' : 'they are') + '.';
+      }
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      document.getElementById('qrClose').addEventListener('click', function(){ done ? saveNotes() : closeQuarter(); });
+      var later = document.getElementById('qrLater');
+      if (later) later.addEventListener('click', function(){ persistDraft(); closeSheet(); showPinToast('Saved · finish it later', false, CHECK_SVG); });
+    }
+    function saveNotes(){
+      var n = String(st.notes || '').trim().slice(0, 2000);
+      saveQuarterPatch(q, function(rec){ rec.notes = n; rec.editedAt = new Date().toISOString(); });
+      closeSheet(); showPinToast('Saved', false, CHECK_SVG);
+    }
+    function closeQuarter(){
+      var now = new Date().toISOString(), list = [];
+      underReview().forEach(function(g){
+        var r = st.results[g.id];
+        if (!r) return;
+        var isYear = goalHorizon(g) === 'year';
+        list.push({ id: g.id, title: String(g.title || '').slice(0, 200), horizon: goalHorizon(g), area: goalArea(g), result: r });
+        if (r === 'carried'){
+          var from = isYear ? goalPeriod(g) : q;
+          savePriority(Object.assign({}, g, { period: isYear ? ny : nq, carriedFrom: (Array.isArray(g.carriedFrom) ? g.carriedFrom : []).concat(from) }));
+        } else savePriority(Object.assign({}, g, { status: r, closedAt: now }));
+      });
+      var n = String(st.notes || '').trim().slice(0, 2000);
+      saveQuarterPatch(q, function(rec){
+        rec.at = rec.at || now;
+        rec.goals = (rec.goals || []).filter(function(x){ return !list.some(function(y){ return y.id === x.id; }); }).concat(list);
+        rec.notes = n;
+        delete rec.draft;
+      });
+      closeSheet();
+      showPinToast(quarterLabel(q).split(' · ')[0] + ' closed', false, CHECK_SVG);
+    }
+    draw.onGoals = true;
+    activeSheetRefresh = draw;
+    draw();
+    backdrop.classList.add('open');
+  }
+
   // opts.area / opts.goalId: a new outcome's starting point
   function openOutcomeSheet(ws, existing, opts){
     opts = opts || {};
@@ -30954,7 +31452,6 @@
   }
 
   function renderFocus(){
-    renderPlayerCard();
     renderPriorities();
     renderTargetWeightCard();
 

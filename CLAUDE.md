@@ -222,7 +222,7 @@ These are observed facts about this repo, useful before making changes.
   apps" block), are guarded by `window.Capacitor` and must stay inert on the web —
   `tests/e2e/native-shell.test.js` checks both sides.
 - Other root files: `sw.js` (service worker), `manifest.json`, `fonts/`
-  (self-hosted woff2 subsets), `hero-mountain.webp`, app icons, `avatars/`.
+  (self-hosted woff2 subsets), `hero-mountain.webp`, app icons.
 - `docs/` holds product documentation, not code: `PRODUCT.md`,
   `UX_PRINCIPLES.md`, `DESIGN_SYSTEM.md`, `ROAD_TO_SHIPPABLE.md`,
   `RELEASE_CHECKLIST.md`. `.github/ISSUE_TEMPLATE/` holds the Issue templates.

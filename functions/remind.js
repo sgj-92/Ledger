@@ -12,27 +12,40 @@
 // recipient is the one user whose role is owner, checked here.
 //
 // ledger_meta/reminders = { tz: 'Europe/London', items: [{ id, kind: 'prime' | 'windDown'
-//   | 'sweep' | 'custom', text, time: 'HH:MM', days: [0..6] (0 = Sunday), on }] }
+//   | 'sweep' | 'custom' | 'reviewBusiness' | 'reviewPersonal' | 'reviewQuarter', text,
+//   time: 'HH:MM', days: [0..6] (0 = Sunday), on }] }
+// The quarter review's reminder comes on its day only in the quarter's last seven days.
 
 const REMIND_GRACE_MIN = 10;
-const KINDS = ['prime', 'windDown', 'sweep', 'custom', 'reviewBusiness', 'reviewPersonal'];
+const KINDS = ['prime', 'windDown', 'sweep', 'custom', 'reviewBusiness', 'reviewPersonal', 'reviewQuarter'];
 // The weekly reviews' prompts (docs/GOALS_AND_REVIEW.md §8, q. 1): on unless he changes
 // them in Settings → Reminders, and quiet once that week's review is approved.
 const REVIEW_DEFAULTS = [
   { id: 'reviewBusiness', kind: 'reviewBusiness', time: '15:00', days: [5], on: true },
-  { id: 'reviewPersonal', kind: 'reviewPersonal', time: '17:00', days: [0], on: true }
+  { id: 'reviewPersonal', kind: 'reviewPersonal', time: '17:00', days: [0], on: true },
+  // the quarter review: its day in the quarter's last seven days (the last Sunday), quiet once closed
+  { id: 'reviewQuarter', kind: 'reviewQuarter', time: '18:00', days: [0], on: true }
 ];
 const TEXT = {
   prime: { title: 'Morning Prime', body: 'Set up the day: plan, move, and one line of intention.', open: 'prime' },
   windDown: { title: 'Evening Wind-down', body: 'Review today and set up tomorrow.', open: 'winddown' },
   sweep: { title: 'Comms sweep', body: 'Go through your channels: who needs a reply?', open: 'sweep' },
   reviewBusiness: { title: 'Friday review', body: 'How did the business week go? A few minutes.', open: 'review-business' },
-  reviewPersonal: { title: 'Sunday review', body: 'Look back on the week, then set up the next one.', open: 'review-personal' }
+  reviewPersonal: { title: 'Sunday review', body: 'Look back on the week, then set up the next one.', open: 'review-personal' },
+  reviewQuarter: { title: 'Quarter review', body: 'Close out this quarter’s goals, then set the next one’s.', open: 'review-quarter' }
 };
 function addDaysIso(date, n) {
   const [y, m, d] = String(date).split('-').map(Number);
   const t = new Date(Date.UTC(y, m - 1, d) + n * 86400000);
   return t.toISOString().slice(0, 10);
+}
+
+function quarterOf(date) { return date.slice(0, 4) + '-Q' + Math.ceil(Number(date.slice(5, 7)) / 3); }
+// in the quarter's last seven days
+function lastWeekOfQuarter(date) {
+  const q = quarterOf(date);
+  const end = new Date(Date.UTC(Number(q.slice(0, 4)), Number(q.slice(6)) * 3, 0)).toISOString().slice(0, 10);
+  return addDaysIso(end, -6) <= date;
 }
 
 // the date, minutes past midnight and weekday where he is
@@ -88,6 +101,10 @@ function createReminders(deps) {
       const r = w.exists ? (((w.data() || {}).reviews || {})[area]) : null;
       return !!(r && r.at);
     }
+    if (kind === 'reviewQuarter') {
+      const r = await db.collection('ledger_quarters').doc(quarterOf(date)).get();
+      return r.exists && !!(r.data() || {}).at;
+    }
     if (kind === 'windDown') {
       const r = await db.collection('ledger_day_status').doc(date).get();
       const d = r.exists ? (r.data() || {}) : null;
@@ -120,6 +137,7 @@ function createReminders(deps) {
         if (!it || it.on === false || KINDS.indexOf(it.kind) === -1 || !it.id) continue;
         if (Array.isArray(it.days) && it.days.length && it.days.indexOf(c.weekday) === -1) continue;
         if (!dueNow(it.time, c)) continue;
+        if (it.kind === 'reviewQuarter' && !lastWeekOfQuarter(c.date)) continue;
         if (it.kind !== 'custom' && (await done(it.kind, c.date))) { out.skipped++; continue; }
         const t = TEXT[it.kind];
         const text = String(it.text || '').trim();
@@ -157,4 +175,4 @@ function createReminders(deps) {
   return { run };
 }
 
-module.exports = { createReminders, localClock, dueNow, toMin, REMIND_GRACE_MIN };
+module.exports = { createReminders, localClock, dueNow, toMin, lastWeekOfQuarter, REMIND_GRACE_MIN };

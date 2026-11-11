@@ -64,7 +64,7 @@ border and `--shadow-card`. Day notes, Quick log and Recorded activity share one
 On phones the cards reach 16px from the screen edge, and Morning Prime and Wind-down line
 up with them. This was Shaun's call: the sections blended into each other.
 The surface steps are deliberately small. Light values were refined on 2026-10-04 so a card separates from the page; in
-light only, the few true cards (Morning Prime, player card, Focus evidence, Backlog
+light only, the few true cards (Morning Prime, Focus evidence, Backlog
 panel) also take `--shadow-card`, and the chosen Overview/Flow tab is a raised
 ivory tab in a stone track. Dark is unchanged.
 
@@ -92,10 +92,8 @@ adjusted only for legibility:
   `-soft` alpha variant at `0.14`. Used as small marks, never as fills.
 - **Four day-status colours** — `--day-good`, `--day-neutral`, `--day-bad`,
   `--danger`, each with an `-rgb` companion for alpha composition.
-- **Six rank-tier colours** — Rookie, Grinder, Contender, Competitor,
-  Veteran, Elite. **These are not tokens.** They are fixed hex values in a
-  `LEVEL_TIERS` array in JS, applied as inline styles. They do not adapt to
-  theme. → **Needs design decision** (tracked as an Issue).
+- **Rank-tier colours: gone.** The Progress Identity card (XP, levels, avatars) and its
+  `LEVEL_TIERS` colours were removed on 2026-11-11, when Me → Goals was rebuilt.
 
 ### Atmospherics
 
@@ -591,7 +589,7 @@ lost. Those with a filed Issue are marked.
 5. Press feedback — one convention (scale / background / colour / opacity).
 6. Disclosure pattern — `.sec-head-toggle` vs `.section-toggle`. **Issue filed.**
 7. Chip vs tag.
-8. Rank-tier colours — fixed hex in JS vs theme-aware tokens. **Issue filed.**
+8. Rank-tier colours — resolved by removal (2026-11-11).
 9. Legacy token aliases — migrate or keep.
 10. Icon labelling convention for icon-only buttons.
 11. Confirmation dialogs — native `confirm()` vs a sheet.

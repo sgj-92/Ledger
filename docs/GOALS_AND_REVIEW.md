@@ -283,5 +283,67 @@ reads like "8 of 14 Actions this week move a goal · No time yet: Pipeline".
 - `tests/functions/remind.test.js`: the review prompts, including Sunday-start weeks.
 - `tests/e2e/assistant.test.js`: the draft from link to approval, under the rules.
 
-**Phase 3 still to come:** the quarter review, the monthly trend and a measures chart.
+**Phase 3:** see §11. The monthly trend is still to come.
+
+## 11. Phase 3 as built (2026-11-11): Goals rebuilt, and the quarter review
+
+**The Progress Identity card is gone.** XP, levels, avatars and the streak went at Shaun's
+request.
+
+**This week, at the top of Me → Goals** (`renderGoalsWeek`):
+- the goal line;
+- the week's outcomes ("1 of 2 done"), a tap to Plan;
+- the Friday and Sunday reviews, each marked done or due, and each opening its review;
+- the quarter review, while it's due.
+
+**A goal's own page** (`openGoalPage`; a tap on any goal):
+- **Why it matters.**
+- **Its 90-day goals**, or the year goal it's part of. Each opens its own page.
+- **Measure:**
+  - the gap ("8 leads of 20 · 12 to go");
+  - a line of the values entered, with a dashed target line;
+  - a field for today's value, and the last five values.
+  - A goal measured by Ledger records shows those instead.
+  - Counts and the gap only, as decided on 2026-09-29.
+- **Effort by week:** Actions done for it in each of the last 8 weeks, by
+  `actionServesGoal`. This week also shows what's still planned.
+- **History:**
+  - each week it had an outcome: the outcome and how it ended;
+  - that week's review in its area;
+  - any review that names it;
+  - the quarter reviews' decisions.
+  - A tap on a review opens it.
+- **Edit goal** returns to the page.
+
+**The quarter review** (`openQuarterReviewSheet`):
+- **The quarter in counts:** outcomes done, weekly reviews approved, Actions done that
+  moved a goal.
+- **Each 90-day goal:** Achieved, Carry over or Drop, with its measure, outcomes and
+  Actions.
+  - In Q4, each of the year's goals as well: Achieved, Carry into next year, or Drop.
+  - A goal left undecided stays as it is.
+- **Next quarter:** under each year goal, the goals already set and those being carried,
+  plus a field to add one. A goal added here is saved at once.
+- **What the quarter taught you:** optional.
+- **Close the quarter** applies the decisions:
+  - **achieved or dropped:** `status`, `closedAt`;
+  - **carried:** `period` moves to the next quarter (or year), and `carriedFrom` gains the
+    old one. The goal stays one record, keeping its measure and history.
+- **Finish later** keeps the choices in `draft`. So does each tap.
+- **Data:** `ledger_quarters/{2026-Q4}` =
+  `{ at, goals: [{ id, title, horizon, area, result }], notes, draft }`. Owner-only, like
+  the weeks.
+
+**Prompting:**
+- **Today card and Goals chip:** from the quarter's last seven days until it's closed.
+  If its 90-day goals are still open, also for two weeks into the next quarter.
+- **Notification:** `reviewQuarter` in `remind.js`, at 18:00 on the quarter's last Sunday.
+  It's on by default, and changeable in Settings → Reminders. Any day he picks fires only
+  in the quarter's last seven days. It stays quiet once the quarter is closed.
+- **Link:** `?open=review-quarter` opens it.
+
+**Tests:**
+- `tests/functions/remind.test.js`: the quarter prompt.
+- `tests/firestore-rules/rules.test.js`: `ledger_quarters` is owner-only.
+- The browser run covers the strip, the page and a quarter closed end to end.
 

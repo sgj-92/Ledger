@@ -4,7 +4,8 @@
 //   - a 90-day goal under it, with a number he updates;
 //   - the week's outcome on Plan (ledger_weeks/{week start}), named with its goal;
 //   - an Action that moves it ("Moves"), shown on Today;
-//   - the outcome marked done, and the goal achieved — never deleted.
+//   - the outcome marked done, and the goal achieved — never deleted;
+//   - Goals' This week, a goal's own page, and the quarter review (2026-11-11).
 // Everything written on the phone shows on the Mac, live.
 //
 //   cd tests/e2e && npm install
@@ -168,11 +169,54 @@ async function wait(fn){ for (let i = 0; i < 25; i++){ const v = await fn(); if 
   check(done && done.outcomes[0].text === 'Send 5 proposals' && done.outcomes[0].goalId === q.id, 'Saved: done, built on the stored outcome');
   check(await until(mac, () => /1 of 1 done/.test(document.getElementById('planOutcomes').innerText)), 'Mac: "1 of 1 done"');
   await goals(phone); await goals(mac);
+  // Goals opens with this week (2026-11-11); the Progress Identity card is gone
+  check(await until(mac, () => /This week/i.test((document.getElementById('goalsWeek') || {}).innerText || '') &&
+    /1 of 1 done/.test(document.getElementById('goalsWeek').innerText) && !document.getElementById('playerCard')), 'Mac: Goals opens with This week — outcomes 1 of 1 done; no XP card');
+  // a tap opens the goal's own page
   await phone.click(`.goal-row[data-goal="${q.id}"]`);
+  await phone.waitForSelector('#gpEdit');
+  const pg = await text(phone, '#sheetBackdrop');
+  check(/Five new retainer clients/.test(pg) && /£42,000 of £60,000 · £18,000 to go/.test(pg) && /Generate money/.test(pg) &&
+    /No Actions done for it in the last 8 weeks/.test(pg) && /Still planned this week/.test(pg) && /Send 5 proposals Done/.test(pg) && !/%/.test(pg),
+    'Phone: the goal\'s page — its year goal, the gap, effort by week (one still planned), the week\'s outcome and how it ended; no percentage', pg.slice(0, 400));
+  check(await phone.evaluate(() => document.querySelectorAll('.gp-dot').length === 1 && !!document.querySelector('.gp-target') && document.querySelectorAll('.gp-bar').length === 0 && document.querySelectorAll('.gp-bar-open').length === 1),
+    'Phone: the measure chart (one value, the target line); this week\'s planned Action as an open bar');
+  await phone.fill('#gpVal', '48000'); await phone.click('#gpValAdd');
+  const v2 = await wait(async () => { const g = (await list('ledger_priorities')).find(x => x.id === q.id); return g && g.values.length === 1 && g.values[0].value === 48000 ? g : null; });
+  check(v2 && v2.measure.target === 60000 && v2.title === 'Five new retainer clients', 'Saved: today\'s value replaces today\'s, built on the stored goal');
+  check(await until(phone, () => /£48,000 of £60,000/.test((document.querySelector('.gp-now') || {}).textContent || '')), 'Phone: the page updates with the new value');
+  await phone.click('#gpEdit');
   await phone.waitForSelector('#gAchieved'); await phone.click('#gAchieved');
   const ach = await wait(async () => (await list('ledger_priorities')).find(x => x.id === q.id && x.status === 'achieved'));
   check(ach && ach.closedAt && ach.measure && ach.values.length === 1, 'Saved: achieved, kept with its measure — not deleted');
+  check(await until(phone, () => /Achieved/.test((document.querySelector('.gp-closed') || {}).textContent || '')), 'Phone: back on the page, which says it\'s achieved');
   check(await until(mac, () => /Achieved and dropped · 1/.test(document.getElementById('prioritiesList').innerText)), 'Mac: under "Achieved and dropped"');
+
+  // ---- the quarter review: carry a 90-day goal over, set the next quarter's, close it ----
+  const curQ = TODAY.slice(0, 4) + '-Q' + Math.ceil(Number(TODAY.slice(5, 7)) / 3);
+  const nextQ = curQ.endsWith('Q4') ? (Number(TODAY.slice(0, 4)) + 1) + '-Q1' : TODAY.slice(0, 4) + '-Q' + (Number(curQ.slice(6)) + 1);
+  await put('ledger_priorities/q2', { title: S('Hire an assistant'), area: S('business'), horizon: S('quarter'), period: S(curQ), parentId: S('p1'),
+    status: S('active'), createdAt: S('2026-10-02T10:00:00Z') });
+  await phone.goto(APP + '?open=review-quarter');
+  check(await until(phone, () => document.getElementById('sheetBackdrop').classList.contains('open') && !!document.querySelector('.qr-goal[data-goal="q2"]'), null, 25000),
+    'Phone: the reminder\'s link opens the quarter review, with the open 90-day goal');
+  await phone.evaluate(() => [...document.querySelectorAll('.qr-goal[data-goal="q2"] .cd-chip')].find(x => x.textContent === 'Carry over').click());
+  check(await until(phone, () => /Carrying over/.test(document.getElementById('qrNext').innerText)), 'Phone: carrying it shows it under next quarter');
+  await phone.fill('.qr-add input', 'Ten case studies'); await phone.press('.qr-add input', 'Enter');
+  const added = await wait(async () => (await list('ledger_priorities')).find(x => x.title === 'Ten case studies'));
+  check(added && added.period === nextQ && added.parentId === 'p1' && added.horizon === 'quarter' && added.area === 'business' && added.status === 'active',
+    'Saved: next quarter\'s goal, under its year goal', JSON.stringify(added));
+  await phone.fill('#qrNotes', 'Hiring needs a weekly slot.');
+  await phone.click('#qrClose');
+  const qr = await wait(async () => (await list('ledger_quarters')).find(x => x.id === curQ && x.at));
+  check(qr && qr.goals.length === 1 && qr.goals[0].id === 'q2' && qr.goals[0].result === 'carried' && qr.notes === 'Hiring needs a weekly slot.' && !qr.draft,
+    'Saved: ledger_quarters/' + curQ + ' — the decision and the notes', JSON.stringify(qr));
+  const q2 = await wait(async () => (await list('ledger_priorities')).find(x => x.id === 'q2' && x.period === nextQ));
+  check(q2 && q2.status === 'active' && JSON.stringify(q2.carriedFrom) === JSON.stringify([curQ]) && q2.title === 'Hire an assistant',
+    'Saved: carried over is the same goal, moved to next quarter', JSON.stringify(q2));
+  await mac.click('.goal-row[data-goal="q2"]');
+  check(await until(mac, () => /Quarter review/.test((document.getElementById('gpHist') || {}).innerText || '') && /Carried over/.test(document.getElementById('gpHist').innerText)),
+    'Mac: the goal\'s history shows the quarter\'s decision, live');
 
   for (const p of [phone, mac]) check(!p.errs.length, p.name + ': no page errors ' + p.errs.join(' | ').slice(0, 300));
   await b.close(); server.close();

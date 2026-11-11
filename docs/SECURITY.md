@@ -51,6 +51,7 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | `ledger_sprints` | Reset Sprints | owner |
 | `ledger_life_context` | Life Context: circumstances that affected a day or a period | owner |
 | `ledger_weeks` | A week's outcomes, and later its reviews (`docs/GOALS_AND_REVIEW.md`) | owner |
+| `ledger_quarters` | A quarter review: the goals it decided, and notes (`docs/GOALS_AND_REVIEW.md` §11) | owner |
 | `ledger_people` | Keep in touch: people, their check-in rhythm and when he spoke to them | owner |
 | `ledger_matters`, `ledger_conversations` | Communications | owner |
 | `ledger_challenges` | challenges | owner |

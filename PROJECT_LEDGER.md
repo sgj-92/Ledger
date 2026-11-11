@@ -1,7 +1,7 @@
 # Ledger Project Ledger
 
 Shared coordination file for Shaun, ChatGPT, Claude Chat and Claude Code.
-Last updated: 2026-10-27 (Home: pass to yourself, ongoing updates and Waiting on; Claude in Ledger phase 1 built)
+Last updated: 2026-11-11 (Me → Goals rebuilt: This week, a page per goal, the quarter review)
 
 ---
 
@@ -11,7 +11,7 @@ Ledger is a **single-file PWA**: the entire app (HTML, CSS, JS) lives in
 `index.html` (about 25,400 lines as of 2026-10-23 — the earlier "~10,500" was out of
 date; no build step, no framework, ES5-style vanilla JS).
 Supporting files: `sw.js`, `manifest.json`, `fonts/` (self-hosted Playfair
-Display + Inter woff2 subsets), `hero-mountain.webp`, icons, `avatars/`,
+Display + Inter woff2 subsets), `hero-mountain.webp`, icons,
 and `functions/` (the push engine and Home's server jobs — see `CLAUDE.md`).
 **Native apps:** Phase 1 (iOS and Android shells) was **merged into `main` on
 2026-10-25**.
@@ -398,9 +398,8 @@ Fasting, No / Low Carb, Normal, High Carb — stored in the existing `fasting` a
 next row.
 
 ### Gamification / XP
-Focus tab shows a player card: XP → level → tier (Rookie, Grinder, Contender,
-Competitor, Veteran, Elite) with per-tier avatar art and a day streak.
-`computeXP()` is currently `sessions.length × 10 + completed focus items × 25`.
+Removed on 2026-11-11 at Shaun's request: the player card (XP, levels, tiers, avatars,
+streak) is gone from Me → Goals, with `avatars/`. Goals now open with "This week".
 
 ### Notifications (Push Foundation, built 2026-10-08)
 One engine: `functions/push.js` (`sendPushToUser`), triggered by Firestore records
@@ -762,6 +761,36 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-11-11 — Me → Goals rebuilt; the quarter review (Shaun: "this can go, flesh out the goals section")
+
+- **Progress Identity removed:** XP, levels, avatars and the streak card, and `avatars/`.
+- **"This week" at the top of Goals:** the goal line, the week's outcomes (N of M done, a tap
+  to Plan), and the Friday and Sunday reviews (done, due, or not yet; each opens its review).
+  The quarter review joins them when it's due.
+- **Each goal has its own page** (a tap on it):
+  - why it matters;
+  - its 90-day goals, or the year goal it's part of;
+  - **the measure over time**: a line with a dashed target, counts and the gap only;
+  - **effort by week**: Actions done for it in each of the last 8 weeks;
+  - **its history**: each week's outcomes and how they ended, what that week's review
+    said, and the quarter reviews' decisions.
+  Edit goal sits at its foot and comes back to the page.
+- **The quarter review (phase 3):**
+  - Each 90-day goal: achieved, carry over or drop. In Q4, the year's goals too: achieved,
+    carry into next year, or drop.
+  - Then next quarter's goals, set inline under each year goal. Notes optional.
+  - Prompted from the quarter's last 7 days: a Today card (and a chip on Goals), until it's
+    closed; for two weeks into the next quarter if goals were left open.
+  - A notification at 18:00 on the quarter's last Sunday. It's on by default and set in
+    Settings → Reminders, and stays quiet once the quarter is closed.
+- **Data:** a new owner-only `ledger_quarters/{2026-Q4}`
+  (`{ at, goals: [{ id, title, horizon, area, result }], notes, draft }`).
+  - Carrying a goal over moves its `period` forward and adds `carriedFrom`, so its measure
+    and history stay one record.
+  - Achieved and dropped set `status` and `closedAt`, as before.
+- **Not yet:** the monthly trend check.
+- **Needs deploying:** rules (`ledger_quarters`) and functions (the quarter prompt).
 
 ### 2026-11-11 — Goals phase 2: the weekly reviews and the goal line (Shaun: "build them")
 
@@ -2728,7 +2757,13 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy, then use it on Friday)
+Owner: Shaun (deploy, then look)
+**Goals, rebuilt**: Actions → Deploy Firebase → Everything. This deploys the new
+`ledger_quarters` rule and the quarter prompt; until then, closing a quarter stays on that
+device. Then open Me → Goals, tap a goal, and add a value. The quarter review first
+appears on 25 December.
+
+**Before that**: Owner: Shaun (deploy, then use it on Friday)
 **Weekly reviews**: Actions → Deploy Firebase → Everything. Friday at 15:00 the review
 appears on Today; Draft with Claude, edit, approve. Sunday does the personal one and plans
 the week.
@@ -2993,6 +3028,13 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-11) — **Me → Goals rebuilt; the quarter review** (decision above).
+  - Tests: rules 794 (8 new: `ledger_quarters` owner-only), remind 32 (5 new: the quarter
+    prompt), goals e2e 35 (12 new: This week, the goal page with a value added, a quarter
+    closed through Firestore and seen live on the Mac).
+  - Browser: the strip; a goal's page (chart, a value added, effort bars, history, edit
+    and back); a quarter closed end to end (carry, drop, achieve, a Q1 goal added, the
+    record, the Today card clearing); `?open=review-quarter`. Light and dark at 390px.
 - (2026-11-11) — **Weekly reviews + goal line** (decision above). Ask Claude end-to-end 68 (6
   new: the draft from the review link to approval, under the rules); assistant 111;
   remind 27 (6 new: the review prompts). Browser: the Friday and Sunday reviews (evidence,

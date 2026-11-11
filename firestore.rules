@@ -61,6 +61,9 @@ service cloud.firestore {
     // Goals and the week (docs/GOALS_AND_REVIEW.md): a week's outcomes and, later, its
     // reviews. Private like the day's plan; never projected, never a partner's.
     match /ledger_weeks/{docId=**}              { allow read, write: if isOwner(); }
+    // The quarter review (2026-11-11): one record per quarter, the goals it decided. Private
+    // like the weeks; never projected, never a partner's.
+    match /ledger_quarters/{docId=**}           { allow read, write: if isOwner(); }
     // Keep in touch (2026-11-02): the people Shaun checks in with, each with a rhythm and the
     // days he spoke to them. Private; never projected, never a partner's.
     match /ledger_people/{docId=**}             { allow read, write: if isOwner(); }

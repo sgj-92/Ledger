@@ -10,7 +10,7 @@
 const path = require('path');
 const fnDir = path.join(__dirname, '../../functions');
 const admin = require(path.join(fnDir, 'node_modules/firebase-admin'));
-const { createReminders, localClock } = require(path.join(fnDir, 'remind.js'));
+const { createReminders, localClock, lastWeekOfQuarter } = require(path.join(fnDir, 'remind.js'));
 const { createEngine, appLink } = require(path.join(fnDir, 'push.js'));
 
 admin.initializeApp({ projectId: 'demo-ledger' });
@@ -35,7 +35,7 @@ function rem(iso) {
 }
 async function run(iso) { sent = []; const out = await rem(iso).run(); return out; }
 async function wipe() {
-  for (const c of ['ledger_meta', 'ledger_plans', 'ledger_day_status', 'ledger_commitments', 'ledger_push_events', 'ledger_users', 'ledger_weeks']) {
+  for (const c of ['ledger_meta', 'ledger_plans', 'ledger_day_status', 'ledger_commitments', 'ledger_push_events', 'ledger_users', 'ledger_weeks', 'ledger_quarters']) {
     const s = await db.collection(c).get();
     await Promise.all(s.docs.map((d) => d.ref.delete()));
   }
@@ -168,6 +168,26 @@ const WEEKDAYS = [1, 2, 3, 4, 5];
   await db.collection('ledger_weeks').doc('2026-11-09').delete();
   await run('2026-11-13T15:00:10Z');
   check(sent.length === 0, 'Friday review: switched off, nothing');
+
+  // the quarter review (2026-11-11): on by default, its day in the quarter's last week, quiet once closed
+  check(lastWeekOfQuarter('2026-12-27') && lastWeekOfQuarter('2026-12-31') && !lastWeekOfQuarter('2026-12-24') && lastWeekOfQuarter('2027-03-25') && !lastWeekOfQuarter('2027-03-24'),
+    'the quarter\'s last seven days: 25–31 December, 25–31 March');
+  await cfg([], 'Europe/London');
+  await db.collection('ledger_push_events').get().then((s) => Promise.all(s.docs.map((d) => d.ref.delete())));
+  await run('2026-12-20T18:00:10Z');                       // a Sunday, but not the quarter's last week
+  check(!sent.some((x) => x.title === 'Quarter review'), 'Quarter review: not on an earlier Sunday');
+  await run('2026-12-27T18:00:10Z');                       // the quarter's last Sunday
+  const qr = sent.filter((x) => x.title === 'Quarter review');
+  check(qr.length === 1 && /open=review-quarter/.test(qr[0].url), 'Quarter review: 18:00 on the quarter\'s last Sunday, without setting anything', sent);
+  await db.collection('ledger_push_events').get().then((s) => Promise.all(s.docs.map((d) => d.ref.delete())));
+  await db.collection('ledger_quarters').doc('2026-Q4').set({ at: '2026-12-27T17:00:00Z', goals: [] });
+  await run('2026-12-27T18:00:10Z');
+  check(!sent.some((x) => x.title === 'Quarter review'), 'Quarter review: quiet once the quarter is closed');
+  await db.collection('ledger_push_events').get().then((s) => Promise.all(s.docs.map((d) => d.ref.delete())));
+  await cfg([{ id: 'reviewQuarter', kind: 'reviewQuarter', time: '09:00', days: [4], on: true }], 'Europe/London');
+  await run('2027-03-25T09:00:10Z');                       // Thursday 25 March, his day in Q1's last week
+  check(sent.filter((x) => x.title === 'Quarter review').length === 1, 'Quarter review: his own day and time in the last week');
+  await db.collection('ledger_quarters').doc('2026-Q4').delete();
 
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
