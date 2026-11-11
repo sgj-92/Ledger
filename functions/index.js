@@ -53,6 +53,7 @@ const { createMigrator } = require('./migrate');
 const { createRecurrer } = require('./recur');
 const { createDaily } = require('./daily');
 const { createReminders } = require('./remind');
+const { createConnect } = require('./connect');
 const { createAssistant, ALLOWED_ORIGINS } = require('./assistant');
 
 admin.initializeApp();
@@ -68,6 +69,10 @@ const VAPID_SUBJECT = defineString('VAPID_SUBJECT');
 const APP_URL = defineString('APP_URL', { default: 'https://ledger.sgj.luxe/' });
 // Firestore triggers must run where the database is (Console → Firestore → location).
 const FUNCTIONS_REGION = defineString('FUNCTIONS_REGION', { default: 'us-central1' });
+// Microsoft 365 for the Comms sweep (connect.js): the app registration's id. 'not-set' until
+// it's set up (an empty default makes a deploy stop and ask for it) — the feature
+// then says so, and nothing else depends on it. No secret.
+const MS_CLIENT_ID = defineString('MS_CLIENT_ID', { default: 'not-set' });
 
 setGlobalOptions({ region: FUNCTIONS_REGION, maxInstances: 5 });
 
@@ -254,6 +259,39 @@ exports.assistant = onRequest(
     }
   }
 );
+
+// ---- Microsoft 365 for the Comms sweep (connect.js) ----
+// connections: the app's calls (start a sign-in, check for replies, disconnect), from
+// Ledger's own pages with the owner's ID token. msCallback: where Microsoft sends him back
+// after signing in; it keeps the tokens on the server and returns him to Ledger.
+function msRedirectUri() {
+  return 'https://' + FUNCTIONS_REGION.value() + '-' + (process.env.GCLOUD_PROJECT || 'ledger-6aec3') + '.cloudfunctions.net/msCallback';
+}
+function connector() {
+  return createConnect({ db, fetch: (u, i) => fetch(u, i), clientId: MS_CLIENT_ID.value(), redirectUri: msRedirectUri(),
+    appUrl: APP_URL.value(), log: (...a) => logger.warn(...a) });
+}
+exports.connections = onRequest({ cors: ALLOWED_ORIGINS, timeoutSeconds: 60, maxInstances: 3 }, async (req, res) => {
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+  const m = /^Bearer (.+)$/.exec(req.get('Authorization') || '');
+  let uid = null;
+  try { uid = m ? (await admin.auth().verifyIdToken(m[1])).uid : null; } catch (e) { uid = null; }
+  if (!uid) { res.status(401).json({ error: 'Sign in to Ledger first.' }); return; }
+  const action = (req.body || {}).action;
+  const c = connector();
+  try {
+    const out = action === 'start' ? await c.start(uid) : action === 'pull' ? await c.pull(uid)
+      : action === 'disconnect' ? await c.disconnect(uid) : { status: 400, body: { error: 'Unknown action' } };
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    logger.error('connections failed', action, e && e.message);
+    res.status(502).json({ error: 'Microsoft 365 could not be reached. Try again.' });
+  }
+});
+exports.msCallback = onRequest({ timeoutSeconds: 60, maxInstances: 2 }, async (req, res) => {
+  const out = await connector().callback(req.query || {}).catch(() => ({ redirect: APP_URL.value() + '?connected=failed' }));
+  res.redirect(302, out.redirect);
+});
 
 // Daily tasks at Home (docs/HOME_DAILY.md): hourly, in each person's own timezone, what
 // was left on earlier days moves onto today's list, today's repeating tasks are added, and

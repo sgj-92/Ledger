@@ -239,6 +239,44 @@ async function oobLink(email){
   check(await until(S, () => /All replied/.test(document.getElementById('swcStatus').textContent), null, 15000), 'Sweep: ticked on the Mac, the phone says "All replied"');
   for (let k = 0; k < 30; k++){ await sleep(250); rep = (await all('ledger_commitments')).find(c => c.sourceType === 'sweep'); if (rep && rep.status === 'completed') break; }
   check(rep && rep.status === 'completed', 'Replies Action: done once everyone is replied to', rep && rep.status);
+  // Outlook & Teams (2026-11-11): once connected, the sweep asks the server who is waiting
+  // and adds those names — under the channels he chose, never twice from the same message
+  await put('ledger_meta/connections', { microsoft: { connected: true, account: 'shaun@sj.example', lastPullAt: null } });
+  const pulls = [];
+  await S.route(/\/connections$/, async (r) => {
+    pulls.push({ body: JSON.parse(r.request().postData() || '{}'), auth: r.request().headers()['authorization'] || '' });
+    await r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ found: [
+      { source: 'mail', key: 'ms-mail:c1:2026-11-11T08:00:00Z', name: 'Kori Lane', at: '2026-11-11T08:00:00Z' },
+      { source: 'teams', key: 'ms-chat:ch1:m1', name: 'JC', at: '2026-11-11T07:00:00Z' }
+    ], errors: [] }) });
+  });
+  await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
+  await S.click('.tab-btn[data-view="comms"]'); await sleep(300);
+  await S.click('#swcSweep');
+  check(await until(S, () => !!document.querySelector('#swMs .sw-ms-pull')), 'Outlook & Teams: connected, the sweep offers "Check Outlook & Teams"');
+  await S.click('#swMs .sw-ms-pull');
+  check(await until(S, () => /2 added from Outlook & Teams/.test((document.querySelector('.pin-toast') || {}).textContent || '')), 'Outlook & Teams: "2 added"', await toast(S));
+  check(pulls.length === 1 && pulls[0].body.action === 'pull' && /^Bearer .+/.test(pulls[0].auth), 'Outlook & Teams: asked with his sign-in');
+  let swp = null;
+  for (let k = 0; k < 30; k++){ await sleep(250); swp = (await all('ledger_plans')).find(x => x.id === TODAY); if (swp && swp.sweep.items.some(i => i.name === 'JC')) break; }
+  const kori = swp.sweep.items.find(i => i.name === 'Kori Lane'), jc = swp.sweep.items.find(i => i.name === 'JC');
+  check(kori && kori.channel === 'Email' && kori.src === 'ms-mail:c1:2026-11-11T08:00:00Z' && jc && jc.channel === 'Teams' && !jc.done,
+    'Outlook & Teams: Kori under Email, JC under Teams, each with where it came from', swp.sweep.items.map(i => i.name + '/' + i.channel));
+  await sleep(2800);
+  await S.click('#swMs .sw-ms-pull');
+  check(await until(S, () => /Nothing new from Outlook & Teams/.test((document.querySelector('.pin-toast') || {}).textContent || '')), 'Outlook & Teams: the same messages again add nothing');
+  // the channels sheet: connected, and where each kind goes — his channel names, as text
+  await S.click('#swEdit');
+  check(await until(S, () => /Connected · shaun@sj\.example/.test((document.getElementById('swMsState') || {}).textContent || '')), 'Channels: "Connected · shaun@sj.example", with Disconnect');
+  check(await S.evaluate(() => [...document.getElementById('swMsTeams').options].map(o => o.textContent).join('|') === document.getElementById('swChText').value.split('\n').join('|')),
+    'Channels: the choices are his channel names');
+  await S.evaluate(() => { const sel = document.getElementById('swMsTeams'); sel.value = String([...sel.options].findIndex(o => o.textContent === 'Text')); sel.dispatchEvent(new Event('change')); });
+  await S.click('#swChSave');
+  let pr = null;
+  for (let k = 0; k < 30; k++){ await sleep(250); pr = (await all('ledger_meta')).find(x => x.id === 'presets'); if (pr && pr.sweepSources && pr.sweepSources.teams === 'Text') break; }
+  check(pr && pr.sweepSources && pr.sweepSources.teams === 'Text' && pr.sweepSources.mail === 'Email', 'Channels: Teams now goes to Text; mail stays Email', pr && pr.sweepSources);
+  await S.evaluate(() => { const x = document.querySelector('#sheetBackdrop.open .sheet-close'); if (x) x.click(); });
+
   // owner-private: a partner can't read any of it
   const A = await session('abi');
   await signIn(A, ABI);

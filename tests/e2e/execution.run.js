@@ -21,7 +21,8 @@ fs.writeFileSync(envFile, [
   'VAPID_PUBLIC_KEY=' + keys.publicKey,
   'VAPID_SUBJECT=mailto:test@example.com',
   'APP_URL=' + APP_URL,
-  'FUNCTIONS_REGION=us-central1'
+  'FUNCTIONS_REGION=us-central1',
+  'MS_CLIENT_ID=not-set'
 ].join('\n') + '\n');
 fs.writeFileSync(secretFile, 'VAPID_PRIVATE_KEY=' + keys.privateKey + '\n');
 

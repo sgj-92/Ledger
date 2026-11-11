@@ -57,6 +57,7 @@ async function check(name, fn){
     await db.doc('ledger_notification_prefs/partner1').set({ currentFocus: true, partner: true });
     await db.doc('ledger_config/push').set({ vapidPublicKey: 'BPublicKey' });
     await db.doc('ledger_push_events/e1').set({ kind: 'focus' });
+    await db.doc('ledger_connections/microsoft').set({ uid: 'owner1', refreshToken: 'secret' });
     await db.doc('ledger_pins/pin1').set({ ownerUid: 'owner1', text: 'x', status: 'sent' });
     await db.doc('ledger_meta/currentFocus').set(focus());
     // sharing: owner1 shares with partner1 (active) and partner2 (paused)
@@ -441,6 +442,12 @@ async function check(name, fn){
   await check('owner: cannot rewrite a pin\'s outcome', () => assertFails(owner.doc('ledger_pins/pin1').update({ status: 'pending' })));
   await check('owner: can clear own pins', () => assertSucceeds(owner.doc('ledger_pins/pin1').delete()));
   await check('owner: cannot read the sender\'s log', () => assertFails(owner.doc('ledger_push_events/e1').get()));
+  // connected accounts: the tokens are the server's alone
+  await check('owner: cannot read a connected account\'s token', () => assertFails(owner.doc('ledger_connections/microsoft').get()));
+  await check('owner: cannot write a connected account', () => assertFails(owner.doc('ledger_connections/microsoft').set({ refreshToken: 'x' })));
+  await check('owner: cannot list connected accounts', () => assertFails(owner.collection('ledger_connections').get()));
+  await check('partner: cannot read a connected account\'s token', () => assertFails(partner.doc('ledger_connections/microsoft').get()));
+  await check('owner: can read whether Microsoft 365 is connected', () => assertSucceeds(owner.doc('ledger_meta/connections').get()));
   await check('owner: cannot write the sender\'s log', () => assertFails(owner.doc('ledger_push_events/e2').set({ x: 1 })));
   await check('partner: cannot read the sender\'s log', () => assertFails(partner.doc('ledger_push_events/e1').get()));
 

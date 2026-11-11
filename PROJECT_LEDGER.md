@@ -763,6 +763,22 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-11 — Comms sweep: Outlook & Teams pull (Shaun chose it over a screenshot sweep)
+
+- **Microsoft 365 only:** Email - S&J and Teams - S&J. WhatsApp, Instagram and LinkedIn
+  can't be read by any app. Gmail is left out: a personal Gmail connection lasts 7 days
+  without Google's security review.
+- **The button:** **Check Outlook & Teams** in the sweep. It adds names only, under the
+  channels he picks in Comms sweep channels (`presets.sweepSources`); each name carries a
+  `src` key so the same message never adds it twice.
+- **"Waiting"** = Focused mail with no later reply from him in that conversation, or a
+  Teams chat whose last message is someone else's. It looks back to the previous check: two
+  days the first time, never more than seven.
+- **Security:** PKCE public client, so there's no secret. The refresh token lives only in
+  `ledger_connections` (no client access); only the owner can connect, check or disconnect.
+  Setup is in `docs/MICROSOFT_365.md`: Azure app registration, then the `MS_CLIENT_ID`
+  variable, then a deploy.
+
 ### 2026-11-11 — Reminders: daily ones and per Action (Shaun's answers)
 
 - **Daily** (Settings → Reminders, `ledger_meta/reminders`): Morning Prime, Evening
@@ -2696,7 +2712,11 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy, then set them)
+Owner: Shaun (set up, deploy, connect)
+**Outlook & Teams sweep**: follow `docs/MICROSOFT_365.md` (Azure app registration, then the
+`MS_CLIENT_ID` variable), deploy Everything, then Connect in Comms sweep channels.
+
+**Before that** — Owner: Shaun (deploy, then set them)
 **Reminders**: Actions → Deploy Firebase → Everything (functions and the new index). Then
 Settings → Reminders, and make sure notifications are on for each device.
 
@@ -2952,6 +2972,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-11) — **Outlook & Teams in the sweep** (decision above). connect.test 21 (stand-in
+  Microsoft), rules 786 (5 new), comms-capture 50 (8 new: button, mapping, no duplicates).
+  Not tried against real Microsoft: that needs Shaun's app registration.
 - (2026-11-11) — **Reminders** (decision above). remind.test 21 on the Firestore emulator:
   minute, once, days, timezone (Dubai), skip-when-done for each built-in, grace window,
   Actions (done, other days, re-arm, moved). Added to the deploy workflow's test gate.

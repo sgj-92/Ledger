@@ -494,6 +494,13 @@
     font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text-3); letter-spacing: 0.01em; }
   .flow-done-toggle:active { opacity: 0.6; }
   /* Flow Select: quiet words under the heading; the bar floats above the tab bar */
+  /* Outlook & Teams in the sweep (2026-11-11) */
+  .sw-ms:empty { display: none; }
+  .sw-ms { margin: -4px 0 12px; }
+  .sw-ms-set { margin: 4px 0 18px; }
+  .sw-ms-set .set-row.static { gap: 10px; }
+  .sw-ms-set .set-row-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sw-ms-set .field { margin: 12px 0 0; }
   /* Reminders (2026-11-11) */
   .commit-remind .cr-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .commit-remind .cr-row input[type="time"] { flex: 0 0 140px; }
@@ -7759,6 +7766,10 @@
           if (!snap.metadata || !snap.metadata.fromCache) shareLoaded.sessions = true;
           renderAll();
         }, ownerDataError);
+      // connected accounts (2026-11-11): whether Microsoft 365 is on — never its sign-in
+      dbRef.collection('ledger_meta').doc('connections').onSnapshot(function(doc){
+        msConn = doc.exists ? ((doc.data() || {}).microsoft || null) : null;
+      }, function(err){ console.error('connections snapshot error', err); });
       // reminders (2026-11-11): the daily ones and the timezone they're meant in
       dbRef.collection('ledger_meta').doc('reminders').onSnapshot(function(doc){
         remindCfg = doc.exists ? (doc.data() || {}) : { tz: null, items: [] };
@@ -7785,6 +7796,7 @@
           presets.claudeUrl = data.claudeUrl || null;
           presets.exerciseAliases = data.exerciseAliases || null;   // Settings → Exercises merges
           presets.sweepChannels = data.sweepChannels || null;       // Comms sweep channels (2026-11-10 fix)
+          presets.sweepSources = data.sweepSources || null;         // where Outlook / Teams names go
           // anything else on the document is kept as it is: a field this handler doesn't
           // name must never be lost when this device next saves the presets (2026-11-10)
           Object.keys(data).forEach(function(k){
@@ -7899,7 +7911,7 @@
 
   // the fields the presets listener sets itself (with their defaults); any other field is copied as stored
   var PRESET_NAMED = ['cardioTypes', 'exercises', 'targetWeightKg', 'prioritiesSeeded', 'routines', 'weekStartsOn',
-    'trainingTarget', 'shareTemplates', 'claudeUrl', 'exerciseAliases', 'sweepChannels'];
+    'trainingTarget', 'shareTemplates', 'claudeUrl', 'exerciseAliases', 'sweepChannels', 'sweepSources'];
   async function savePresets(){
     if (dbReady && dbRef){
       try { await dbRef.collection('ledger_meta').doc('presets').set(presets); return; }
@@ -12286,7 +12298,9 @@
     return sweepPatch(dateStr, function(sw){
       var now = new Date().toISOString();
       entries.slice(0, 60).forEach(function(e){
-        sw.items.push({ id: uid(), name: String(e.name).slice(0, 80), channel: e.channel ? String(e.channel).slice(0, 40) : null, done: false, doneAt: null, at: now });
+        var it = { id: uid(), name: String(e.name).slice(0, 80), channel: e.channel ? String(e.channel).slice(0, 40) : null, done: false, doneAt: null, at: now };
+        if (e.src) it.src = String(e.src).slice(0, 300);      // where a pulled name came from (Outlook/Teams)
+        sw.items.push(it);
       });
     });
   }
@@ -12580,11 +12594,79 @@
   }
 
   // the sweep itself: each channel in turn, the names, and the list as it grows
+  // ---- Outlook & Teams for the sweep (2026-11-11; functions/connect.js) ----
+  // Microsoft 365, connected once: "Check Outlook & Teams" asks the server who is waiting
+  // for a reply and adds those names to Replies under the channels he chose. Names only;
+  // the sign-in itself never reaches this page (ledger_meta/connections says if it's on).
+  var msConn = null;          // { connected, account, lastPullAt, expired }
+  function connectionsUrl(){ return assistantUrl().replace(/\/assistant$/, '/connections'); }
+  function msAvailable(){ return !LOCAL_ONLY && authRole === 'owner' && dbReady && !!authUser; }
+  function msConnected(){ return msAvailable() && !!(msConn && msConn.connected); }
+  function connectionsCall(body){
+    return authUser.getIdToken().then(function(token){
+      return fetch(connectionsUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify(body) });
+    }).then(function(r){
+      return r.json().then(function(b){ return { ok: r.ok, body: b || {} }; }, function(){ return { ok: false, body: {} }; });
+    }, function(){ return { ok: false, body: { error: 'Couldn\u2019t reach Ledger. Check your connection.' } }; });
+  }
+  // which of his channels each kind lands in: chosen, or the closest name he has
+  function msChannelFor(kind){
+    var chans = sweepChannels(), map = (presets && presets.sweepSources) || {};
+    if (map[kind] && chans.indexOf(map[kind]) > -1) return map[kind];
+    var re = kind === 'teams' ? /teams/i : /e-?mail|outlook/i;
+    return chans.filter(function(c){ return re.test(c); })[0] || (kind === 'teams' ? 'Teams' : 'Email');
+  }
+  function msConnect(){
+    connectionsCall({ action: 'start' }).then(function(res){
+      if (res.ok && res.body.url && /^https:\/\/login\.microsoftonline\.com\//.test(res.body.url)) location.href = res.body.url;
+      else showPinToast(res.body.error || 'Couldn\u2019t start the sign-in.', true);
+    });
+  }
+  function msDisconnect(after){
+    connectionsCall({ action: 'disconnect' }).then(function(res){
+      showPinToast(res.ok ? 'Outlook & Teams disconnected' : (res.body.error || 'Couldn\u2019t disconnect.'), !res.ok, res.ok ? CHECK_SVG : null);
+      if (after) after();
+    });
+  }
+  // the pull: new names only — not one already on the list from the same message, nor
+  // anyone already waiting on that channel
+  function msPull(dateStr, btn){
+    if (btn){ btn.disabled = true; btn.dataset.label = btn.dataset.label || btn.textContent; btn.lastChild.textContent = 'Checking\u2026'; }
+    return connectionsCall({ action: 'pull' }).then(function(res){
+      if (btn){ btn.disabled = false; btn.lastChild.textContent = 'Check Outlook & Teams'; }
+      if (!res.ok){ showPinToast(res.body.error || 'Couldn\u2019t check Outlook & Teams.', true); return; }
+      var seenSrc = {}, waiting = {};
+      plans.forEach(function(p){ ((p.sweep && p.sweep.items) || []).forEach(function(x){ if (x.src) seenSrc[x.src] = true; }); });
+      sweepList(dateStr).forEach(function(x){ if (!x.item.done) waiting[(x.item.channel || '') + '|' + String(x.item.name).toLowerCase()] = true; });
+      var add = [];
+      (res.body.found || []).forEach(function(f){
+        var ch = msChannelFor(f.source === 'teams' ? 'teams' : 'mail'), k = ch + '|' + String(f.name).toLowerCase();
+        if (!f.name || seenSrc[f.key] || waiting[k]) return;
+        waiting[k] = true;
+        add.push({ name: f.name, channel: ch, src: f.key });
+      });
+      var part = (res.body.errors || []).length ? ' (' + res.body.errors.map(function(e){ return e === 'mail' ? 'Outlook' : 'Teams'; }).join(' and ') + ' didn\u2019t answer)' : '';
+      if (!add.length){ showPinToast('Nothing new from Outlook & Teams' + part, false, CHECK_SVG); return; }
+      return sweepAdd(dateStr, add).then(function(){
+        sweepChanged();
+        showPinToast((add.length === 1 ? '1 added' : add.length + ' added') + ' from Outlook & Teams' + part, false, CHECK_SVG);
+      });
+    });
+  }
+  function msPullButton(dateStr){
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'dpa-add-btn quiet sw-ms-pull';
+    b.innerHTML = UI_ICON.chat + '<span>Check Outlook & Teams</span>';
+    b.addEventListener('click', function(){ msPull(dateStr, b); });
+    return b;
+  }
+
   function openSweepSheet(dateStr){
     editingId = null;
     var st = { channel: null };
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
       sheetHead(UI_ICON.chat, 'Comms sweep', 'Go through each channel. Note who needs a reply.', '') +
+      '<div class="sw-ms" id="swMs"></div>' +
       '<div class="sw-chans" id="swChans" role="group" aria-label="Channels"></div>' +
       '<p class="sw-hint" id="swHint"></p>' +
       '<div class="hl-add sw-add"><textarea id="swText" rows="1" maxlength="4000" enterkeyhint="next" aria-label="Who needs a reply"></textarea>' +
@@ -12594,6 +12676,7 @@
       '<button type="button" class="btn-quiet" id="swEdit">Edit channels</button>';
     backdrop.classList.add('open');
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    if (msConnected()) document.getElementById('swMs').appendChild(msPullButton(dateStr));
     var ta = document.getElementById('swText'), addBtn = document.getElementById('swAddBtn');
     var chansEl = document.getElementById('swChans'), hint = document.getElementById('swHint'), listEl = document.getElementById('swList');
     function size(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; addBtn.disabled = !ta.value.trim(); }
@@ -12665,6 +12748,18 @@
     sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
       sheetHead(UI_ICON.chat, 'Comms sweep channels', 'The places you check for messages, in the order you go through them.', '') +
       '<div class="field"><label for="swChText">Channels <span class="pp-opt">one per line</span></label><textarea id="swChText" rows="7" maxlength="800"></textarea></div>' +
+      // Microsoft 365 (2026-11-11): who's waiting in Outlook and Teams, added for him
+      (msAvailable()
+        ? '<div class="set-group sw-ms-set"><span class="set-group-label">Outlook & Teams</span>' +
+            '<div class="set-card"><div class="set-row static"><span class="set-row-label" id="swMsState"></span>' +
+              '<button type="button" class="btn-link" id="swMsBtn"></button></div></div>' +
+            (msConnected()
+              ? fieldSelect('swMsMail', 'Outlook mail goes to', sweepChannels().map(function(c, i){ return { value: String(i), label: '' }; }), String(Math.max(0, sweepChannels().indexOf(msChannelFor('mail'))))) +
+                fieldSelect('swMsTeams', 'Teams chats go to', sweepChannels().map(function(c, i){ return { value: String(i), label: '' }; }), String(Math.max(0, sweepChannels().indexOf(msChannelFor('teams')))))
+              : '') +
+            '<p class="set-note">Adds who\u2019s waiting for a reply \u2014 names only, never what they wrote. WhatsApp, Instagram and LinkedIn can\u2019t be read by any app, so they stay yours to note.</p>' +
+          '</div>'
+        : '') +
       '<button type="button" class="btn-primary" id="swChSave">Save</button>' +
       '<button type="button" class="btn-quiet" id="swChBack">' + (fromSettings ? 'Back to settings' : 'Back to the sweep') + '</button>';
     backdrop.classList.add('open');
@@ -12672,12 +12767,32 @@
     document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
     var ta = document.getElementById('swChText');
     ta.value = sweepChannels().join('\n');
+    var msState = document.getElementById('swMsState'), msBtn = document.getElementById('swMsBtn');
+    if (msState){
+      var on = msConnected();
+      msState.textContent = on ? 'Connected \u00b7 ' + (msConn.account || 'Microsoft 365')
+        : (msConn && msConn.expired ? 'Needs connecting again' : 'Not connected');
+      msBtn.textContent = on ? 'Disconnect' : 'Connect';
+      msBtn.addEventListener('click', function(){
+        if (on) msDisconnect(function(){ setTimeout(function(){ openSweepChannelsSheet(fromSettings, backTo); }, 600); });
+        else msConnect();
+      });
+      ['swMsMail', 'swMsTeams'].forEach(function(id){
+        var sel = document.getElementById(id);
+        if (sel) sweepChannels().forEach(function(c, i){ if (sel.options[i]) sel.options[i].textContent = c; });   // his names, as text
+      });
+    }
     function back(){ if (fromSettings) openSettingsSheet(); else openSweepSheet(backTo || todayStr()); }
     document.getElementById('swChBack').addEventListener('click', back);
     document.getElementById('swChSave').addEventListener('click', async function(){
       var seen = {}, list = hbParse(ta.value).map(function(x){ return x.slice(0, 40); }).filter(function(x){
         var k = x.toLowerCase(); if (seen[k]) return false; seen[k] = true; return true;
       }).slice(0, 20);
+      var before = sweepChannels();
+      var pick = function(id){ var el = document.getElementById(id); return el ? before[Number(el.value)] || null : null; };
+      if (document.getElementById('swMsMail')){
+        presets.sweepSources = Object.assign({}, presets.sweepSources || {}, { mail: pick('swMsMail'), teams: pick('swMsTeams') });
+      }
       presets.sweepChannels = list.length ? list : SWEEP_DEFAULT_CHANNELS.slice();
       await savePresets();
       back();
@@ -31914,6 +32029,14 @@
   // 404. Each waits for sign-in and its data, then opens once and leaves the address bar
   // clean. Ids are only ever compared, never written into the page.
   var deepLinkParams = new URLSearchParams(window.location.search);
+  // back from Microsoft's sign-in (functions/connect.js): say how it went, once
+  (function(){
+    var v = deepLinkParams.get('connected');
+    if (!v) return;
+    try { history.replaceState(null, '', window.location.pathname); } catch(e){}
+    var say = v === 'microsoft' ? 'Outlook & Teams connected' : v === 'cancelled' ? 'Connecting was cancelled' : 'Couldn\u2019t connect Outlook & Teams. Try again.';
+    setTimeout(function(){ showPinToast(say, v !== 'microsoft' && v !== 'cancelled', v === 'microsoft' ? CHECK_SVG : null); }, 2500);
+  })();
   var DEEP = { action: deepLinkParams.get('openAction'), request: deepLinkParams.get('request'), view: deepLinkParams.get('view'), sprint: deepLinkParams.get('sprint'), home: deepLinkParams.get('home'), open: deepLinkParams.get('open') };
   var deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view || DEEP.sprint || DEEP.home || DEEP.open);
   function deepLinkDone(){

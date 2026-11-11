@@ -206,6 +206,12 @@ service cloud.firestore {
     match /ledger_push_events/{eventId} {
       allow read, write: if false;
     }
+    // Connected accounts (functions/connect.js, 2026-11-11): Microsoft 365's refresh token
+    // and the one-time sign-in states. Server only — not even the owner's own pages. The
+    // app sees only ledger_meta/connections (connected or not, the account).
+    match /ledger_connections/{docId=**} {
+      allow read, write: if false;
+    }
 
     // ---- Home: Shaun, Abi and the people who help at home ----
     // A separate shared namespace. Nothing here reads or reaches a private Ledger
