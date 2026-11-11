@@ -61,7 +61,9 @@ On github.com, signed in as `sgj-92`:
 2. **Deployment branches and tags:** "Selected branches" → add `main`.
 3. **Required reviewers** (optional): add yourself. Each deploy then waits for your tap.
 4. **Environment variables:** add these, with the values the script printed. They are
-   what `functions/.env` holds on the Mac. None of them is a secret.
+   what `functions/.env` holds on the Mac. None of them is a secret. Every function
+   setting must have a value: a deploy can't stop to ask, so the workflow fills in the
+   optional ones.
 
    | Name | Value |
    | --- | --- |
@@ -69,6 +71,7 @@ On github.com, signed in as `sgj-92`:
    | `VAPID_SUBJECT` | `mailto:` your email |
    | `FUNCTIONS_REGION` | where the functions run, e.g. `europe-west2` |
    | `APP_URL` | optional; `https://ledger.sgj.luxe/` by default |
+   | `MS_CLIENT_ID` | optional; Outlook & Teams for the Comms sweep (`docs/MICROSOFT_365.md`). Left out, the deploy writes `not-set` and Connect says it isn't set up yet |
 
 ### 3. Try it
 

@@ -3028,6 +3028,10 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-11) — **Deploy fix: `MS_CLIENT_ID`.** The Deploy Firebase workflow failed with
+  "no value for MS_CLIENT_ID". The CLI doesn't use a param's default when it can't prompt.
+  The workflow now always writes `MS_CLIENT_ID` (`not-set` unless the variable is set) and
+  `APP_URL`. Shaun: run Deploy Firebase → Everything again.
 - (2026-11-11) — **Me → Goals rebuilt; the quarter review** (decision above).
   - Tests: rules 794 (8 new: `ledger_quarters` owner-only), remind 32 (5 new: the quarter
     prompt), goals e2e 35 (12 new: This week, the goal page with a value added, a quarter

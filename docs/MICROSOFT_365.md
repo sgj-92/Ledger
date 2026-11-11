@@ -61,7 +61,9 @@ the app passes Google's security review, so it's left for later.
 7. **Choose channels** in the same sheet: which channel Outlook mail and Teams chats go
    under (for example *Email - S&J* and *Teams - S&J*).
 
-Without `MS_CLIENT_ID`, deploys still work and **Connect** says it isn't set up yet.
+Without `MS_CLIENT_ID`, the deploy workflow writes `MS_CLIENT_ID=not-set`, deploys still work, and
+**Connect** says it isn't set up yet. Deploying from the Mac instead, add `MS_CLIENT_ID=not-set`
+to `functions/.env` until the real ID exists, or the deploy stops to ask for it.
 
 ## Tests
 
