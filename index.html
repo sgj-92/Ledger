@@ -1136,6 +1136,42 @@
   .wk-chev { width: 13px; height: 13px; color: var(--text-3); transition: transform 0.18s ease; }
   .wk-panel.folded .wk-chev { transform: rotate(-90deg); }
   .wk-list[hidden] { display: none; }
+  /* the weekly reviews (2026-11-11) */
+  #weekReviewCard:empty { display: none; }
+  #weekReviewCard { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--sp-4); }
+  .wr-card { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 14px; border-radius: var(--r-lg); cursor: pointer; text-align: left;
+    border: 1px solid rgba(var(--gold-rgb),0.35); background: rgba(var(--gold-rgb),0.07); font-family: var(--sans); color: var(--text); }
+  .wr-card:active { opacity: 0.7; }
+  .wr-ic { width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--gold); border: 1px solid rgba(var(--gold-rgb),0.4); }
+  .wr-ic svg { width: 16px; height: 16px; }
+  .wr-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .wr-title { font-size: 15px; font-weight: 600; }
+  .wr-sub { font-size: 12.5px; color: var(--text-2); }
+  .wr-sec { margin-bottom: var(--sp-5); }
+  .wr-sec .sec-head { margin-bottom: 8px; }
+  .wr-out { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .wr-out-t { font-size: 15px; color: var(--text); }
+  .wr-out-m { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .wr-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .wr-line { margin: 0 0 6px; font-size: 13.5px; line-height: 1.45; color: var(--text); overflow-wrap: anywhere; }
+  .wr-line.quiet { color: var(--text-3); }
+  .wr-goalline { margin-bottom: 10px; }
+  .wr-measure { margin-bottom: 12px; }
+  .wr-done { display: flex; gap: 8px; align-items: center; margin: -4px 0 14px; font-size: 13px; color: var(--gold); }
+  .wr-done svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .wk-reviews { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0 4px; }
+  .wk-review svg { width: 12px; height: 12px; margin-right: 4px; vertical-align: -1px; }
+  .ac-back { margin: 10px 0 4px; width: 100%; }
+  /* the goal line (2026-11-11): counts, quietly */
+  .goal-line { display: flex; gap: 9px; align-items: flex-start; margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--text-2); }
+  .goal-line .gl-ic { flex-shrink: 0; width: 15px; height: 15px; margin-top: 2px; color: var(--gold); display: flex; }
+  .goal-line .gl-ic svg { width: 100%; height: 100%; }
+  .goal-line .gl-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .goal-line .gl-main { color: var(--text); font-weight: 500; }
+  .goal-line .gl-idle { color: var(--text-3); overflow-wrap: anywhere; }
+  .wk-goalline { padding: 12px 0 4px; }
+  .wk-panel.folded .wk-goalline { padding-bottom: 12px; }
+  .wd-goalline { padding: 4px 0 12px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
   .wk-empty { font-size: 13px; color: var(--text-3); margin: 0; padding: 13px 0 9px; line-height: 1.45; }
   .wk-area { font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); padding: 12px 0 2px; }
   .wk-row {
@@ -5874,6 +5910,7 @@
     <div class="today-top">
     <div id="challengeStrip"></div>
     <div id="catchUpBanner"></div>
+    <div id="weekReviewCard"></div>
 
     <div id="morningPrime"></div>
     <!-- Current Focus: the one thing being done now, on every device -->
@@ -11294,7 +11331,7 @@
     } else if (c.kind === 'checklist_add'){
       verb = 'Add to'; title = (c.before || {}).text;
       (c.items || []).forEach(function(t){ lines.push('\u2022 ' + t); });
-    } else if (/^(session_create|session_update|session_delete|steps_set|food_add|goal_value|day_note|intention|comms_log|person_spoke|life_context|goal_create|goal_update|outcome_add|outcome_result|conv_state)$/.test(c.kind)){
+    } else if (/^(session_create|session_update|session_delete|steps_set|food_add|goal_value|day_note|intention|comms_log|person_spoke|life_context|goal_create|goal_update|outcome_add|outcome_result|review_draft|conv_state)$/.test(c.kind)){
       return acLedgerView(c, day);
     }
     return { verb: verb, title: title || '', lines: lines, danger: danger };
@@ -11374,6 +11411,12 @@
       var o = c.outcome || {};
       verb = 'New outcome'; title = o.text;
       lines.push([relativeWeekLabel(new Date(c.id + 'T00:00:00')), c.goal || GOAL_AREA_LABEL[o.area]].filter(Boolean).join(' \u00b7 '));
+    } else if (c.kind === 'review_draft'){
+      verb = 'Draft'; title = (REVIEWS[c.area] ? REVIEWS[c.area].title : 'Weekly review') + ' \u00b7 ' + relativeWeekLabel(new Date(c.id + 'T00:00:00'));
+      var dr = c.draft || {};
+      [['', dr.summary], ['Wins: ', dr.wins], ['Didn\u2019t move: ', dr.misses], ['Patterns: ', dr.patterns], ['Next week: ', dr.next]].forEach(function(x){
+        if (x[1]) lines.push(x[0] + x[1]);
+      });
     } else if (c.kind === 'outcome_result'){
       var RS = { done: 'Done', partly: 'Partly', not: 'Not this week' };
       verb = 'Outcome'; title = c.text;
@@ -11521,6 +11564,13 @@
       w.innerHTML = '<span></span><span></span><span></span>';
       w.setAttribute('aria-label', 'Claude is working');
       box.appendChild(w);
+    }
+    if (acState.back && !acState.busy && acState.turns.length){
+      var bk = document.createElement('button');
+      bk.type = 'button'; bk.className = 'btn-secondary ac-back';
+      bk.textContent = acState.back.label;
+      bk.addEventListener('click', acState.back.go);
+      box.appendChild(bk);
     }
     var send = document.getElementById('acSend');
     if (send) send.disabled = acState.busy;
@@ -11793,6 +11843,17 @@
       saveOutcome(c.id, c.outcome);
       return { ok: true, undo: { kind: 'outcome_del', ws: c.id, id: c.outcome.id } };
     }
+    if (c.kind === 'review_draft'){
+      // into the review as a draft he edits; an approved review is never overwritten
+      if (!REVIEWS[c.area]) return { ok: false, why: 'that review isn\u2019t known' };
+      if (weekReview(c.id, c.area)) return { ok: false, why: 'that review is already approved' };
+      var wasDraft = weekDraft(c.id, c.area);
+      saveWeekPatch(c.id, function(rec){
+        rec.reviewDrafts = rec.reviewDrafts || {};
+        rec.reviewDrafts[c.area] = Object.assign({}, c.draft, { draftedAt: new Date().toISOString(), by: 'claude' });
+      });
+      return { ok: true, undo: { kind: 'review_draft', ws: c.id, area: c.area, was: wasDraft ? JSON.parse(JSON.stringify(wasDraft)) : null } };
+    }
     if (c.kind === 'outcome_result'){
       var oc = outcomeById(c.outcomeId);
       if (!oc) return { ok: false, why: 'that outcome is gone' };
@@ -11878,6 +11939,14 @@
     if (u.kind === 'outcome_del'){
       if (!outcomeById(u.id)) return false;
       saveWeekOutcomes(u.ws, weekOutcomes(u.ws).filter(function(x){ return x.id !== u.id; }));
+      return true;
+    }
+    if (u.kind === 'review_draft'){
+      if (weekReview(u.ws, u.area)) return false;
+      saveWeekPatch(u.ws, function(rec){
+        rec.reviewDrafts = rec.reviewDrafts || {};
+        if (u.was) rec.reviewDrafts[u.area] = u.was; else delete rec.reviewDrafts[u.area];
+      });
       return true;
     }
     if (u.kind === 'outcome_result'){
@@ -24743,7 +24812,10 @@
   var REMIND_BUILTIN = [
     { kind: 'prime', label: 'Morning Prime', time: '07:30', days: [1, 2, 3, 4, 5] },
     { kind: 'windDown', label: 'Evening Wind-down', time: '21:00', days: [] },
-    { kind: 'sweep', label: 'Comms sweep', time: '12:00', days: [1, 2, 3, 4, 5] }
+    { kind: 'sweep', label: 'Comms sweep', time: '12:00', days: [1, 2, 3, 4, 5] },
+    // the weekly reviews' prompts: on unless he turns them off (as the server assumes)
+    { kind: 'reviewBusiness', label: 'Friday review', time: '15:00', days: [5], on: true },
+    { kind: 'reviewPersonal', label: 'Sunday review', time: '17:00', days: [0], on: true }
   ];
   var REMIND_DAYS = [{ v: 1, l: 'M' }, { v: 2, l: 'T' }, { v: 3, l: 'W' }, { v: 4, l: 'T' }, { v: 5, l: 'F' }, { v: 6, l: 'S' }, { v: 0, l: 'S' }];
   var REMIND_LOCAL_KEY = 'ledger_reminders_fallback';
@@ -24757,7 +24829,7 @@
     var items = Array.isArray(remindCfg.items) ? remindCfg.items : [];
     var out = REMIND_BUILTIN.map(function(b){
       var st = items.filter(function(x){ return x && x.kind === b.kind; })[0];
-      return st ? Object.assign({}, st) : { id: b.kind, kind: b.kind, time: b.time, days: b.days.slice(), on: false };
+      return st ? Object.assign({}, st) : { id: b.kind, kind: b.kind, time: b.time, days: b.days.slice(), on: !!b.on };
     });
     return out.concat(items.filter(function(x){ return x && x.kind === 'custom'; }).map(function(x){ return Object.assign({}, x); }));
   }
@@ -24794,7 +24866,7 @@
     var items = remindItems();
     function draw(){
       sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
-        sheetHead(BELL_SVG, 'Reminders', 'A notification on your devices at these times. Morning Prime, Wind-down and the sweep stay quiet once they’re done.', '') +
+        sheetHead(BELL_SVG, 'Reminders', 'A notification on your devices at these times. Morning Prime, Wind-down, the sweep and the weekly reviews stay quiet once they’re done.', '') +
         '<div class="rm-list" id="rmList"></div>' +
         '<button type="button" class="dpa-add-btn" id="rmAdd">' + BK_PLUS_SVG + 'Add a reminder</button>' +
         '<p class="set-note rm-note">' + (LOCAL_ONLY
@@ -24872,6 +24944,8 @@
   // a link from a reminder: ?open=prime | winddown | sweep
   function openFromReminder(what){
     var t = todayStr();
+    var ra = reviewAreaFromOpen(what);
+    if (ra){ viewedDate = t; goView('log'); renderAll(); openWeekReviewSheet(ra, ra === 'personal' && new Date().getDay() === 1 ? reviewWeekFor(ra, fmtDate(addDays(t, -1))) : reviewWeekFor(ra, t)); return true; }
     if (what === 'prime'){ openPrimeOnToday(); return true; }
     if (what === 'sweep'){ viewedDate = t; goView('log'); renderAll(); openSweepSheet(t); return true; }
     if (what === 'winddown'){
@@ -25667,6 +25741,7 @@
       '</button>' +
       '<div class="wd-body' + (expanded ? '' : ' collapsed') + '" id="wdBody">' +
         '<div class="wd-panel">' +
+          '<div id="wdGoalLine"></div>' +
           routineRowHtml(checks[0], {}) + routineRowHtml(checks[1], {}) +
           st.items.map(function(x){ return routineRowHtml(x, {}); }).join('') +
           (st.complete
@@ -25678,6 +25753,8 @@
       '</div>';
 
     fillRoutineLabels(wrap, checks.concat(st.items));
+    var wgl = goalLineEl(weekOf(dateStr), null, 'wd-goalline');
+    if (wgl) document.getElementById('wdGoalLine').appendChild(wgl);
     wireRoutineRows(wrap, 'windDown', dateStr, st.items, renderWindDown);
     wrap.querySelector('[data-rt-open="wd-check-review"]').addEventListener('click', function(e){ e.stopPropagation(); openCatchUpSheet(dateStr); });
     wrap.querySelector('[data-rt-open="wd-check-plan"]').addEventListener('click', function(e){
@@ -25709,6 +25786,7 @@
     renderInboxSection();
     renderBacklogSection();
     renderCatchUpBanner();
+    renderWeekReviewCard();
     renderShareLiveLine();
     sharingSourcesChanged();
     renderTodayPlanWidget();
@@ -29984,6 +30062,63 @@
   }
   function actionServesGoal(c, p){ return actionGoalIds(c).indexOf(p.id) > -1; }
 
+  // ---- the goal line (2026-11-11): does the week's work move a goal? ----
+  // "8 of 14 Actions this week move a goal · No time yet: Pipeline". Counts only, never a
+  // score or a colour. An Action's area is its goal's, or else its category's (§8, q. 2).
+  var CATEGORY_AREA = { work: 'business', success: 'business', communicate: 'business', family: 'personal', personal: 'personal', training: 'personal' };
+  function actionArea(c){
+    var ids = actionGoalIds(c);
+    for (var i = 0; i < ids.length; i++){ var a = goalArea(goalById(ids[i])); if (a) return a; }
+    return CATEGORY_AREA[c.category] || null;
+  }
+  // the goals a week is for: its quarter's 90-day goals, and this year's goals with none under them
+  function weekTargetGoals(ws){
+    var q = quarterOf(ws), y = ws.slice(0, 4), act = activeGoals();
+    var quarters = act.filter(function(p){ return goalHorizon(p) === 'quarter' && goalPeriod(p) === q; });
+    var years = act.filter(function(p){
+      return goalHorizon(p) === 'year' && goalPeriod(p) === y && !quarters.some(function(x){ return x.parentId === p.id; });
+    });
+    return quarters.concat(years).sort(byGoalOrder);
+  }
+  function weekGoalLine(ws, area){
+    var end = fmtDate(addDays(ws, 6));
+    var acts = commitments.filter(function(c){
+      return c.date >= ws && c.date <= end && c.category !== 'roadblock' && (!area || actionArea(c) === area);
+    });
+    var moving = acts.filter(function(c){ return actionGoalIds(c).length > 0; });
+    var goals = weekTargetGoals(ws).filter(function(p){ return !area || goalArea(p) === area; });
+    var idle = goals.filter(function(p){ return !acts.some(function(c){ return actionServesGoal(c, p); }); });
+    return { ws: ws, past: end < todayStr(), total: acts.length, moving: moving.length,
+      movingDone: moving.filter(function(c){ return c.status === 'completed'; }).length, goals: goals, idle: idle, acts: acts };
+  }
+  // { main, idle } as text, or null when there are no goals to measure against
+  function goalLineText(gl, area){
+    if (!gl.goals.length && !gl.moving) return null;
+    var main = gl.total
+      ? gl.moving + ' of ' + plural(gl.total, 'Action') + (gl.past ? ' moved' : ' this week move') + ' a goal'
+      : (gl.past ? 'No Actions that week' : 'No Actions yet this week');
+    var both = !area && GOAL_AREAS.every(function(a){ return gl.idle.some(function(p){ return goalArea(p) === a.key; }); });
+    var names = gl.idle.slice(0, 3).map(function(p){
+      var t = String(p.title || '').trim(); if (t.length > 32) t = t.slice(0, 31).trim() + '\u2026';
+      var a = goalArea(p);
+      return (both && a ? (a === 'business' ? 'Business: ' : 'Personal: ') : '') + t;
+    });
+    var idle = gl.idle.length
+      ? (gl.past ? 'No time: ' : 'No time yet: ') + names.join(', ') + (gl.idle.length > 3 ? ' and ' + (gl.idle.length - 3) + ' more' : '')
+      : (gl.goals.length ? (gl.past ? 'Every goal got time' : 'Every goal has time this week') : '');
+    return { main: main, idle: idle };
+  }
+  function goalLineEl(ws, area, cls){
+    var t = goalLineText(weekGoalLine(ws, area), area);
+    if (!t) return null;
+    var el = document.createElement('p');
+    el.className = 'goal-line' + (cls ? ' ' + cls : '');
+    el.innerHTML = '<span class="gl-ic" aria-hidden="true">' + UI_ICON.target + '</span><span class="gl-text"><span class="gl-main"></span><span class="gl-idle"></span></span>';
+    el.querySelector('.gl-main').textContent = t.main;
+    if (t.idle) el.querySelector('.gl-idle').textContent = t.idle; else el.querySelector('.gl-idle').remove();
+    return el;
+  }
+
   function renderPriorities(){
     var list = document.getElementById('prioritiesList');
     if (!list) return;
@@ -30308,7 +30443,7 @@
   function weeksChanged(){
     if (currentView === 'plan') renderPlan();
     if (currentView === 'focus') renderFocus();
-    if (currentView === 'log') renderCommitments();
+    if (currentView === 'log'){ renderCommitments(); renderWeekReviewCard(); renderWindDown(); }
     if (activeSheetRefresh) activeSheetRefresh();
   }
   function weekOf(ds){ return fmtDate(weekStartFor(new Date((ds || todayStr()) + 'T00:00:00'))); }
@@ -30413,6 +30548,8 @@
       '<div class="wk-list" data-role="wk-list"' + (folded ? ' hidden' : '') + '></div>';
     box.classList.toggle('folded', folded);
     var list = box.querySelector('[data-role="wk-list"]');
+    var gle = goalLineEl(ws, null, 'wk-goalline');
+    if (gle) list.parentNode.insertBefore(gle, list);
     if (!outs.length){
       var p = document.createElement('p');
       p.className = 'wk-empty';
@@ -30436,6 +30573,20 @@
       }
       g.items.forEach(function(o){ list.appendChild(outcomeRowEl(o, function(x){ openOutcomeSheet(ws, x); })); });
     });
+    // the week's two reviews, from its Friday on (done ones say so)
+    if (todayStr() >= weekDayOf(ws, 5)){
+      var rv = document.createElement('div'); rv.className = 'wk-reviews';
+      ['business', 'personal'].forEach(function(a){
+        var b = document.createElement('button'); b.type = 'button';
+        var ok = !!weekReview(ws, a);
+        b.className = 'cd-chip wk-review' + (ok ? ' sel' : '');
+        b.innerHTML = (ok ? CHECK_SVG : '') + '<span></span>';
+        b.lastChild.textContent = REVIEWS[a].title;
+        b.addEventListener('click', function(){ openWeekReviewSheet(a, ws); });
+        rv.appendChild(b);
+      });
+      list.appendChild(rv);
+    }
     box.querySelector('[data-role="wk-add"]').addEventListener('click', function(){ openOutcomeSheet(ws, null); });
     box.querySelector('[data-role="wk-fold"]').addEventListener('click', function(){
       if (!outs.length) return;
@@ -30443,6 +30594,278 @@
       renderPlanOutcomes();
     });
   }
+
+  // ============ The weekly reviews (2026-11-11; docs/GOALS_AND_REVIEW.md §5) ============
+  // Friday: business, Monday to Friday. Sunday: personal, the whole week. Each shows the
+  // week's evidence from the records, the measures to update, and the review itself —
+  // Shaun's words, or Claude's draft that he edits. Approved, it's saved on the week
+  // (ledger_weeks/{week start}.reviews.{area}); a draft waits in reviewDrafts.{area}.
+  var REVIEWS = {
+    business: { title: 'Friday review', label: 'Business', dow: 5, hour: 15, span: 'Monday to Friday' },
+    personal: { title: 'Sunday review', label: 'Personal', dow: 0, hour: 17, span: 'The whole week' }
+  };
+  var REVIEW_FIELDS = [
+    { k: 'summary', label: 'The week in a few lines', rows: 3, ph: 'What happened, plainly' },
+    { k: 'wins', label: 'Wins', rows: 2, ph: 'What went well' },
+    { k: 'misses', label: 'What didn’t move, and why', rows: 2, ph: 'Honest, not harsh' },
+    { k: 'patterns', label: 'Patterns', rows: 2, ph: 'Anything that keeps happening' },
+    { k: 'next', label: 'Next week', rows: 2, ph: 'What you’ll do differently, or keep' }
+  ];
+  function weekDayOf(ws, dow){
+    for (var i = 0; i < 7; i++){ var d = addDays(ws, i); if (d.getDay() === dow) return fmtDate(d); }
+    return fmtDate(addDays(ws, 6));
+  }
+  // the week a review covers: a Sunday review in a week that starts on Sunday looks back
+  function reviewWeekFor(area, ds){
+    var ws = weekOf(ds);
+    if (area === 'personal' && ws === ds && toLocalDate(ds).getDay() === 0) ws = weekOf(fmtDate(addDays(ds, -1)));
+    return ws;
+  }
+  function reviewEnd(ws, area){ return area === 'business' ? weekDayOf(ws, 5) : fmtDate(addDays(ws, 6)); }
+  function weekReview(ws, area){ var w = weeks[ws]; return (w && w.reviews && w.reviews[area] && w.reviews[area].at) ? w.reviews[area] : null; }
+  function weekDraft(ws, area){ var w = weeks[ws]; return (w && w.reviewDrafts && w.reviewDrafts[area]) || null; }
+  // build on the stored week, so outcomes and the other review survive
+  function saveWeekPatch(ws, fn){
+    var now = new Date().toISOString();
+    var rec = JSON.parse(JSON.stringify(weeks[ws] || {}));
+    fn(rec);
+    rec.updatedAt = now;
+    if (!rec.createdAt) rec.createdAt = now;
+    weeks[ws] = rec;
+    weeksLocalSave();
+    weeksChanged();
+    if (dbReady && dbRef) return dbRef.collection('ledger_weeks').doc(ws).set(rec).catch(function(e){ console.error('week save failed', e); });
+    return Promise.resolve();
+  }
+  // due now: business from Friday 15:00 to the week's end; personal from Sunday 17:00 to the end of Monday
+  function reviewsDue(){
+    var t = todayStr(), now = new Date(), out = [];
+    var wsB = weekOf(t), fri = weekDayOf(wsB, 5);
+    if ((t > fri || (t === fri && now.getHours() >= REVIEWS.business.hour)) && !weekReview(wsB, 'business')) out.push({ area: 'business', ws: wsB });
+    var dow = now.getDay(), wsP = null;
+    if (dow === 0 && now.getHours() >= REVIEWS.personal.hour) wsP = reviewWeekFor('personal', t);
+    if (dow === 1) wsP = reviewWeekFor('personal', fmtDate(addDays(t, -1)));
+    if (wsP && !weekReview(wsP, 'personal')) out.push({ area: 'personal', ws: wsP });
+    return out;
+  }
+  function renderWeekReviewCard(){
+    var box = document.getElementById('weekReviewCard');
+    if (!box) return;
+    box.innerHTML = '';
+    if (viewedDate !== todayStr()) return;
+    reviewsDue().forEach(function(r){
+      var R = REVIEWS[r.area], d = weekDraft(r.ws, r.area);
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'wr-card';
+      b.innerHTML = '<span class="wr-ic" aria-hidden="true">' + UI_ICON.chart + '</span>' +
+        '<span class="wr-body"><span class="wr-title"></span><span class="wr-sub"></span></span><span class="chev">' + UI_ICON.chevronRight + '</span>';
+      b.querySelector('.wr-title').textContent = R.title + ' · ' + R.label;
+      b.querySelector('.wr-sub').textContent = d ? 'A draft is waiting for you'
+        : r.area === 'business' ? 'How did the work week go? A few minutes.' : 'Look back on the week, then set up the next.';
+      b.addEventListener('click', function(){ openWeekReviewSheet(r.area, r.ws); });
+      box.appendChild(b);
+    });
+  }
+
+  // what the records say about the week, for one area
+  function reviewEvidence(ws, area){
+    var end = reviewEnd(ws, area), t = todayStr();
+    var acts = commitments.filter(function(c){ return c.date >= ws && c.date <= end && c.category !== 'roadblock' && actionArea(c) === area; });
+    var done = acts.filter(function(c){ return c.status === 'completed'; });
+    var open = acts.filter(function(c){ return c.status !== 'completed' && c.date <= t; });
+    var carried = acts.filter(function(c){ return actionOriginalDate(c) < ws; });
+    var ev = { end: end, acts: acts, done: done, open: open, carried: carried, lines: [] };
+    if (area === 'business'){
+      var cc = commsCounts(function(v){ return v.category !== 'personal'; });
+      ev.comms = cc;
+    } else {
+      var inWeek = function(x){ return x.date >= ws && x.date <= end; };
+      var trainDays = {};
+      sessions.filter(function(x){ return inWeek(x) && PLAN_TRAINING_TYPES.indexOf(x.type) > -1; }).forEach(function(x){ trainDays[x.date] = true; });
+      ev.trainingDays = Object.keys(trainDays).length;
+      var ws2 = sessions.filter(function(x){ return inWeek(x) && x.type === 'weight' && x.weightKg; }).sort(function(a, b){ return a.date < b.date ? -1 : 1; });
+      ev.weight = ws2.length ? { first: Number(ws2[0].weightKg), last: Number(ws2[ws2.length - 1].weightKg), n: ws2.length } : null;
+      ev.foodDays = sessions.filter(function(x){ return inWeek(x) && x.type === 'nutrition' && hasNutritionEvidence(x); }).length;
+      var days = 0, primed = 0;
+      for (var i = 0; i < 7; i++){
+        var d = fmtDate(addDays(ws, i));
+        if (d > t) break;
+        days++;
+        var pl = getPlanForDate(d);
+        if (pl && pl.morningPrime && pl.morningPrime.completedAt) primed++;
+      }
+      ev.prime = { done: primed, days: days };
+    }
+    return ev;
+  }
+
+  function openWeekReviewSheet(area, ws){
+    var R = REVIEWS[area];
+    if (!R) return;
+    editingId = null;
+    var saved = weekReview(ws, area), draft = weekDraft(ws, area);
+    var st = { fields: {}, measures: {} };
+    REVIEW_FIELDS.forEach(function(f){ st.fields[f.k] = (saved && saved[f.k]) || (draft && draft[f.k]) || ''; });
+    var draftSeen = draft ? draft.draftedAt : null;
+    function draw(){
+      // a draft that arrives while the sheet is open fills the fields still empty
+      var d2 = weekDraft(ws, area);
+      if (d2 && d2.draftedAt !== draftSeen){
+        draftSeen = d2.draftedAt;
+        REVIEW_FIELDS.forEach(function(f){ if (!String(st.fields[f.k] || '').trim() && d2[f.k]) st.fields[f.k] = d2[f.k]; });
+      }
+      var ev = reviewEvidence(ws, area);
+      var outs = weekOutcomes(ws).filter(function(o){ return outcomeArea(o) === area; });
+      var goals = activeGoals().filter(function(p){ return goalArea(p) === area && goalMeasure(p); });
+      var done = weekReview(ws, area);
+      sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+        sheetHead(UI_ICON.chart, R.title, R.label + ' · ' + R.span + ', week of ' + toLocalDate(ws).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) + '.', '') +
+        (done ? '<p class="wr-done">' + CHECK_SVG + '<span></span></p>' : '') +
+        '<div class="wr-sec"><div class="sec-head"><span class="sec-label">Outcomes</span><span class="sec-rule"></span></div><div id="wrOuts"></div></div>' +
+        '<div class="wr-sec"><div class="sec-head"><span class="sec-label">The week</span><span class="sec-rule"></span></div><div id="wrWeek"></div></div>' +
+        (goals.length ? '<div class="wr-sec"><div class="sec-head"><span class="sec-label">Measures</span><span class="sec-rule"></span></div><div id="wrMeasures"></div></div>' : '') +
+        '<div class="wr-sec"><div class="sec-head"><span class="sec-label">Your review</span><span class="sec-rule"></span>' +
+          (askClaudeAvailable() ? '<button type="button" class="sec-link" id="wrDraft">' + UI_ICON.spark + 'Draft with Claude</button>' : '') +
+          '</div><div id="wrFields"></div></div>' +
+        '<div class="sheet-actionbar">' +
+          '<button type="button" class="btn-primary" id="wrApprove">' + (done ? 'Save changes' : 'Approve review') + '</button>' +
+          (done ? '' : '<button type="button" class="btn-secondary" id="wrLater">Save and finish later</button>') +
+        '</div>';
+      if (done) sheetEl.querySelector('.wr-done span').textContent = 'Approved ' + new Date(done.at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) + '. You can still edit it.';
+
+      // outcomes, each marked done / partly / not — saved as he taps
+      var oBox = document.getElementById('wrOuts');
+      if (!outs.length){
+        var e = document.createElement('p'); e.className = 'wk-empty';
+        e.textContent = 'No ' + R.label.toLowerCase() + ' outcomes were set for this week.';
+        oBox.appendChild(e);
+      }
+      outs.forEach(function(o){
+        var row = document.createElement('div'); row.className = 'wr-out';
+        row.innerHTML = '<div class="wr-out-t"></div><div class="wr-out-m"></div><div class="wr-chips"></div>';
+        row.querySelector('.wr-out-t').textContent = o.text;
+        var meta = outcomeMetaText(o); if (meta) row.querySelector('.wr-out-m').textContent = meta; else row.querySelector('.wr-out-m').remove();
+        OUTCOME_RESULTS.filter(function(r){ return r.value; }).forEach(function(r){
+          var c = document.createElement('button'); c.type = 'button';
+          c.className = 'cd-chip' + (o.result === r.value ? ' sel' : '');
+          c.setAttribute('aria-pressed', o.result === r.value ? 'true' : 'false');
+          c.textContent = r.label;
+          c.addEventListener('click', function(){ saveOutcome(ws, { id: o.id, result: o.result === r.value ? null : r.value }); });
+          row.querySelector('.wr-chips').appendChild(c);
+        });
+        oBox.appendChild(row);
+      });
+
+      // the evidence, as counts and names — nothing scored
+      var wBox = document.getElementById('wrWeek');
+      var gl = goalLineEl(ws, area, 'wr-goalline'); if (gl) wBox.appendChild(gl);
+      function line(t, quiet){ var p = document.createElement('p'); p.className = 'wr-line' + (quiet ? ' quiet' : ''); p.textContent = t; wBox.appendChild(p); }
+      line(ev.acts.length ? ev.done.length + ' of ' + plural(ev.acts.length, R.label.toLowerCase() + ' Action') + ' done' : 'No ' + R.label.toLowerCase() + ' Actions this week', !ev.acts.length);
+      if (ev.open.length){
+        line('Still open: ' + ev.open.slice(0, 5).map(function(c){ return c.title; }).join(' · ') + (ev.open.length > 5 ? ' and ' + (ev.open.length - 5) + ' more' : ''));
+      }
+      if (ev.carried.length) line(plural(ev.carried.length, 'Action') + ' came in from earlier weeks', true);
+      if (area === 'business' && ev.comms){
+        line('Comms: ' + [ev.comms.needs + ' need you', ev.comms.waiting + ' waiting on others', ev.comms.due ? ev.comms.due + ' follow-up' + (ev.comms.due === 1 ? '' : 's') + ' due' : ''].filter(Boolean).join(' · '));
+      }
+      if (area === 'personal'){
+        line('Training on ' + plural(ev.trainingDays, 'day') + ' · food logged on ' + plural(ev.foodDays, 'day') + ' · Morning Prime ' + ev.prime.done + ' of ' + ev.prime.days);
+        line(ev.weight ? (ev.weight.n > 1 ? 'Weight ' + ev.weight.first + ' → ' + ev.weight.last + 'kg' : 'Weight ' + ev.weight.last + 'kg') : 'No weight logged this week', !ev.weight);
+      }
+
+      // measures: this week's value, saved with the review
+      var mBox = document.getElementById('wrMeasures');
+      goals.forEach(function(p){
+        var m = goalMeasure(p), last = goalLatest(p);
+        var row = document.createElement('div'); row.className = 'field wr-measure';
+        row.innerHTML = '<label></label><input type="number" inputmode="decimal" step="any">';
+        row.querySelector('label').textContent = p.title + ' · ' + (last ? 'last ' + fmtMeasure(last.value, m.unit) : 'target ' + fmtMeasure(m.target, m.unit));
+        var inp = row.querySelector('input');
+        inp.placeholder = 'This week’s value' + (m.unit ? ' (' + m.unit + ')' : '');
+        inp.value = st.measures[p.id] != null ? st.measures[p.id] : '';
+        inp.addEventListener('input', function(){ st.measures[p.id] = inp.value; });
+        mBox.appendChild(row);
+      });
+
+      // his review, in his words
+      var fBox = document.getElementById('wrFields');
+      REVIEW_FIELDS.forEach(function(f){
+        var row = document.createElement('div'); row.className = 'field';
+        row.innerHTML = '<label></label><textarea rows="' + f.rows + '" maxlength="2000"></textarea>';
+        row.querySelector('label').textContent = f.label;
+        var ta = row.querySelector('textarea');
+        ta.placeholder = f.ph; ta.value = st.fields[f.k] || '';
+        ta.addEventListener('input', function(){ st.fields[f.k] = ta.value; });
+        fBox.appendChild(row);
+      });
+
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      var dr = document.getElementById('wrDraft');
+      if (dr) dr.addEventListener('click', function(){ reviewWithClaude(area, ws); });
+      document.getElementById('wrApprove').addEventListener('click', function(){ finish(true); });
+      var later = document.getElementById('wrLater');
+      if (later) later.addEventListener('click', function(){ finish(false); });
+    }
+    function finish(approve){
+      var text = {};
+      REVIEW_FIELDS.forEach(function(f){ text[f.k] = String(st.fields[f.k] || '').trim().slice(0, 2000); });
+      // the measures, each on today's date, as Me → Goals saves them
+      var n = 0;
+      Object.keys(st.measures).forEach(function(id){
+        var v = String(st.measures[id]).trim(), g = goalById(id);
+        if (!g || v === '' || !isFinite(Number(v))) return;
+        var vals = goalValues(g).filter(function(x){ return x.date !== todayStr(); }).concat({ date: todayStr(), value: Number(v), note: 'Weekly review' })
+          .sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }).slice(-GOAL_VALUES_MAX);
+        savePriority(Object.assign({}, g, { values: vals }));
+        n++;
+      });
+      saveWeekPatch(ws, function(rec){
+        if (approve){
+          rec.reviews = rec.reviews || {};
+          var prev = rec.reviews[area] || {};
+          rec.reviews[area] = Object.assign({}, prev, text, { at: prev.at || new Date().toISOString(), editedAt: prev.at ? new Date().toISOString() : null, measuresUpdated: (prev.measuresUpdated || 0) + n });
+          if (rec.reviewDrafts) delete rec.reviewDrafts[area];
+        } else {
+          rec.reviewDrafts = rec.reviewDrafts || {};
+          rec.reviewDrafts[area] = Object.assign({}, rec.reviewDrafts[area] || {}, text, { savedAt: new Date().toISOString() });
+        }
+      });
+      if (!approve){ closeSheet(); showPinToast('Saved · finish it later', false, CHECK_SVG); return; }
+      showPinToast(R.title + ' saved', false, CHECK_SVG);
+      // Sunday plans the coming week
+      if (area === 'personal'){ openReviewNextWeek(ws); return; }
+      closeSheet();
+    }
+    activeSheetRefresh = draw;
+    draw();
+    backdrop.classList.add('open');
+  }
+  function openReviewNextWeek(ws){
+    var next = fmtDate(addDays(ws, 7));
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(CHECK_SVG, 'Review saved', 'Now set up the coming week: what will it move on each goal?', '') +
+      '<button type="button" class="btn-primary" id="wrPlan">Plan next week</button>' +
+      '<button type="button" class="btn-quiet" id="wrClose">Not now</button>';
+    activeSheetRefresh = null;
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+    document.getElementById('wrClose').addEventListener('click', closeSheet);
+    document.getElementById('wrPlan').addEventListener('click', function(){
+      closeSheet(); goView('plan'); goPlanWeek(toLocalDate(next)); window.scrollTo(0, 0);
+    });
+  }
+  // Claude drafts it: the ordinary Ask Claude, asked to read the week and propose
+  function reviewWithClaude(area, ws){
+    var R = REVIEWS[area];
+    var msg = 'Draft my ' + R.title.toLowerCase() + ' (' + R.label.toLowerCase() + ') for the week starting ' + ws + '. ' +
+      'Read the week and my ' + R.label.toLowerCase() + ' goals, then propose the review draft, a result for any outcome still open, ' +
+      'next week’s ' + R.label.toLowerCase() + ' outcomes, and what to do with stale Actions.';
+    openAskClaudeSheet();
+    if (!acState) return;
+    acState.back = { label: 'Back to the ' + R.title.toLowerCase(), go: function(){ openWeekReviewSheet(area, ws); } };
+    var input = document.getElementById('acInput');
+    if (input){ input.value = msg; acSend(); }
+  }
+  function reviewAreaFromOpen(what){ return what === 'review-business' ? 'business' : what === 'review-personal' ? 'personal' : null; }
 
   // opts.area / opts.goalId: a new outcome's starting point
   function openOutcomeSheet(ws, existing, opts){

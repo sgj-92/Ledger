@@ -89,7 +89,8 @@ const SYSTEM_EXTRA = [
   'When he tells you what he did ("here\'s my day", "yesterday I…"), check before you write: read that day with get_day and get_health first. Then (1) log only what is not there yet; (2) where a record is there but differs from what he says, correct it with propose_update_log (or propose_delete_log for a wrong one); (3) tick off each Action he did with log_action_done; (4) if he asked, say what is still missing (whats_missing). Never log something a second time.',
   'log_action_done saves at once only when Ledger can match his own words to that Action without doubt; otherwise it waits for his review, and the tool says why. Either way, call it once per Action he did.',
   'Never invent numbers he did not give. If he says "I did legs", one log_training with the exercises he names.',
-  'Goals are Business or Personal, a year goal or a 90-day goal (calendar quarter) under one. A week\'s outcomes are what that week moves on a goal; each can be marked done, partly or not.'
+  'Goals are Business or Personal, a year goal or a 90-day goal (calendar quarter) under one. A week\'s outcomes are what that week moves on a goal; each can be marked done, partly or not.',
+  'Weekly reviews (Friday: business, Monday to Friday; Sunday: personal, the whole week). When he asks for one: read get_week for that week (and the two before it, for patterns), list_goals, and list_comms (business) or get_health (personal). Then propose_review with the draft; propose_outcome_result for outcomes still open; up to three propose_outcome for next week per active 90-day goal of that area; and move or drop stale Actions with propose_update_action. From the records only: say what happened, wins, what didn\'t move and the likely reason, any goal that got no time, and patterns. Missing data is not failure. Plain, short, his voice, no scores.'
 ].join('\n');
 
 const TOOLS = [
@@ -150,6 +151,8 @@ const TOOLS = [
     input_schema: obj({ id: { type: 'string' }, title: nullable('string'), status: nullable('string', { enum: ['active', 'achieved', 'dropped'] }) }) },
   { name: 'propose_outcome', description: 'Propose an outcome for the week containing date: what that week moves, on a goal (or with an area if no goal).',
     input_schema: obj({ date: DATE, text: { type: 'string' }, goal_id: nullable('string'), area: { type: 'string', enum: ['business', 'personal'] } }) },
+  { name: 'propose_review', description: 'Propose the draft of a weekly review for him to edit and approve: area (business = the Friday review, personal = the Sunday review) and any date in that week. Each part is a few short lines in plain words, from the records only.',
+    input_schema: obj({ date: DATE, area: { type: 'string', enum: ['business', 'personal'] }, summary: { type: 'string' }, wins: { type: 'string' }, misses: { type: 'string' }, patterns: { type: 'string' }, next: { type: 'string' } }) },
   { name: 'propose_outcome_result', description: 'Propose how an outcome ended: done, partly or not (or null to reopen it).',
     input_schema: obj({ outcome_id: { type: 'string' }, result: nullable('string', { enum: RESULTS }) }) },
   { name: 'propose_conversation_state', description: 'Propose who has the ball on a conversation, with who it waits on and a follow-up date if they apply.',
@@ -597,6 +600,15 @@ function createLedgerTools({ db, now = () => new Date() }) {
       return add({ kind: 'outcome_add', collection: WEEKS, id: ws, before: null, auto: false,
         outcome: { id: newId('o'), text, goalId: goal ? goal.id : null, area: (goal && goal.area) || input.area, result: null, note: null },
         goal: goal ? clip(goal.title, 120) : null });
+    }
+    if (name === 'propose_review') {
+      if (!dateOk(input.date)) return { error: 'date must be YYYY-MM-DD' };
+      if (['business', 'personal'].indexOf(input.area) === -1) return { error: 'area is business or personal' };
+      const draft = {};
+      ['summary', 'wins', 'misses', 'patterns', 'next'].forEach((k) => { draft[k] = String(input[k] == null ? '' : input[k]).trim().slice(0, 1500); });
+      if (!draft.summary) return { error: 'A review needs its summary.' };
+      const ws = await weekStartOf(input.date);
+      return add({ kind: 'review_draft', collection: WEEKS, id: ws, area: input.area, draft, before: null, auto: false });
     }
     if (name === 'propose_outcome_result') {
       const ws = await all(WEEKS);

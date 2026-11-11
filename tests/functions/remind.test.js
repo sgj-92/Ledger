@@ -35,7 +35,7 @@ function rem(iso) {
 }
 async function run(iso) { sent = []; const out = await rem(iso).run(); return out; }
 async function wipe() {
-  for (const c of ['ledger_meta', 'ledger_plans', 'ledger_day_status', 'ledger_commitments', 'ledger_push_events', 'ledger_users']) {
+  for (const c of ['ledger_meta', 'ledger_plans', 'ledger_day_status', 'ledger_commitments', 'ledger_push_events', 'ledger_users', 'ledger_weeks']) {
     const s = await db.collection(c).get();
     await Promise.all(s.docs.map((d) => d.ref.delete()));
   }
@@ -140,6 +140,34 @@ const WEEKDAYS = [1, 2, 3, 4, 5];
   await C.doc('a3').update({ remindAt: '09:00' });
   await run('2026-11-12T09:00:10Z');
   check(sent.length === 1 && /openAction=a3/.test(sent[0].url), 'Action moved to another day: reminded on that day');
+
+  // the weekly reviews' prompts (2026-11-11): on by default, quiet once approved
+  await cfg([], 'Europe/London');
+  await db.collection('ledger_push_events').get().then((s) => Promise.all(s.docs.map((d) => d.ref.delete())));
+  await run('2026-11-13T15:00:10Z');                       // Friday 13 November, 15:00
+  check(sent.length === 1 && sent[0].title === 'Friday review' && /open=review-business/.test(sent[0].url), 'Friday review: at 15:00 on Friday, without setting anything', sent);
+  await db.collection('ledger_push_events').get().then((s) => Promise.all(s.docs.map((d) => d.ref.delete())));
+  await db.collection('ledger_weeks').doc('2026-11-09').set({ reviews: { business: { at: '2026-11-13T14:30:00Z', summary: 'x' } } });
+  await run('2026-11-13T15:00:10Z');
+  check(sent.length === 0, 'Friday review: quiet once that week\'s review is approved');
+  await run('2026-11-15T17:00:10Z');                       // Sunday 15 November
+  check(sent.length === 1 && sent[0].title === 'Sunday review' && /open=review-personal/.test(sent[0].url), 'Sunday review: at 17:00 on Sunday, for the week ending', sent);
+  await db.collection('ledger_push_events').get().then((s) => Promise.all(s.docs.map((d) => d.ref.delete())));
+  await db.collection('ledger_weeks').doc('2026-11-09').set({ reviews: { business: { at: 'x' }, personal: { at: '2026-11-15T16:00:00Z' } } });
+  await run('2026-11-15T17:00:10Z');
+  check(sent.length === 0, 'Sunday review: quiet once approved');
+  // a week that starts on Sunday: Sunday's review looks back at the week just ended
+  await db.collection('ledger_push_events').get().then((s) => Promise.all(s.docs.map((d) => d.ref.delete())));
+  await db.collection('ledger_meta').doc('presets').set({ weekStartsOn: 'sunday' });
+  await db.collection('ledger_weeks').doc('2026-11-08').set({ reviews: { personal: { at: '2026-11-15T16:00:00Z' } } });
+  await run('2026-11-15T17:00:10Z');
+  check(sent.length === 0, 'Sunday-start weeks: Sunday\'s review is the week that just ended (2026-11-08), already approved');
+  // switched off in Settings → Reminders
+  await db.collection('ledger_meta').doc('presets').delete();
+  await cfg([{ id: 'reviewBusiness', kind: 'reviewBusiness', time: '15:00', days: [5], on: false }], 'Europe/London');
+  await db.collection('ledger_weeks').doc('2026-11-09').delete();
+  await run('2026-11-13T15:00:10Z');
+  check(sent.length === 0, 'Friday review: switched off, nothing');
 
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);

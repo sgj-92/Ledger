@@ -134,12 +134,19 @@ const until = async (fn, t) => { const end = Date.now() + (t || 10000); while (D
   ] };
   await put('ledger_assistant_proposals/p4', { ownerUid: owner, threadId: 't1', source: 'app', status: 'proposed', summary: P4.summary, createdAt: TODAY, changes: [] });
   await put('ledger_assistant_proposals/p3', { ownerUid: owner, threadId: 't1', source: 'app', status: 'proposed', summary: P3.summary, createdAt: TODAY, changes: [] });
+  // the weekly review (2026-11-11): Claude's draft goes into the week, for him to edit and approve
+  const P5 = { id: 'p5', summary: 'Your Friday review draft', changes: [
+    { n: 1, kind: 'review_draft', collection: 'ledger_weeks', id: MONDAY, area: 'business', before: null, auto: false,
+      draft: { summary: 'Five proposals went out.', wins: 'The accountant is sorted.', misses: 'Retainers got no time.', patterns: 'Calls slip to Friday.', next: 'Block Monday morning for retainers.' } }
+  ] };
+  await put('ledger_assistant_proposals/p5', { ownerUid: owner, threadId: 't2', source: 'app', status: 'proposed', summary: P5.summary, createdAt: TODAY, changes: [] });
   const replies = [
     { status: 200, body: { threadId: 't1', reply: 'Here\'s what I\'d do.', proposal: P1 } },
     { status: 200, body: { threadId: 't1', reply: '', proposal: P2 } },
     { status: 502, body: { error: 'Claude is busy. Try again in a minute.' } },
     { status: 200, body: { threadId: 't1', reply: 'Logged your session, weight, food, the revenue number, the call, a note and the intention. Three things to review.', proposal: P3 } },
-    { status: 200, body: { threadId: 't1', reply: 'Ticked off the accountant call. Your strength session was 60 minutes, not 50: that one is for you to check.', proposal: P4 } }
+    { status: 200, body: { threadId: 't1', reply: 'Ticked off the accountant call. Your strength session was 60 minutes, not 50: that one is for you to check.', proposal: P4 } },
+    { status: 200, body: { threadId: 't2', reply: 'Here\'s a draft from the records.', proposal: P5 } }
   ];
   const seen = [];
 
@@ -297,6 +304,26 @@ const until = async (fn, t) => { const end = Date.now() + (t || 10000); while (D
   await logs[logs.length - 1].click();
   check(await until(async () => (await get('ledger_commitments/k5')).status === 'planned' && (await get('ledger_matters/mt1')).log.length === 0), 'Undo: the Action is open again, and the matter forgets it');
   await p.click('#sheetCloseBtn');
+
+  // ---- the weekly review, drafted by Claude (2026-11-11) ----
+  await p.goto(APP + '?open=review-business');
+  check(await until(() => p.evaluate(() => /Friday review/.test(document.getElementById('sheetBackdrop').innerText) && !!document.getElementById('wrDraft')), 25000),
+    'the Friday review opens from its link, with Draft with Claude');
+  await p.click('#wrDraft');
+  check(await until(() => p.evaluate(() => { const c = document.querySelector('.ac-prop:last-of-type'); return !!c && /Friday review/.test(c.innerText) && /Retainers got no time/.test(c.innerText); })),
+    'Claude is asked for the draft; it waits on the review card');
+  check(/Draft my friday review \(business\) for the week starting \d{4}-\d{2}-\d{2}/.test((seen[seen.length - 1] || { body: {} }).body.message || ''), 'the ask names the review, the area and the week', (seen[seen.length - 1] || { body: {} }).body.message);
+  await p.click('.ac-prop:last-of-type [data-ac="apply"]');
+  check(await until(async () => { const w = await get('ledger_weeks/' + MONDAY); return w && w.reviewDrafts && w.reviewDrafts.business && w.reviewDrafts.business.summary === 'Five proposals went out.'; }),
+    'applied: the draft is saved on the week, not yet approved');
+  await p.click('.ac-back');
+  check(await until(() => p.evaluate(() => { const t = document.querySelectorAll('#wrFields textarea'); return t.length === 5 && t[0].value === 'Five proposals went out.' && t[2].value === 'Retainers got no time.'; })),
+    'back in the review: the fields hold the draft, to edit');
+  await p.fill('#wrFields textarea >> nth=0', 'Five proposals went out; two answered.');
+  await p.click('#wrApprove');
+  check(await until(async () => { const w = await get('ledger_weeks/' + MONDAY); const r = w && w.reviews && w.reviews.business;
+    return r && r.at && r.summary === 'Five proposals went out; two answered.' && r.patterns === 'Calls slip to Friday.' && !(w.reviewDrafts || {}).business && (w.outcomes || []).length === 1; }),
+    'approved: his edited review on the week, the draft gone, the outcomes kept');
 
   // ---- the menu's other half ----
   await p.click('#globalFabBtn');

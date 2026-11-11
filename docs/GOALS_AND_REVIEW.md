@@ -237,3 +237,51 @@ results in the outcome sheet is the manual form of what the review will do. Clau
 and week tools (§6) arrived with Ask Claude phase 2 on 2026-11-01
 (`docs/CLAUDE_ASSISTANT.md` §13); the review draft (`propose_review`) comes with the
 reviews.
+
+## 10. Phase 2 as built (2026-11-11), with the goal line
+
+**The goal line** shows on Plan → Outcomes, in Today's Wind-down, and in each review. It
+reads like "8 of 14 Actions this week move a goal · No time yet: Pipeline".
+- **Counts only.** An Action moves a goal when `actionGoalIds` finds one: it names a goal,
+  a goal under it, or an outcome that moves one.
+- **The goals a week is for:** that quarter's 90-day goals, plus this year's goals that have
+  none under them.
+- **An Action's area** is its goal's; failing that, its category's (§8, q. 2).
+- **Code:** `weekGoalLine` and `goalLineText` in `index.html`.
+
+**The reviews** (`openWeekReviewSheet`):
+- **Friday, business:** Monday to Friday. **Sunday, personal:** the whole week.
+- **The sheet:**
+  - **Outcomes:** each marked Done, Partly or Not this week, saved as he taps.
+  - **The week:** the area's goal line, Actions done, what's still open or came in from
+    earlier weeks. Business adds the Comms counts; personal adds training days, food days,
+    Morning Prime and weight.
+  - **Measures:** this week's value, saved on approve with the note "Weekly review".
+  - **His review:** the week in a few lines, wins, what didn't move and why, patterns, next
+    week.
+- **Saving:**
+  - **Approve:** `ledger_weeks/{week start}.reviews.{area}`, with `at`, the five texts and
+    `measuresUpdated`.
+  - **Save and finish later:** `reviewDrafts.{area}`.
+  - Editors build on the stored week, so outcomes and the other review survive.
+  - Sunday's approve offers **Plan next week**.
+- **Prompting** (§8, q. 1):
+  - **On Today:** a card from Friday 15:00 to the week's end (business), and from Sunday
+    17:00 to the end of Monday (personal), until approved.
+  - **Notifications:** one at Friday 15:00 and Sunday 17:00. These are `remind.js`
+    reminders, on by default, quiet once approved, editable or switchable in Settings →
+    Reminders.
+  - **Plan → Outcomes:** both reviews can be opened from the week's Friday on.
+- **Claude's draft:**
+  - **Draft with Claude** asks Ask Claude to read the week and propose: `propose_review`
+    (the draft), results for open outcomes, next week's outcomes and stale Actions.
+  - Applied, the draft lands in `reviewDrafts`, and "Back to the review" fills the fields
+    for him to edit. An approved review is never overwritten by a draft.
+
+**Tests:**
+- `tests/functions/assistant.test.js`: `propose_review`.
+- `tests/functions/remind.test.js`: the review prompts, including Sunday-start weeks.
+- `tests/e2e/assistant.test.js`: the draft from link to approval, under the rules.
+
+**Phase 3 still to come:** the quarter review, the monthly trend and a measures chart.
+

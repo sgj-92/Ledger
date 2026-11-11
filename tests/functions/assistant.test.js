@@ -441,6 +441,27 @@ const lastResults = (params) => params.messages[params.messages.length - 1].cont
   check(client.requests[0].tools.length > 20 && client.requests[0].tools.every((t) => !t.strict), 'his full set (over 20 tools) goes without strict, so the API accepts it', client.requests[0].tools.length);
   await db.doc('ledger_home_members/owner2').delete();
 
+  // ---- the weekly review's draft (2026-11-11): a proposal for the week, never written ----
+  await db.doc('ledger_users/ownerP2').set({ role: 'owner' });
+  await db.doc('ledger_home_members/ownerP2').delete();
+  client = fakeClient([
+    turn('tool_use',
+      use('propose_review', { date: TODAY, area: 'business', summary: 'A steady week: 9 of 12 done.', wins: 'Two proposals out.', misses: 'Pipeline got no time.', patterns: 'Thursdays slip.', next: 'Block Monday for pipeline.' }),
+      use('propose_review', { date: TODAY, area: 'business', summary: '  ', wins: '', misses: '', patterns: '', next: '' }),
+      use('propose_review', { date: 'soon', area: 'business', summary: 'x', wins: '', misses: '', patterns: '', next: '' })),
+    (params) => {
+      const r = lastResults(params);
+      check(!r[0].is_error && /Waits for Shaun/.test(r[0].content) && r[1].is_error && /summary/.test(r[1].content) && r[2].is_error, 'a review draft waits for him; one without a summary or a date is refused', r.map((x) => x.content));
+      return turn('tool_use', use('present_proposal', { summary: 'Your Friday review draft' }));
+    }
+  ]);
+  out = await createAssistant({ db, client }).handle({ uid: 'ownerP2', message: 'Draft my Friday review', today: TODAY });
+  const rd = out.body.proposal && out.body.proposal.changes[0];
+  check(out.status === 200 && rd && rd.kind === 'review_draft' && rd.area === 'business' && rd.id === '2026-10-26' && rd.draft.patterns === 'Thursdays slip.' && !rd.auto,
+    'the draft is for the week\'s record, business, for him to apply', rd);
+  check(!(await get('ledger_weeks/2026-10-26')) || !((await get('ledger_weeks/2026-10-26')).reviewDrafts), 'nothing written by the server: the app saves the draft');
+  check(/Weekly reviews/.test(client.requests[0].system[0].text) && client.requests[0].tools.some((t) => t.name === 'propose_review'), 'Claude knows how to draft a review, and has the tool');
+
   // ---- which pages may call it (the emulator opens CORS to everyone, so it is checked here) ----
   const allowed = (o) => ALLOWED_ORIGINS.some((re) => re.test(o));
   check(allowed('https://ledger.sgj.luxe') && allowed('http://localhost:8950') && allowed('http://127.0.0.1:5000'), 'Ledger\'s own pages may call the endpoint');

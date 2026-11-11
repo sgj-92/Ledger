@@ -763,6 +763,22 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-11 — Goals phase 2: the weekly reviews and the goal line (Shaun: "build them")
+
+- **Built as agreed on 2026-10-31** (`docs/GOALS_AND_REVIEW.md` §5, §8; as built in §10):
+  - **The reviews:** Friday (business) and Sunday (personal). Each shows the evidence,
+    marks the outcomes, takes the measures, and holds his review: five short texts,
+    approved onto `ledger_weeks`.
+  - **Claude:** can draft it with `propose_review`, for him to edit.
+  - **Prompting:** a Today card, and a notification at Friday 15:00 and Sunday 17:00 (on by
+    default, in Settings → Reminders, quiet once approved).
+  - **Sunday** ends with "Plan next week".
+- **New: the goal line.** "8 of 14 Actions this week move a goal · No time yet: Pipeline",
+  on Plan → Outcomes, in the Wind-down and in each review. Counts only, as decided on
+  2026-09-29.
+- **Not yet:** phase 3 (the quarter review, the monthly trend, a measures chart).
+- **Needs deploying:** functions (`propose_review`, the review prompts).
+
 ### 2026-11-11 — Comms sweep: Outlook & Teams pull (Shaun chose it over a screenshot sweep)
 
 - **Microsoft 365 only:** Email - S&J and Teams - S&J. WhatsApp, Instagram and LinkedIn
@@ -2712,7 +2728,12 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (set up, deploy, connect)
+Owner: Shaun (deploy, then use it on Friday)
+**Weekly reviews**: Actions → Deploy Firebase → Everything. Friday at 15:00 the review
+appears on Today; Draft with Claude, edit, approve. Sunday does the personal one and plans
+the week.
+
+**Before that**: Owner: Shaun (set up, deploy, connect)
 **Outlook & Teams sweep**: follow `docs/MICROSOFT_365.md` (Azure app registration, then the
 `MS_CLIENT_ID` variable), deploy Everything, then Connect in Comms sweep channels.
 
@@ -2972,6 +2993,11 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-11) — **Weekly reviews + goal line** (decision above). Ask Claude end-to-end 68 (6
+  new: the draft from the review link to approval, under the rules); assistant 111;
+  remind 27 (6 new: the review prompts). Browser: the Friday and Sunday reviews (evidence,
+  outcome results, a measure saved, approve, Plan next week), the goal line on Plan and in
+  the Wind-down, the Today card clearing once approved.
 - (2026-11-11) — **Outlook & Teams in the sweep** (decision above). connect.test 21 (stand-in
   Microsoft), rules 786 (5 new), comms-capture 50 (8 new: button, mapping, no duplicates).
   Not tried against real Microsoft: that needs Shaun's app registration.

@@ -15,12 +15,25 @@
 //   | 'sweep' | 'custom', text, time: 'HH:MM', days: [0..6] (0 = Sunday), on }] }
 
 const REMIND_GRACE_MIN = 10;
-const KINDS = ['prime', 'windDown', 'sweep', 'custom'];
+const KINDS = ['prime', 'windDown', 'sweep', 'custom', 'reviewBusiness', 'reviewPersonal'];
+// The weekly reviews' prompts (docs/GOALS_AND_REVIEW.md §8, q. 1): on unless he changes
+// them in Settings → Reminders, and quiet once that week's review is approved.
+const REVIEW_DEFAULTS = [
+  { id: 'reviewBusiness', kind: 'reviewBusiness', time: '15:00', days: [5], on: true },
+  { id: 'reviewPersonal', kind: 'reviewPersonal', time: '17:00', days: [0], on: true }
+];
 const TEXT = {
   prime: { title: 'Morning Prime', body: 'Set up the day: plan, move, and one line of intention.', open: 'prime' },
   windDown: { title: 'Evening Wind-down', body: 'Review today and set up tomorrow.', open: 'winddown' },
-  sweep: { title: 'Comms sweep', body: 'Go through your channels: who needs a reply?', open: 'sweep' }
+  sweep: { title: 'Comms sweep', body: 'Go through your channels: who needs a reply?', open: 'sweep' },
+  reviewBusiness: { title: 'Friday review', body: 'How did the business week go? A few minutes.', open: 'review-business' },
+  reviewPersonal: { title: 'Sunday review', body: 'Look back on the week, then set up the next one.', open: 'review-personal' }
 };
+function addDaysIso(date, n) {
+  const [y, m, d] = String(date).split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d) + n * 86400000);
+  return t.toISOString().slice(0, 10);
+}
 
 // the date, minutes past midnight and weekday where he is
 function localClock(timezone, now) {
@@ -62,6 +75,19 @@ function createReminders(deps) {
       const d = p.exists ? (p.data() || {}) : {};
       return kind === 'prime' ? !!(d.morningPrime && d.morningPrime.completedAt) : !!(d.sweep && d.sweep.sweptAt);
     }
+    if (kind === 'reviewBusiness' || kind === 'reviewPersonal') {
+      // the week it covers, on his week-start setting; a Sunday review in a week that starts on Sunday looks back
+      const p = await db.collection('ledger_meta').doc('presets').get();
+      const startDow = p.exists && (p.data() || {}).weekStartsOn === 'sunday' ? 0 : 1;
+      const dowOf = (d) => new Date(d + 'T00:00:00Z').getUTCDay();
+      const startOf = (d) => addDaysIso(d, -((dowOf(d) - startDow + 7) % 7));
+      let ws = startOf(date);
+      if (kind === 'reviewPersonal' && ws === date && dowOf(date) === 0) ws = startOf(addDaysIso(date, -1));
+      const w = await db.collection('ledger_weeks').doc(ws).get();
+      const area = kind === 'reviewBusiness' ? 'business' : 'personal';
+      const r = w.exists ? (((w.data() || {}).reviews || {})[area]) : null;
+      return !!(r && r.at);
+    }
     if (kind === 'windDown') {
       const r = await db.collection('ledger_day_status').doc(date).get();
       const d = r.exists ? (r.data() || {}) : null;
@@ -87,7 +113,8 @@ function createReminders(deps) {
     }
 
     // 1. the daily reminders
-    const items = Array.isArray(cfg.items) ? cfg.items : [];
+    const items = (Array.isArray(cfg.items) ? cfg.items : []).slice();
+    REVIEW_DEFAULTS.forEach((d) => { if (!items.some((x) => x && x.kind === d.kind)) items.push(d); });
     for (const it of items) {
       try {
         if (!it || it.on === false || KINDS.indexOf(it.kind) === -1 || !it.id) continue;
