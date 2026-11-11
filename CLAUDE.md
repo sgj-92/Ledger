@@ -205,7 +205,8 @@ These are observed facts about this repo, useful before making changes.
   jobs. `push.js` is the one notification engine (`sendPushToUser`); `index.js`
   wires the Firestore triggers (Current Focus, Partner request Updates, Pin now,
   Home request updates and lists, ongoing-task updates, watched checklist ticks, the Home migration) and the hourly
-  `onRecurringTick` and `onDailyTick`. `recur.js` generates recurring Home responsibilities
+  `onRecurringTick` and `onDailyTick`, and the every-minute `onReminderTick` (`remind.js`:
+  Shaun's reminders). `recur.js` generates recurring Home responsibilities
   (`docs/HOME_RECURRENCE.md`); `daily.js` runs each person's daily tasks
   (`docs/HOME_DAILY.md`); `migrate.js` moves Partner Sharing into Home.
   `assistant.js` is Ask Claude's server (with `assistant-home.js` for Home admins and

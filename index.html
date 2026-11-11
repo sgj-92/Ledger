@@ -494,6 +494,29 @@
     font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text-3); letter-spacing: 0.01em; }
   .flow-done-toggle:active { opacity: 0.6; }
   /* Flow Select: quiet words under the heading; the bar floats above the tab bar */
+  /* Reminders (2026-11-11) */
+  .commit-remind .cr-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .commit-remind .cr-row input[type="time"] { flex: 0 0 140px; }
+  .commit-remind .cd-chip[hidden] { display: none; }
+  .rm-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .rm-item { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px 14px; background: var(--surface); }
+  .rm-item.field { margin-bottom: 0; }
+  .rm-top { display: flex; align-items: center; gap: 10px; min-height: 30px; }
+  .rm-name { flex: 1 1 auto; min-width: 0; font-size: 15px; color: var(--text); }
+  .rm-top .rm-switch { flex: 0 0 auto; width: auto; margin-left: auto; padding: 4px 0; border-bottom: none; }
+  .rm-when .rm-time { width: 132px; min-height: 44px; padding: 10px 12px; }
+  .rm-item:not(.on) .rm-name { color: var(--text-2); }
+  .rm-text { flex: 1; min-width: 0; }
+  .rm-switch { width: auto; padding: 0; background: none; border: none; min-height: 0; }
+  .rm-rm { width: 32px; height: 32px; border: none; background: none; color: var(--text-3); cursor: pointer; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; }
+  .rm-rm svg { width: 15px; height: 15px; }
+  .rm-when { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+  .rm-when[hidden] { display: none; }
+  .rm-days { display: flex; gap: 4px; flex-wrap: wrap; }
+  .rm-day { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line-2); background: none; cursor: pointer;
+    font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--text-3); padding: 0; }
+  .rm-day.sel { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .rm-note { margin: 12px 0 14px; }
   .flow-tools { display: flex; justify-content: flex-end; gap: 14px; margin: -6px 0 6px; }
   .flow-tools .flow-done-toggle { margin: 0; }
   .flow-tools #flowSelectToggle[aria-pressed="true"] { color: var(--gold); font-weight: 600; }
@@ -7736,6 +7759,13 @@
           if (!snap.metadata || !snap.metadata.fromCache) shareLoaded.sessions = true;
           renderAll();
         }, ownerDataError);
+      // reminders (2026-11-11): the daily ones and the timezone they're meant in
+      dbRef.collection('ledger_meta').doc('reminders').onSnapshot(function(doc){
+        remindCfg = doc.exists ? (doc.data() || {}) : { tz: null, items: [] };
+        if (!Array.isArray(remindCfg.items)) remindCfg.items = [];
+        remindLoaded = true;
+        remindKeepTz();
+      }, function(err){ console.error('reminders snapshot error', err); });
       dbRef.collection('ledger_meta').doc('presets').onSnapshot(function(doc){
         if (doc.exists){
           var data = doc.data();
@@ -7842,7 +7872,7 @@
     if (!LOCAL_ONLY && authRole !== 'owner') return;
     dbReady = false;
     localLoad();
-    localLoadPresets();
+    localLoadPresets(); remindLoadLocal(); remindLoaded = true;
     localLoadFocus();
     localLoadPlans();
     localLoadMealIdeas();
@@ -9632,6 +9662,7 @@
     row.querySelector('.ct-text').textContent = c.title;
     var bits = [];
     if (t) bits.push(timeRangeLabel(t, c.durationMin));
+    if (!done && hhmm(c.remindAt)) bits.push('Reminder ' + hhmm(c.remindAt));
     else if (c.durationMin) bits.push(fmtDuration(c.durationMin));
     // what is actually happening with it leads the line: "Waiting on payroll · Work"
     var stateLabel = done ? '' : actionStateLabel(c);
@@ -10684,7 +10715,14 @@
         fieldSelect('f_commitDuration', 'Duration', [{ value: '', label: 'No duration' }].concat(durs.map(function(d){
           return { value: d, label: fmtDuration(Number(d)) };
         })), dur) +
-      '</div>';
+      '</div>' +
+      // a notification on its day (2026-11-11): any time, or from its own time
+      '<div class="field commit-remind"><label>Remind me</label><div class="cr-row">' +
+        '<input type="time" id="f_commitRemind" value="' + (existing && hhmm(existing.remindAt) ? hhmm(existing.remindAt) : '') + '" aria-label="Remind me at">' +
+        '<button type="button" class="cd-chip" data-remind="at">At its time</button>' +
+        '<button type="button" class="cd-chip" data-remind="10">10 min before</button>' +
+        '<button type="button" class="cd-chip" data-remind="off">No reminder</button>' +
+      '</div></div>';
     }
 
     // Matter / Conversation links. Offered only once there is something to link to;
@@ -10750,6 +10788,7 @@
         category: document.getElementById('f_commitCategory').value || null,
         time: hhmm(document.getElementById('f_commitTime').value),
         durationMin: Number(document.getElementById('f_commitDuration').value) || null,
+        remindAt: document.getElementById('f_commitRemind') ? (hhmm(document.getElementById('f_commitRemind').value) || null) : ((existing && existing.remindAt) || null),
         createdAt: existing ? existing.createdAt : new Date().toISOString()
       });
       if (isEditing && (stateTouched || stateCtxChanged())) Object.assign(out, stateOut());
@@ -10764,11 +10803,35 @@
       // key-task standing belongs to the day it was chosen for
       if (existing && existing.isKeyTask && nextDate !== existing.date) out.isKeyTask = false;
       if (isEditing) out.id = existing.id;
+      // a reminder is meant in the timezone he's in now
+      if (out.remindAt && remindLoaded && remindCfg.tz !== deviceTz()) saveRemindCfg();
       return out;
     }
 
     function wireSheet(){
       document.getElementById('sheetCloseBtn').addEventListener('click', done);
+      // Remind me: the shortcuts follow the Action's own time
+      var remEl = document.getElementById('f_commitRemind'), timeEl = document.getElementById('f_commitTime');
+      function paintRemind(){
+        var has = !!hhmm(timeEl.value), set = !!hhmm(remEl.value);
+        sheetEl.querySelectorAll('[data-remind]').forEach(function(b){
+          var k = b.dataset.remind;
+          b.hidden = k === 'off' ? !set : !has;
+        });
+      }
+      if (remEl && timeEl){
+        sheetEl.querySelectorAll('[data-remind]').forEach(function(b){
+          b.addEventListener('click', function(){
+            var k = b.dataset.remind, t = timeToMin(hhmm(timeEl.value) || '00:00');
+            if (k === 'off') remEl.value = '';
+            else remEl.value = minToTime(Math.max(0, t - (k === '10' ? 10 : 0)));
+            paintRemind();
+          });
+        });
+        timeEl.addEventListener('change', paintRemind);
+        remEl.addEventListener('change', paintRemind);
+        paintRemind();
+      }
       var pSelEl = document.getElementById('f_commitPriority');
       goalPickList(null, existing && existing.priorityId).forEach(function(p, i){ pSelEl.options[i + 1].textContent = goalPickLabel(p); });
       var movesEl = sheetEl.querySelector('[data-chips="moves"]');
@@ -24539,11 +24602,11 @@
   function openLedgerLink(url){
     var p;
     try { p = new URL(url, location.href).searchParams; } catch(e){ return; }
-    DEEP = { action: p.get('openAction'), request: p.get('request'), view: p.get('view'), sprint: p.get('sprint'), home: p.get('home') };
-    deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view || DEEP.sprint || DEEP.home);
+    DEEP = { action: p.get('openAction'), request: p.get('request'), view: p.get('view'), sprint: p.get('sprint'), home: p.get('home'), open: p.get('open') };
+    deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view || DEEP.sprint || DEEP.home || DEEP.open);
     if (deepLinkHandled) return;
     if (ownerDataStarted || LOCAL_ONLY) tryHandleDeepLink();
-    else if (home.surface === 'household'){ DEEP.action = DEEP.request = DEEP.view = DEEP.sprint = null; homeHandleDeepLink(); }
+    else if (home.surface === 'household'){ DEEP.action = DEEP.request = DEEP.view = DEEP.sprint = DEEP.open = null; homeHandleDeepLink(); }
     else if (pp.started) ppHandleDeepLink();
   }
   if ('serviceWorker' in navigator){
@@ -24556,6 +24619,155 @@
   // ============ Settings ============
   // A sheet, not a sixth tab — reached from Focus. Holds the things that shape
   // the day rather than the things that happen in it.
+
+  // ============ Reminders (2026-11-11) ============
+  // Notifications at set times, sent by the server (functions/remind.js) to every device
+  // with notifications on: Morning Prime, Evening Wind-down and the Comms sweep (quiet once
+  // done that day), his own text reminders, and a "Remind me" time on any Action. The
+  // daily ones live in ledger_meta/reminders with the timezone they're meant in.
+  var REMIND_BUILTIN = [
+    { kind: 'prime', label: 'Morning Prime', time: '07:30', days: [1, 2, 3, 4, 5] },
+    { kind: 'windDown', label: 'Evening Wind-down', time: '21:00', days: [] },
+    { kind: 'sweep', label: 'Comms sweep', time: '12:00', days: [1, 2, 3, 4, 5] }
+  ];
+  var REMIND_DAYS = [{ v: 1, l: 'M' }, { v: 2, l: 'T' }, { v: 3, l: 'W' }, { v: 4, l: 'T' }, { v: 5, l: 'F' }, { v: 6, l: 'S' }, { v: 0, l: 'S' }];
+  var REMIND_LOCAL_KEY = 'ledger_reminders_fallback';
+  var remindCfg = { tz: null, items: [] }, remindLoaded = false;
+  function deviceTz(){ try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/London'; } catch(e){ return 'Europe/London'; } }
+  function remindLoadLocal(){
+    try { var r = JSON.parse(localStorage.getItem(REMIND_LOCAL_KEY) || 'null'); if (r && Array.isArray(r.items)) remindCfg = r; } catch(e){}
+  }
+  // the built-in ones first (stored, or off with a suggested time), then his own
+  function remindItems(){
+    var items = Array.isArray(remindCfg.items) ? remindCfg.items : [];
+    var out = REMIND_BUILTIN.map(function(b){
+      var st = items.filter(function(x){ return x && x.kind === b.kind; })[0];
+      return st ? Object.assign({}, st) : { id: b.kind, kind: b.kind, time: b.time, days: b.days.slice(), on: false };
+    });
+    return out.concat(items.filter(function(x){ return x && x.kind === 'custom'; }).map(function(x){ return Object.assign({}, x); }));
+  }
+  async function saveRemindCfg(items){
+    remindCfg = Object.assign({}, remindCfg, { items: items || remindCfg.items || [], tz: deviceTz(), updatedAt: new Date().toISOString() });
+    if (dbReady && dbRef){
+      try { await dbRef.collection('ledger_meta').doc('reminders').set(remindCfg); return; }
+      catch(e){ console.error('reminders save failed', e); }
+    }
+    try { localStorage.setItem(REMIND_LOCAL_KEY, JSON.stringify(remindCfg)); } catch(e){}
+  }
+  // reminders are meant in the timezone he's in: a device somewhere else brings it along
+  function remindKeepTz(){
+    if (!remindLoaded || !dbReady || remindCfg.tz === deviceTz()) return;
+    var any = (remindCfg.items || []).some(function(x){ return x && x.on !== false; }) ||
+      commitments.some(function(c){ return c.remindAt && c.date >= todayStr(); });
+    if (any || remindCfg.tz) saveRemindCfg();
+  }
+  function remindSummary(){
+    var on = remindItems().filter(function(x){ return x.on !== false && (x.kind !== 'custom' || (x.text || '').trim()); });
+    return on.length ? on.length + ' on' : 'Off';
+  }
+  function remindDaysLabel(days){
+    if (!days || !days.length || days.length === 7) return 'Every day';
+    var d = days.slice().sort().join('');
+    if (d === '12345') return 'Weekdays';
+    if (d === '06') return 'Weekends';
+    return REMIND_DAYS.filter(function(x){ return days.indexOf(x.v) > -1; }).map(function(x){ return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][x.v]; }).join(', ');
+  }
+
+  function openRemindersSheet(back){
+    editingId = null;
+    activeSheetRefresh = null;
+    var items = remindItems();
+    function draw(){
+      sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+        sheetHead(BELL_SVG, 'Reminders', 'A notification on your devices at these times. Morning Prime, Wind-down and the sweep stay quiet once they’re done.', '') +
+        '<div class="rm-list" id="rmList"></div>' +
+        '<button type="button" class="dpa-add-btn" id="rmAdd">' + BK_PLUS_SVG + 'Add a reminder</button>' +
+        '<p class="set-note rm-note">' + (LOCAL_ONLY
+          ? 'Reminders are sent to your account, so they need you signed in.'
+          : 'They reach every device with notifications on. An Action can have its own: Remind me, in the Action.') +
+          (LOCAL_ONLY ? '' : ' <button type="button" class="btn-link" id="rmNotif">Notifications on this device</button>') + '</p>' +
+        '<button type="button" class="btn-primary" id="rmSave">Save</button>' +
+        '<button type="button" class="btn-quiet" id="rmBack">' + (back ? 'Back to settings' : 'Cancel') + '</button>';
+      var list = document.getElementById('rmList');
+      items.forEach(function(it, i){
+        var b = REMIND_BUILTIN.filter(function(x){ return x.kind === it.kind; })[0];
+        var on = it.on !== false;
+        var el = document.createElement('div');
+        el.className = 'rm-item field' + (on ? ' on' : '');   // .field: Ledger's own inputs
+        el.innerHTML =
+          '<div class="rm-top">' +
+            (b ? '<span class="rm-name"></span>' : '<input type="text" class="rm-text" maxlength="120" placeholder="Remind me to…" aria-label="Reminder">') +
+            (b ? '<button type="button" class="set-row rm-switch' + (on ? ' on' : '') + '" role="switch" aria-checked="' + (on ? 'true' : 'false') + '" aria-label="' + b.label + '"><span class="ls-switch" aria-hidden="true"></span></button>'
+               : '<button type="button" class="rm-rm" aria-label="Remove this reminder">' + CLOSE_SVG + '</button>') +
+          '</div>' +
+          '<div class="rm-when"' + (on ? '' : ' hidden') + '>' +
+            '<input type="time" class="rm-time" aria-label="Time">' +
+            '<div class="rm-days" role="group" aria-label="Days">' +
+              REMIND_DAYS.map(function(d){
+                var sel = !it.days || !it.days.length || it.days.indexOf(d.v) > -1;
+                return '<button type="button" class="rm-day' + (sel ? ' sel' : '') + '" data-d="' + d.v + '" aria-pressed="' + (sel ? 'true' : 'false') + '">' + d.l + '</button>';
+              }).join('') +
+            '</div>' +
+          '</div>';
+        if (b) el.querySelector('.rm-name').textContent = b.label;
+        else { var tx = el.querySelector('.rm-text'); tx.value = it.text || ''; tx.addEventListener('input', function(){ items[i].text = tx.value; }); }
+        var tm = el.querySelector('.rm-time');
+        tm.value = it.time || '09:00';
+        tm.addEventListener('change', function(){ if (hhmm(tm.value)) items[i].time = hhmm(tm.value); });
+        var sw = el.querySelector('.rm-switch');
+        if (sw) sw.addEventListener('click', function(){ items[i].on = !(items[i].on !== false); draw(); });
+        var rm = el.querySelector('.rm-rm');
+        if (rm) rm.addEventListener('click', function(){ items.splice(i, 1); draw(); });
+        el.querySelectorAll('.rm-day').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            var all = REMIND_DAYS.map(function(d){ return d.v; });
+            var cur = !it.days || !it.days.length ? all.slice() : it.days.slice();
+            var v = Number(btn.dataset.d), at = cur.indexOf(v);
+            if (at > -1){ if (cur.length === 1) return; cur.splice(at, 1); } else cur.push(v);   // never no days at all
+            items[i].days = cur.length === 7 ? [] : cur.sort();
+            draw();
+          });
+        });
+        list.appendChild(el);
+      });
+      document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+      document.getElementById('rmAdd').addEventListener('click', function(){
+        items.push({ id: 'c' + uid(), kind: 'custom', text: '', time: '09:00', days: [], on: true });
+        draw();
+        var all = sheetEl.querySelectorAll('.rm-text'); if (all.length) all[all.length - 1].focus();
+      });
+      var nb = document.getElementById('rmNotif');
+      if (nb) nb.addEventListener('click', openNotificationsSheet);
+      document.getElementById('rmBack').addEventListener('click', function(){ if (back) openSettingsSheet(); else closeSheet(); });
+      document.getElementById('rmSave').addEventListener('click', async function(){
+        var keep = items.filter(function(x){ return x.kind !== 'custom' || (x.text || '').trim(); }).map(function(x){
+          var o = { id: x.id, kind: x.kind, time: hhmm(x.time) || '09:00', days: x.days || [], on: x.on !== false };
+          if (x.kind === 'custom') o.text = String(x.text).trim().slice(0, 120);
+          return o;
+        });
+        await saveRemindCfg(keep);
+        showPinToast('Reminders saved', false, CHECK_SVG);
+        if (back) openSettingsSheet(); else closeSheet();
+      });
+    }
+    draw();
+    backdrop.classList.add('open');
+  }
+
+  // a link from a reminder: ?open=prime | winddown | sweep
+  function openFromReminder(what){
+    var t = todayStr();
+    if (what === 'prime'){ openPrimeOnToday(); return true; }
+    if (what === 'sweep'){ viewedDate = t; goView('log'); renderAll(); openSweepSheet(t); return true; }
+    if (what === 'winddown'){
+      viewedDate = t; goView('log'); renderAll();
+      wdExpanded[t] = true; renderWindDown();
+      var sec = document.getElementById('windDownSection');
+      if (sec) setTimeout(function(){ sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+      return true;
+    }
+    return false;
+  }
 
   function settingsRow(id, label, value, opts){
     opts = opts || {};
@@ -24585,6 +24797,7 @@
         '</div>' +
         (LOCAL_ONLY ? '' : settingsRow('setPassword', 'Password', 'Set or change')) +
         (LOCAL_ONLY ? '' : settingsRow('setNotifications', 'Notifications', '')) +
+        settingsRow('setReminders', 'Reminders', remindSummary()) +
         settingsRow('setClaudeUrl', 'Claude conversation', claudeUrl() ? 'Set' : 'Not set') +
         // the iPhone app's Home Screen widgets: when they were last given today, and a tap
         // to send it again
@@ -24682,6 +24895,7 @@
     if (pwBtn) pwBtn.addEventListener('click', openPasswordSheet);
     var ntBtn = document.getElementById('setNotifications');
     if (ntBtn) ntBtn.addEventListener('click', openNotificationsSheet);
+    document.getElementById('setReminders').addEventListener('click', function(){ openRemindersSheet(true); });
     document.getElementById('setClaudeUrl').addEventListener('click', function(){ openClaudeUrlSheet(true); });
     var widgetRow = document.getElementById('setWidget');
     if (widgetRow){
@@ -31700,10 +31914,10 @@
   // 404. Each waits for sign-in and its data, then opens once and leaves the address bar
   // clean. Ids are only ever compared, never written into the page.
   var deepLinkParams = new URLSearchParams(window.location.search);
-  var DEEP = { action: deepLinkParams.get('openAction'), request: deepLinkParams.get('request'), view: deepLinkParams.get('view'), sprint: deepLinkParams.get('sprint'), home: deepLinkParams.get('home') };
-  var deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view || DEEP.sprint || DEEP.home);
+  var DEEP = { action: deepLinkParams.get('openAction'), request: deepLinkParams.get('request'), view: deepLinkParams.get('view'), sprint: deepLinkParams.get('sprint'), home: deepLinkParams.get('home'), open: deepLinkParams.get('open') };
+  var deepLinkHandled = !(DEEP.action || DEEP.request || DEEP.view || DEEP.sprint || DEEP.home || DEEP.open);
   function deepLinkDone(){
-    if (DEEP.action || DEEP.request || DEEP.view || DEEP.sprint || DEEP.home) return;
+    if (DEEP.action || DEEP.request || DEEP.view || DEEP.sprint || DEEP.home || DEEP.open) return;
     if (!deepLinkHandled){ deepLinkHandled = true; try { history.replaceState(null, '', window.location.pathname); } catch(e){} }
   }
   // once the data has started, a link that never finds its record is dropped quietly
@@ -31714,7 +31928,13 @@
   function tryHandleDeepLink(){
     if (deepLinkHandled) return;
     if (DEEP.view && ownerDataStarted) DEEP.view = null; // the shared view is the partner's
-    if (DEEP.action){
+    if (DEEP.open){
+      // a reminder: once today's plan and Actions are in
+      if (!(czLoaded.commitments || commitments.length)) return;
+      var what = DEEP.open;
+      DEEP.open = null;
+      openFromReminder(what);
+    } else if (DEEP.action){
       var commitment = commitments.find(function(c){ return c.id === DEEP.action; });
       if (!commitment) return; // data may not have loaded yet — retried from the commitments snapshot
       DEEP.action = null;
@@ -31748,6 +31968,7 @@
     if (deepLinkHandled) return;
     DEEP.action = null;                                 // an Action is never the partner's
     DEEP.sprint = null;                                 // nor a sprint
+    DEEP.open = null;                                   // nor a reminder
     if (DEEP.view === 'week' || DEEP.view === 'today'){ pp.tab = DEEP.view; DEEP.view = null; renderPortal(); }
     else DEEP.view = null;
     if (DEEP.home){ homeHandleDeepLink(); return; }

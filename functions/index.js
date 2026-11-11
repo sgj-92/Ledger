@@ -48,10 +48,11 @@ const admin = require('firebase-admin');
 // admin.firestore.FieldValue is not always there
 const { FieldValue } = require('firebase-admin/firestore');
 const webpush = require('web-push');
-const { createEngine } = require('./push');
+const { createEngine, appLink } = require('./push');
 const { createMigrator } = require('./migrate');
 const { createRecurrer } = require('./recur');
 const { createDaily } = require('./daily');
+const { createReminders } = require('./remind');
 const { createAssistant, ALLOWED_ORIGINS } = require('./assistant');
 
 admin.initializeApp();
@@ -266,6 +267,20 @@ const DAILY_BOOKKEEPING = ['lastRollDate', 'lastNotifiedDate', 'lastRunAt'];
 exports.onDailyTick = onSchedule({ schedule: 'every 60 minutes', timeZone: 'Etc/UTC', secrets: [VAPID_PRIVATE_KEY] }, async () => {
   const out = await daily(true).runAll();
   if (out.errors.length) logger.warn('daily tick', out); else logger.info('daily tick', out);
+});
+// Reminders (functions/remind.js): every minute, in Shaun's timezone, his daily reminders
+// (Morning Prime, Wind-down, the Comms sweep, his own) and any Action's "Remind me" time.
+// Each fires once; Prime, Wind-down and the sweep stay quiet once they're done.
+exports.onReminderTick = onSchedule({ schedule: 'every 1 minutes', timeZone: 'Etc/UTC', secrets: [VAPID_PRIVATE_KEY] }, async () => {
+  const e = engine(), ev = common();
+  const out = await createReminders({
+    db,
+    log: (...a) => logger.warn(...a),
+    claim: (id, info) => e.claimEvent(id, info),
+    send: (uid, payload) => e.sendPushToUser(uid, payload, { urgency: 'high', ttl: 30 * 60, vapidPublicKey: ev.vapidPublicKey }),
+    appLink: (params) => appLink(ev.appUrl, params)
+  }).run();
+  if (out.sent || out.errors.length) report('reminder tick', out);
 });
 exports.onDailyWritten = onDocumentWritten(
   { document: 'ledger_home_daily/{uid}' },

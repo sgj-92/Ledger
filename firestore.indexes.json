@@ -4,16 +4,42 @@
       "collectionGroup": "ledger_home_requests",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "homeId", "order": "ASCENDING" },
-        { "fieldPath": "participants", "arrayConfig": "CONTAINS" }
+        {
+          "fieldPath": "homeId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "participants",
+          "arrayConfig": "CONTAINS"
+        }
       ]
     },
     {
       "collectionGroup": "ledger_home_ongoing",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "homeId", "order": "ASCENDING" },
-        { "fieldPath": "participants", "arrayConfig": "CONTAINS" }
+        {
+          "fieldPath": "homeId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "participants",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "ledger_commitments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "remindAt",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],

@@ -763,6 +763,22 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-11 — Reminders: daily ones and per Action (Shaun's answers)
+
+- **Daily** (Settings → Reminders, `ledger_meta/reminders`): Morning Prime, Evening
+  Wind-down and the Comms sweep, plus his own text reminders. Each has a time, days and an
+  on/off switch; the built-in ones start off. Prime, Wind-down and the sweep **stay quiet
+  once done that day**: Prime completed, the day reviewed, swept. His own always fire.
+- **Per Action:** a **Remind me** time on its day, with "At its time", "10 min before" and
+  "No reminder" shortcuts (`remindAt`). Quiet once the Action is done. Moving the Action
+  moves the reminder; a new time re-arms it. The row shows "Reminder 14:50".
+- **Delivery:** `functions/remind.js`, every minute, in the timezone saved with the
+  reminders. Any device in a different timezone updates it, so travel follows him. Each
+  reminder is claimed once as a push event and delivered up to 10 minutes late. It goes
+  only to the one owner, through the existing engine (web and the apps). A tap opens
+  Morning Prime, the Wind-down, the sweep or the Action (`?open=`, `?openAction=`).
+- **Needs deploying:** functions, plus the new index (ledger_commitments: date, remindAt).
+
 ### 2026-11-09 — Morning Prime's Plan follows the Day Plan's order (Shaun asked)
 
 - Plan steps now run as the Day Plan reads:
@@ -2680,7 +2696,11 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (build the apps)
+Owner: Shaun (deploy, then set them)
+**Reminders**: Actions → Deploy Firebase → Everything (functions and the new index). Then
+Settings → Reminders, and make sure notifications are on for each device.
+
+**Before that**: Owner: Shaun (build the apps)
 **Widget Quick add + "N left"**: rebuild the iPhone app (Xcode or Xcode Cloud) and the Android
 app to get the new widget. Mind Dump is already live on the web. Deploy functions for Ask
 Claude to use it.
@@ -2932,6 +2952,11 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-11) — **Reminders** (decision above). remind.test 21 on the Firestore emulator:
+  minute, once, days, timezone (Dubai), skip-when-done for each built-in, grace window,
+  Actions (done, other days, re-arm, moved). Added to the deploy workflow's test gate.
+  Browser: Settings sheet, Remind me with shortcuts, row meta, `?open=prime|sweep`.
+  Regression: execution 81, native-shell 90, partner-sharing 209.
 - (2026-11-10) — **Fix: Comms sweep channels reset to the defaults.** The presets listener
   rebuilds presets field by field and had no line for `sweepChannels`. The list saved, but
   other devices and reloads never read it back, and their next presets save wrote the
