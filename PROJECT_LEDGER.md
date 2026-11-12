@@ -762,6 +762,22 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-12 — PDFs on Actions (Shaun: "small files, like a pdf")
+
+- **What:** a saved Action's sheet has **Files**: Add a PDF, up to 5, up to 5 MB each.
+  - A tap opens Ledger's own viewer, every page drawn, with Delete (tap twice). The browser
+    also gets Download; the apps don't.
+  - Other file types are refused with a message.
+- **Where they live:** inside the Action, like its photos: `ledger_commitments/{id}/files/{file}`
+  holds `{ name, size, mediaType, parts, byUid, createdAt }`, and the bytes go in
+  `parts/{n}` as base64, under 700,000 characters each (a Firestore document holds 1 MiB).
+  - The parts are written first, so a file is only listed once it's whole.
+  - Owner-only through the existing Actions rule, so there was nothing to deploy. Firebase
+    Storage wasn't needed for files this small.
+- **The viewer:** pdf.js 4.10.38 (legacy build), hosted in `vendor/pdfjs/` rather than taken
+  from a CDN, loaded only when a PDF is opened, with eval turned off.
+- **Device check (Shaun):** open a PDF in the iPhone app. It's verified in Chromium only.
+
 ### 2026-11-12 — Morning Prime: a step for later (Shaun's answers)
 
 - **Why:** Prime is often done in two halves, some before the school run and the rest after
@@ -2778,7 +2794,10 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (try it tomorrow morning)
+Owner: Shaun (try it)
+**PDFs on Actions**: open an Action → Files → Add a PDF, then open it on the iPhone app.
+
+**Before that**: Owner: Shaun (try it tomorrow morning)
 **Morning Prime → Later**: on a short morning, tap "Skip a step, or do it later" and choose
 Later, or tap **Finish the rest later**. The steps wait on Today as "Prime · …" Actions.
 
@@ -3053,6 +3072,10 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-12) — **PDFs on Actions** (decision above). New `tests/e2e/action-files.test.js`, 20
+  checks: add, the exact bytes, live on a second device, the viewer draws every page, a
+  1.6 MB file in four parts read back whole, non-PDFs and over 5 MB refused, delete with its
+  parts. Rules 797 (3 new).
 - (2026-11-12) — **Morning Prime: a step for later** (decision above).
   - Browser: Later on one step; Finish the rest later (Prime closed, 8 Actions); tapping the
     sweep's Action opens the sweep; ticking an Action marks its step done; Undo removes

@@ -136,6 +136,10 @@ async function check(name, fn){
   await check('owner: writes a week', () => assertSucceeds(owner.doc('ledger_weeks/2026-10-26').set({ outcomes: [{ id: 'o1', text: 'Send 5 proposals', area: 'business' }] })));
   await check('no profile: cannot read a quarter review', () => assertFails(stranger.doc('ledger_quarters/2026-Q4').get()));
   await check('partner: cannot read or write a quarter review', () => assertFails(partner.doc('ledger_quarters/2026-Q4').get()).then(() => assertFails(partner.doc('ledger_quarters/2026-Q4').set({ at: 'x' }))));
+  // PDFs on an Action (2026-11-12): inside the Action, so owner-only like it
+  await check('owner: adds a PDF part to an Action', () => assertSucceeds(owner.doc('ledger_commitments/a1/files/f1/parts/0').set({ i: 0, data: 'JVBERi0' })));
+  await check('partner: cannot read a PDF on an Action', () => assertFails(partner.doc('ledger_commitments/a1/files/f1/parts/0').get()));
+  await check('no profile: cannot list an Action\'s PDFs', () => assertFails(stranger.collection('ledger_commitments/a1/files').get()));
   await check('owner: closes a quarter', () => assertSucceeds(owner.doc('ledger_quarters/2026-Q4').set({ at: '2026-12-27T18:00:00Z', goals: [{ id: 'g1', result: 'carried' }] })));
   await check('no profile: cannot read push subscriptions', () => assertFails(stranger.collection('ledger_push_subscriptions').get()));
 

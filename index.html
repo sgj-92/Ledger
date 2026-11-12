@@ -2063,6 +2063,26 @@
   .pv-foot { display: flex; justify-content: center; }
   .pv-del { color: #f0a08c; border-color: rgba(240,160,140,0.45); min-height: 44px; padding: 0 18px; font-size: 13.5px; }
   .pv-del.confirm { background: rgba(240,160,140,0.16); }
+  /* PDFs on an Action (2026-11-12) */
+  .fl-list { display: flex; flex-direction: column; }
+  .fl-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 8px 0; background: none; border: 0;
+    border-bottom: 1px solid var(--line); color: var(--text); font-family: var(--sans); text-align: left; cursor: pointer; }
+  .fl-row:active { opacity: 0.6; }
+  .fl-row.busy { cursor: default; opacity: 0.6; }
+  .fl-ic { width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line-2); background: var(--surface-2); color: var(--gold); }
+  .fl-ic svg { width: 18px; height: 18px; }
+  .fl-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .fl-name { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fl-meta { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .fl-add { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; min-height: 44px; }
+  .fl-add svg { width: 14px; height: 14px; }
+  .fv-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; margin-right: 12px; }
+  .fv-pages { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; margin: 10px 0; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .fv-page { display: block; background: #fff; border-radius: 4px; box-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+  .fv-state { margin: auto 0; font-family: var(--sans); font-size: 13.5px; color: rgba(255,255,255,0.75); text-align: center; }
+  .file-view .pv-foot { gap: 10px; }
+  .fv-save { color: #fff; border-color: rgba(255,255,255,0.3); min-height: 44px; padding: 0 18px; font-size: 13.5px; }
   .ac-turn-photo { display: block; max-width: 180px; max-height: 220px; border-radius: 10px; margin-bottom: 6px; object-fit: cover; }
   .btn-primary.ac-send { width: auto; margin: 0; flex-shrink: 0; min-height: 48px; padding: 0 20px; }
   .ac-prop { border: 1px solid rgba(var(--gold-rgb),0.3); border-radius: var(--r-lg); padding: 14px 14px 12px; background: var(--surface); }
@@ -10725,7 +10745,7 @@
         // Updates — a link there, never a second shared form here.
         var shareReq = ((existing.sourceType === 'partner_request' && shareOn() &&
           sharedRequests.some(function(x){ return x.id === existing.sourceRequestId; })) || !!homeReq(existing.sourceRequestId));
-        if (existing.id && dbReady && dbRef) html += '<div class="ph-sec" id="commitPhotos"></div>';
+        if (existing.id && dbReady && dbRef) html += '<div class="ph-sec" id="commitPhotos"></div><div class="ph-sec fl-sec" id="commitFiles"></div>';
         html += '<div class="au-sec"><h3 class="cz-sec-title rq-upd-title">Private updates</h3>' +
           '<p class="au-private">Only you can see these.</p>' +
           '<div class="rq-tl au-tl" id="auTimeline"><p class="rq-empty">Loading…</p></div>' +
@@ -10984,6 +11004,8 @@
         var phEl = document.getElementById('commitPhotos');
         if (phEl) photoSection(phEl, dbRef.collection('ledger_commitments').doc(existing.id).collection('photos'),
           { canAdd: true, canRemove: function(){ return true; } });
+        var flEl = document.getElementById('commitFiles');
+        if (flEl) fileSection(flEl, dbRef.collection('ledger_commitments').doc(existing.id).collection('files'));
         var shareBtn = document.getElementById('auShare');
         if (shareBtn) shareBtn.addEventListener('click', function(){
           if (homeReq(existing.sourceRequestId)) openHomeDetail(existing.sourceRequestId); else openRequestDetailSheet(existing.sourceRequestId);
@@ -32440,6 +32462,214 @@
     });
     document.body.appendChild(v);
     v.querySelector('.pv-close').focus();
+  }
+
+  // ---- PDFs on an Action (2026-11-12) ----
+  // Small files, kept like the photos: inside the Action's own record, so they follow its
+  // rules exactly (Shaun's alone) and need nothing new deployed. Each file is one document,
+  // ledger_commitments/{id}/files/{file} = { name, size, mediaType, parts, byUid,
+  // createdAt }, with its bytes as base64 in parts/{0..n-1} (a Firestore document holds
+  // at most 1 MiB). The parts are written first, so a file is listed only when it is whole.
+  // Up to FILE_MAX on an Action, FILE_MAX_BYTES each. Opened in Ledger's own viewer
+  // (pdf.js, in vendor/pdfjs), so a PDF reads the same in the browser and in the apps.
+  var FILE_MAX = 5, FILE_MAX_BYTES = 5 * 1024 * 1024, FILE_PART = 700000;
+  var FILE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><polyline points="14 3.5 14 8 18.5 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="16.5" x2="13" y2="16.5"/></svg>';
+  function fileSizeLabel(n){
+    n = Number(n) || 0;
+    return n >= 1048576 ? (Math.round(n / 104857.6) / 10) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+  }
+  function fileSection(el, ref){
+    if (!el) return;
+    var stop = null, files = [], uploading = [];
+    function paint(){
+      el.innerHTML = '';
+      var h = document.createElement('h3'); h.className = 'cz-sec-title ph-title'; h.textContent = 'Files';
+      var list = document.createElement('div'); list.className = 'fl-list';
+      files.forEach(function(f){
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'fl-row';
+        b.innerHTML = '<span class="fl-ic" aria-hidden="true">' + FILE_SVG + '</span><span class="fl-body"><span class="fl-name"></span><span class="fl-meta"></span></span><span class="chev">' + UI_ICON.chevronRight + '</span>';
+        b.querySelector('.fl-name').textContent = f.name || 'Document.pdf';
+        b.querySelector('.fl-meta').textContent = 'PDF · ' + fileSizeLabel(f.size);
+        b.addEventListener('click', function(){ openFileViewer(ref, f); });
+        list.appendChild(b);
+      });
+      uploading.forEach(function(name){
+        var r = document.createElement('div'); r.className = 'fl-row busy';
+        r.innerHTML = '<span class="fl-ic" aria-hidden="true">' + FILE_SVG + '</span><span class="fl-body"><span class="fl-name"></span><span class="fl-meta">Adding…</span></span>';
+        r.querySelector('.fl-name').textContent = name;
+        list.appendChild(r);
+      });
+      if (files.length + uploading.length < FILE_MAX){
+        var a = document.createElement('button'); a.type = 'button'; a.className = 'btn-link fl-add';
+        a.innerHTML = BK_PLUS_SVG + '<span>Add a PDF</span>';
+        a.addEventListener('click', function(){ pickFile().then(add, function(msg){ if (msg) showPinToast(msg, true); }); });
+        list.appendChild(a);
+      }
+      el.appendChild(h); el.appendChild(list);
+    }
+    function add(f){
+      if (!f) return;
+      uploading.push(f.name); paint();
+      var doc = ref.doc(), n = Math.ceil(f.data.length / FILE_PART), i = 0;
+      function next(){
+        if (i >= n) return doc.set({ name: f.name, size: f.size, mediaType: 'application/pdf', parts: n,
+          byUid: authUser ? authUser.uid : 'local', createdAt: new Date().toISOString() });
+        var k = i++;
+        return doc.collection('parts').doc(String(k)).set({ i: k, data: f.data.slice(k * FILE_PART, (k + 1) * FILE_PART) }).then(next);
+      }
+      next().then(function(){
+        uploading.splice(uploading.indexOf(f.name), 1); paint();
+      }, function(e){
+        console.error('file save failed', e);
+        uploading.splice(uploading.indexOf(f.name), 1); paint();
+        showPinToast('That PDF couldn’t be saved', true);
+        removeFileParts(doc, n);
+      });
+    }
+    paint();
+    try {
+      stop = ref.orderBy('createdAt').onSnapshot(function(snap){
+        if (!document.body.contains(el)){ if (stop) stop(); return; }
+        files = snap.docs.map(function(d){ var x = d.data() || {}; x.id = d.id; return x; }).filter(function(x){ return Number(x.parts) > 0; });
+        paint();
+      }, function(err){ console.warn('files unavailable', err && err.code); });
+    } catch(e){}
+  }
+  function removeFileParts(doc, n){
+    var jobs = [];
+    for (var k = 0; k < n; k++) jobs.push(doc.collection('parts').doc(String(k)).delete());
+    return Promise.all(jobs);
+  }
+  // one PDF from the phone or computer, read whole: { name, size, data (base64) }
+  function pickFile(){
+    return new Promise(function(resolve, reject){
+      var inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'application/pdf,.pdf';
+      inp.style.display = 'none';
+      inp.addEventListener('change', function(){
+        var file = inp.files && inp.files[0];
+        inp.remove();
+        if (!file){ resolve(null); return; }
+        if (file.size > FILE_MAX_BYTES){ reject('That file is ' + fileSizeLabel(file.size) + '. PDFs up to 5 MB fit.'); return; }
+        var r = new FileReader();
+        r.onload = function(){
+          var url = String(r.result || ''), data = url.slice(url.indexOf(',') + 1);
+          // a PDF begins "%PDF-", which is "JVBERi0" in base64
+          if (data.indexOf('JVBERi0') !== 0){ reject('Only PDFs can be added.'); return; }
+          var name = String(file.name || 'Document.pdf').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 120) || 'Document.pdf';
+          resolve({ name: name, size: file.size, data: data });
+        };
+        r.onerror = function(){ reject('That PDF couldn’t be read.'); };
+        r.readAsDataURL(file);
+      });
+      document.body.appendChild(inp);
+      inp.click();
+    });
+  }
+  // pdf.js, fetched the first time a PDF is opened. It's an ES module, so a small module
+  // script imports it and hands it over.
+  var pdfjsReady = null;
+  function loadPdfjs(){
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (pdfjsReady) return pdfjsReady;
+    pdfjsReady = new Promise(function(resolve, reject){
+      var base = new URL('vendor/pdfjs/', location.href).href;
+      var timer = setTimeout(function(){ reject(new Error('pdf.js did not load')); }, 20000);
+      window.addEventListener('ledger-pdfjs', function(){ clearTimeout(timer); resolve(window.pdfjsLib); }, { once: true });
+      var s = document.createElement('script'); s.type = 'module';
+      s.textContent = 'import * as p from ' + JSON.stringify(base + 'pdf.min.mjs') + ';' +
+        'p.GlobalWorkerOptions.workerSrc = ' + JSON.stringify(base + 'pdf.worker.min.mjs') + ';' +
+        'window.pdfjsLib = p; window.dispatchEvent(new Event("ledger-pdfjs"));';
+      document.head.appendChild(s);
+    }).catch(function(e){ pdfjsReady = null; throw e; });
+    return pdfjsReady;
+  }
+  function fileBytes(ref, f){
+    var jobs = [];
+    for (var k = 0; k < f.parts; k++) jobs.push(ref.doc(f.id).collection('parts').doc(String(k)).get());
+    return Promise.all(jobs).then(function(snaps){
+      var b64 = snaps.map(function(s){ var d = s.exists ? s.data() : null; if (!d || typeof d.data !== 'string') throw new Error('a part is missing'); return d.data; }).join('');
+      var bin = atob(b64), out = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    });
+  }
+  // the PDF, the whole screen, page under page; Delete asks twice
+  var PDF_MAX_PAGES = 60;
+  function openFileViewer(ref, f){
+    var v = document.getElementById('photoView');
+    if (v) v.remove();
+    v = document.createElement('div'); v.id = 'photoView'; v.className = 'photo-view file-view';
+    v.setAttribute('role', 'dialog'); v.setAttribute('aria-modal', 'true'); v.setAttribute('aria-label', 'PDF');
+    var canSave = !window.Capacitor;
+    v.innerHTML = '<div class="pv-top"><span class="pv-who fv-name"></span><button type="button" class="sheet-close pv-close" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+      '<div class="fv-pages" tabindex="0"><p class="fv-state">Opening…</p></div>' +
+      '<div class="pv-foot">' + (canSave ? '<button type="button" class="bk-btn fv-save" hidden>Download</button>' : '') +
+        '<button type="button" class="bk-btn pv-del">Delete PDF</button></div>';
+    v.querySelector('.fv-name').textContent = f.name || 'Document.pdf';
+    var pages = v.querySelector('.fv-pages'), state = v.querySelector('.fv-state'), closed = false, doc = null, bytes = null;
+    function close(){ closed = true; v.remove(); document.removeEventListener('keydown', esc, true); if (doc) try { doc.destroy(); } catch(e){} }
+    function esc(e){ if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); close(); } }
+    document.addEventListener('keydown', esc, true);
+    v.querySelector('.pv-close').addEventListener('click', close);
+    var del = v.querySelector('.pv-del');
+    del.addEventListener('click', function(){
+      if (!del.classList.contains('confirm')){ del.classList.add('confirm'); del.textContent = 'Tap again to delete'; return; }
+      close();
+      var d = ref.doc(f.id);
+      d.delete().then(function(){ return removeFileParts(d, f.parts); })
+        .catch(function(e){ console.error('file delete failed', e); showPinToast('Couldn’t delete the PDF', true); });
+    });
+    document.body.appendChild(v);
+    v.querySelector('.pv-close').focus();
+    Promise.all([fileBytes(ref, f), loadPdfjs()]).then(function(r){
+      if (closed) return;
+      bytes = r[0];
+      var save = v.querySelector('.fv-save');
+      if (save){
+        save.hidden = false;
+        save.addEventListener('click', function(){
+          var url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+          var a = document.createElement('a'); a.href = url; a.download = f.name || 'Document.pdf';
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+        });
+      }
+      // pdf.js takes the buffer it's given, so it gets a copy
+      return r[1].getDocument({ data: bytes.slice(), isEvalSupported: false, enableXfa: false }).promise;
+    }).then(function(pdf){
+      if (closed || !pdf) return;
+      doc = pdf;
+      state.remove();
+      var n = Math.min(pdf.numPages, PDF_MAX_PAGES), width = pages.clientWidth || 360, dpr = Math.min(window.devicePixelRatio || 1, 3);
+      var chain = Promise.resolve();
+      for (var p = 1; p <= n; p++) (function(num){
+        chain = chain.then(function(){
+          if (closed) return;
+          return pdf.getPage(num).then(function(page){
+            var base = page.getViewport({ scale: 1 }), scale = width / base.width, vp = page.getViewport({ scale: scale * dpr });
+            var c = document.createElement('canvas'); c.className = 'fv-page';
+            c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+            c.style.width = width + 'px'; c.style.height = Math.floor(base.height * scale) + 'px';
+            c.setAttribute('role', 'img'); c.setAttribute('aria-label', 'Page ' + num + ' of ' + pdf.numPages);
+            pages.appendChild(c);
+            return page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+          });
+        });
+      })(p);
+      return chain.then(function(){
+        if (!closed && pdf.numPages > n){
+          var more = document.createElement('p'); more.className = 'fv-state';
+          more.textContent = 'The first ' + n + ' of ' + pdf.numPages + ' pages.' + (canSave ? ' Download it for the rest.' : '');
+          pages.appendChild(more);
+        }
+      });
+    }).catch(function(e){
+      console.error('pdf open failed', e);
+      if (closed) return;
+      state.textContent = 'This PDF couldn’t be opened.';
+      if (!pages.contains(state)) pages.appendChild(state);
+    });
   }
   // Photos chosen on the phone (camera or library), made phone-quality: about 1,600px,
   // JPEG — small enough to keep in Firestore and to send to Claude (2026-10-29).
