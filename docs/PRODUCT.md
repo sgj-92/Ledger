@@ -52,7 +52,9 @@ release checklist and of any future automated smoke suite.
 
 1. **Prime the morning.** Open Today, run Morning Prime: **Plan** (acknowledge
    meals, choose three key tasks, review today's plan, set an intention)
-   and **Move** (the physical morning routine).
+   and **Move** (the physical morning routine). A step he can't do yet goes to
+   **Later** (2026-11-12): it becomes an Action today ("Prime · Comms sweep"), and
+   **Finish the rest later** does that for every step left and closes Prime.
 2. **Work the day.** Read Today, work the action list in order, complete
    actions, add new ones as they arrive.
 3. **Log evidence.** Record training, nutrition, weight, a photo or symptoms

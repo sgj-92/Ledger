@@ -762,6 +762,27 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-12 — Morning Prime: a step for later (Shaun's answers)
+
+- **Why:** Prime is often done in two halves, some before the school run and the rest after
+  the gym or coworking. He wants to close it rather than leave it lingering.
+- **Both ways in:**
+  - **Later** beside Skip on each open step (the toggle reads "Skip a step, or do it later");
+  - **Finish the rest later** under Save, which sends every step still open and closes Prime.
+- **One Action per step**, today: "Prime · Comms sweep" (Communicate), others Personal.
+  - Tapping it on Today or in Flow opens the step itself (the sweep, the meals, the plan).
+    Its sheet, from Plan, has "Open …".
+  - Ticking the Action marks the step done on Prime. Doing the step itself ticks the Action.
+  - Undo on the step removes the Action.
+- **Counting:** Prime reads "Completed 07:40 · 2 later". It counts as done, so the Morning
+  Prime reminder stays quiet and the Sunday review counts the day as primed. Each step
+  counts as done only once its Action is.
+- **Data:**
+  - `morningPrime.later.{item id} = { at, actionId }` on the day's plan;
+  - the Action: id `prime-{date}-{item id}`, `sourceType: 'prime'`, `primeDate`,
+    `primeSection` and `primeItem`.
+  - No rules change.
+
 ### 2026-11-11 — Me → Goals rebuilt; the quarter review (Shaun: "this can go, flesh out the goals section")
 
 - **Progress Identity removed:** XP, levels, avatars and the streak card, and `avatars/`.
@@ -2757,7 +2778,11 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy, then look)
+Owner: Shaun (try it tomorrow morning)
+**Morning Prime → Later**: on a short morning, tap "Skip a step, or do it later" and choose
+Later, or tap **Finish the rest later**. The steps wait on Today as "Prime · …" Actions.
+
+**Before that**: Owner: Shaun (deploy, then look)
 **Goals, rebuilt**: Actions → Deploy Firebase → Everything. This deploys the new
 `ledger_quarters` rule and the quarter prompt; until then, closing a quarter stays on that
 device. Then open Me → Goals, tap a goal, and add a value. The quarter review first
@@ -3028,6 +3053,11 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-12) — **Morning Prime: a step for later** (decision above).
+  - Browser: Later on one step; Finish the rest later (Prime closed, 8 Actions); tapping the
+    sweep's Action opens the sweep; ticking an Action marks its step done; Undo removes
+    the Action; a tick in Prime ticks the Action off.
+  - native-shell e2e re-run.
 - (2026-11-11) — **Deploy fix: `MS_CLIENT_ID`.** The Deploy Firebase workflow failed with
   "no value for MS_CLIENT_ID". The CLI doesn't use a param's default when it can't prompt.
   The workflow now always writes `MS_CLIENT_ID` (`not-set` unless the variable is set) and

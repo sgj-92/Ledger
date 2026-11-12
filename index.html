@@ -3150,6 +3150,14 @@
   .mp-step-row.skipped .mp-step-label, .mp-step-row.skipped .mp-step-num,
   .mp-step-row.skipped .mp-step-val, .mp-step-row.skipped > .mp-step-ic { color: var(--text-3); }
   .mp-tick.skip { border-style: dashed; color: var(--text-3); }
+  /* for later today: resolved, waiting as an Action — the clock, never the gold check */
+  .mp-step-row.later .mp-step-val { color: var(--text-2); }
+  .mp-step-row.later > .mp-step-ic { color: var(--text-2); }
+  .mp-later-btn { color: var(--gold); padding-right: 10px; }
+  /* choosing Later or Skip: the row gives its value and arrow to the two buttons */
+  .mp-step-row.choosing .mp-step-val, .mp-step-row.choosing .mp-step .chev { display: none; }
+  .mp-later-all { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; margin-top: 6px; }
+  .mp-later-all svg { width: 15px; height: 15px; flex-shrink: 0; }
   .mp-tick.skip svg { width: 11px; height: 11px; }
   .mp-skip-btn {
     flex-shrink: 0; background: none; border: none; padding: 12px 0 12px 4px; cursor: pointer;
@@ -9780,7 +9788,7 @@
       mv.lastChild.textContent = moves.text;
       meta.parentNode.appendChild(mv);
     }
-    row.addEventListener('click', function(){ openCommitmentSheet(c); });
+    row.addEventListener('click', function(){ openActionOrStep(c); });
     if (!isRoadblock){
       row.querySelector('.commitment-status-dot').addEventListener('click', function(e){
         e.stopPropagation();
@@ -10338,7 +10346,7 @@
     function openItem(key){
       if (key.charAt(0) === 'a'){
         var c = commitments.find(function(x){ return x.id === key.slice(2); });
-        if (c) openCommitmentSheet(c);
+        if (c) openActionOrStep(c);
       } else if (key.charAt(0) === 's'){
         openSprintSheet(key.slice(2));
       } else {
@@ -10663,6 +10671,9 @@
         '<div class="field"><label>Action</label><input type="text" id="f_commitTitle" placeholder="e.g. Strength session" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
         (isEditing && existing.sourceType === 'home_request' && homeReq(existing.sourceRequestId) && homeReq(existing.sourceRequestId).why ? '<p class="rq-why commit-why" id="commitWhy"></p>' : '') +
         (isEditing && actionChecklistReq(existing) ? '<div class="hl-wrap commit-list" id="commitList"></div>' : '') +
+        // a Morning Prime step for later: its step is one tap away
+        (isEditing && primeStepOf(existing) && routineHasRecord(primeStepOf(existing).key)
+          ? '<div class="act-rows commit-prime"><button type="button" class="act-row" id="commitPrimeOpen"><span class="act-ic">' + UI_ICON.sun + '</span><span class="act-label"></span><span class="chev">' + UI_ICON.chevronRight + '</span></button></div>' : '') +
         (isEditing && existing.sourceType === 'sweep' ? '<div class="sw-list commit-sweep" id="commitSweep"></div>' +
           '<button type="button" class="btn-link sw-sheet-add" id="commitSweepAdd">' + BK_PLUS_SVG + '<span>Sweep your channels</span></button>' : '') +
         fieldSelect('f_commitCategory', 'Category',
@@ -10827,6 +10838,12 @@
     sheetEl.innerHTML = buildHtml();
     var commitWhy = document.getElementById('commitWhy');
     if (commitWhy) hrWhyInto(commitWhy, homeReq(existing.sourceRequestId).why);
+    var commitPrime = document.getElementById('commitPrimeOpen');
+    if (commitPrime){
+      var pStep = primeStepOf(existing);
+      commitPrime.querySelector('.act-label').textContent = 'Open ' + pStep.label;
+      commitPrime.addEventListener('click', function(){ openRoutineItem(pStep, existing.date || existing.primeDate); });
+    }
     // the Replies Action: the list, by channel, ticked here as anywhere
     var commitSweep = document.getElementById('commitSweep');
     if (commitSweep){
@@ -15110,7 +15127,7 @@
     // 9. Status / notes
     L.push('STATUS / NOTES');
     // a skipped step is not done work, so the count says so — once, briefly
-    var mpSkipNote = st.skippedCount ? st.skippedCount + ' skipped' : '';
+    var mpSkipNote = [st.skippedCount ? st.skippedCount + ' skipped' : '', st.laterCount ? st.laterCount + ' for later' : ''].filter(Boolean).join(', ');
     L.push('- Morning Prime ' + (st.completedAt
       ? 'completed at ' + mpTimeLabel(st.completedAt) + (mpSkipNote ? ' (' + mpSkipNote + ')' : '')
       : st.doneCount + ' of ' + st.total + ' steps complete' + (mpSkipNote ? ', ' + mpSkipNote : '')));
@@ -21351,6 +21368,12 @@
     var plan = getPlanForDate(dateStr);
     return (plan && plan.morningPrime && plan.morningPrime.skipped) || {};
   }
+  // A step for later (2026-11-12): "not now, but today". See the Morning Prime block.
+  function routineLater(section, dateStr){
+    if (section === 'windDown') return {};
+    var plan = getPlanForDate(dateStr);
+    return (plan && plan.morningPrime && plan.morningPrime.later) || {};
+  }
   async function setRoutineSkip(dateStr, itemId, on){
     var plan = getPlanForDate(dateStr);
     var mp = (plan && plan.morningPrime) || {};
@@ -21433,14 +21456,23 @@
     var ev = item.key ? routineEvidence(item.key, dateStr) : null;
     var tickable = !ev || ev.soft === true;
     var ticked = !!routineChecks(section, dateStr)[item.id];
-    var done = !!(ev && ev.done) || (tickable && ticked);
+    var own = !!(ev && ev.done) || (tickable && ticked);
+    // a step sent to later is done once its Action is; until then it resolves the step
+    var lr = routineLater(section, dateStr)[item.id] || null;
+    var lact = lr ? commitments.find(function(c){ return c.id === lr.actionId; }) : null;
+    var done = own || !!(lact && lact.status === 'completed');
+    var later = !done && !!lr && (!!lact || !czLoaded.commitments);
     // done outranks skipped: once the record or a tick says so, the skip no longer shows
-    var skipped = !done && !!routineSkips(section, dateStr)[item.id];
+    var skipped = !done && !later && !!routineSkips(section, dateStr)[item.id];
     return {
       item: item,
       done: done,
+      ownDone: own,
       skipped: skipped,
-      resolved: done || skipped,
+      later: later,
+      laterActionId: lr ? lr.actionId : null,
+      laterAction: lact,
+      resolved: done || skipped || later,
       skippable: section !== 'windDown',
       fromRecord: !!(ev && ev.done),
       value: ev ? (ev.value || '') : '',
@@ -21454,8 +21486,9 @@
     var items = enabledRoutine(section).map(function(it){ return routineItemState(section, it, dateStr); });
     var done = items.filter(function(x){ return x.done; }).length;
     var resolved = items.filter(function(x){ return x.resolved; }).length;
+    var later = items.filter(function(x){ return x.later; }).length;
     return {
-      items: items, done: done, resolved: resolved, skipped: resolved - done, total: items.length,
+      items: items, done: done, resolved: resolved, later: later, skipped: resolved - done - later, total: items.length,
       complete: items.length === 0 || resolved === items.length
     };
   }
@@ -21502,11 +21535,12 @@
       ? '<button type="button" class="mp-tick' + (s.done ? ' on' : '') + (s.skipped ? ' skip' : '') + '" data-rt-tick="' + it.id + '"' +
           ' aria-pressed="' + (s.done ? 'true' : 'false') + '" data-rt-ticklabel="' + it.id + '">' +
           (s.done ? CHECK_SVG : (s.skipped ? RT_SKIP_SVG : '')) + '</button>'
-      : '<span class="mp-step-ic">' + (s.skipped ? RT_SKIP_SVG : routineIcon(it)) + '</span>';
+      : '<span class="mp-step-ic">' + (s.skipped ? RT_SKIP_SVG : s.later ? UI_ICON.clock : routineIcon(it)) + '</span>';
     var open = s.linked;
     var tag = open ? 'button' : 'div';
-    var value = s.skipped ? 'Skipped today' : s.value;
-    return '<div class="mp-step-row' + (s.done ? ' done' : '') + (s.skipped ? ' skipped' : '') + '">' + lead +
+    var value = s.skipped ? 'Skipped today' : s.later ? primeLaterLabel(s) : s.value;
+    var choosing = !!(opts.skipMode && s.skippable && !s.resolved);
+    return '<div class="mp-step-row' + (s.done ? ' done' : '') + (s.skipped ? ' skipped' : '') + (s.later ? ' later' : '') + (choosing ? ' choosing' : '') + '">' + lead +
       '<' + tag + (open ? ' type="button" data-rt-open="' + it.id + '"' : '') +
         ' class="mp-step' + (s.done ? ' done' : '') + (open ? '' : ' static') + '">' +
         (opts.num ? '<span class="mp-step-num">' + opts.num + '. </span>' : '') +
@@ -21516,8 +21550,11 @@
       '</' + tag + '>' +
       (s.skipped
         ? '<button type="button" class="mp-skip-btn" data-rt-unskip="' + it.id + '">Undo</button>'
-        : (opts.skipMode && s.skippable && !s.resolved
-            ? '<button type="button" class="mp-skip-btn" data-rt-skip="' + it.id + '">Skip</button>' : '')) +
+        : s.later
+          ? '<button type="button" class="mp-skip-btn" data-rt-unlater="' + it.id + '">Undo</button>'
+          : (opts.skipMode && s.skippable && !s.resolved
+              ? (opts.laterOk ? '<button type="button" class="mp-skip-btn mp-later-btn" data-rt-later="' + it.id + '">Later</button>' : '') +
+                '<button type="button" class="mp-skip-btn" data-rt-skip="' + it.id + '">Skip</button>' : '')) +
     '</div>';
   }
   // labels and their aria copies are user content — always written as text
@@ -21534,6 +21571,12 @@
       });
       root.querySelectorAll('[data-rt-unskip="' + s.item.id + '"]').forEach(function(el){
         el.setAttribute('aria-label', 'Undo skip: ' + s.item.label);
+      });
+      root.querySelectorAll('[data-rt-later="' + s.item.id + '"]').forEach(function(el){
+        el.setAttribute('aria-label', 'Do ' + s.item.label + ' later today');
+      });
+      root.querySelectorAll('[data-rt-unlater="' + s.item.id + '"]').forEach(function(el){
+        el.setAttribute('aria-label', 'Undo later: ' + s.item.label);
       });
     });
   }
@@ -21563,6 +21606,84 @@
         if (after) after();
       });
     });
+    root.querySelectorAll('[data-rt-later], [data-rt-unlater]').forEach(function(btn){
+      btn.addEventListener('click', async function(e){
+        e.stopPropagation();
+        if (btn.dataset.rtLater){
+          var st = states.find(function(x){ return x.item.id === btn.dataset.rtLater; });
+          if (!st) return;
+          await patchMorningPrime(dateStr, await primeSendLater(dateStr, [{ section: section, item: st.item }]));
+          showPinToast('Added to today · ' + st.item.label, false, CHECK_SVG);
+        } else await primeUndoLater(dateStr, btn.dataset.rtUnlater);
+        if (after) after();
+      });
+    });
+  }
+
+  // ---- Morning Prime: a step for later (2026-11-12) ----
+  // Some mornings Prime is done in two halves (some before the school run, the rest after
+  // the gym). A step for later becomes an Action today, "Prime · Comms sweep", and Prime
+  // can close. The day's Morning Prime notes it: morningPrime.later.{item id} = { at,
+  // actionId }. The step is done once its Action is, and doing the step itself ticks the
+  // Action. Tapping the Action opens the step. Undo takes the Action away again.
+  var PRIME_LATER_CATEGORY = { sweep: 'communicate' };
+  function primeLaterActionId(dateStr, itemId){ return 'prime-' + dateStr + '-' + String(itemId).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60); }
+  function primeLaterLabel(s){
+    var a = s.laterAction;
+    return a && a.date !== todayStr() ? 'Later · ' + relativeDayLabel(a.date) : 'Later today';
+  }
+  // the Actions, and the patch for Morning Prime that notes them (applied by the caller)
+  async function primeSendLater(dateStr, steps){
+    var mp = ((getPlanForDate(dateStr) || {}).morningPrime) || {};
+    var later = Object.assign({}, mp.later || {}), skipped = Object.assign({}, mp.skipped || {});
+    var now = new Date().toISOString();
+    for (var i = 0; i < steps.length; i++){
+      var it = steps[i].item, id = primeLaterActionId(dateStr, it.id);
+      var have = commitments.find(function(c){ return c.id === id; });
+      var act = have ? Object.assign({}, have, { status: 'planned' }) : {
+        id: id, date: dateStr, originalDate: dateStr, title: ('Prime · ' + String(it.label || 'Morning Prime step')).slice(0, 200),
+        category: PRIME_LATER_CATEGORY[it.key] || 'personal', status: 'planned', priorityId: null, minVersion: null,
+        disruptionReason: null, sourceType: 'prime', primeDate: dateStr, primeSection: steps[i].section === 'move' ? 'move' : 'plan',
+        primeItem: it.id, createdAt: now
+      };
+      await saveCommitment(act);
+      later[it.id] = { at: now, actionId: id };
+      delete skipped[it.id];
+    }
+    return { later: later, skipped: skipped };
+  }
+  async function primeUndoLater(dateStr, itemId){
+    var mp = ((getPlanForDate(dateStr) || {}).morningPrime) || {};
+    var later = Object.assign({}, mp.later || {}), rec = later[itemId];
+    delete later[itemId];
+    await patchMorningPrime(dateStr, { later: later });
+    var act = rec && commitments.find(function(c){ return c.id === rec.actionId; });
+    if (act && act.status !== 'completed') await deleteCommitment(act.id);
+  }
+  // a step done another way (the sweep swept, a tick in Prime) ticks off its Action
+  var primeLaterTimer = null;
+  function schedulePrimeLater(){ clearTimeout(primeLaterTimer); primeLaterTimer = setTimeout(reconcilePrimeLater, 600); }
+  function reconcilePrimeLater(){
+    if (!czLoaded.commitments || (dbReady && !ownerDataStarted)) return;
+    var ds = todayStr();
+    ['plan', 'move'].forEach(function(sec){
+      if (!Object.keys(routineLater(sec, ds)).length) return;
+      routineSectionState(sec, ds).items.forEach(function(x){
+        var a = x.ownDone && x.laterActionId ? commitments.find(function(c){ return c.id === x.laterActionId; }) : null;
+        if (a && a.status !== 'completed') saveCommitment(Object.assign({}, a, { status: 'completed' }));
+      });
+    });
+  }
+  // a Prime Action's step, while Prime still has it
+  function primeStepOf(c){
+    if (!c || c.sourceType !== 'prime' || !c.primeItem) return null;
+    return enabledRoutine(c.primeSection === 'move' ? 'move' : 'plan').find(function(x){ return x.id === c.primeItem; }) || null;
+  }
+  // tapping a Prime Action opens its step, where there's one to open; otherwise the Action
+  function openActionOrStep(c){
+    var it = primeStepOf(c);
+    if (it && routineHasRecord(it.key)){ openRoutineItem(it, c.date || c.primeDate); return; }
+    openCommitmentSheet(c);
   }
 
   var mpExpanded = {};        // dateStr -> bool, session-only disclosure state
@@ -21608,6 +21729,7 @@
     };
     st.doneCount = planSec.done + moveSec.done;            // really done
     st.skippedCount = planSec.skipped + moveSec.skipped;   // resolved by a skip, not evidence
+    st.laterCount = planSec.later + moveSec.later;         // waiting as Actions for later today
     st.resolvedCount = st.doneCount + st.skippedCount;
     st.total = planSec.total + moveSec.total;
     st.complete = planSec.complete && moveSec.complete;
@@ -21687,7 +21809,7 @@
     var skipMode = expanded && !!mpSkipMode[dateStr];
     var backlogCount = backlogActions().length;
     var sub = st.completedAt
-      ? 'Completed ' + mpTimeLabel(st.completedAt)
+      ? 'Completed ' + mpTimeLabel(st.completedAt) + (st.laterCount ? ' \u00b7 ' + st.laterCount + ' later' : '')
       : (expanded ? 'Set yourself up for a focused day.' : mpProgressLabel(st));
 
     // the intention's field sits right under its own step, wherever that is in Plan
@@ -21711,18 +21833,18 @@
         (st.planSec.total
           ? '<div class="mp-group mp-group-plan">' + mpSectionHead('Plan', st.planSec) + mpItemsOpen('plan') +
             st.planSec.items.map(function(x, i){
-              return routineRowHtml(x, { num: i + 1, skipMode: skipMode }) + (x.item && x.item.key === 'intention' ? intentionHtml : '');
+              return routineRowHtml(x, { num: i + 1, skipMode: skipMode, laterOk: isToday }) + (x.item && x.item.key === 'intention' ? intentionHtml : '');
             }).join('') +
             (st.planSec.items.some(function(x){ return x.item && x.item.key === 'intention'; }) ? '' : intentionHtml) + '</div></div>'
           : intentionHtml) +
         (st.moveSec.total
           ? '<div class="mp-group mp-group-move">' + mpSectionHead('Move', st.moveSec) + mpItemsOpen('move') +
-            st.moveSec.items.map(function(x){ return routineRowHtml(x, { skipMode: skipMode }); }).join('') + '</div></div>'
+            st.moveSec.items.map(function(x){ return routineRowHtml(x, { skipMode: skipMode, laterOk: isToday }); }).join('') + '</div></div>'
           : '') +
         // one quiet way in, rather than a Skip on every row
         (skipMode || !st.complete
           ? '<button type="button" class="mp-skip-toggle" id="mpSkipToggle" aria-pressed="' + (skipMode ? 'true' : 'false') + '">' +
-              (skipMode ? 'Done skipping' : 'Skip a step for today') + '</button>'
+              (skipMode ? 'Done' : (isToday ? 'Skip a step, or do it later' : 'Skip a step for today')) + '</button>'
           : '') +
         (isToday && backlogCount ?
           '<button type="button" class="mp-backlog" id="mpBacklogBtn">' +
@@ -21731,6 +21853,8 @@
             '<span class="mp-backlog-link">Review backlog</span>' +
           '</button>' : '') +
         '<button type="button" class="btn-primary mp-save" id="mpSaveBtn">' + (st.completedAt ? 'Update Morning Prime' : 'Save Morning Prime') + '</button>' +
+        // part now, the rest later: what's left becomes today's Actions, and Prime closes
+        (isToday && !st.complete ? '<button type="button" class="btn-quiet mp-later-all" id="mpLaterAll">' + UI_ICON.clock + '<span>Finish the rest later</span></button>' : '') +
         (st.complete ? '' : '<p class="mp-hint" id="mpHint">' + mpMissingLabel(st) + '</p>') +
         // the one thing being done now, and a nudge to the phone (2026-10-31)
         (isToday && !st.completedAt && (authRole === 'owner' || LOCAL_ONLY)
@@ -21815,6 +21939,24 @@
     if (mpPinBtn) mpPinBtn.addEventListener('click', function(){ pinNow('Morning Prime', mpProgressLabel(mpState(dateStr)), null, dateStr); });
     var mpBacklogBtn = document.getElementById('mpBacklogBtn');
     if (mpBacklogBtn) mpBacklogBtn.addEventListener('click', openBacklogSheet);
+    var mpLaterAll = document.getElementById('mpLaterAll');
+    if (mpLaterAll) mpLaterAll.addEventListener('click', async function(){
+      mpLaterAll.disabled = true;
+      var el = document.getElementById('mpIntention');
+      var text = el ? (el.value || '').trim() : mpIntentionValue(dateStr);
+      var now = mpState(dateStr), steps = [];
+      now.planSec.items.forEach(function(x){ if (!x.resolved) steps.push({ section: 'plan', item: x.item }); });
+      now.moveSec.items.forEach(function(x){ if (!x.resolved) steps.push({ section: 'move', item: x.item }); });
+      var patch = await primeSendLater(dateStr, steps);
+      patch.intention = text;      // meals not planned yet stay a step for later, not "none today"
+      patch.completedAt = now.completedAt || new Date().toISOString();
+      delete mpIntentionDraft[dateStr];
+      mpExpanded[dateStr] = false; mpSkipMode[dateStr] = false;
+      await patchMorningPrime(dateStr, patch);
+      renderMorningPrime(); renderNowCue(); scheduleFocusReconcile();
+      showPinToast('Morning Prime closed \u00b7 ' + plural(steps.length, 'step') + ' added to today', false, CHECK_SVG);
+    });
+    schedulePrimeLater();
 
     document.getElementById('mpSaveBtn').addEventListener('click', async function(){
       var el = document.getElementById('mpIntention');
