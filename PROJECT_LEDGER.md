@@ -762,6 +762,27 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-13 — Me: where each goal stands (Shaun: "do 1–4" of the Me audit)
+
+- **Records count:**
+  - A goal linked to weight charts its weigh-ins against the target weight.
+  - Effort by week counts the training sessions or on-track food days a goal (or a 90-day
+    goal under it) is linked to, beside its Actions.
+- **Time:** every goal shows its period's movement and the time left, e.g. "Q4: 0 → 8 leads ·
+  Week 7 of 13 · 7 weeks left".
+- **Rows:** "N linked actions completed this month" is replaced by this week's outcome for the
+  goal, or when it last got time ("No time on it for 12 days").
+- **Progress** opens with **Your goals**: every active goal, with a small chart. This replaces
+  "Towards your focus", which only showed goals linked to records.
+- Counts and dates only, as decided on 2026-09-29. `docs/GOALS_AND_REVIEW.md` §12.
+- **Not done (audit items 5–10):**
+  - the target weight and the Calendar's training target duplicate goals;
+  - year goals don't list their quarters;
+  - Active focus;
+  - empty cards on Progress;
+  - Settings' home;
+  - a year in review.
+
 ### 2026-11-12 — PDFs on Actions (Shaun: "small files, like a pdf")
 
 - **What:** a saved Action's sheet has **Files**: Add a PDF, up to 5, up to 5 MB each.
@@ -2794,7 +2815,11 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (try it)
+Owner: Shaun (look)
+**Me → Goals and Progress**: each goal now says where it stands, the time left, and this week's
+outcome or when it last got time; Progress opens with Your goals. Audit items 5–10 wait on Shaun.
+
+**Before that**: Owner: Shaun (try it)
 **PDFs on Actions**: open an Action → Files → Add a PDF, then open it on the iPhone app.
 
 **Before that**: Owner: Shaun (try it tomorrow morning)
@@ -3072,6 +3097,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-13) — **Me: where each goal stands** (decision above). goals e2e 38 (3 new: the period
+  and week lines, no repeated linked-action line, Progress → Your goals). Browser at 390 and
+  1280: Progress, Goals, and the pages of a weight goal and a training goal.
 - (2026-11-12) — **PDFs on Actions** (decision above). New `tests/e2e/action-files.test.js`, 20
   checks: add, the exact bytes, live on a second device, the viewer draws every page, a
   1.6 MB file in four parts read back whole, non-PDFs and over 5 MB refused, delete with its

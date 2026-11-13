@@ -172,6 +172,18 @@ async function wait(fn){ for (let i = 0; i < 25; i++){ const v = await fn(); if 
   // Goals opens with this week (2026-11-11); the Progress Identity card is gone
   check(await until(mac, () => /This week/i.test((document.getElementById('goalsWeek') || {}).innerText || '') &&
     /1 of 1 done/.test(document.getElementById('goalsWeek').innerText) && !document.getElementById('playerCard')), 'Mac: Goals opens with This week — outcomes 1 of 1 done; no XP card');
+  // where it stands (2026-11-13): its quarter and the time left, and this week's outcome
+  const qn = 'Q' + Math.ceil(Number(TODAY.slice(5, 7)) / 3);
+  check(await until(mac, (qn) => {
+    const t = document.querySelector('.goal-row[data-goal]:not([data-goal="p1"])') ? document.getElementById('prioritiesList').innerText : '';
+    return new RegExp(qn + ': .*42,000 · Week \\d+ of 1[34]').test(t) && /This week: Send 5 proposals · Done/.test(t);
+  }, qn), 'Mac: the goal shows its quarter, the week of it, and this week\'s outcome');
+  check(!/linked action completed this month/.test(await text(mac, '#prioritiesList')), 'Mac: no more "linked action completed this month" on every goal');
+  await mac.click('[data-me-sub="stats"]');
+  check(await until(mac, () => /Your goals/i.test(document.getElementById('view-stats').innerText) &&
+    /Five new retainer clients/.test(document.getElementById('focusEvidence').innerText) && /£42,000 of £60,000/.test(document.getElementById('focusEvidence').innerText)),
+    'Mac: Progress opens with every goal (numbers included), not only record-linked ones');
+  await mac.click('[data-me-sub="focus"]');
   // a tap opens the goal's own page
   await phone.click(`.goal-row[data-goal="${q.id}"]`);
   await phone.waitForSelector('#gpEdit');

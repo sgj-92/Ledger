@@ -1204,6 +1204,10 @@
   .gp-dot { fill: var(--gold); stroke: var(--bg); stroke-width: 2; }
   .gp-bar { fill: var(--gold); }
   .gp-bar-open { fill: none; stroke: var(--gold); stroke-width: 1.2; }
+  .gp-bar-rec { fill: rgba(var(--gold-rgb),0.45); }
+  .gp-zero-fill { fill: var(--line-2); }
+  .gp-period { margin: -4px 0 10px; font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .gp-key.rec::before { background: rgba(var(--gold-rgb),0.45); }
   .gp-zero { stroke: var(--line-2); stroke-width: 2; stroke-linecap: round; }
   .gp-lbl { fill: var(--text-3); font-family: var(--sans); font-size: 10px; font-variant-numeric: tabular-nums; }
   .gp-lbl-t, .gp-lbl-v { fill: var(--text-2); }
@@ -1450,6 +1454,11 @@
   #focusEvidence { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); padding: 0 17px; }
   #focusEvidence .empty-state { padding: 16px 0; font-size: 13px; }
   .fe-row { display: flex; align-items: center; gap: 12px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+  button.fe-row { width: 100%; background: none; border-left: 0; border-right: 0; border-top: 0; text-align: left; font-family: var(--sans); color: var(--text); }
+  .fe-row.child { padding-left: 14px; }
+  .fe-row .fe-kind { margin: 0 0 4px; }
+  .fe-mini { flex-shrink: 0; width: 76px; height: 30px; align-self: center; }
+  .fe-mini svg { display: block; width: 76px; height: 30px; overflow: visible; }
   .fe-row:last-child { border-bottom: none; }
   .fe-row.clickable { cursor: pointer; transition: opacity 0.12s ease; }
   .fe-row.clickable:active { opacity: 0.65; }
@@ -6134,7 +6143,7 @@
   <section class="view" id="view-stats">
     <!-- wrappers carry the order and the desktop grid; nothing depends on h2 position -->
     <div class="pg-block" id="pgFocus">
-      <h2 class="section-title">Towards your focus</h2>
+      <h2 class="section-title">Your goals</h2>
       <div id="focusEvidence"></div>
     </div>
 
@@ -26634,44 +26643,52 @@
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }
 
-  // The priorities that name their evidence, summarised from the same records as the cards below.
+  // Your goals, at the top of Progress (2026-11-13): every active goal, where it stands,
+  // its period and the time left, with its line or its last 8 weeks of effort. A tap opens
+  // the goal's page. Year goals first, the 90-day goals under them, as in Me → Goals.
   function renderFocusEvidence(){
     var wrap = document.getElementById('focusEvidence');
     if (!wrap) return;
     wrap.innerHTML = '';
-    var linked = activeGoals().filter(function(p){ return !!p.evidenceType; });
-    if (!linked.length){
+    var act = activeGoals(), list = [];
+    GOAL_AREAS.concat({ key: null }).forEach(function(a){
+      var inArea = act.filter(function(p){ return (goalArea(p) || null) === a.key; });
+      inArea.filter(function(p){ return goalHorizon(p) === 'year'; }).sort(byGoalOrder).forEach(function(p){
+        list.push({ p: p, child: false });
+        goalChildren(p).forEach(function(q){ list.push({ p: q, child: true }); });
+      });
+      inArea.filter(function(p){ return goalHorizon(p) === 'quarter' && list.every(function(x){ return x.p !== p; }); }).sort(byGoalOrder)
+        .forEach(function(p){ list.push({ p: p, child: false }); });
+    });
+    if (!list.length){
       var e = document.createElement('div');
       e.className = 'empty-state';
-      e.textContent = priorities.length
-        ? 'Link a goal to what you record (in Me → Goals) to follow it here.'
-        : 'Set a goal in Me → Goals to follow it here.';
+      e.textContent = 'Set a goal in Me → Goals to follow it here.';
       wrap.appendChild(e);
       return;
     }
-    linked.forEach(function(p){
-      var row = document.createElement('div');
-      var hasDetail = EVIDENCE_WITH_DETAIL.indexOf(p.evidenceType) !== -1;
-      row.className = 'fe-row' + (hasDetail ? ' clickable' : '');
+    list.forEach(function(x){
+      var p = x.p;
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'fe-row clickable' + (x.child ? ' child' : '');
       var body = document.createElement('div');
       body.className = 'fe-body';
+      var kind = document.createElement('div');
+      kind.className = 'fe-kind';
+      kind.textContent = [goalArea(p) ? GOAL_AREA_LABEL[goalArea(p)] : null, goalHorizon(p) === 'quarter' ? 'Q' + goalPeriod(p).slice(6) : 'This year'].filter(Boolean).join(' \u00b7 ');
+      body.appendChild(kind);
       var title = document.createElement('div');
       title.className = 'fe-title';
       title.textContent = p.title;
       body.appendChild(title);
-      appendSignals(body, prioritySignals(p));
-      var kind = document.createElement('div');
-      kind.className = 'fe-kind';
-      kind.textContent = EVIDENCE_LABEL[p.evidenceType] || '';
-      body.appendChild(kind);
+      appendSignals(body, goalSignals(p));
       row.appendChild(body);
-      if (hasDetail){
-        var chev = document.createElement('span');
-        chev.className = 'chev';
-        chev.innerHTML = UI_ICON.chevronRight;
-        row.appendChild(chev);
-        row.addEventListener('click', function(){ openStatDetailSheet(p.evidenceType); });
-      }
+      var mini = document.createElement('span');
+      mini.className = 'fe-mini';
+      mini.innerHTML = goalMiniSvg(p);
+      row.appendChild(mini);
+      row.addEventListener('click', function(){ openGoalPage(p.id); });
       wrap.appendChild(row);
     });
   }
@@ -30081,11 +30098,123 @@
     return { text: fmtMeasure(cur, m.unit) + ' of ' + fmtMeasure(target, m.unit) + ' · ' +
       (gap <= 0 ? 'target reached' : fmtMeasure(gap, m.unit) + ' to go') };
   }
-  function goalSignals(p){
-    var out = [];
+  // ---- where a goal stands (2026-11-13; the Me audit, items 1–4) ----
+  // Its period (its quarter, or its year), the time left in it, how far it has come since
+  // the period began, the last day it got any time, and this week's outcome for it. Counts
+  // and dates only, never a score (decided 2026-09-29).
+  function goalBounds(p){
+    var per = goalPeriod(p);
+    if (goalHorizon(p) === 'quarter') return { start: quarterStart(per), end: quarterEnd(per), name: 'Q' + per.slice(6), quarter: true };
+    return { start: per + '-01-01', end: per + '-12-31', name: per, quarter: false };
+  }
+  // "Week 7 of 13 · 7 weeks left" for a quarter; "7 weeks left in 2026" for a year
+  function goalTimeText(p, short){
+    var b = goalBounds(p), t = todayStr();
+    if (t < b.start) return 'Starts ' + shortDate(b.start);
+    if (t > b.end) return 'Ended ' + shortDate(b.end);
+    var left = daysBetween(t, b.end) + 1;
+    var span = left > 90 ? Math.round(left / 30.4) + ' months' : left > 13 ? Math.round(left / 7) + ' weeks' : plural(left, 'day');
+    if (b.quarter){
+      var total = Math.round((daysBetween(b.start, b.end) + 1) / 7), wk = Math.min(total, Math.floor(daysBetween(b.start, t) / 7) + 1);
+      return 'Week ' + wk + ' of ' + total + ' \u00b7 ' + span + ' left';
+    }
+    return span + ' left' + (short ? '' : ' in ' + b.name);
+  }
+  // the numbers a goal is followed by: its own measure, or the weight it's linked to
+  function goalSeries(p){
+    var m = goalMeasure(p);
+    if (m) return { kind: 'number', unit: m.unit || '', target: Number(m.target),
+      start: m.start !== null && m.start !== '' && m.start !== undefined && isFinite(Number(m.start)) ? Number(m.start) : null,
+      points: goalValues(p).map(function(v){ return { date: v.date, value: Number(v.value), note: v.note || null }; }) };
+    if (p.evidenceType === 'weight'){
+      var tw = presets.targetWeightKg;
+      return { kind: 'weight', unit: 'kg', start: null,
+        target: tw != null && tw !== '' && isFinite(Number(tw)) ? Number(tw) : null,
+        points: dailyWeights().map(function(w){ return { date: w.date, value: w.kg, note: null }; }) };
+    }
+    return null;
+  }
+  function fmtSeries(v, s){ return s.kind === 'weight' ? (Math.round(v * 10) / 10) + 'kg' : fmtMeasure(v, s.unit); }
+  // the records a goal counts as time on it, from it and (for a year goal) the 90-day goals
+  // under it: training sessions, or on-track food days. Weight and steps are readings,
+  // not time spent. null when it counts none.
+  function goalRecordKeys(p){
+    var gs = [p].concat(goalHorizon(p) === 'year' ? priorities.filter(function(q){ return q.parentId === p.id && goalStatus(q) === 'active'; }) : []);
+    return gs.map(function(g){ return g.evidenceType; }).filter(function(k, i, a){ return k && k !== 'weight' && k !== 'actions' && k !== 'steps' && a.indexOf(k) === i; });
+  }
+  function goalRecordsIn(p, from, to){
+    var keys = goalRecordKeys(p);
+    if (!keys.length) return null;
+    return sessions.filter(function(x){
+      return x.date && x.date >= from && x.date <= to && keys.some(function(k){
+        return k === 'nutrition' ? (x.type === 'nutrition' && x.dayRating === 'good') : evidenceMatches(k, x);
+      });
+    });
+  }
+  function goalRecordNoun(p, n){
+    var keys = goalRecordKeys(p);
+    return keys.length === 1 && keys[0] === 'nutrition' ? plural(n, 'on-track day') : plural(n, 'session');
+  }
+  // "Q4: 2 → 11 leads", "2026: 89.4 → 85.9kg", "Q4: 34 sessions"
+  function goalMovementText(p){
+    var b = goalBounds(p), t = todayStr(), to = t < b.end ? t : b.end;
+    if (t < b.start) return null;
+    var s = goalSeries(p);
+    if (s){
+      var before = null, inP = [];
+      s.points.forEach(function(x){ if (x.date < b.start) before = x; else if (x.date <= to) inP.push(x); });
+      if (!inP.length) return null;
+      var from = before ? before.value : s.start;
+      if (from == null){ if (inP.length < 2) return null; from = inP[0].value; }
+      // the unit once, at the end ("0 → 8 leads"); a currency keeps its sign on both
+      var fromText = s.kind === 'weight' ? String(Math.round(from * 10) / 10) : CURRENCY_UNITS.indexOf(s.unit) > -1 ? fmtSeries(from, s) : fmtMeasure(from, '');
+      return b.name + ': ' + fromText + ' \u2192 ' + fmtSeries(inP[inP.length - 1].value, s);
+    }
+    var recs = goalRecordsIn(p, b.start, to);
+    if (recs) return b.name + ': ' + goalRecordNoun(p, recs.length);
+    var a = commitments.filter(function(c){ return c.status === 'completed' && c.date >= b.start && c.date <= to && c.category !== 'roadblock' && actionServesGoal(c, p); }).length;
+    return a ? b.name + ': ' + plural(a, 'Action') + ' done for it' : null;
+  }
+  // the last day it got any time: an Action done for it, a record it counts, a value entered
+  function goalLastMoved(p){
+    var t = todayStr(), best = '';
+    commitments.forEach(function(c){ if (c.status === 'completed' && c.date && c.date <= t && c.date > best && c.category !== 'roadblock' && actionServesGoal(c, p)) best = c.date; });
+    goalValues(p).forEach(function(v){ if (v.date <= t && v.date > best) best = v.date; });
+    (goalRecordsIn(p, '0000-00-00', t) || []).forEach(function(x){ if (x.date > best) best = x.date; });
+    return best || null;
+  }
+  function goalLastMovedLine(p){
+    var d = goalLastMoved(p);
+    if (!d) return { text: 'Nothing done for it yet', quiet: true };
+    var n = daysBetween(d, todayStr());
+    if (n <= 0) return { text: 'Time on it today' };
+    if (n === 1) return { text: 'Time on it yesterday' };
+    if (n <= 7) return { text: 'Last time on it ' + n + ' days ago' };
+    return { text: 'No time on it for ' + n + ' days' };
+  }
+  // this week's outcome for it (or for a goal under it), and how it stands
+  function goalWeekOutcomeLine(p){
+    var ids = [p.id].concat(goalHorizon(p) === 'year' ? priorities.filter(function(q){ return q.parentId === p.id; }).map(function(q){ return q.id; }) : []);
+    var outs = weekOutcomes(weekOf(todayStr())).filter(function(o){ return ids.indexOf(o.goalId) > -1; });
+    if (!outs.length) return null;
+    var o = outs[0], res = OUTCOME_RESULTS.filter(function(r){ return r.value === (o.result || ''); })[0];
+    return { text: 'This week: ' + o.text + ' \u00b7 ' + (res ? res.label : 'Open') + (outs.length > 1 ? ' (+' + (outs.length - 1) + ' more)' : '') };
+  }
+  // the first line: the gap to its target, or what its records say
+  function goalMainLine(p){
     var ml = measureLine(p);
-    if (ml) out.push(ml);
-    return out.concat(prioritySignals(p));
+    if (ml) return ml;
+    var sig = prioritySignals(p).filter(function(l){ return p.evidenceType === 'actions' || !/linked action/.test(l.text); });
+    return sig[0] || null;
+  }
+  // a goal's lines: where it stands, the period, and this week (or when it last got time)
+  function goalSignals(p){
+    var out = [], main = goalMainLine(p);
+    if (main) out.push(main);
+    var per = [goalMovementText(p), goalTimeText(p, true)].filter(Boolean).join(' \u00b7 ');
+    if (per) out.push({ text: per, quiet: true });
+    out.push(goalWeekOutcomeLine(p) || goalLastMovedLine(p));
+    return out;
   }
   // An Action serves a goal when it names it, names a goal under it, or moves a week's
   // outcome that does.
@@ -30228,76 +30357,130 @@
   var GP_SHORT = { day: 'numeric', month: 'short' };
   function shortDate(ds){ return toLocalDate(ds).toLocaleDateString(undefined, GP_SHORT); }
   function svgEsc(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  // the points a goal's chart draws: all its values; for weight, the weigh-ins in its
+  // period (and the one before it began, so the line starts where the period did)
+  function goalChartPoints(p, s){
+    if (s.kind !== 'weight') return s.points;
+    var b = goalBounds(p), before = null, inP = [];
+    s.points.forEach(function(x){ if (x.date < b.start) before = x; else if (x.date <= b.end) inP.push(x); });
+    var pts = (before ? [before] : []).concat(inP);
+    return pts.slice(-120);
+  }
   function goalChartSvg(p){
-    var m = goalMeasure(p), vals = goalValues(p);
-    if (!m || !vals.length) return '';
+    var sr = goalSeries(p);
+    var vals = sr ? goalChartPoints(p, sr) : [];
+    if (!vals.length) return '';
     var W = 320, H = 140, L = 6, R = 6, T = 20, B = 22;
-    var target = Number(m.target), unit = m.unit || '';
-    var ys = vals.map(function(v){ return Number(v.value); }).concat(target);
+    var target = sr.target, hasT = target != null && isFinite(target);
+    var ys = vals.map(function(v){ return Number(v.value); }).concat(hasT ? [target] : []);
     var lo = Math.min.apply(null, ys), hi = Math.max.apply(null, ys);
     if (hi === lo){ hi += 1; lo -= 1; }
     var pad = (hi - lo) * 0.1; hi += pad; lo -= pad;
     var t0 = toLocalDate(vals[0].date).getTime(), t1 = toLocalDate(vals[vals.length - 1].date).getTime();
     function x(ds){ return t1 === t0 ? W / 2 : L + (toLocalDate(ds).getTime() - t0) / (t1 - t0) * (W - L - R); }
     function y(v){ return T + (hi - Number(v)) / (hi - lo) * (H - T - B); }
-    var ty = y(target);
-    var tLabel = 'Target ' + fmtMeasure(target, unit);
-    var lblY = ty - 6 < 10 ? ty + 13 : ty - 6;
-    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + svgEsc(p.title + ': ' + vals.length + ' values, the latest ' + fmtMeasure(vals[vals.length - 1].value, unit) + ', target ' + fmtMeasure(target, unit)) + '">';
+    function f(v){ return fmtSeries(Number(v), sr); }
+    var last = vals[vals.length - 1];
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + svgEsc(p.title + ': ' + vals.length + ' values, the latest ' + f(last.value) + (hasT ? ', target ' + f(target) : '')) + '">';
     s += '<line class="gp-axis" x1="0" x2="' + W + '" y1="' + (H - B) + '" y2="' + (H - B) + '"/>';
-    s += '<line class="gp-target" x1="0" x2="' + W + '" y1="' + ty.toFixed(1) + '" y2="' + ty.toFixed(1) + '"/>';
-    s += '<text class="gp-lbl gp-lbl-t" x="' + W + '" y="' + lblY.toFixed(1) + '" text-anchor="end">' + svgEsc(tLabel) + '</text>';
+    var ty = hasT ? y(target) : null;
+    if (hasT){
+      var lblY = ty - 6 < 10 ? ty + 13 : ty - 6;
+      s += '<line class="gp-target" x1="0" x2="' + W + '" y1="' + ty.toFixed(1) + '" y2="' + ty.toFixed(1) + '"/>';
+      // on the side the line doesn't end on, so it never sits under the latest value
+      var right = vals.length < 2 || x(last.date) < W / 2;
+      s += '<text class="gp-lbl gp-lbl-t" x="' + (right ? W : 0) + '" y="' + lblY.toFixed(1) + '" text-anchor="' + (right ? 'end' : 'start') + '">' + svgEsc('Target ' + f(target)) + '</text>';
+    }
     if (vals.length > 1){
       s += '<polyline class="gp-line" points="' + vals.map(function(v){ return x(v.date).toFixed(1) + ',' + y(v.value).toFixed(1); }).join(' ') + '"/>';
     }
-    vals.forEach(function(v, i){
-      s += '<circle class="gp-dot" cx="' + x(v.date).toFixed(1) + '" cy="' + y(v.value).toFixed(1) + '" r="4"><title>' + svgEsc(shortDate(v.date) + ': ' + fmtMeasure(v.value, unit)) + '</title></circle>';
+    // every point while there are few; with many (weekly weigh-ins), the latest only
+    (vals.length <= 12 ? vals : [last]).forEach(function(v){
+      s += '<circle class="gp-dot" cx="' + x(v.date).toFixed(1) + '" cy="' + y(v.value).toFixed(1) + '" r="4"><title>' + svgEsc(shortDate(v.date) + ': ' + f(v.value)) + '</title></circle>';
     });
-    var last = vals[vals.length - 1], lx = x(last.date), ly = y(last.value);
-    var vy = Math.abs(ly - ty) < 14 ? (ly > ty ? ly + 16 : ly - 9) : ly - 9;
+    var lx = x(last.date), ly = y(last.value);
+    var vy = ty != null && Math.abs(ly - ty) < 14 ? (ly > ty ? ly + 16 : ly - 9) : ly - 9;
     if (vy < 10) vy = ly + 16;
-    s += '<text class="gp-lbl gp-lbl-v" x="' + Math.min(Math.max(lx, 20), W - 20).toFixed(1) + '" y="' + vy.toFixed(1) + '" text-anchor="middle">' + svgEsc(fmtMeasure(last.value, unit)) + '</text>';
+    s += '<text class="gp-lbl gp-lbl-v" x="' + Math.min(Math.max(lx, 20), W - 20).toFixed(1) + '" y="' + vy.toFixed(1) + '" text-anchor="middle">' + svgEsc(f(last.value)) + '</text>';
     s += '<text class="gp-lbl" x="0" y="' + (H - 6) + '">' + svgEsc(shortDate(vals[0].date)) + '</text>';
     if (vals.length > 1) s += '<text class="gp-lbl" x="' + W + '" y="' + (H - 6) + '" text-anchor="end">' + svgEsc(shortDate(last.date)) + '</text>';
     return s + '</svg>';
   }
-  // Actions for it in each of the last n weeks: done, and (this week) still planned
+  // Each of the last n weeks: the records it counts (training sessions, on-track food days),
+  // the Actions done for it, and (this week) the Actions still planned
   function goalEffortWeeks(p, n){
-    var ws0 = weekOf(todayStr()), out = [];
+    var ws0 = weekOf(todayStr()), out = [], counts = goalRecordKeys(p).length > 0;
     for (var i = n - 1; i >= 0; i--){
       var ws = fmtDate(addDays(ws0, -7 * i)), end = fmtDate(addDays(ws, 6));
       var acts = commitments.filter(function(c){ return c.date >= ws && c.date <= end && c.category !== 'roadblock' && actionServesGoal(c, p); });
       var done = acts.filter(function(c){ return c.status === 'completed'; }).length;
-      out.push({ ws: ws, done: done, open: i === 0 ? acts.filter(function(c){ return c.status === 'planned'; }).length : 0 });
+      out.push({ ws: ws, done: done, recs: counts ? goalRecordsIn(p, ws, end).length : 0,
+        open: i === 0 ? acts.filter(function(c){ return c.status === 'planned'; }).length : 0 });
     }
     return out;
   }
-  function goalEffortSvg(wks){
+  function goalEffortSvg(wks, p){
     var W = 320, H = 120, T = 16, B = 20, slot = W / wks.length, bw = 16, r = 4;
-    var max = Math.max.apply(null, wks.map(function(w){ return w.done + w.open; }).concat(1));
+    var max = Math.max.apply(null, wks.map(function(w){ return w.recs + w.done + w.open; }).concat(1));
     var base = H - B, span = base - T;
-    function bar(x, top, h, cls){
+    function bar(x, bottom, h, cls, round){
       if (h <= 0) return '';
-      var rr = Math.min(r, h);
-      return '<path class="' + cls + '" d="M' + x + ',' + (top + h) + ' V' + (top + rr) + ' Q' + x + ',' + top + ' ' + (x + rr) + ',' + top +
-        ' H' + (x + bw - rr) + ' Q' + (x + bw) + ',' + top + ' ' + (x + bw) + ',' + (top + rr) + ' V' + (top + h) + ' Z"/>';
+      var top = bottom - h, rr = round ? Math.min(r, h) : 0;
+      return '<path class="' + cls + '" d="M' + x + ',' + bottom + ' V' + (top + rr) + ' Q' + x + ',' + top + ' ' + (x + rr) + ',' + top +
+        ' H' + (x + bw - rr) + ' Q' + (x + bw) + ',' + top + ' ' + (x + bw) + ',' + (top + rr) + ' V' + bottom + ' Z"/>';
     }
-    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + svgEsc('Actions done for it, by week: ' + wks.map(function(w){ return shortDate(w.ws) + ' ' + w.done; }).join(', ')) + '">';
+    function weekText(w){
+      var bits = [];
+      if (w.recs) bits.push(goalRecordNoun(p, w.recs));
+      if (w.done || !w.recs) bits.push(plural(w.done, 'Action') + ' done');
+      if (w.open) bits.push(w.open + ' still planned');
+      return 'Week of ' + shortDate(w.ws) + ': ' + bits.join(', ');
+    }
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + svgEsc('Done for it, by week: ' + wks.map(function(w){ return shortDate(w.ws) + ' ' + (w.recs + w.done); }).join(', ')) + '">';
     s += '<line class="gp-axis" x1="0" x2="' + W + '" y1="' + base + '" y2="' + base + '"/>';
     wks.forEach(function(w, i){
       var x = Math.round(i * slot + (slot - bw) / 2);
-      var hd = w.done / max * span, ho = w.open / max * span;
-      s += '<g><title>' + svgEsc('Week of ' + shortDate(w.ws) + ': ' + plural(w.done, 'Action') + ' done' + (w.open ? ', ' + w.open + ' still planned' : '')) + '</title>';
+      var hr = w.recs / max * span, hd = w.done / max * span, ho = w.open / max * span;
+      s += '<g><title>' + svgEsc(weekText(w)) + '</title>';
       s += '<rect x="' + (i * slot) + '" y="0" width="' + slot + '" height="' + H + '" fill="transparent"/>';
-      if (!w.done && !w.open) s += '<line class="gp-zero" x1="' + (x + 3) + '" x2="' + (x + bw - 3) + '" y1="' + (base - 1) + '" y2="' + (base - 1) + '"/>';
-      s += bar(x, base - hd, hd, 'gp-bar');
-      if (ho > 0) s += bar(x + 0.6, base - hd - ho - (hd ? 2 : 0) + 0.6, Math.max(ho - 1.2, 1), 'gp-bar-open');
-      var top = base - hd - ho - (hd && ho ? 2 : 0);
-      if (w.done || w.open) s += '<text class="gp-lbl gp-lbl-v" x="' + (x + bw / 2) + '" y="' + (top - 5).toFixed(1) + '" text-anchor="middle">' + (w.done + (w.open ? '+' + w.open : '')) + '</text>';
+      if (!w.recs && !w.done && !w.open) s += '<line class="gp-zero" x1="' + (x + 3) + '" x2="' + (x + bw - 3) + '" y1="' + (base - 1) + '" y2="' + (base - 1) + '"/>';
+      // records at the base, Actions above them (a 2px gap between), what's planned on top
+      var at = base;
+      s += bar(x, at, hr, 'gp-bar-rec', !hd && !ho); if (hr) at -= hr + (hd || ho ? 2 : 0);
+      s += bar(x, at, hd, 'gp-bar', !ho); if (hd) at -= hd + (ho ? 2 : 0);
+      if (ho > 0) s += bar(x + 0.6, at - 0.6, Math.max(ho - 1.2, 1), 'gp-bar-open', true);
+      if (ho > 0) at -= ho;
+      var tot = w.recs + w.done;
+      if (tot || w.open) s += '<text class="gp-lbl gp-lbl-v" x="' + (x + bw / 2) + '" y="' + (at - 5).toFixed(1) + '" text-anchor="middle">' + (tot + (w.open ? '+' + w.open : '')) + '</text>';
       if (i % 2 === wks.length % 2 || i === wks.length - 1) s += '<text class="gp-lbl" x="' + (x + bw / 2) + '" y="' + (H - 5) + '" text-anchor="middle">' + svgEsc(i === wks.length - 1 ? 'This wk' : shortDate(w.ws)) + '</text>';
       s += '</g>';
     });
     return s + '</svg>';
+  }
+  // a goal at a glance, for Progress: its line, or its last 8 weeks of effort, small
+  function goalMiniSvg(p){
+    var sr = goalSeries(p), W = 76, H = 30;
+    var vals = sr ? goalChartPoints(p, sr).slice(-30) : [];
+    if (vals.length > 1){
+      var ys = vals.map(function(v){ return Number(v.value); }).concat(sr.target != null && isFinite(sr.target) ? [sr.target] : []);
+      var lo = Math.min.apply(null, ys), hi = Math.max.apply(null, ys); if (hi === lo){ hi += 1; lo -= 1; }
+      var t0 = toLocalDate(vals[0].date).getTime(), t1 = toLocalDate(vals[vals.length - 1].date).getTime() || t0 + 1;
+      function x(ds){ return 3 + (toLocalDate(ds).getTime() - t0) / ((t1 - t0) || 1) * (W - 6); }
+      function y(v){ return 3 + (hi - v) / (hi - lo) * (H - 6); }
+      var out = '<svg viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">';
+      if (sr.target != null && isFinite(sr.target)) out += '<line class="gp-target" x1="0" x2="' + W + '" y1="' + y(sr.target).toFixed(1) + '" y2="' + y(sr.target).toFixed(1) + '"/>';
+      out += '<polyline class="gp-line" points="' + vals.map(function(v){ return x(v.date).toFixed(1) + ',' + y(Number(v.value)).toFixed(1); }).join(' ') + '"/>';
+      var l = vals[vals.length - 1];
+      return out + '<circle class="gp-dot" cx="' + x(l.date).toFixed(1) + '" cy="' + y(Number(l.value)).toFixed(1) + '" r="2.6"/></svg>';
+    }
+    var wks = goalEffortWeeks(p, 8), max = Math.max.apply(null, wks.map(function(w){ return w.recs + w.done; }).concat(1));
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">';
+    wks.forEach(function(w, i){
+      var h = (w.recs + w.done) / max * (H - 4), bx = i * 9.5 + 1;
+      svg += h > 0 ? '<rect class="gp-bar" x="' + bx + '" y="' + (H - h).toFixed(1) + '" width="6" height="' + h.toFixed(1) + '" rx="1.5"/>'
+        : '<rect class="gp-zero-fill" x="' + bx + '" y="' + (H - 2) + '" width="6" height="2" rx="1"/>';
+    });
+    return svg + '</svg>';
   }
   // the weeks a goal shows up in: its outcomes (and, for a year goal, its 90-day goals'),
   // that week's review in its area, and any review that names it
@@ -30398,6 +30581,13 @@
         } else tree.remove();
       }
 
+      // under the gap: how far it has come this period, and the time left
+      function gpPeriodLine(after){
+        var t = [goalMovementText(p), goalTimeText(p)].filter(Boolean).join(' \u00b7 ');
+        if (!t) return;
+        var el = document.createElement('p'); el.className = 'gp-period'; el.textContent = t;
+        after.parentNode.insertBefore(el, after.nextSibling);
+      }
       // the measure over time
       var mBox = document.getElementById('gpMeasure');
       var sig = prioritySignals(p).filter(function(l){ return !/linked action/.test(l.text) || p.evidenceType === 'actions'; });
@@ -30408,6 +30598,7 @@
           '<div class="goal-values gp-values"></div>';
         var ml = measureLine(p);
         mBox.querySelector('.gp-now').textContent = ml ? ml.text : '';
+        gpPeriodLine(mBox.querySelector('.gp-now'));
         mBox.querySelector('.gp-chart').innerHTML = goalChartSvg(p);
         var vals = goalValues(p);
         if (!vals.length){ var nv = document.createElement('p'); nv.className = 'wk-empty'; nv.textContent = 'No values yet. Add today’s and the chart starts.'; mBox.querySelector('.gp-chart').appendChild(nv); }
@@ -30434,9 +30625,23 @@
           document.getElementById('gpValAdd').addEventListener('click', addVal);
           vin.addEventListener('keydown', function(ev){ if (ev.key === 'Enter') addVal(); });
         }
+      } else if (p.evidenceType === 'weight' && st === 'active'){
+        // the weight it's linked to, over its period, against the target weight
+        var wsr = goalSeries(p);
+        mBox.innerHTML = '<div class="sec-head"><span class="sec-label">Weight</span><span class="sec-rule"></span></div><p class="gp-now"></p><div class="gp-chart"></div>';
+        mBox.querySelector('.gp-now').textContent = sig[0] ? sig[0].text : '';
+        gpPeriodLine(mBox.querySelector('.gp-now'));
+        if (wsr && wsr.points.length) mBox.querySelector('.gp-chart').innerHTML = goalChartSvg(p);
+        else { var nw = document.createElement('p'); nw.className = 'wk-empty'; nw.textContent = 'No weigh-ins yet. Log one and the line starts.'; mBox.querySelector('.gp-chart').appendChild(nw); }
+        var wl = document.createElement('button'); wl.type = 'button'; wl.className = 'prio-link';
+        wl.innerHTML = 'View progress' + UI_ICON.arrowRight;
+        wl.addEventListener('click', function(){ openProgressFor('weight'); });
+        mBox.appendChild(wl);
       } else if (p.evidenceType && st === 'active'){
         mBox.innerHTML = '<div class="sec-head"><span class="sec-label">Evidence</span><span class="sec-rule"></span></div>';
         appendSignals(mBox, sig);
+        var evPer = [goalMovementText(p), goalTimeText(p)].filter(Boolean).join(' \u00b7 ');
+        if (evPer){ var ep = document.createElement('p'); ep.className = 'gp-period'; ep.textContent = evPer; mBox.appendChild(ep); }
         if (EVIDENCE_WITH_DETAIL.indexOf(p.evidenceType) !== -1){
           var lk = document.createElement('button'); lk.type = 'button'; lk.className = 'prio-link';
           lk.innerHTML = 'View progress' + UI_ICON.arrowRight;
@@ -30445,6 +30650,7 @@
         }
       } else if (st === 'active'){
         mBox.innerHTML = '<div class="sec-head"><span class="sec-label">Measure</span><span class="sec-rule"></span></div>' +
+          '<p class="gp-period">' + svgEsc(goalTimeText(p)) + '</p>' +
           '<p class="wk-empty">Not measured. That’s fine; the effort below still shows.</p>' +
           '<button type="button" class="prio-link" id="gpAddM">' + BK_PLUS_SVG + 'Add a number to track</button>';
         document.getElementById('gpAddM').addEventListener('click', function(){ openPrioritySheet(p, { after: back }); });
@@ -30452,17 +30658,25 @@
 
       // effort by week
       var eBox = document.getElementById('gpEffort');
-      var total = effort.reduce(function(n, w){ return n + w.done; }, 0);
-      var none = effort.filter(function(w){ return !w.done; }).length;
+      // what it counts: Actions done for it, and the records it's linked to (training, food)
+      var counts = goalRecordKeys(p).length > 0;
+      var totA = effort.reduce(function(n, w){ return n + w.done; }, 0), totR = effort.reduce(function(n, w){ return n + w.recs; }, 0);
+      var none = effort.filter(function(w){ return !w.done && !w.recs; }).length;
       var cap = document.createElement('p'); cap.className = 'gp-cap';
-      cap.textContent = total ? plural(total, 'Action') + ' done for it in 8 weeks' + (none ? ' · none in ' + none + ' of them' : ' · every week') : 'No Actions done for it in the last 8 weeks';
+      var what = [totR ? goalRecordNoun(p, totR) : '', totA ? plural(totA, 'Action') : ''].filter(Boolean).join(' and ');
+      cap.textContent = what ? what + (counts ? '' : ' done for it') + ' in 8 weeks' + (none ? ' · none in ' + none + ' of them' : ' · every week')
+        : (counts ? 'Nothing logged for it in the last 8 weeks' : 'No Actions done for it in the last 8 weeks');
       eBox.appendChild(cap);
-      var ch = document.createElement('div'); ch.className = 'gp-chart gp-effort'; ch.innerHTML = goalEffortSvg(effort);
+      var ch = document.createElement('div'); ch.className = 'gp-chart gp-effort'; ch.innerHTML = goalEffortSvg(effort, p);
       eBox.appendChild(ch);
-      if (effort[effort.length - 1].open){
+      var keys = [];
+      if (totR) keys.push(['rec', goalRecordKeys(p).length === 1 && goalRecordKeys(p)[0] === 'nutrition' ? 'On-track days' : 'Sessions']);
+      if (totR && totA) keys.push(['', 'Actions']);
+      if (effort[effort.length - 1].open) keys.push(['open', 'Still planned this week']);
+      if (keys.length && (totR || effort[effort.length - 1].open)){
+        if (!totR) keys.unshift(['', 'Done']);
         var lg = document.createElement('p'); lg.className = 'gp-legend';
-        lg.innerHTML = '<span class="gp-key"></span><span class="gp-key open"></span>';
-        lg.firstChild.textContent = 'Done'; lg.lastChild.textContent = 'Still planned this week';
+        keys.forEach(function(k){ var sp = document.createElement('span'); sp.className = 'gp-key' + (k[0] ? ' ' + k[0] : ''); sp.textContent = k[1]; lg.appendChild(sp); });
         eBox.appendChild(lg);
       }
 

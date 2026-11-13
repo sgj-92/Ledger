@@ -347,3 +347,48 @@ request.
 - `tests/firestore-rules/rules.test.js`: `ledger_quarters` is owner-only.
 - The browser run covers the strip, the page and a quarter closed end to end.
 
+## 12. Where each goal stands (2026-11-13)
+
+From an audit of Me. These four changes make Me say where every goal stands.
+
+**1. Goals linked to records use them.**
+- **Weight:** a goal linked to weight draws a line of weigh-ins over its period, with the
+  target weight as the dashed line.
+- **Effort by week** counts what the goal is linked to, plus the Actions done for it:
+  - training sessions;
+  - on-track food days.
+  - A year goal also counts what the 90-day goals under it are linked to.
+  - Weigh-ins and steps are readings, not time spent, so they don't count.
+- **Code:** `goalSeries`, `goalRecordsIn`, `goalEffortWeeks`.
+
+**2. Time and movement.**
+- **Time left:** "Week 7 of 13 · 7 weeks left" for a 90-day goal, "7 weeks left in 2026" for
+  a year goal.
+- **Movement this period:** for example "Q4: 0 → 8 leads", "2026: 89.3 → 85.9kg" or
+  "Q4: 25 sessions".
+- It starts from the last value before the period began, or the measure's start. Counts
+  only, as decided on 2026-09-29.
+
+**3. Each goal row says what matters.**
+- The row has three lines:
+  - where it stands (the gap, or what its records say);
+  - the period line (movement and time left);
+  - this week's outcome for it, or, with none, when it last got any time ("No time on it
+    for 12 days").
+- "N linked actions completed this month" is gone from the rows.
+- **Time on it** means an Action done for it, a record it counts, or a value entered.
+
+**4. Progress opens with Your goals.**
+- Every active goal is listed, not only those linked to records, with year goals first
+  and their 90-day goals under them.
+- Each shows the same three lines, plus a small chart: its line, or its last 8 weeks of
+  effort.
+- A tap opens the goal's page.
+
+**Still open from the audit (5–10):**
+- the target weight, and the Calendar's weekly training target, duplicating goals;
+- year goals listing their quarters;
+- Active focus;
+- empty cards on Progress;
+- where Settings lives;
+- a look back over the year.
