@@ -230,6 +230,18 @@ async function wait(fn){ for (let i = 0; i < 25; i++){ const v = await fn(); if 
   check(await until(mac, () => /Quarter review/.test((document.getElementById('gpHist') || {}).innerText || '') && /Carried over/.test(document.getElementById('gpHist').innerText)),
     'Mac: the goal\'s history shows the quarter\'s decision, live');
 
+  // ---- deleting a goal (2026-11-14): for a duplicate; asks twice ----
+  await mac.click('#sheetCloseBtn').catch(() => {});
+  await mac.click('.goal-row[data-goal="q2"]');
+  await mac.waitForSelector('#gpEdit'); await mac.click('#gpEdit');
+  await mac.waitForSelector('#gDelete');
+  await mac.click('#gDelete');
+  check(/Tap again to delete/.test(await text(mac, '#gDelete')) && (await list('ledger_priorities')).some(x => x.id === 'q2'), 'Mac: Delete goal asks again, and nothing is gone yet');
+  await mac.click('#gDelete');
+  check(await wait(async () => !(await list('ledger_priorities')).some(x => x.id === 'q2')), 'Deleted: the goal is gone from Firestore');
+  check(await until(phone, () => !document.querySelector('.goal-row[data-goal="q2"]')), 'Phone: gone there too, live');
+  check((await list('ledger_quarters')).some(x => x.goals && x.goals.some(g => g.id === 'q2')), 'The quarter review that decided it keeps its record');
+
   for (const p of [phone, mac]) check(!p.errs.length, p.name + ': no page errors ' + p.errs.join(' | ').slice(0, 300));
   await b.close(); server.close();
   console.log(`\n${ok.length} passed, ${bad.length} failed`);

@@ -762,6 +762,24 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-14 — Goals can be deleted; an offline start no longer resets presets or re-adds goals
+
+- **Delete goal** (Shaun asked: duplicates could only be dropped). This updates "goals are
+  never deleted" (2026-10-31).
+  - Edit goal → Delete goal, tapped twice.
+  - It's for a duplicate or a mistake. Closing a goal is still achieved or dropped.
+  - Actions, outcomes and quarter reviews that named it keep their own records. Its 90-day
+    goals stand on their own.
+- **The duplicates' cause (a bug, fixed):** opening the app while Firestore was out of reach.
+  - **Starter goals:** the empty cache was taken for "no goals", so the two starter goals were
+    added again. They synced as duplicates once back online.
+  - **Presets:** the missing presets document was taken for "no presets", so the defaults were
+    written over Shaun's: sweep channels, routines, target weight, the week start, the
+    training target and the Claude link. This is likely why his sweep channels reset before.
+  - **Now:** presets are created, and starter goals added, only when the server says there are
+    none. The starter goals have fixed ids (`seed-weight`, `seed-money`).
+  - `tests/e2e/offline-start.test.js` fails on the old code and passes now.
+
 ### 2026-11-13 — Me: where each goal stands (Shaun: "do 1–4" of the Me audit)
 
 - **Records count:**
@@ -2815,7 +2833,12 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (look)
+Owner: Shaun (tidy up, then check settings)
+**Duplicate goals**: open each duplicate → Edit goal → Delete goal (tap twice). Then check
+Settings, since an offline start may have reset them: target weight, Morning Prime and
+Wind-down routines, sweep channels, week start, weekly training target, the Claude link.
+
+**Before that**: Owner: Shaun (look)
 **Me → Goals and Progress**: each goal now says where it stands, the time left, and this week's
 outcome or when it last got time; Progress opens with Your goals. Audit items 5–10 wait on Shaun.
 
@@ -3097,6 +3120,10 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-14) — **Delete goal; the offline-start fix** (decision above).
+  - offline-start e2e: 8 checks, 4 of which fail on the old code.
+  - goals e2e: 42 (4 new: delete asks twice, gone everywhere, the quarter record kept).
+  - settings-sync 13, native-shell 90.
 - (2026-11-13) — **Me: where each goal stands** (decision above). goals e2e 38 (3 new: the period
   and week lines, no repeated linked-action line, Progress → Your goals). Browser at 390 and
   1280: Progress, Goals, and the pages of a weight goal and a training goal.

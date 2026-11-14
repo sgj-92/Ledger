@@ -392,3 +392,7 @@ From an audit of Me. These four changes make Me say where every goal stands.
 - empty cards on Progress;
 - where Settings lives;
 - a look back over the year.
+
+**Deleting a goal (2026-11-14):** Edit goal → Delete goal, tapped twice, for a duplicate or a
+mistake. Closing a goal is still achieved or dropped. Records that named it keep their own
+copy.

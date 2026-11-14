@@ -7883,6 +7883,9 @@
         remindKeepTz();
       }, function(err){ console.error('reminders snapshot error', err); });
       dbRef.collection('ledger_meta').doc('presets').onSnapshot(function(doc){
+        // from the server, or only this device's cache (opened offline): a cache that
+        // hasn't got it yet is not "there are no presets" (2026-11-14)
+        presetsFromServer = !(doc.metadata && doc.metadata.fromCache);
         if (doc.exists){
           var data = doc.data();
           presets.cardioTypes = data.cardioTypes || DEFAULT_CARDIO_TYPES.slice();
@@ -7911,7 +7914,8 @@
           if (currentView === 'calendar') renderCalendar();
           if (currentView === 'focus') renderFocus();
           renderLogView();
-        } else {
+        } else if (presetsFromServer){
+          // a new account: write the defaults once the server says there's nothing there
           dbRef.collection('ledger_meta').doc('presets').set(presets).catch(function(){});
         }
         presetsLoaded = true;
@@ -7937,6 +7941,7 @@
         .onSnapshot(function(snap){
           priorities = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
           prioritiesLoaded = true;
+          prioritiesFromServer = !(snap.metadata && snap.metadata.fromCache);
           seedPrioritiesIfNeeded();
           if (currentView === 'focus') renderFocus();
           if (currentView === 'stats') renderStats();
@@ -8395,8 +8400,9 @@
     if (activeSheetRefresh && activeSheetRefresh.onGoals) activeSheetRefresh();
   }
 
-  // Goals are never deleted by Shaun (achieved or dropped instead); only Undo of a goal
-  // Ask Claude just made takes one away.
+  // Goals are closed (achieved or dropped) to keep the record. Deleting is for a goal that
+  // shouldn't exist at all, like a duplicate (Shaun, 2026-11-14), and for Undo of a goal
+  // Ask Claude just made. Actions and outcomes that named it keep their own record.
   async function removeGoalRecord(id){
     if (dbReady && dbRef){
       try { await dbRef.collection('ledger_priorities').doc(id).delete(); return; }
@@ -8407,14 +8413,20 @@
     renderPriorities();
   }
 
+  // The two starter goals for a brand-new Ledger. Only when the server itself says there
+  // are no goals and they were never added: an app opened offline sees an empty cache, and
+  // that once added them again (2026-11-14). Fixed ids, so a second run can only rewrite
+  // the same two, never add more.
+  var presetsFromServer = false, prioritiesFromServer = false;
   function seedPrioritiesIfNeeded(){
     if (!presetsLoaded || !prioritiesLoaded) return;
+    if (dbReady && !(presetsFromServer && prioritiesFromServer)) return;
     if (presets.prioritiesSeeded) return;
     presets.prioritiesSeeded = true;
     if (!priorities.length){
       var seedItems = [
-        { title: 'Reduce weight to 90kg', note: 'Establish good eating habits along the way', createdAt: new Date().toISOString() },
-        { title: 'Generate money & clear S&J backlog', note: '', createdAt: new Date().toISOString() }
+        { id: 'seed-weight', title: 'Reduce weight to 90kg', note: 'Establish good eating habits along the way', createdAt: new Date().toISOString() },
+        { id: 'seed-money', title: 'Generate money & clear S&J backlog', note: '', createdAt: new Date().toISOString() }
       ];
       seedItems.forEach(function(item){ savePriority(item); });
     }
@@ -30916,6 +30928,7 @@
           ? '<button type="button" class="act-row" id="gAchieved"><span class="act-ic">' + CHECK_SVG + '</span><span class="act-label">Mark achieved</span></button>' +
             '<button type="button" class="act-row" id="gDrop"><span class="act-ic">' + CLOSE_SVG + '</span><span class="act-label">Drop this goal</span><span class="act-meta">kept in the record</span></button>'
           : '<button type="button" class="act-row" id="gReopen"><span class="act-ic">' + UI_ICON.target + '</span><span class="act-label">Make active again</span></button>') +
+        '<button type="button" class="act-row danger" id="gDelete"><span class="act-ic">' + CLOSE_SVG + '</span><span class="act-label">Delete goal</span><span class="act-meta">for a duplicate or a mistake</span></button>' +
       '</div>' : '');
     var titleIn = document.getElementById('f_priorityTitle');
     titleIn.value = g.title || '';
@@ -31030,6 +31043,19 @@
       if (a) a.addEventListener('click', function(){ setStatus('achieved'); });
       if (d) d.addEventListener('click', function(){ setStatus('dropped'); });
       if (r) r.addEventListener('click', function(){ setStatus('active'); });
+      var del = document.getElementById('gDelete');
+      del.addEventListener('click', function(){
+        if (!del.classList.contains('confirm')){
+          var kids = priorities.filter(function(q){ return q.parentId === existing.id && goalStatus(q) === 'active'; }).length;
+          del.classList.add('confirm');
+          del.querySelector('.act-label').textContent = 'Tap again to delete';
+          del.querySelector('.act-meta').textContent = kids ? 'its ' + plural(kids, '90-day goal') + ' will stand on their own' : 'it can’t be undone';
+          return;
+        }
+        removeGoalRecord(existing.id);
+        closeSheet();
+        showPinToast('Goal deleted', false, CHECK_SVG);
+      });
     }
   }
 
