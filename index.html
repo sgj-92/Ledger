@@ -7169,6 +7169,25 @@
   // its own, as a change to the snapshot's metadata only: the app comes back from the
   // background, reconnects, and nothing changed meanwhile. Firestore sends that only when
   // asked, so ask, and use it only to set the flag (onConfirmed) — never to redraw the data.
+  // With the copy on this device (2026-11-14), a listener's first answer can come from the
+  // cache, and when the server then says the same thing Firestore stays silent unless it is
+  // asked for metadata changes. A listener that waits for the server's word ("fromCache"
+  // false) would wait for ever. This asks, and calls on() for a real change, and once more
+  // the first time the server confirms; the pending-write echoes in between are skipped.
+  function liveSnapshot(ref, on, onErr){
+    var seen = false, confirmed = false, last = null;
+    return ref.onSnapshot({ includeMetadataChanges: true }, function(snap){
+      var fresh = !snap.metadata || !snap.metadata.fromCache;
+      var changed;
+      if (typeof snap.docChanges === 'function') changed = !seen || snap.docChanges().length > 0;
+      else { var key = JSON.stringify([snap.exists, snap.exists ? snap.data() : null]); changed = !seen || key !== last; last = key; }
+      var firstWord = fresh && !confirmed;
+      if (fresh) confirmed = true;
+      if (!changed && !firstWord) return;
+      seen = true;
+      on(snap);
+    }, onErr);
+  }
   function confirmedSnapshot(query, flag, onData, onConfirmed){
     var seen = false;
     return query.onSnapshot({ includeMetadataChanges: true }, function(snap){
@@ -7419,10 +7438,40 @@
     });
   }
 
+  // ---- a copy on this device (2026-11-14) ----
+  // Firestore keeps what it has read in this device's storage, so Ledger opens with your
+  // data when there's no connection, and changes made offline wait (even through closing
+  // the app) until they can be sent. It's read only by the signed-in session that the
+  // usual checks have let in, and it's wiped when that person signs out: a signed-out
+  // device never holds anyone's data. A private window, or a browser that can't, simply
+  // keeps it in memory, as before.
+  var FS_COPY_KEY = 'ledger_fs_copy';          // set while this device holds someone's copy
+  function fsKeepCopy(){
+    try {
+      dbRef.enablePersistence({ synchronizeTabs: true })
+        .catch(function(e){ console.warn('no copy on this device', e && e.code); });
+    } catch(e){ console.warn('no copy on this device', e); }
+  }
+  // signed out with a copy still here: wipe it, then start again clean. Once per tab
+  // session, so a tab that can't wipe it (another Ledger tab open) never reloads in a loop.
+  function fsWipeCopy(){
+    if (lsGet(FS_COPY_KEY, '') === '') return false;
+    var tried = false;
+    try { tried = sessionStorage.getItem(FS_COPY_KEY) === '1'; sessionStorage.setItem(FS_COPY_KEY, '1'); } catch(e){}
+    if (tried) return false;
+    dbRef.terminate()
+      .then(function(){ return dbRef.clearPersistence(); })
+      .then(function(){ try { localStorage.removeItem(FS_COPY_KEY); } catch(e){} })
+      .catch(function(e){ console.warn('copy not wiped', e && e.code); })
+      .then(function(){ location.reload(); });
+    return true;
+  }
+
   async function handleAuthState(user){
     if (!user){
       authUser = null; authRole = null; authProfile = null;
       nativeWidgetClear();
+      if (dbRef && fsWipeCopy()){ lockApp(); renderGate('splash'); return; }
       // private data never outlives the session that loaded it
       if (ownerDataStarted || pp.started){ location.reload(); return; }
       lockApp();
@@ -7433,6 +7482,8 @@
       return;
     }
     authUser = user;
+    lsSet(FS_COPY_KEY, user.uid);                 // from here this device may hold their copy
+    try { sessionStorage.removeItem(FS_COPY_KEY); } catch(e){}
     if (!ownerDataStarted){ lockApp(); renderGate('splash'); }
     var r = await fetchProfile(user);
     if (authUser !== user) return;                       // signed out meanwhile
@@ -7827,6 +7878,7 @@
         dbRef.useEmulator('127.0.0.1', 8080);
         if (firebase.auth) firebase.auth().useEmulator('http://127.0.0.1:9099', { disableWarnings: true });
       }
+      fsKeepCopy();
     } catch(e){
       console.error('firebase init failed', e);
       lockApp(); renderGate('error'); return;
@@ -7865,10 +7917,9 @@
     try {
       dbReady = true;
       document.getElementById('syncNote').textContent = '';
-      dbRef.collection('ledger_sessions').orderBy('date','desc')
-        .onSnapshot(function(snap){
+      liveSnapshot(dbRef.collection('ledger_sessions').orderBy('date','desc'), function(snap){
           sessions = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return normalizeSession(data); });
-          if (!snap.metadata || !snap.metadata.fromCache) shareLoaded.sessions = true;
+          if (!snap.metadata || !snap.metadata.fromCache){ shareLoaded.sessions = true; scheduleShareSync(); }
           renderAll();
         }, ownerDataError);
       // connected accounts (2026-11-11): whether Microsoft 365 is on — never its sign-in
@@ -7882,7 +7933,7 @@
         remindLoaded = true;
         remindKeepTz();
       }, function(err){ console.error('reminders snapshot error', err); });
-      dbRef.collection('ledger_meta').doc('presets').onSnapshot(function(doc){
+      liveSnapshot(dbRef.collection('ledger_meta').doc('presets'), function(doc){
         // from the server, or only this device's cache (opened offline): a cache that
         // hasn't got it yet is not "there are no presets" (2026-11-14)
         presetsFromServer = !(doc.metadata && doc.metadata.fromCache);
@@ -7915,8 +7966,12 @@
           if (currentView === 'focus') renderFocus();
           renderLogView();
         } else if (presetsFromServer){
-          // a new account: write the defaults once the server says there's nothing there
-          dbRef.collection('ledger_meta').doc('presets').set(presets).catch(function(){});
+          // a new account: write the defaults once the server says there's nothing there,
+          // and only if that's still true (another device may have saved one meanwhile)
+          var presetsRef = dbRef.collection('ledger_meta').doc('presets'), defaults = Object.assign({}, presets);
+          dbRef.runTransaction(function(tx){
+            return tx.get(presetsRef).then(function(d){ if (!d.exists) tx.set(presetsRef, defaults); });
+          }).catch(function(e){ console.warn('presets not created', e && e.code); });
         }
         presetsLoaded = true;
         seedPrioritiesIfNeeded();
@@ -7937,8 +7992,7 @@
           mealIdeas = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
           if (currentView === 'plan') renderMealIdeas();
         }, function(err){ console.error('meal ideas snapshot error', err); });
-      dbRef.collection('ledger_priorities').orderBy('createdAt')
-        .onSnapshot(function(snap){
+      liveSnapshot(dbRef.collection('ledger_priorities').orderBy('createdAt'), function(snap){
           priorities = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
           prioritiesLoaded = true;
           prioritiesFromServer = !(snap.metadata && snap.metadata.fromCache);
@@ -8430,7 +8484,12 @@
       ];
       seedItems.forEach(function(item){ savePriority(item); });
     }
-    savePresets();
+    // only the flag: a whole-presets write from this device's copy could undo a setting
+    // another device has just saved (the Claude link, the sweep channels)
+    if (dbReady && dbRef){
+      dbRef.collection('ledger_meta').doc('presets').set({ prioritiesSeeded: true }, { merge: true })
+        .catch(function(e){ console.error('presets flag save failed', e); });
+    } else savePresets();
   }
 
   function localSaveCommitments(){
@@ -9207,10 +9266,11 @@
   }
   function startNative(){
     if (!NATIVE) return;
-    // the web's service worker has no place in the app, and one registered before the app
-    // stopped registering it answers an offline launch with a failed page instead of the
-    // app's own offline screen: remove it
-    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
+    // Android: no service worker in the app. One once answered an offline launch with a
+    // failed page instead of the app's own offline screen, so any left is removed. (The
+    // iPhone app uses Ledger's offline worker since 2026-11-14: its web view allows one for
+    // ledger.sgj.luxe as an App-Bound Domain.)
+    if (nativePlatform() === 'android' && navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
       navigator.serviceWorker.getRegistrations().then(function(regs){
         regs.forEach(function(r){ r.unregister().catch(function(){}); });
       }).catch(function(){});
@@ -20768,7 +20828,7 @@
     var me = authUser.uid;
     var timer = setTimeout(function(){ if (!pp.seen) renderGate('offline'); }, 10000);
     touchThisDevice();
-    dbRef.collection('ledger_share_members').where('partnerUid', '==', me).onSnapshot(function(snap){
+    liveSnapshot(dbRef.collection('ledger_share_members').where('partnerUid', '==', me), function(snap){
       if (snap.metadata && snap.metadata.fromCache && snap.empty) return;   // not an answer yet
       pp.seen = true; clearTimeout(timer);
       var list = snap.docs.map(shareDoc);
@@ -23798,13 +23858,13 @@
   function startExecListeners(){
     // recent sprints only: a sprint is a day's thing, and Today shows the last few
     var since = fmtDate(new Date(Date.now() - 14 * 86400000));
-    dbRef.collection('ledger_sprints').where('date', '>=', since).onSnapshot(function(snap){
+    liveSnapshot(dbRef.collection('ledger_sprints').where('date', '>=', since), function(snap){
       sprints = snap.docs.map(function(d){ var data = d.data() || {}; data.id = d.id; return data; });
       if (!snap.metadata || !snap.metadata.fromCache) execLoaded.sprints = true;
       execChanged();
       tryHandleDeepLink();
     }, function(err){ console.error('sprints snapshot error', err); });
-    dbRef.collection('ledger_meta').doc('currentFocus').onSnapshot(function(doc){
+    liveSnapshot(dbRef.collection('ledger_meta').doc('currentFocus'), function(doc){
       currentFocus = doc.exists ? (doc.data() || null) : null;
       if (!doc.metadata || !doc.metadata.fromCache) execLoaded.focus = true;
       execChanged();
@@ -33654,8 +33714,10 @@
   initDb();
   startNative();
 
-  // the web app's service worker (install, Web Push) — the native apps need neither
-  if (!NATIVE && 'serviceWorker' in navigator) {
+  // the service worker: install, Web Push, and opening offline. The iPhone app uses it too
+  // for opening offline (its web view offers it only for an App-Bound Domain); Android's
+  // app doesn't (startNative).
+  if ((!NATIVE || nativePlatform() === 'ios') && 'serviceWorker' in navigator) {
     window.addEventListener('load', function(){
       navigator.serviceWorker.register('sw.js').catch(function(e){ console.warn('SW registration failed', e); });
     });

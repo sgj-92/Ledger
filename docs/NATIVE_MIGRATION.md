@@ -356,6 +356,34 @@ WidgetSnapshot v1
   updates. This already exists between phone and Mac. Field-level saves would remove it;
   that is a separate piece of work.
 
+### As built (2026-11-14): both improvements
+
+1. **Firestore's persistent cache:**
+   - `enablePersistence({ synchronizeTabs: true })` in `initDb`, on the web and in both apps;
+   - wiped at sign-out with `terminate()` and `clearPersistence()` (`fsWipeCopy`);
+   - `docs/SECURITY.md` has the detail.
+2. **The offline shell:**
+   - **What `sw.js` stores:** the page, fonts, icons and the pinned Firebase SDK.
+   - **The page comes from the network first,** falling back to the stored copy when the
+     network fails or takes over 4s, so a new build is never held back.
+   - **Before anything is stored** (the first open, offline), it shows its own "You're
+     offline" page.
+   - **iPhone:**
+     - `Info.plist` lists `WKAppBoundDomains`: `ledger.sgj.luxe`, plus Firebase's
+       sign-in helper domain;
+     - `capacitor.config.ts` sets `ios.limitsNavigationsToAppBoundDomains` when the app
+       loads production;
+     - the page registers the worker on iOS.
+     - Off-site links already open outside the app, so nothing else is affected.
+     - **Device check (Shaun):** needs the next TestFlight build; until then the app shows
+       its bundled offline page.
+   - **Android** still registers none and removes any. A pass-through worker once replaced
+     the offline page with the system's error page. Revisit with an emulator check.
+- **Tests:** `tests/e2e/offline.test.js` (Chromium):
+  - Ledger opens offline after one online visit, with his data;
+  - a change made offline survives closing the app and reaches the server once he's back;
+  - sign-out leaves no documents.
+
 ## 9. Does Ledger need modularising first?
 
 **No big-bang modularisation.** Capacitor runs the file as it is. Three targeted seams,
@@ -530,7 +558,8 @@ existing suites plus the 390px screenshot diff.
   (a web view may still expose `PushManager`). Settings → Notifications says
   notifications come to the app later.
 - **No service worker registration** in the app, and any registered earlier is
-  removed (2026-10-24). On the emulator, an offline launch showed Android's "Webpage
+  removed (2026-10-24). *Since 2026-11-14 this holds for Android only: the iPhone app
+  uses the offline service worker (§8, "As built").* On the emulator, an offline launch showed Android's "Webpage
   not available" (`net::ERR_FAILED`), not the offline page. The web's pass-through
   worker, registered while the app ran `main`'s page, failed the navigation itself,
   so Capacitor never saw the error. **Until the merge,** the worker comes back with

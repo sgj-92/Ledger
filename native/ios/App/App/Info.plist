@@ -89,5 +89,13 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<!-- Ledger's own domains (2026-11-14): with these, iOS lets the web view run Ledger's
+	     service worker, so the app opens with no connection. The Firebase sign-in helper
+	     frame loads inside the app. Applied when the app loads production (capacitor.config.ts). -->
+	<key>WKAppBoundDomains</key>
+	<array>
+		<string>ledger.sgj.luxe</string>
+		<string>ledger-6aec3.firebaseapp.com</string>
+	</array>
 </dict>
 </plist>

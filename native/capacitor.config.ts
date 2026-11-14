@@ -26,6 +26,10 @@ const config: CapacitorConfig = {
   ios: {
     // the page itself handles the notch and home indicator (viewport-fit=cover + env())
     contentInset: 'never',
+    // Ledger's own domains only (Info.plist WKAppBoundDomains): the condition for iOS to
+    // run its service worker, so the app opens offline (2026-11-14). Production only: a
+    // development server on this network isn't one of them.
+    limitsNavigationsToAppBoundDomains: host === 'ledger.sgj.luxe',
   },
   // the messaging plugin's Swift package shares its identity with Firebase's own: link it
   // by its path (the plugin's documented fix; Capacitor CLI 8.4+)

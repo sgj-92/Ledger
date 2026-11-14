@@ -106,6 +106,23 @@ The localStorage copy of Ledger is only ever loaded for a local build, or for
 the confirmed owner when the cloud cannot be reached. It is never loaded for a
 signed-out or non-owner session. Signing out forgets the remembered role.
 
+**Firestore's copy on the device** (2026-11-14). Firestore keeps what the signed-in
+session has read in the browser's IndexedDB (`enablePersistence`, shared between tabs).
+That lets Ledger open with data offline, and keeps changes made offline until they can be
+sent.
+- **Who reads it:** nothing reads it before the usual checks: a partner or the nanny only
+  ever has their own published reads in it.
+- **Wiped at sign-out:** Firestore is terminated and the copy cleared, then the page reloads
+  clean. `localStorage.ledger_fs_copy` marks that a copy may be here, so a signed-out start
+  wipes one left behind. The wipe is tried once per tab, so another open Ledger tab can't
+  cause a reload loop; it happens on the next signed-out start instead.
+- **Tested:** `tests/e2e/offline.test.js` checks no documents are left after sign-out.
+
+**The service worker** (`sw.js`, 2026-11-14) keeps only Ledger's own files (the page,
+fonts, icons, pdf.js) and the pinned Firebase SDK, so the app opens offline. It never
+stores data or API responses: Firestore, Auth, functions and GitHub pass straight
+through.
+
 A build with no Firebase config (`apiKey: "YOUR_API_KEY"`, used for local
 development and tests) has no accounts and runs on device storage, as before.
 

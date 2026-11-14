@@ -77,7 +77,7 @@ async function wait(fn){ for (let i = 0; i < 25; i++){ const v = await fn(); if 
     x.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(SDK + f) });
   });
   await ctx.addInitScript(() => { localStorage.setItem('ledger_emulator', '1'); });
-  const p = await ctx.newPage(); p.errs = [];
+  let p = await ctx.newPage(); p.errs = [];
   p.on('pageerror', e => p.errs.push(String(e)));
   await p.goto(APP);
   await p.waitForSelector('#authEmail', { timeout: 20000 });
@@ -114,10 +114,24 @@ async function wait(fn){ for (let i = 0; i < 25; i++){ const v = await fn(); if 
     'His presets were not reset to the defaults (sweep channels kept)', JSON.stringify(pre));
 
   // ---- a brand-new Ledger, online: the two starter goals, once ----
+  // (a new account starts on a device with nothing of it stored: a fresh browser)
   for (const c of ['ledger_priorities', 'ledger_meta']){
     for (const d of await list(c)) await fetch(`${FS}/${c}/${d.id}`, { method: 'DELETE', headers: ADMIN });
   }
-  await p.reload();
+  const errsBefore = p.errs.slice();
+  await ctx.close();
+  const ctx2 = await b.newContext({ viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true, timezoneId: 'Europe/London' });
+  await ctx2.route(/api\.github\.com/, x => x.abort());
+  await ctx2.route(/gstatic\.com\/firebasejs\/10\.12\.2\/(firebase-[a-z-]+\.js)/, x => {
+    const f = x.request().url().match(/(firebase-[a-z-]+\.js)/)[1];
+    x.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(SDK + f) });
+  });
+  await ctx2.addInitScript(() => { localStorage.setItem('ledger_emulator', '1'); });
+  p = await ctx2.newPage(); p.errs = errsBefore;
+  p.on('pageerror', e => p.errs.push(String(e)));
+  await p.goto(APP);
+  await p.waitForSelector('#authEmail', { timeout: 20000 });
+  await p.fill('#authEmail', 'shaun@example.com'); await p.fill('#authPassword', 'pw-123456'); await p.click('#authSignIn');
   await p.waitForFunction(() => document.getElementById('authGate').hidden, null, { timeout: 25000 });
   const seeded = await wait(async () => { const l = await list('ledger_priorities'); return l.length >= 2 ? l : null; });
   check(seeded && seeded.length === 2 && seeded.map(x => x.id).sort().join() === 'seed-money,seed-weight', 'New account: the two starter goals, with fixed ids', seeded && seeded.map(x => x.id).join());

@@ -762,6 +762,36 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-14 — Offline: a copy of the data on the device, and an app that opens offline (Shaun: "build both")
+
+- **The data:** Firestore keeps what's been read in the device's storage.
+  - Ledger opens with the data offline.
+  - Changes made offline wait (even through closing the app) and are sent when the
+    connection returns.
+  - It's wiped at sign-out, so a signed-out device holds nobody's data.
+- **The app:**
+  - The service worker now stores Ledger's own files and the pinned Firebase SDK.
+  - The page comes from the network first and the stored copy only when offline or slow,
+    so builds aren't held back.
+  - Its own "You're offline" page shows only before anything is stored.
+- **iPhone:**
+  - `WKAppBoundDomains` (`ledger.sgj.luxe` and the Firebase sign-in domain) and
+    `limitsNavigationsToAppBoundDomains` let the app's web view run the worker.
+  - It needs the next TestFlight build (Xcode Cloud builds it from this push).
+  - **Android** keeps no worker for now, as before.
+- **Unchanged limit:** the same thing edited on two devices while offline keeps whichever
+  change syncs last.
+- **For future listeners:** with the device copy, a listener that waits for the server's
+  word (`fromCache` false) never hears it when the server agrees with the cache. Use
+  `liveSnapshot` (or `confirmedSnapshot`), which asks for metadata changes. Without it,
+  republishing to Abi stalled (caught by partner-sharing §12).
+- **Presets writes tightened** (two devices racing on a new account lost the Claude link in
+  settings-sync):
+  - the default presets are created in a transaction, and only if still missing;
+  - "starter goals added" writes only its flag (merge).
+  - Other settings still save the whole presets document, as before.
+- **Docs:** `docs/NATIVE_MIGRATION.md` §8 "As built", `docs/SECURITY.md`.
+
 ### 2026-11-14 — Goals can be deleted; an offline start no longer resets presets or re-adds goals
 
 - **Delete goal** (Shaun asked: duplicates could only be dropped). This updates "goals are
@@ -2833,7 +2863,12 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (tidy up, then check settings)
+Owner: Shaun (device check)
+**Offline**: open Ledger once online, then try it in aeroplane mode, both in Safari and
+(once the new TestFlight build is installed) in the iPhone app. Your data should be there,
+and anything you tick should sync when you're back online.
+
+**Before that**: Owner: Shaun (tidy up, then check settings)
 **Duplicate goals**: open each duplicate → Edit goal → Delete goal (tap twice). Then check
 Settings, since an offline start may have reset them: target weight, Morning Prime and
 Wind-down routines, sweep channels, week start, weekly training target, the Claude link.
@@ -3120,6 +3155,11 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-14) — **Offline** (decision above). New `tests/e2e/offline.test.js`, 16 checks:
+  - the worker stores the shell;
+  - Ledger opens offline, signed in, with his Actions and goals;
+  - a tick made offline survives reopening and reaches the server when he's back online;
+  - sign-out leaves no documents.
 - (2026-11-14) — **Delete goal; the offline-start fix** (decision above).
   - offline-start e2e: 8 checks, 4 of which fail on the old code.
   - goals e2e: 42 (4 new: delete asks twice, gone everywhere, the quarter record kept).
