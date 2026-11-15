@@ -3205,6 +3205,8 @@
   .mp-step-row.choosing .mp-step-val, .mp-step-row.choosing .mp-step .chev { display: none; }
   .mp-later-all { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; margin-top: 6px; }
   .mp-later-all svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .mp-skip-day { margin-top: 0; color: var(--text-3); }
+  .mp-card.skipped-day .mp-mark { color: var(--text-3); }
   .mp-tick.skip svg { width: 11px; height: 11px; }
   .mp-skip-btn {
     flex-shrink: 0; background: none; border: none; padding: 12px 0 12px 4px; cursor: pointer;
@@ -9883,6 +9885,10 @@
     if (c.sourceType === 'partner_request' || c.sourceType === 'home_request') bits.push('From ' + (c.sourceLabel || 'your partner'));
     var listReq = actionChecklistReq(c), listProg = listReq && hrProgress(listReq);
     if (listProg && listProg.total) bits.push(listProg.done + ' of ' + listProg.total + (listProg.total === 1 ? ' item' : ' items'));
+    else if (!listReq && (c.checklist || []).length){
+      var ownDone = c.checklist.filter(function(x){ return x.done; }).length;
+      bits.push(ownDone + ' of ' + c.checklist.length + (c.checklist.length === 1 ? ' item' : ' items'));
+    }
     if (c.sourceType === 'sweep'){
       var sp = sweepCounts(c.date > todayStr() ? todayStr() : c.date), starred = sp.open.filter(function(x){ return x.item.starred; }).length;
       bits.push(sp.open.length ? sp.open.length + ' to reply' + (starred ? ' \u00b7 \u2605 ' + starred : '') : (sp.list.length ? 'All replied' : 'Nobody yet'));
@@ -10778,6 +10784,8 @@
     // what is happening with it: chosen here, written only if Shaun changes it
     var stateVal = existing ? actionExecState(existing) : 'not_started';
     var stateTouched = false;
+    // its own checklist (2026-11-15): the items as the sheet has them, the latest always
+    var acState = null;
     var showOutcomes = !!existing && (existing.date < todayStr() || existing.status === 'disrupted' || existing.status === 'not_done');
 
     function buildHtml(){
@@ -10790,6 +10798,8 @@
         '<div class="field"><label>Action</label><input type="text" id="f_commitTitle" placeholder="e.g. Strength session" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
         (isEditing && existing.sourceType === 'home_request' && homeReq(existing.sourceRequestId) && homeReq(existing.sourceRequestId).why ? '<p class="rq-why commit-why" id="commitWhy"></p>' : '') +
         (isEditing && actionChecklistReq(existing) ? '<div class="hl-wrap commit-list" id="commitList"></div>' : '') +
+        // its own checklist: anything but a request's list (above) or the Replies Action
+        (isEditing && (actionChecklistReq(existing) || existing.sourceType === 'sweep') ? '' : '<div class="hl-wrap commit-list ac-list" id="commitChecklist"></div>') +
         // a Morning Prime step for later: its step is one tap away
         (isEditing && primeStepOf(existing) && routineHasRecord(primeStepOf(existing).key)
           ? '<div class="act-rows commit-prime"><button type="button" class="act-row" id="commitPrimeOpen"><span class="act-ic">' + UI_ICON.sun + '</span><span class="act-label"></span><span class="chev">' + UI_ICON.chevronRight + '</span></button></div>' : '') +
@@ -10971,6 +10981,13 @@
       sweepOnPaint(swPaint); swPaint();
       document.getElementById('commitSweepAdd').addEventListener('click', function(){ openSweepSheet(todayStr()); });
     }
+    var acEl = document.getElementById('commitChecklist');
+    if (acEl){
+      acState = { items: ((existing && existing.checklist) || []).map(function(x){ return Object.assign({}, x); }), adding: false, doneOpen: false,
+        // an Action that exists saves each tick at once; a new one keeps them for Save
+        save: function(items){ acState.items = items; if (isEditing) saveActionChecklist(existing.id, items); actionChecklistInto(acEl, acState); } };
+      actionChecklistInto(acEl, acState);
+    }
     var commitList = document.getElementById('commitList');
     if (commitList){
       commitList.dataset.rid = existing.sourceRequestId;
@@ -11023,6 +11040,8 @@
       // key-task standing belongs to the day it was chosen for
       if (existing && existing.isKeyTask && nextDate !== existing.date) out.isKeyTask = false;
       if (isEditing) out.id = existing.id;
+      // the checklist as ticked here, never as it was when the sheet opened
+      if (acState && (acState.items.length || (existing && existing.checklist))) out.checklist = acState.items;
       // a reminder is meant in the timezone he's in now
       if (out.remindAt && remindLoaded && remindCfg.tz !== deviceTz()) saveRemindCfg();
       return out;
@@ -15249,7 +15268,7 @@
     L.push('STATUS / NOTES');
     // a skipped step is not done work, so the count says so — once, briefly
     var mpSkipNote = [st.skippedCount ? st.skippedCount + ' skipped' : '', st.laterCount ? st.laterCount + ' for later' : ''].filter(Boolean).join(', ');
-    L.push('- Morning Prime ' + (st.completedAt
+    L.push('- Morning Prime ' + (st.skippedDay ? 'skipped today' : st.completedAt
       ? 'completed at ' + mpTimeLabel(st.completedAt) + (mpSkipNote ? ' (' + mpSkipNote + ')' : '')
       : st.doneCount + ' of ' + st.total + ' steps complete' + (mpSkipNote ? ', ' + mpSkipNote : '')));
     L.push('- Day plan ' + (st.planDone ? 'reviewed' : 'not yet reviewed'));
@@ -17688,6 +17707,139 @@
     return { done: all.filter(function(i){ return i.done; }).length, total: all.length };
   }
   function hrOutstanding(r){ var p = hrProgress(r); return p ? p.total - p.done : 0; }
+  // ---- an Action's own checklist (2026-11-15) ----
+  // Items on the Action's record (checklist: [{id, text, done, doneAt}]), private as the
+  // Action is. Ticked in its sheet, written at once; ticked ones fold away, as on Home lists.
+  var AC_MAX = 100;
+  function saveActionChecklist(id, items){
+    var c = commitments.find(function(x){ return x.id === id; });
+    if (c) c.checklist = items;
+    if (actionPrev[id]) actionPrev[id].checklist = items;
+    if (dbReady && dbRef){
+      dbRef.collection('ledger_commitments').doc(id).update({ checklist: items }).catch(function(e){
+        console.error('checklist save failed', e);
+        showPinToast('Couldn’t save the checklist — check your connection and try again.', true);
+      });
+    } else localSaveCommitments();
+    renderCommitments();
+  }
+  function actionChecklistInto(wrap, st){
+    var active = document.activeElement;
+    var keepDraft = wrap.querySelector('#acAdd') ? wrap.querySelector('#acAdd').value : '';
+    var hadFocus = active && active.id === 'acAdd';
+    var items = st.items, open = items.filter(function(i){ return !i.done; }), done = items.filter(function(i){ return i.done; });
+    function put(next){ st.save(next); }
+    function change(id, patch){ put(st.items.map(function(x){ return x.id === id ? Object.assign({}, x, patch) : x; })); }
+    wrap.innerHTML = '';
+    if (!items.length && !st.adding){
+      var start = document.createElement('button'); start.type = 'button'; start.className = 'btn-link fl-add'; start.id = 'acStart';
+      start.innerHTML = BK_PLUS_SVG + '<span>Add a checklist</span>';
+      start.addEventListener('click', function(){ st.adding = true; actionChecklistInto(wrap, st); var t = wrap.querySelector('#acAdd'); if (t) t.focus(); });
+      wrap.appendChild(start);
+      return;
+    }
+    var head = document.createElement('div'); head.className = 'hs-sec-head hl-head';
+    head.innerHTML = '<h3 class="cz-sec-title">Checklist</h3><span class="cz-sec-count"></span>';
+    head.querySelector('.cz-sec-count').textContent = items.length ? done.length + ' of ' + items.length + (!open.length ? ' · all ticked' : '') : '';
+    wrap.appendChild(head);
+    if (open.length || !done.length){
+      var list = document.createElement('div'); list.className = 'hl-list'; list.id = 'acList';
+      open.forEach(function(it){ list.appendChild(acRow(it)); });
+      if (open.length) wrap.appendChild(list);
+    }
+    if (items.length < AC_MAX){
+      var add = document.createElement('div'); add.className = 'hl-add';
+      add.innerHTML = '<textarea id="acAdd" rows="1" maxlength="4000" enterkeyhint="done" aria-label="Add to the checklist"></textarea><button type="button" class="rq-send" id="acAddBtn" disabled>Add</button>';
+      var ta = add.querySelector('#acAdd'), btn = add.querySelector('#acAddBtn');
+      ta.placeholder = items.length ? 'Add an item — or paste a list' : 'One item per line — or paste a list';
+      ta.value = keepDraft;
+      var size = function(){ ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; btn.disabled = !ta.value.trim(); };
+      var go = function(){
+        var lines = hbParse(ta.value).slice(0, AC_MAX - st.items.length);
+        if (!lines.length) return;
+        ta.value = '';
+        put(st.items.concat(lines.map(function(t){ return { id: uid(), text: t.slice(0, 200), done: false }; })));
+        var again = wrap.querySelector('#acAdd'); if (again) again.focus();
+      };
+      ta.addEventListener('input', size);
+      ta.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); go(); } });
+      btn.addEventListener('click', function(){ go(); });
+      wrap.appendChild(add);
+      size();
+      if (hadFocus) setTimeout(function(){ try { ta.focus(); } catch(e){} }, 0);
+    }
+    if (done.length){
+      var bar = document.createElement('div'); bar.className = 'hl-done-bar';
+      var tog = document.createElement('button'); tog.type = 'button'; tog.className = 'hl-done-toggle'; tog.id = 'acDoneToggle';
+      tog.setAttribute('aria-expanded', st.doneOpen ? 'true' : 'false');
+      tog.innerHTML = '<span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+      tog.querySelector('span').textContent = 'Ticked · ' + done.length;
+      tog.addEventListener('click', function(){ st.doneOpen = !st.doneOpen; actionChecklistInto(wrap, st); });
+      bar.appendChild(tog);
+      // ticked to start again (a trip packed for twice): untick the lot in one tap
+      if (st.doneOpen){
+        var un = document.createElement('button'); un.type = 'button'; un.className = 'btn-link hl-clear'; un.id = 'acUntickAll';
+        un.textContent = 'Untick all';
+        un.addEventListener('click', function(){ put(st.items.map(function(x){ return x.done ? Object.assign({}, x, { done: false, doneAt: null }) : x; })); });
+        bar.appendChild(un);
+      }
+      wrap.appendChild(bar);
+      if (st.doneOpen){
+        var dl = document.createElement('div'); dl.className = 'hl-list hl-done-list';
+        done.forEach(function(it){ dl.appendChild(acRow(it)); });
+        wrap.appendChild(dl);
+      }
+    }
+    function acRow(it){
+      var row = document.createElement('div'); row.className = 'hl-row' + (it.done ? ' done' : ''); row.dataset.item = it.id;
+      var tick = document.createElement('button'); tick.type = 'button'; tick.className = 'commitment-status-dot' + (it.done ? ' completed' : '');
+      tick.setAttribute('aria-label', it.done ? 'Untick ' + it.text : 'Tick ' + it.text);
+      tick.addEventListener('click', function(){ change(it.id, it.done ? { done: false, doneAt: null } : { done: true, doneAt: new Date().toISOString() }); });
+      var body = document.createElement('div'); body.className = 'hl-body';
+      var t = document.createElement('span'); t.className = 'hl-text'; t.textContent = it.text;
+      t.setAttribute('role', 'button'); t.tabIndex = 0;
+      body.appendChild(t);
+      // tap the words to change them; emptied, or Remove, takes the item off
+      function edit(){
+        var inp = document.createElement('input'); inp.type = 'text'; inp.className = 'hl-edit'; inp.maxLength = 200; inp.value = it.text;
+        inp.setAttribute('aria-label', 'Edit item');
+        body.replaceChild(inp, t);
+        var tools = document.createElement('div'); tools.className = 'hl-tools';
+        tools.innerHTML = '<button type="button" class="bk-btn" data-ac-remove>Remove</button>';
+        body.appendChild(tools);
+        var rm = tools.querySelector('[data-ac-remove]');
+        rm.addEventListener('pointerdown', function(e){ e.preventDefault(); });
+        rm.addEventListener('click', function(){ finish(true); });
+        inp.focus();
+        var ended = false;
+        function finish(remove){
+          if (ended) return; ended = true;
+          var text = String(inp.value || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+          if (remove || !text) put(st.items.filter(function(x){ return x.id !== it.id; }));
+          else if (text !== it.text) change(it.id, { text: text });
+          else actionChecklistInto(wrap, st);
+        }
+        inp.addEventListener('keydown', function(e){
+          if (e.key === 'Enter'){ e.preventDefault(); inp.blur(); }
+          if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); inp.value = it.text; inp.blur(); }
+        });
+        inp.addEventListener('blur', function(){ setTimeout(function(){ finish(false); }, 0); });
+      }
+      t.addEventListener('click', edit);
+      t.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); edit(); } });
+      row.appendChild(tick); row.appendChild(body);
+      if (!it.done && open.length > 1){
+        var h = document.createElement('span'); h.className = 'hl-grip'; h.setAttribute('aria-hidden', 'true'); h.innerHTML = UI_ICON.grip;
+        rowDrag(h, row, '.hl-row', 'item', function(ids){
+          var byId = {};
+          st.items.forEach(function(x){ byId[x.id] = x; });
+          put(ids.map(function(id){ return byId[id]; }).filter(Boolean).concat(st.items.filter(function(x){ return x.done; })));
+        });
+        row.appendChild(h);
+      }
+      return row;
+    }
+  }
   // the Home request an Action was taken on from, when it carries a checklist: the list is
   // shown and ticked from the Action too (Today), the same items, live
   function actionChecklistReq(c){
@@ -21817,7 +21969,8 @@
     return {
       mealsAcknowledged: !!mp.mealsAcknowledged,
       intention: mp.intention || '',
-      completedAt: mp.completedAt || null
+      completedAt: mp.completedAt || null,
+      skippedDay: mp.skippedDay || null
     };
   }
   function getKeyTasks(dateStr){
@@ -21846,7 +21999,9 @@
       intentionDone: !!intention,
       intentionEnabled: enabledRoutine('plan').some(function(it){ return it.key === 'intention'; }),
       mealsAcknowledged: mp.mealsAcknowledged,
-      completedAt: mp.completedAt
+      completedAt: mp.completedAt,
+      // the whole of it skipped for today (2026-11-15): closed, but not a primed day
+      skippedDay: mp.skippedDay
     };
     st.doneCount = planSec.done + moveSec.done;            // really done
     st.skippedCount = planSec.skipped + moveSec.skipped;   // resolved by a skip, not evidence
@@ -21929,7 +22084,9 @@
     var expanded = !!mpExpanded[dateStr];
     var skipMode = expanded && !!mpSkipMode[dateStr];
     var backlogCount = backlogActions().length;
-    var sub = st.completedAt
+    var sub = st.skippedDay
+      ? 'Skipped today'
+      : st.completedAt
       ? 'Completed ' + mpTimeLabel(st.completedAt) + (st.laterCount ? ' \u00b7 ' + st.laterCount + ' later' : '')
       : (expanded ? 'Set yourself up for a focused day.' : mpProgressLabel(st));
 
@@ -21940,14 +22097,14 @@
           '<span class="mp-count" id="mpCount"></span>' +
         '</div>'
       : '';
-    var html = '<div class="mp-card' + (st.completedAt ? ' done' : '') + '">' +
+    var html = '<div class="mp-card' + (st.completedAt ? ' done' : '') + (st.skippedDay ? ' skipped-day' : '') + '">' +
       '<button type="button" class="mp-head" id="mpHead" aria-expanded="' + (expanded ? 'true' : 'false') + '" aria-controls="mpBody">' +
-        '<span class="mp-mark' + (st.completedAt ? ' filled' : '') + '">' + (st.completedAt ? CHECK_SVG : UI_ICON.sun) + '</span>' +
+        '<span class="mp-mark' + (st.completedAt && !st.skippedDay ? ' filled' : '') + '">' + (st.skippedDay ? RT_SKIP_SVG : st.completedAt ? CHECK_SVG : UI_ICON.sun) + '</span>' +
         '<span class="mp-head-body">' +
           '<span class="mp-title">Morning Prime</span>' +
           '<span class="mp-sub">' + sub + '</span>' +
         '</span>' +
-        (st.completedAt && !expanded ? '<span class="mp-reopen">Reopen</span>' : '') +
+        (st.completedAt && !expanded ? '<span class="mp-reopen">' + (st.skippedDay ? 'Undo' : 'Reopen') + '</span>' : '') +
         '<span class="mp-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
       '</button>' +
       '<div class="mp-body' + (expanded ? '' : ' collapsed') + '" id="mpBody"><div class="mp-body-inner">' +
@@ -21976,6 +22133,9 @@
         '<button type="button" class="btn-primary mp-save" id="mpSaveBtn">' + (st.completedAt ? 'Update Morning Prime' : 'Save Morning Prime') + '</button>' +
         // part now, the rest later: what's left becomes today's Actions, and Prime closes
         (isToday && !st.complete ? '<button type="button" class="btn-quiet mp-later-all" id="mpLaterAll">' + UI_ICON.clock + '<span>Finish the rest later</span></button>' : '') +
+        // not today at all (2026-11-15): every step left skipped, and Prime closed
+        (isToday && !st.completedAt && !st.complete ? '<button type="button" class="btn-quiet mp-later-all mp-skip-day" id="mpSkipDay">' + RT_SKIP_SVG + '<span>Skip Morning Prime today</span></button>' : '') +
+        (st.skippedDay ? '<button type="button" class="btn-quiet mp-later-all" id="mpUnskipDay">Undo skipping today</button>' : '') +
         (st.complete ? '' : '<p class="mp-hint" id="mpHint">' + mpMissingLabel(st) + '</p>') +
         // the one thing being done now, and a nudge to the phone (2026-10-31)
         (isToday && !st.completedAt && (authRole === 'owner' || LOCAL_ONLY)
@@ -22077,6 +22237,31 @@
       renderMorningPrime(); renderNowCue(); scheduleFocusReconcile();
       showPinToast('Morning Prime closed \u00b7 ' + plural(steps.length, 'step') + ' added to today', false, CHECK_SVG);
     });
+    // skip the whole of it for today: the steps still open are skipped (so they read
+    // "Skipped today"), and Prime is closed, so Today and the reminder stop asking. It's
+    // marked skippedDay, so the reviews don't count it as a primed day. Undo takes back
+    // only what this did.
+    var mpSkipDay = document.getElementById('mpSkipDay');
+    if (mpSkipDay) mpSkipDay.addEventListener('click', async function(){
+      mpSkipDay.disabled = true;
+      var now = new Date().toISOString(), cur = mpState(dateStr);
+      var plan0 = getPlanForDate(dateStr), mp0 = (plan0 && plan0.morningPrime) || {};
+      var skipped = Object.assign({}, mp0.skipped || {});
+      cur.planSec.items.concat(cur.moveSec.items).forEach(function(x){ if (!x.resolved) skipped[x.item.id] = { at: now, reason: 'day' }; });
+      mpExpanded[dateStr] = false; mpSkipMode[dateStr] = false;
+      await patchMorningPrime(dateStr, { skipped: skipped, skippedDay: now, completedAt: now });
+      renderMorningPrime(); renderNowCue(); scheduleFocusReconcile();
+      showActionToast('Morning Prime skipped today', 'Undo', function(){ unskipDay(); });
+    });
+    async function unskipDay(){
+      var plan1 = getPlanForDate(dateStr), mp1 = (plan1 && plan1.morningPrime) || {};
+      var keep = {};
+      Object.keys(mp1.skipped || {}).forEach(function(k){ if (!(mp1.skipped[k] && mp1.skipped[k].reason === 'day')) keep[k] = mp1.skipped[k]; });
+      await patchMorningPrime(dateStr, { skipped: keep, skippedDay: null, completedAt: null });
+      renderMorningPrime(); renderNowCue();
+    }
+    var mpUnskipDay = document.getElementById('mpUnskipDay');
+    if (mpUnskipDay) mpUnskipDay.addEventListener('click', function(){ unskipDay(); });
     schedulePrimeLater();
 
     document.getElementById('mpSaveBtn').addEventListener('click', async function(){
@@ -31423,7 +31608,7 @@
         if (d > t) break;
         days++;
         var pl = getPlanForDate(d);
-        if (pl && pl.morningPrime && pl.morningPrime.completedAt) primed++;
+        if (pl && pl.morningPrime && pl.morningPrime.completedAt && !pl.morningPrime.skippedDay) primed++;
       }
       ev.prime = { done: primed, days: days };
     }

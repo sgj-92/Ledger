@@ -193,6 +193,24 @@ function makePdf(pages, pad){
   check(await until(mac, () => !/Contract\.pdf/.test(document.getElementById('commitFiles').innerText) && /Invoice 42/.test(document.getElementById('commitFiles').innerText)),
     'Mac: gone there too; the other stays');
 
+  // ---- its own checklist (2026-11-15): written at once, kept by Save, counted on Today ----
+  const action = async () => { const r = await fetch(`${FS}/ledger_commitments/a1`, { headers: ADMIN }); const j = await r.json(); return dec({ mapValue: { fields: j.fields } }); };
+  await phone.waitForSelector('#acStart', { timeout: 10000 });
+  await phone.click('#acStart');
+  await phone.fill('#acAdd', '- Passport\n- Charger\n- Adapter plug');
+  await phone.click('#acAddBtn');
+  const added = await wait(async () => { const a = await action(); return a.checklist && a.checklist.length === 3 ? a : null; });
+  check(added && added.checklist.map(x => x.text).join() === 'Passport,Charger,Adapter plug' && added.checklist.every(x => x.id && x.done === false),
+    'Checklist: a pasted list is three items, saved on the Action at once', JSON.stringify(added && added.checklist));
+  await phone.click('#acList .hl-row .commitment-status-dot');
+  const ticked = await wait(async () => { const a = await action(); return a.checklist && a.checklist[0].done && a.checklist[0].doneAt ? a : null; });
+  check(!!ticked, 'Checklist: a tick is saved at once, with when');
+  check(await until(mac, () => [...document.querySelectorAll('#commitmentsList .commitment-meta')].some(x => /1 of 3 items/.test(x.textContent))), 'Mac: Today shows 1 of 3 items, live');
+  await phone.fill('#f_commitTitle', 'Pay the accountant today');
+  await phone.click('#saveCommitBtn');
+  const saved = await wait(async () => { const a = await action(); return a.title === 'Pay the accountant today' ? a : null; });
+  check(saved && saved.checklist && saved.checklist.length === 3 && saved.checklist[0].done === true, 'Save keeps the checklist as ticked, not as it opened');
+
   for (const p of [phone, mac]) check(!p.errs.length, p.name + ': no page errors ' + p.errs.join(' | ').slice(0, 300));
   await b.close(); server.close();
   console.log(`\n${ok.length} passed, ${bad.length} failed`);

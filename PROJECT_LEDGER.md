@@ -762,6 +762,24 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-15 — Checklists inside an Action; skip Morning Prime for a day (Shaun, while packing for the UK)
+
+- **Checklist on an Action** ("allow me to have checklist/subtasks within a task"). The items
+  live on the Action's own record (`checklist: [{id, text, done, doneAt}]`, owner-only like the
+  Action; up to 100 items of 200 characters). They are not subtasks: no dates, owners or
+  statuses of their own.
+  - In the sheet: "+ Add a checklist" under the title; paste a list, one per line. Tick,
+    tap to rename (emptied, or Remove, takes it off), drag to reorder. Ticked items fold into
+    "Ticked · N", with "Untick all".
+  - Each change is written at once. Save writes the list as ticked, never as the sheet opened.
+  - Today's row shows "2 of 5 items", as for a Home request's checklist.
+  - Not shown on a request's Action (its request's list shows) or on the Replies Action.
+- **Skip Morning Prime today** ("allow me to just skip the entire thing"). One button closes
+  Prime for the day: the open steps are skipped, `completedAt` and `skippedDay` are set.
+  - The reminder goes quiet (it reads `completedAt`; no deploy needed).
+  - The head reads "Skipped today"; Undo puts back only what the skip did.
+  - A skipped day is closed but **not a primed day**: the Sunday review doesn't count it.
+
 ### 2026-11-14 — Offline: a copy of the data on the device, and an app that opens offline (Shaun: "build both")
 
 - **The data:** Firestore keeps what's been read in the device's storage.
@@ -2863,7 +2881,11 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (device check)
+Owner: Shaun (use it)
+**Packing checklist**: open the Action → "+ Add a checklist" → paste or type the list. And
+"Skip Morning Prime today" is under Morning Prime's steps when a morning doesn't allow it.
+
+**Before that**: Owner: Shaun (device check)
 **Offline**: open Ledger once online, then try it in aeroplane mode, both in Safari and
 (once the new TestFlight build is installed) in the iPhone app. Your data should be there,
 and anything you tick should sync when you're back online.
@@ -3155,6 +3177,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-15) — **Checklists in Actions; skip Morning Prime** (decision above). action-files
+  e2e 24 (4 new: a pasted list saved at once, a tick saved with when, Today's count live on
+  another device, Save keeping the ticks). Execution 81, offline 16.
 - (2026-11-15) — **The weekly review, tidied** (Shaun: "too messy").
   - **The week:** three number tiles (Actions done, moved a goal, waiting on others; or
     training days and Morning Primes for Sunday), then quiet lines. "N still open" folds
