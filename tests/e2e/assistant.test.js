@@ -317,9 +317,11 @@ const until = async (fn, t) => { const end = Date.now() + (t || 10000); while (D
   check(await until(async () => { const w = await get('ledger_weeks/' + MONDAY); return w && w.reviewDrafts && w.reviewDrafts.business && w.reviewDrafts.business.summary === 'Five proposals went out.'; }),
     'applied: the draft is saved on the week, not yet approved');
   await p.click('.ac-back');
-  check(await until(() => p.evaluate(() => { const t = document.querySelectorAll('#wrFields textarea'); return t.length === 5 && t[0].value === 'Five proposals went out.' && t[2].value === 'Retainers got no time.'; })),
+  // the fields the draft filled are open (2026-11-15: the rest wait behind a tap)
+  check(await until(() => p.evaluate(() => { const v = k => (document.querySelector('#wrFields textarea[data-k="' + k + '"]') || {}).value;
+    return v('summary') === 'Five proposals went out.' && v('misses') === 'Retainers got no time.' && v('patterns') === 'Calls slip to Friday.'; })),
     'back in the review: the fields hold the draft, to edit');
-  await p.fill('#wrFields textarea >> nth=0', 'Five proposals went out; two answered.');
+  await p.fill('#wrFields textarea[data-k="summary"]', 'Five proposals went out; two answered.');
   await p.click('#wrApprove');
   check(await until(async () => { const w = await get('ledger_weeks/' + MONDAY); const r = w && w.reviews && w.reviews.business;
     return r && r.at && r.summary === 'Five proposals went out; two answered.' && r.patterns === 'Calls slip to Friday.' && !(w.reviewDrafts || {}).business && (w.outcomes || []).length === 1; }),

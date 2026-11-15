@@ -1156,6 +1156,24 @@
   .wr-line { margin: 0 0 6px; font-size: 13.5px; line-height: 1.45; color: var(--text); overflow-wrap: anywhere; }
   .wr-line.quiet { color: var(--text-3); }
   .wr-goalline { margin-bottom: 10px; }
+  /* the week, in numbers (2026-11-15) */
+  .wr-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+  .wr-tile { display: flex; flex-direction: column; gap: 3px; padding: 12px 12px 11px; border-radius: var(--r-md); background: var(--surface-2); min-width: 0; }
+  .wr-tile-n { font-family: var(--serif); font-size: 24px; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; }
+  .wr-tile-of { font-family: var(--sans); font-size: 13px; color: var(--text-2); }
+  .wr-tile-l { font-size: 12px; line-height: 1.3; color: var(--text-2); overflow-wrap: anywhere; }
+  .wr-sec .wr-line.quiet { margin: 0 0 4px; font-size: 12.5px; color: var(--text-2); }
+  .wr-open-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 44px; margin-top: 6px; padding: 0;
+    background: none; border: 0; border-top: 1px solid var(--line); font-family: var(--sans); font-size: 13.5px; color: var(--text); text-align: left; cursor: pointer; }
+  .wr-open-chev { display: flex; color: var(--text-3); transition: transform 0.2s ease; }
+  .wr-open-chev svg { width: 14px; height: 14px; }
+  .wr-open-toggle[aria-expanded="true"] .wr-open-chev { transform: rotate(180deg); }
+  .wr-open-list { margin: 0; padding: 0 0 4px; list-style: none; }
+  .wr-open-list li { padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
+  .wr-open-list li:last-child { border-bottom: 0; }
+  .wr-field textarea { min-height: 0; }
+  .wr-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+  .wr-add-chip svg { width: 12px; height: 12px; margin-right: 4px; vertical-align: -1px; }
   .wr-measure { margin-bottom: 12px; }
   .wr-done { display: flex; gap: 8px; align-items: center; margin: -4px 0 14px; font-size: 13px; color: var(--gold); }
   .wr-done svg { width: 14px; height: 14px; flex-shrink: 0; }
@@ -31417,7 +31435,7 @@
     if (!R) return;
     editingId = null;
     var saved = weekReview(ws, area), draft = weekDraft(ws, area);
-    var st = { fields: {}, measures: {} };
+    var st = { fields: {}, measures: {}, shown: {}, openList: false };
     REVIEW_FIELDS.forEach(function(f){ st.fields[f.k] = (saved && saved[f.k]) || (draft && draft[f.k]) || ''; });
     var draftSeen = draft ? draft.draftedAt : null;
     function draw(){
@@ -31432,9 +31450,9 @@
       var goals = activeGoals().filter(function(p){ return goalArea(p) === area && goalMeasure(p); });
       var done = weekReview(ws, area);
       sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
-        sheetHead(UI_ICON.chart, R.title, R.label + ' · ' + R.span + ', week of ' + toLocalDate(ws).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) + '.', '') +
+        sheetHead(UI_ICON.chart, R.title, R.label + ' \u00b7 ' + dateRangeLabel(ws, reviewEnd(ws, area), true), '') +
         (done ? '<p class="wr-done">' + CHECK_SVG + '<span></span></p>' : '') +
-        '<div class="wr-sec"><div class="sec-head"><span class="sec-label">Outcomes</span><span class="sec-rule"></span></div><div id="wrOuts"></div></div>' +
+        (outs.length ? '<div class="wr-sec"><div class="sec-head"><span class="sec-label">Outcomes</span><span class="sec-rule"></span></div><div id="wrOuts"></div></div>' : '') +
         '<div class="wr-sec"><div class="sec-head"><span class="sec-label">The week</span><span class="sec-rule"></span></div><div id="wrWeek"></div></div>' +
         (goals.length ? '<div class="wr-sec"><div class="sec-head"><span class="sec-label">Measures</span><span class="sec-rule"></span></div><div id="wrMeasures"></div></div>' : '') +
         '<div class="wr-sec"><div class="sec-head"><span class="sec-label">Your review</span><span class="sec-rule"></span>' +
@@ -31448,11 +31466,6 @@
 
       // outcomes, each marked done / partly / not — saved as he taps
       var oBox = document.getElementById('wrOuts');
-      if (!outs.length){
-        var e = document.createElement('p'); e.className = 'wk-empty';
-        e.textContent = 'No ' + R.label.toLowerCase() + ' outcomes were set for this week.';
-        oBox.appendChild(e);
-      }
       outs.forEach(function(o){
         var row = document.createElement('div'); row.className = 'wr-out';
         row.innerHTML = '<div class="wr-out-t"></div><div class="wr-out-m"></div><div class="wr-chips"></div>';
@@ -31469,21 +31482,51 @@
         oBox.appendChild(row);
       });
 
-      // the evidence, as counts and names — nothing scored
+      // the evidence (2026-11-15): three numbers, a quiet line, and what's still open folded
+      // away, rather than a block of sentences. Counts only, over the review's own days.
       var wBox = document.getElementById('wrWeek');
-      var gl = goalLineEl(ws, area, 'wr-goalline'); if (gl) wBox.appendChild(gl);
-      function line(t, quiet){ var p = document.createElement('p'); p.className = 'wr-line' + (quiet ? ' quiet' : ''); p.textContent = t; wBox.appendChild(p); }
-      line(ev.acts.length ? ev.done.length + ' of ' + plural(ev.acts.length, R.label.toLowerCase() + ' Action') + ' done' : 'No ' + R.label.toLowerCase() + ' Actions this week', !ev.acts.length);
-      if (ev.open.length){
-        line('Still open: ' + ev.open.slice(0, 5).map(function(c){ return c.title; }).join(' · ') + (ev.open.length > 5 ? ' and ' + (ev.open.length - 5) + ' more' : ''));
+      var moving = ev.acts.filter(function(c){ return actionGoalIds(c).length > 0; }).length;
+      var tiles = [{ n: ev.acts.length ? ev.done.length : '\u2013', of: ev.acts.length ? ev.acts.length : null, l: 'Actions done' }];
+      if (area === 'business'){
+        tiles.push({ n: ev.acts.length ? moving : '\u2013', of: ev.acts.length || null, l: 'moved a goal' });
+        tiles.push(ev.comms ? { n: ev.comms.waiting, l: 'waiting on others' + (ev.comms.needs ? ' \u00b7 ' + ev.comms.needs + ' need you' : '') } : { n: '\u2013', l: 'Comms' });
+      } else {
+        tiles.push({ n: ev.trainingDays, l: ev.trainingDays === 1 ? 'training day' : 'training days' });
+        tiles.push({ n: ev.prime.done, of: ev.prime.days, l: 'Morning Primes' });
       }
-      if (ev.carried.length) line(plural(ev.carried.length, 'Action') + ' came in from earlier weeks', true);
-      if (area === 'business' && ev.comms){
-        line('Comms: ' + [ev.comms.needs + ' need you', ev.comms.waiting + ' waiting on others', ev.comms.due ? ev.comms.due + ' follow-up' + (ev.comms.due === 1 ? '' : 's') + ' due' : ''].filter(Boolean).join(' · '));
-      }
+      var grid = document.createElement('div'); grid.className = 'wr-tiles';
+      tiles.forEach(function(t){
+        var d = document.createElement('div'); d.className = 'wr-tile';
+        d.innerHTML = '<span class="wr-tile-n"></span><span class="wr-tile-l"></span>';
+        d.firstChild.textContent = String(t.n);
+        if (t.of != null){ var of = document.createElement('span'); of.className = 'wr-tile-of'; of.textContent = ' of ' + t.of; d.firstChild.appendChild(of); }
+        d.lastChild.textContent = t.l;
+        grid.appendChild(d);
+      });
+      wBox.appendChild(grid);
+      function line(t){ var p = document.createElement('p'); p.className = 'wr-line quiet'; p.textContent = t; wBox.appendChild(p); }
+      var notes = [];
+      var gl = goalLineText(weekGoalLine(ws, area), area);
+      if (gl && gl.idle) notes.push(gl.idle);
+      if (!outs.length) notes.push('No outcomes were set');
       if (area === 'personal'){
-        line('Training on ' + plural(ev.trainingDays, 'day') + ' · food logged on ' + plural(ev.foodDays, 'day') + ' · Morning Prime ' + ev.prime.done + ' of ' + ev.prime.days);
-        line(ev.weight ? (ev.weight.n > 1 ? 'Weight ' + ev.weight.first + ' → ' + ev.weight.last + 'kg' : 'Weight ' + ev.weight.last + 'kg') : 'No weight logged this week', !ev.weight);
+        notes.push('Food logged on ' + plural(ev.foodDays, 'day'));
+        notes.push(ev.weight ? (ev.weight.n > 1 ? 'Weight ' + ev.weight.first + ' \u2192 ' + ev.weight.last + 'kg' : 'Weight ' + ev.weight.last + 'kg') : 'No weight logged');
+      }
+      if (area === 'business' && ev.comms && ev.comms.due) notes.push(ev.comms.due + ' follow-up' + (ev.comms.due === 1 ? '' : 's') + ' due');
+      notes.forEach(line);
+      if (ev.open.length){
+        var tog = document.createElement('button'); tog.type = 'button'; tog.className = 'wr-open-toggle';
+        tog.setAttribute('aria-expanded', st.openList ? 'true' : 'false');
+        tog.innerHTML = '<span></span><span class="wr-open-chev" aria-hidden="true">' + TSEC_CHEV_DOWN + '</span>';
+        tog.firstChild.textContent = ev.open.length + ' still open' + (ev.carried.length ? ' \u00b7 ' + ev.carried.length + ' from earlier weeks' : '');
+        tog.addEventListener('click', function(){ st.openList = !st.openList; draw(); });
+        wBox.appendChild(tog);
+        if (st.openList){
+          var ul = document.createElement('ul'); ul.className = 'wr-open-list';
+          ev.open.forEach(function(c){ var li = document.createElement('li'); li.textContent = c.title; ul.appendChild(li); });
+          wBox.appendChild(ul);
+        }
       }
 
       // measures: this week's value, saved with the review
@@ -31501,16 +31544,38 @@
       });
 
       // his review, in his words
+      // the week in a few lines is always there; the other four wait behind a tap, and stay
+      // once they hold anything (or were opened)
       var fBox = document.getElementById('wrFields');
-      REVIEW_FIELDS.forEach(function(f){
-        var row = document.createElement('div'); row.className = 'field';
+      var more = [];
+      REVIEW_FIELDS.forEach(function(f, i){
+        if (i > 0 && !st.shown[f.k] && !String(st.fields[f.k] || '').trim()){ more.push(f); return; }
+        var row = document.createElement('div'); row.className = 'field wr-field';
         row.innerHTML = '<label></label><textarea rows="' + f.rows + '" maxlength="2000"></textarea>';
         row.querySelector('label').textContent = f.label;
         var ta = row.querySelector('textarea');
+        ta.dataset.k = f.k;
         ta.placeholder = f.ph; ta.value = st.fields[f.k] || '';
+        // the first sits right under "Your review": its question is in the box, not over it
+        if (i === 0){ row.querySelector('label').remove(); ta.setAttribute('aria-label', f.label); ta.placeholder = f.label + ': ' + f.ph.toLowerCase(); }
         ta.addEventListener('input', function(){ st.fields[f.k] = ta.value; });
         fBox.appendChild(row);
       });
+      if (more.length){
+        var add = document.createElement('div'); add.className = 'wr-add';
+        more.forEach(function(f){
+          var b = document.createElement('button'); b.type = 'button'; b.className = 'cd-chip wr-add-chip';
+          b.innerHTML = BK_PLUS_SVG + '<span></span>';
+          b.lastChild.textContent = f.label;
+          b.addEventListener('click', function(){
+            st.shown[f.k] = true; draw();
+            var t = sheetEl.querySelector('#wrFields textarea[data-k="' + f.k + '"]');
+            if (t) try { t.focus(); } catch(e){}
+          });
+          add.appendChild(b);
+        });
+        fBox.appendChild(add);
+      }
 
       document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
       var dr = document.getElementById('wrDraft');

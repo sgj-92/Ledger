@@ -396,3 +396,10 @@ From an audit of Me. These four changes make Me say where every goal stands.
 **Deleting a goal (2026-11-14):** Edit goal → Delete goal, tapped twice, for a duplicate or a
 mistake. Closing a goal is still achieved or dropped. Records that named it keep their own
 copy.
+
+**The review sheet, tidied (2026-11-15):**
+- **The week:** three number tiles, quiet lines under them, and the still-open Actions
+  folded into a list. "Moved a goal" counts the review's own days.
+- **Outcomes** shows only when there are some.
+- **Your review:** starts with one box; the other four are added with a tap, and open by
+  themselves when a draft fills them.

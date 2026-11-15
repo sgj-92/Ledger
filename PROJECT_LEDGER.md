@@ -3155,6 +3155,16 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-15) — **The weekly review, tidied** (Shaun: "too messy").
+  - **The week:** three number tiles (Actions done, moved a goal, waiting on others; or
+    training days and Morning Primes for Sunday), then quiet lines. "N still open" folds
+    into a list.
+  - **The counts agree:** "moved a goal" now counts the review's own days, not the whole
+    week.
+  - **Outcomes** shows only when there are some.
+  - **Your review:** one box to start; Wins, What didn't move, Patterns and Next week are a
+    tap away, and stay once they hold text. A draft from Claude opens the ones it filled.
+  - **Tests:** assistant 68 (now reading fields by name), goals 42.
 - (2026-11-14) — **Offline** (decision above). New `tests/e2e/offline.test.js`, 16 checks:
   - the worker stores the shell;
   - Ledger opens offline, signed in, with his Actions and goals;
