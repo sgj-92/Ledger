@@ -762,6 +762,17 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-18 — Strength: weight before reps; each exercise's history in the sheet (Shaun)
+
+- **Weight before reps.** A set now reads Weight, then Reps. Adding a set or opening Sets
+  puts the cursor in Weight. Saved records are unchanged.
+- **History under each exercise:**
+  - The first line is "Last time · Sat 14 Nov" with that day's sets, e.g. "22.5 kg × 10 ·
+    25 kg × 10".
+  - Tapping it opens the best set ever, then up to seven earlier sessions.
+  - Names are matched as Ledger already matches them, aliases included.
+  - The session being edited is left out, and so is any session after its date.
+
 ### 2026-11-18 — The Action sheet leads with Status and when (Shaun: "I have to scroll to mark a task as done")
 
 - **New order:**
@@ -3218,6 +3229,8 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-18) — **Strength sheet** (decision above): checked in the browser, light and
+  dark. Execution 81, offline 16.
 - (2026-11-18) — **Action sheet reordered** (decision above). Every suite that uses the
   sheet passes: execution 81, sj 25, action-files 24, goals 42, comms-capture 50,
   offline 16, partner-sharing 209, assistant 68, home 382. One Home check (H9, Abi's

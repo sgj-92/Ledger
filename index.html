@@ -2679,6 +2679,26 @@
   .exercise-row .ex-set input { width: 100%; box-sizing: border-box; }
   .exercise-row .ex-set-rm { width: 36px; height: 36px; padding: 0; border: none; background: none; color: var(--text-3); cursor: pointer; font-size: 14px; border-radius: 50%; }
   .exercise-row .ex-set-foot { display: flex; align-items: center; gap: 8px; }
+  /* an exercise's history: last time on one line, the rest a tap away */
+  .exercise-row .ex-hist { margin: 6px 0 0 4px; }
+  .exercise-row .ex-hist[hidden] { display: none; }
+  .ex-hist-last { display: grid; grid-template-columns: minmax(0,1fr) auto; column-gap: 8px; row-gap: 1px; width: 100%; padding: 8px 12px; box-sizing: border-box;
+    border: 1px solid var(--line); border-radius: 10px; background: rgba(var(--gold-rgb),0.05); text-align: left; font-family: var(--sans); color: var(--text); }
+  button.ex-hist-last { cursor: pointer; }
+  .ex-hist-k { font-size: 11.5px; color: var(--text-3); letter-spacing: 0.02em; }
+  .ex-hist-v { flex: 1; min-width: 0; font-size: 13.5px; color: var(--text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .ex-hist-last .ex-hist-k { grid-column: 1; grid-row: 1; }
+  .ex-hist-last .ex-hist-v { grid-column: 1; grid-row: 2; }
+  .ex-hist-chev { grid-column: 2; grid-row: 1 / span 2; align-self: center; width: 14px; height: 14px; color: var(--text-3); display: flex; transition: transform 0.18s ease; }
+  .ex-hist-chev svg { width: 100%; height: 100%; }
+  .ex-hist-last[aria-expanded="true"] .ex-hist-chev { transform: rotate(180deg); }
+  .ex-hist-more { padding: 4px 10px 2px; }
+  .ex-hist-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .ex-hist-row:last-child { border-bottom: none; }
+  .ex-hist-row .ex-hist-k { min-width: 92px; }
+  .ex-hist-row.best .ex-hist-v { color: var(--gold); }
+  .ex-hist-n { margin: 4px 0 0; font-size: 12px; color: var(--text-3); }
+  @media (prefers-reduced-motion: reduce) { .ex-hist-chev { transition: none; } }
   .exercise-row .ex-set-add {
     flex: 1; min-height: 40px; border-radius: 10px; cursor: pointer; background: none;
     border: 1px dashed var(--line-2); color: var(--gold); font-family: var(--sans); font-size: 13px; font-weight: 500;
@@ -33110,6 +33130,69 @@
     }).join(' \u00b7 ') + (L.some(function(x){ return x.value != null; }) ? ' ' + u : ' reps');
   }
 
+  // ---- an exercise's history (2026-11-18) ----
+  // Every logged strength session with this exercise (its name as Ledger knows it, aliases
+  // included), newest first; never the session being edited, never one after its day.
+  function exHistKey(name){ var k = exKey(name), al = exAliases(); return al[k] ? exKey(al[k]) : k; }
+  function exHistory(name, skipId, upTo){
+    var key = exHistKey(name), out = [];
+    if (!key) return out;
+    sessions.forEach(function(x){
+      if (x.type !== 'resistance' || (skipId && x.id === skipId) || (upTo && x.date > upTo)) return;
+      (x.exercises || []).forEach(function(e){
+        if (exHistKey(e.name) === key && exSetsOf(e).length) out.push({ date: x.date, time: x.activityTime || '', ex: e });
+      });
+    });
+    return out.sort(function(a, b){ return a.date === b.date ? (a.time < b.time ? 1 : -1) : (a.date < b.date ? 1 : -1); });
+  }
+  // "30 kg × 10 · 30 kg × 8": weight then reps, as the sets are entered
+  function exHistLine(e){
+    var u = (e && e.unit) || 'kg';
+    return exSetsOf(e).map(function(x){
+      var w = x.value != null ? x.value + (u === 'reps' ? '' : ' ' + u) : '';
+      return w && x.reps != null ? w + ' \u00d7 ' + x.reps : (w || (x.reps != null ? x.reps + ' reps' : '\u2013'));
+    }).join(' \u00b7 ');
+  }
+  function exHistDate(ds){
+    var t = todayStr();
+    if (ds === t) return 'Today';
+    if (ds === fmtDate(addDays(t, -1))) return 'Yesterday';
+    return toLocalDate(ds).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+  function exHistoryInto(el, ex, skipId, upTo){
+    var list = exHistory(ex && ex.name, skipId, upTo);
+    el.innerHTML = '';
+    el.hidden = !list.length;
+    if (!list.length) return;
+    var open = !!ex._histOpen, more = list.length > 1;
+    var head = document.createElement(more ? 'button' : 'div');
+    head.className = 'ex-hist-last';
+    if (more){ head.type = 'button'; head.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+    head.innerHTML = '<span class="ex-hist-k"></span><span class="ex-hist-v"></span>' +
+      (more ? '<span class="ex-hist-chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' : '');
+    head.querySelector('.ex-hist-k').textContent = 'Last time · ' + exHistDate(list[0].date);
+    head.querySelector('.ex-hist-v').textContent = exHistLine(list[0].ex);
+    el.appendChild(head);
+    if (more) head.addEventListener('click', function(){ ex._histOpen = !ex._histOpen; exHistoryInto(el, ex, skipId, upTo); });
+    if (!open || !more) return;
+    var box = document.createElement('div'); box.className = 'ex-hist-more';
+    // the heaviest set ever, then the sessions before last time
+    var best = null;
+    list.forEach(function(h){ exSetsOf(h.ex).forEach(function(x){
+      if (x.value != null && (!best || x.value > best.value || (x.value === best.value && (x.reps || 0) > (best.reps || 0)))) best = { value: x.value, reps: x.reps, unit: h.ex.unit || 'kg', date: h.date };
+    }); });
+    function line(k, v, cls){
+      var r = document.createElement('div'); r.className = 'ex-hist-row' + (cls ? ' ' + cls : '');
+      r.innerHTML = '<span class="ex-hist-k"></span><span class="ex-hist-v"></span>';
+      r.firstChild.textContent = k; r.lastChild.textContent = v;
+      box.appendChild(r);
+    }
+    if (best && best.unit !== 'reps') line('Best · ' + exHistDate(best.date), best.value + ' ' + best.unit + (best.reps != null ? ' \u00d7 ' + best.reps : ''), 'best');
+    list.slice(1, 8).forEach(function(h){ line(exHistDate(h.date), exHistLine(h.ex)); });
+    if (list.length > 8){ var n = document.createElement('p'); n.className = 'ex-hist-n'; n.textContent = plural(list.length, 'session') + ' in all'; box.appendChild(n); }
+    el.appendChild(box);
+  }
+
   // Wraps HTML that only makes sense once an activity has actually happened (results, sets,
   // bodyweight, etc) so it's present in the DOM (collectFormData still reads it) but hidden
   // while planning. Log mode passes the HTML straight through.
@@ -33891,12 +33974,14 @@
             '<div class="ex-suggest" hidden></div>' +
             '<div class="ex-hint" hidden><span class="ex-hint-text"></span>' +
               '<button type="button" class="ex-hint-use">Use</button><button type="button" class="ex-hint-keep">Keep mine</button></div>' +
+            '<div class="ex-hist" hidden></div>' +
             '<div class="ex-nums"'+(open?'':' hidden')+'>' +
-              (ex.list.length ? '<div class="ex-set-head" aria-hidden="true"><span>Set</span><span>Reps</span><span>Weight</span><span></span></div>' : '') +
+              // weight, then reps (2026-11-18): read as "30 kg for 10"
+              (ex.list.length ? '<div class="ex-set-head" aria-hidden="true"><span>Set</span><span>Weight</span><span>Reps</span><span></span></div>' : '') +
               ex.list.map(function(st, k){
                 return '<div class="ex-set" data-set="'+k+'"><span class="ex-set-n">'+(k+1)+'</span>' +
-                  '<input class="ex-reps" placeholder="Reps" type="number" inputmode="numeric" aria-label="Set '+(k+1)+' reps">' +
                   '<input class="ex-value" placeholder="Weight" type="number" inputmode="decimal" aria-label="Set '+(k+1)+' weight">' +
+                  '<input class="ex-reps" placeholder="Reps" type="number" inputmode="numeric" aria-label="Set '+(k+1)+' reps">' +
                   '<button type="button" class="ex-set-rm" aria-label="Remove set '+(k+1)+'">✕</button></div>';
               }).join('') +
               '<div class="ex-set-foot"><button type="button" class="ex-set-add">+ Add set</button>' +
@@ -33932,18 +34017,21 @@
                 exerciseState[i].name = m.name;
                 exerciseState[i]._hint = null;
                 nameEl.value = m.name;
-                paintSuggest(); paintHint();
+                paintSuggest(); paintHint(); paintHist();
               });
               sug.appendChild(b);
             });
           }
-          paintHint();
+          // what it was last time, and before (2026-11-18): a reference while lifting
+          var histEl = row.querySelector('.ex-hist');
+          function paintHist(){ exHistoryInto(histEl, exerciseState[i], d.id, document.getElementById('f_date') ? document.getElementById('f_date').value : d.date); }
+          paintHint(); paintHist();
           hint.querySelector('.ex-hint-use').addEventListener('click', function(){
             if (!exerciseState[i]._hint) return;           // already taken
             exerciseState[i].name = exerciseState[i]._hint;
             nameEl.value = exerciseState[i].name;
             exerciseState[i]._hint = null;
-            paintHint();
+            paintHint(); paintHist();
           });
           hint.querySelector('.ex-hint-keep').addEventListener('click', function(){
             exerciseState[i]._keep = true;
@@ -33960,7 +34048,7 @@
           nameEl.addEventListener('blur', function(){
             settleName(exerciseState[i]);
             nameEl.value = exerciseState[i].name || '';
-            paintSuggest(); paintHint();
+            paintSuggest(); paintHint(); paintHist();
           });
           nameEl.addEventListener('keydown', function(e){
             if (e.key !== 'Enter' || e.isComposing) return;
@@ -34037,11 +34125,11 @@
       function offerUndo(text, undo){
         showActionToast(text, 'Undo', function(){ if (document.body.contains(rowsWrap)) undo(); });
       }
-      // focus a set's reps (or, with no set left, the given control) without scrolling away
+      // focus a set's weight (or, with no set left, the given control) without scrolling away
       function focusSet(i, k, fallback){
         var r = rowsWrap.children[i];
         if (!r) return;
-        var el = k > -1 ? r.querySelectorAll('.ex-set .ex-reps')[k] : null;
+        var el = k > -1 ? r.querySelectorAll('.ex-set .ex-value')[k] : null;
         el = el || (fallback ? r.querySelector(fallback) : null);
         if (el) try { el.focus({ preventScroll: true }); } catch(e){}
       }
