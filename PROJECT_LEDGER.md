@@ -2917,11 +2917,10 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy, then set up)
-**Deploy Firebase** (GitHub → Actions → Deploy Firebase → Everything). S&J's clients and
-team can't be saved in production until the rules are deployed. Do the Microsoft 365
-registration first (`docs/MICROSOFT_365.md`), so one deploy covers both. Then, in S&J,
-add your clients and team, and mark your business Actions as S&J.
+Owner: Shaun (review)
+**Smith & Johnson and Outlook & Teams** (2026-11-18): Firebase is deployed and Microsoft
+365 is connected (Shaun). S&J is showing. Next: add clients and the team, mark business
+Actions as S&J, try **Check Outlook & Teams** in the Comms sweep, then send feedback.
 
 **Before that**: Owner: Shaun (use it)
 **Packing checklist**: open the Action → "+ Add a checklist" → paste or type the list. And
