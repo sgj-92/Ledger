@@ -4892,6 +4892,7 @@
     background: var(--surface-2); color: var(--text); font-family: var(--sans); font-size: 16px; line-height: 1.45; resize: vertical; outline: none; }
   .sj-notes:focus { border-color: rgba(var(--gold-rgb),0.5); }
   .sj-links[hidden] { display: none; }
+  .yn-row:has(#f_sjToggle) { margin-bottom: var(--sp-3); }
   .sj-links { margin-top: var(--sp-3); }
   .sj-sheet-name { flex: 1; min-width: 0; }
   .sj-sheet-name .sheet-title { overflow-wrap: anywhere; }
@@ -10873,10 +10874,48 @@
       var priorityOptions = [{value:'', label:'No goal'}].concat(
         goalPickList(null, existing && existing.priorityId).map(function(p){ return {value:p.id, label:''}; })
       );
+      // Status and when it's for lead the sheet (2026-11-18, Shaun: "on my phone I have to
+      // scroll to mark a task as done"); the lists, category and the rest follow
+      var statusHtml = '', dateHtml = '', notesHtml = '';
+      if (!isEditing && opts.pickDate) dateHtml = fieldDate('f_commitDate', 'For', newDate);
+      if (isEditing){
+        // Status: five plain states; a few words for waiting or blocked. How a past day
+        // ended (disrupted, not done) stays available for the record.
+        statusHtml = '<div class="field as-field"><label>Status</label>' +
+          '<div class="bk-filter-pop as-states" id="commitStatusGrid" role="radiogroup" aria-label="Status">' +
+          EXEC_STATES.map(function(st){
+            return '<button type="button" class="bk-filter-chip as-chip' + (stateVal === st ? ' sel' : '') + '" role="radio" aria-checked="' + (stateVal === st) + '" data-as="' + st + '">' + EXEC_LABEL[st] + '</button>';
+          }).join('') + '</div>' +
+          '<div class="as-ctx" id="asCtxField"' + (stateVal === 'waiting' || stateVal === 'blocked' ? '' : ' hidden') + '>' +
+            '<label for="f_statusContext" id="asCtxLabel">' + (stateVal === 'blocked' ? 'What’s blocking this?' : 'Waiting on') + '</label>' +
+            '<input type="text" id="f_statusContext" maxlength="80" autocomplete="off" placeholder="' + (stateVal === 'blocked' ? 'e.g. missing documents' : 'e.g. payroll') + '">' +
+          '</div>' +
+          (showOutcomes ? '<p class="as-record">For the record: ' +
+            '<button type="button" class="btn-link as-outcome' + (stateVal === 'disrupted' ? ' sel' : '') + '" data-as="disrupted">Disrupted</button> · ' +
+            '<button type="button" class="btn-link as-outcome' + (stateVal === 'not_done' ? ' sel' : '') + '" data-as="not_done">Not done</button></p>' : '') +
+        '</div>' +
+        '<div id="disruptionReasonField" style="' + (stateVal==='disrupted' ? '' : 'display:none') + '">' +
+          fieldSelect('f_disruptionReason', 'Disruption reason', [{value:'',label:'Not specified'}].concat(DISRUPTION_REASONS.map(function(r){ return {value:r,label:r}; })), disruptionVal || '') +
+        '</div>';
+        dateHtml = fieldDate('f_commitDate', 'Scheduled for', existing.date || todayStr());
+        var orig = actionOriginalDate(existing), created = actionCreatedDate(existing);
+        if (orig && orig !== existing.date){
+          notesHtml += '<p class="commit-origin-note">' + addedLabel(orig) + '</p>';
+        }
+        if (created) notesHtml += '<p class="commit-origin-note commit-created">Created ' +
+          toLocalDate(created).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + '</p>';
+        if (existing.sourceType === 'partner_request' || existing.sourceType === 'home_request') notesHtml += ((shareOn() && sharedRequests.some(function(x){ return x.id === existing.sourceRequestId; })) || !!homeReq(existing.sourceRequestId)
+          ? '<button type="button" class="commit-origin-note rq-origin" id="commitSourceNote"><span></span>' + UI_ICON.chevronRight + '</button>'
+          : '<p class="commit-origin-note" id="commitSourceNote"></p>');
+      }
       var html = '<div class="sheet-handle"></div>' +
         '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit action' : 'New action') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
         '<div class="field"><label>Action</label><input type="text" id="f_commitTitle" placeholder="e.g. Strength session" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
         (isEditing && existing.sourceType === 'home_request' && homeReq(existing.sourceRequestId) && homeReq(existing.sourceRequestId).why ? '<p class="rq-why commit-why" id="commitWhy"></p>' : '') +
+        statusHtml +
+        dateHtml +
+        whenFieldsHtml() +
+        notesHtml +
         (isEditing && actionChecklistReq(existing) ? '<div class="hl-wrap commit-list" id="commitList"></div>' : '') +
         // its own checklist: anything but a request's list (above) or the Replies Action
         (isEditing && (actionChecklistReq(existing) || existing.sourceType === 'sweep') ? '' : '<div class="hl-wrap commit-list ac-list" id="commitChecklist"></div>') +
@@ -10889,7 +10928,6 @@
           [{value:'', label:'No category'}].concat(QUICK_CAPTURE_CATEGORIES.map(function(c){ return {value:c.key, label:c.label, dot:c.color}; })),
           existing ? (existing.category || '') : (opts.category || qcLastCategory)) +
         sjFieldsHtml() +
-        whenFieldsHtml() +
         movesFieldHtml() +
         // the rest of the detail waits behind one line, open whenever it already holds something
         '<details class="cd-more more-fields"' + (moreHasValue() ? ' open' : '') + '><summary>Goal, links and minimum version</summary>' +
@@ -10898,38 +10936,7 @@
           '<div class="field"><label>Minimum version</label><input type="text" id="f_commitMinVer" placeholder="e.g. 20-minute home workout" value="' + (existing && existing.minVersion ? existing.minVersion.replace(/"/g,'&quot;') : '') + '"></div>' +
         '</details>';
 
-      if (!isEditing && opts.pickDate){
-        html += fieldDate('f_commitDate', 'For', newDate);
-      }
       if (isEditing){
-        html += fieldDate('f_commitDate', 'Scheduled for', existing.date || todayStr());
-        var orig = actionOriginalDate(existing), created = actionCreatedDate(existing);
-        if (orig && orig !== existing.date){
-          html += '<p class="commit-origin-note">' + addedLabel(orig) + '</p>';
-        }
-        if (created) html += '<p class="commit-origin-note commit-created">Created ' +
-          toLocalDate(created).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + '</p>';
-        if (existing.sourceType === 'partner_request' || existing.sourceType === 'home_request') html += ((shareOn() && sharedRequests.some(function(x){ return x.id === existing.sourceRequestId; })) || !!homeReq(existing.sourceRequestId)
-          ? '<button type="button" class="commit-origin-note rq-origin" id="commitSourceNote"><span></span>' + UI_ICON.chevronRight + '</button>'
-          : '<p class="commit-origin-note" id="commitSourceNote"></p>');
-        // Status: five plain states; a few words for waiting or blocked. How a past day
-        // ended (disrupted, not done) stays available for the record.
-        html += '<div class="field as-field"><label>Status</label>' +
-          '<div class="bk-filter-pop as-states" id="commitStatusGrid" role="radiogroup" aria-label="Status">' +
-          EXEC_STATES.map(function(st){
-            return '<button type="button" class="bk-filter-chip as-chip' + (stateVal === st ? ' sel' : '') + '" role="radio" aria-checked="' + (stateVal === st) + '" data-as="' + st + '">' + EXEC_LABEL[st] + '</button>';
-          }).join('') + '</div>' +
-          '<div class="as-ctx" id="asCtxField"' + (stateVal === 'waiting' || stateVal === 'blocked' ? '' : ' hidden') + '>' +
-            '<label for="f_statusContext" id="asCtxLabel">' + (stateVal === 'blocked' ? 'What’s blocking this?' : 'Waiting on') + '</label>' +
-            '<input type="text" id="f_statusContext" maxlength="80" autocomplete="off" placeholder="' + (stateVal === 'blocked' ? 'e.g. missing documents' : 'e.g. payroll') + '">' +
-          '</div>' +
-          (showOutcomes ? '<p class="as-record">For the record: ' +
-            '<button type="button" class="btn-link as-outcome' + (stateVal === 'disrupted' ? ' sel' : '') + '" data-as="disrupted">Disrupted</button> · ' +
-            '<button type="button" class="btn-link as-outcome' + (stateVal === 'not_done' ? ' sel' : '') + '" data-as="not_done">Not done</button></p>' : '') +
-        '</div>';
-        html += '<div id="disruptionReasonField" style="' + (stateVal==='disrupted' ? '' : 'display:none') + '">' +
-          fieldSelect('f_disruptionReason', 'Disruption reason', [{value:'',label:'Not specified'}].concat(DISRUPTION_REASONS.map(function(r){ return {value:r,label:r}; })), disruptionVal || '') +
-        '</div>';
         // Private updates: what happened with it, in Shaun's words, and the quiet facts.
         // When it came from a partner, the one way to tell them is the request's own
         // Updates — a link there, never a second shared form here.
@@ -10950,15 +10957,16 @@
         // the one thing being done now: today's open Actions only
         var canFocus = existing.status !== 'completed' && existing.category !== 'roadblock' && existing.date === todayStr();
         var isFocus = focusIsAction(existing.id);
-        html += '<button class="save-btn" id="saveCommitBtn">Save</button>' +
-          '<div class="act-rows">' +
+        // Save stays in reach at the foot of the screen (2026-11-18): Done, then Save, no scroll
+        html += '<div class="act-rows">' +
             (canFocus ? '<button type="button" class="act-row focus-set-btn' + (isFocus ? ' on' : '') + '" id="focusSetBtn">' +
               '<span class="act-ic">' + UI_ICON.target + '</span>' +
               '<span class="act-label">' + (isFocus ? 'Current focus \u2713' : 'Set as current focus') + '</span>' +
               (isFocus ? '<span class="act-meta">Clear</span>' : '') + '</button>' : '') +
             '<button type="button" class="act-row" id="pinExistingBtn"><span class="act-ic">' + PIN_ICON_SVG + '</span><span class="act-label">Pin now</span></button>' +
             '<button type="button" class="act-row danger" id="deleteCommitBtn"><span class="act-ic"></span><span class="act-label">Delete</span></button>' +
-          '</div>';
+          '</div>' +
+          '<div class="sheet-actionbar commit-savebar"><button class="save-btn" id="saveCommitBtn">Save</button></div>';
       } else {
         // Three lightweight outcomes for a freshly typed action, per the "Call dentist" example:
         // save it as a Today action, push it to the phone right now, or both — no second form.

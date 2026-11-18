@@ -762,6 +762,18 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-18 — The Action sheet leads with Status and when (Shaun: "I have to scroll to mark a task as done")
+
+- **New order:**
+  1. Title.
+  2. **Status**.
+  3. **Scheduled for**, then Time and Duration, then Remind me.
+  4. The added and created notes.
+  5. Checklists, then Category, S&J and the rest.
+- **Save stays pinned to the foot of the screen**, so Done then Save needs no scroll.
+  Focus, Pin and Delete sit above it.
+- A new Action has no Status; it starts with the date (when asked for) and the time.
+
 ### 2026-11-18 — Smith & Johnson gets its own tab (Shaun's answers: all four recommendations)
 
 - **A sixth tab, "S&J"** ("Smith & Johnson" on wide screens), between Comms and Home.
@@ -3207,6 +3219,10 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-18) — **Action sheet reordered** (decision above). Every suite that uses the
+  sheet passes: execution 81, sj 25, action-files 24, goals 42, comms-capture 50,
+  offline 16, partner-sharing 209, assistant 68, home 382. One Home check (H9, Abi's
+  notification setting) failed once on timing and passed on the re-run.
 - (2026-11-18) — **Smith & Johnson tab** (decision above).
   - **New `tests/e2e/sj.test.js` (25 checks):** the sections and tiles, a client saved and
     shown live on a second device, an Action from the client's page, marking an existing
