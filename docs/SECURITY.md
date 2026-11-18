@@ -53,6 +53,7 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | `ledger_weeks` | A week's outcomes, and later its reviews (`docs/GOALS_AND_REVIEW.md`) | owner |
 | `ledger_quarters` | A quarter review: the goals it decided, and notes (`docs/GOALS_AND_REVIEW.md` §11) | owner |
 | `ledger_people` | Keep in touch: people, their check-in rhythm and when he spoke to them | owner |
+| `ledger_sj` | Smith & Johnson: his clients and the team he works with (names, a line of detail, notes) | owner |
 | `ledger_matters`, `ledger_conversations` | Communications | owner |
 | `ledger_challenges` | challenges | owner |
 | `ledger_push_subscriptions` | each user's devices for Web Push | the user's own only (owner and partner alike) |

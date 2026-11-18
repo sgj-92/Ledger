@@ -4853,6 +4853,49 @@
     background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-lg);
     padding: 2px 13px 8px; margin: 0 0 var(--sp-3); box-shadow: var(--shadow-card);
   }
+  /* Smith & Johnson (2026-11-18): the same cards as Today, a tile row on top */
+  #view-sj .sj { padding-bottom: var(--sp-6); }
+  #view-sj .sj-card {
+    background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-lg);
+    padding: 2px 13px 8px; margin: 0 0 var(--sp-3); box-shadow: var(--shadow-card);
+  }
+  .sj-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 var(--sp-3); }
+  .sj-tile { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--r-lg);
+    background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow-card); }
+  .sj-tile-n { font-family: var(--serif); font-size: 26px; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; }
+  .sj-tile-l { font-size: 12px; color: var(--text-2); }
+  .sj-tile.warn .sj-tile-n { color: var(--danger); }
+  .sj-head { display: flex; align-items: center; gap: 10px; min-height: 46px; }
+  .sj-title { flex: 1; min-width: 0; margin: 0; font-family: var(--sans); font-size: 17px; font-weight: 600; letter-spacing: -0.005em; color: var(--text); }
+  .sj-count { font-size: 13px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .sj-add { flex-shrink: 0; }
+  .sj-empty { margin: 0; padding: 4px 2px 12px; font-size: 13.5px; line-height: 1.5; color: var(--text-3); }
+  .sj-more { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; font-size: 13px; }
+  .sj-more svg { width: 14px; height: 14px; }
+  .sj-links-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .sj-links-row .sj-more:only-child { margin-left: auto; }
+  .sj-rec { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 10px 2px; border: none; border-top: 1px solid var(--line);
+    background: none; text-align: left; cursor: pointer; color: var(--text); font-family: var(--sans); }
+  .sj-head + .sj-body > .sj-rec:first-child { border-top: none; }
+  .sj-rec:active { opacity: 0.65; }
+  .sj-rec.archived { opacity: 0.6; }
+  .sj-rec-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .sj-rec-name { font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+  .sj-rec-sub { font-size: 12.5px; color: var(--text-2); line-height: 1.35; }
+  .sj-rec .chev { flex-shrink: 0; width: 14px; height: 14px; display: flex; color: var(--text-3); }
+  .sj-rec .chev svg { width: 100%; height: 100%; }
+  .sj-rec-detail { margin: -6px 0 var(--sp-4); font-size: 13.5px; color: var(--text-2); }
+  .sj-sheet-sec { margin: 0 0 var(--sp-5); }
+  .sj-sheet-sec .hs-sec-head { padding: 0; }
+  .sj-link-conv { margin: 8px 0 0; }
+  .sj-notes { width: 100%; box-sizing: border-box; min-height: 84px; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--line-2);
+    background: var(--surface-2); color: var(--text); font-family: var(--sans); font-size: 16px; line-height: 1.45; resize: vertical; outline: none; }
+  .sj-notes:focus { border-color: rgba(var(--gold-rgb),0.5); }
+  .sj-links[hidden] { display: none; }
+  .sj-links { margin-top: var(--sp-3); }
+  .sj-sheet-name { flex: 1; min-width: 0; }
+  .sj-sheet-name .sheet-title { overflow-wrap: anywhere; }
+  @media (max-width: 767px) { #view-sj .sj-card, #view-sj .sj-summary { margin-left: -6px; margin-right: -6px; } }
   /* Wind-down is a card already: the same surface as the rest */
   #view-log .wd-card { background: var(--surface); border-color: var(--line-2); box-shadow: var(--shadow-card); margin-top: 0; }
   /* on a phone the cards reach 16px from the screen's edge, as iOS's inset lists do, and
@@ -6279,6 +6322,8 @@
     <aside class="plan-day-pane" id="planDayPane" aria-label="Selected day"></aside>
   </section>
 
+  <section class="view" id="view-sj" aria-label="Smith &amp; Johnson"></section>
+
   <section class="view" id="view-home" aria-label="Home"></section>
 
 </main>
@@ -6300,6 +6345,10 @@
   <button class="tab-btn tab-comms" data-view="comms">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10H9.5L5 19.5v-4H4z"/><line x1="8" y1="9.5" x2="16" y2="9.5"/><line x1="8" y1="12.5" x2="13" y2="12.5"/></svg></span>
     <span class="tab-label-long">Communications</span><span class="tab-label-short">Comms</span>
+  </button>
+  <button class="tab-btn tab-sj" data-view="sj">
+    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.3" y="7.5" width="17.4" height="12" rx="2.2"/><path d="M8.8 7.5V6a1.8 1.8 0 0 1 1.8-1.8h2.8A1.8 1.8 0 0 1 15.2 6v1.5"/><line x1="3.3" y1="12.8" x2="20.7" y2="12.8"/></svg></span>
+    <span class="tab-label-long">Smith &amp; Johnson</span><span class="tab-label-short">S&amp;J</span>
   </button>
   <button class="tab-btn tab-home" data-view="home">
     <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 11.2 12 4.5l8.2 6.7"/><path d="M6.3 9.4v10.1h11.4V9.4"/><path d="M10.2 19.5v-5h3.6v5"/></svg><i class="tab-dot" id="homeTabDot" hidden></i></span>
@@ -8028,6 +8077,7 @@
           // Plan reads the same actions: its week rows and day pane follow them
           if (currentView === 'plan') renderPlan();
           if (currentView === 'comms') renderComms();
+          sjRefresh();
           tryHandleDeepLink();
         }, renderLogView);
       ['ledger_matters', 'ledger_conversations'].forEach(function(coll){
@@ -8053,6 +8103,7 @@
       startWeeksListener();
       startQuartersListener();
       startPeopleListener();
+      startSJListener();
       // Partner Sharing: the owner's side of the shared namespace (see firestore.rules)
       startSharingListeners();
       if (shareOn()){ startHome('owner'); watchHomeMigration(); }
@@ -8084,6 +8135,7 @@
     weeksLocalLoad();
     quartersLocalLoad();
     peopleLocalLoad();
+    sjLocalLoad();
     czLoaded = { commitments: true, plans: true, challenges: true };
     presetsLoaded = true;
     prioritiesLoaded = true;
@@ -8554,6 +8606,7 @@
     if (evs.length) logActionEvents(item.id, evs);
     renderLogView();
     if (currentView === 'plan') renderPlan();
+    sjRefresh();
   }
 
   async function deleteCommitment(id){
@@ -8795,6 +8848,7 @@
     if (currentView === 'plan') renderPlan();
     if (currentView === 'comms') renderComms();
     if (currentView === 'home') renderHomeView();
+    if (currentView === 'sj') renderSJ();
     renderHeader();
   }
   document.querySelectorAll('.tab-btn').forEach(function(btn){
@@ -8826,7 +8880,8 @@
     stats: { kicker: 'Progress', title: 'Over time' },
     focus: { kicker: 'Goals', title: 'Direction' },
     comms: { kicker: 'Communications', title: 'In motion' },
-    home: { kicker: 'Home', title: 'Together' }
+    home: { kicker: 'Home', title: 'Together' },
+    sj: { kicker: 'Smith & Johnson', title: 'The business' }
   };
 
   function relativeDayLabel(dateStr){
@@ -9343,6 +9398,7 @@
     if (p.get('add') === 'capture'){ nativeQuickAdd(0); return; }
     // its Communications line
     if (p.get('view') === 'comms' && authRole === 'owner'){ goView('comms'); return; }
+    if (p.get('view') === 'sj' && authRole === 'owner'){ goView('sj'); return; }
     // the Focus widget with no focus: choose one (once today's Actions have loaded)
     if (p.get('view') === 'focus'){ nativeFocusPicker(0); return; }
     openLedgerLink(url);
@@ -9902,6 +9958,15 @@
       ms.className = 'commitment-matter';
       ms.textContent = (bits.length ? ' · ' : '') + mt;
       meta.appendChild(ms);
+    }
+    // S&J: the client, and who from the team it's with
+    if (c.sj){
+      var sjBits = [c.clientId && sjName(c.clientId), c.teamId && ('with ' + sjName(c.teamId))].filter(Boolean);
+      if (sjBits.length){
+        var sjs = document.createElement('span'); sjs.className = 'commitment-sj';
+        sjs.textContent = (meta.textContent ? ' · ' : '') + sjBits.join(' · ');
+        meta.appendChild(sjs);
+      }
     }
     var age = done ? '' : actionAgeLabel(c);
     if (age) meta.appendChild(document.createTextNode((meta.textContent ? ' · ' : '') + age));
@@ -10786,6 +10851,21 @@
     var stateTouched = false;
     // its own checklist (2026-11-15): the items as the sheet has them, the latest always
     var acState = null;
+    // Smith & Johnson (2026-11-18): marked as the business's, with a client and someone from the team
+    var sjOn = existing ? !!existing.sj : !!opts.sj;
+    var sjClientVal = existing ? (existing.clientId || '') : ((opts.sj && opts.sj.clientId) || '');
+    var sjTeamVal = existing ? (existing.teamId || '') : ((opts.sj && opts.sj.teamId) || '');
+    function sjFieldsHtml(){
+      // option labels are names: written as text once the sheet is built
+      var cl = sjList('client', sjClientVal), tm = sjList('team', sjTeamVal);
+      return fieldYesNo('f_sj', 'Smith &amp; Johnson', sjOn, UI_ICON.briefcase) +
+        '<div class="field-row sj-links" id="sjLinks"' + (sjOn ? '' : ' hidden') + '>' +
+          '<div class="field"><label>Client</label><select id="f_sjClient" data-picker-new="sjClient"><option value="">No client</option>' +
+            cl.map(function(r){ return '<option value="' + r.id + '"' + (r.id === sjClientVal ? ' selected' : '') + '></option>'; }).join('') + '</select></div>' +
+          '<div class="field"><label>With</label><select id="f_sjTeam" data-picker-new="sjTeam"><option value="">Nobody</option>' +
+            tm.map(function(r){ return '<option value="' + r.id + '"' + (r.id === sjTeamVal ? ' selected' : '') + '></option>'; }).join('') + '</select></div>' +
+        '</div>';
+    }
     var showOutcomes = !!existing && (existing.date < todayStr() || existing.status === 'disrupted' || existing.status === 'not_done');
 
     function buildHtml(){
@@ -10808,6 +10888,7 @@
         fieldSelect('f_commitCategory', 'Category',
           [{value:'', label:'No category'}].concat(QUICK_CAPTURE_CATEGORIES.map(function(c){ return {value:c.key, label:c.label, dot:c.color}; })),
           existing ? (existing.category || '') : (opts.category || qcLastCategory)) +
+        sjFieldsHtml() +
         whenFieldsHtml() +
         movesFieldHtml() +
         // the rest of the detail waits behind one line, open whenever it already holds something
@@ -10981,6 +11062,19 @@
       sweepOnPaint(swPaint); swPaint();
       document.getElementById('commitSweepAdd').addEventListener('click', function(){ openSweepSheet(todayStr()); });
     }
+    ['f_sjClient', 'f_sjTeam'].forEach(function(fid){
+      var sel = document.getElementById(fid);
+      if (!sel) return;
+      [].slice.call(sel.options).forEach(function(o){ if (o.value) o.textContent = sjName(o.value); });
+      if (sel._lpSync) sel._lpSync();
+    });
+    document.querySelectorAll('#f_sjToggle button').forEach(function(b){
+      b.addEventListener('click', function(){
+        sjOn = b.dataset.v === 'yes';
+        document.querySelectorAll('#f_sjToggle button').forEach(function(x){ x.classList.toggle('sel', x === b); });
+        var links = document.getElementById('sjLinks'); if (links) links.hidden = !sjOn;
+      });
+    });
     var acEl = document.getElementById('commitChecklist');
     if (acEl){
       acState = { items: ((existing && existing.checklist) || []).map(function(x){ return Object.assign({}, x); }), adding: false, doneOpen: false,
@@ -11040,6 +11134,12 @@
       // key-task standing belongs to the day it was chosen for
       if (existing && existing.isKeyTask && nextDate !== existing.date) out.isKeyTask = false;
       if (isEditing) out.id = existing.id;
+      // S&J: written only once it means something, so other Actions stay as they are
+      if (document.getElementById('f_sjToggle') && (sjOn || (existing && existing.sj))){
+        out.sj = sjOn;
+        out.clientId = sjOn ? (document.getElementById('f_sjClient').value || null) : null;
+        out.teamId = sjOn ? (document.getElementById('f_sjTeam').value || null) : null;
+      }
       // the checklist as ticked here, never as it was when the sheet opened
       if (acState && (acState.items.length || (existing && existing.checklist))) out.checklist = acState.items;
       // a reminder is meant in the timezone he's in now
@@ -12345,6 +12445,7 @@
   function commsChanged(){
     renderLogView();
     if (currentView === 'comms') renderComms();
+    sjRefresh();
   }
   async function saveCommsRecord(coll, item){
     item = Object.assign({}, item, { updatedAt: new Date().toISOString() });
@@ -13084,7 +13185,7 @@
   function byTimeDesc(a, b){ return (b.lastActivityAt || b.updatedAt || '') < (a.lastActivityAt || a.updatedAt || '') ? -1 : 1; }
   function byTimeAsc(a, b){ return -byTimeDesc(a, b); }
 
-  function convRowEl(v, underMatter){
+  function convRowEl(v, underMatter, onOpen){
     var b = document.createElement('button');
     b.type = 'button';
     var st = v.attentionState || 'needs_me';
@@ -13104,7 +13205,7 @@
     // who has the ball, then how long it has sat — or that a follow-up is now due
     b.querySelector('.cv-state').textContent = convStateLine(v);
     b.querySelector('.cv-when').textContent = due ? 'Follow-up due' : (v.lastActivityAt ? sinceLabel(v.lastActivityAt) : '');
-    b.addEventListener('click', function(){ selectComms({ kind: 'conv', id: v.id }); });
+    b.addEventListener('click', function(){ if (onOpen) onOpen(); else selectComms({ kind: 'conv', id: v.id }); });
     return b;
   }
   function matterRowEl(m, convCount){
@@ -13413,6 +13514,8 @@
           matterOpts.map(function(o){ return '<option value="' + o.value + '">' + (o.value ? '' : o.label) + '</option>'; }).join('') +
         '</select></label>' +
       '</div>' +
+      // S&J (2026-11-18): a business conversation belongs to a client, or is with the team
+      (v.category === 'business' || v.sjId ? '<label class="cd-field cd-sj"><span>Smith &amp; Johnson</span><select data-role="sj" data-picker-title="Client or team"></select></label>' : '') +
       '<label class="cd-field"><span>Current position</span><textarea data-role="summary" rows="2" placeholder="Where things stand, in a line or two"></textarea></label>' +
       '<div class="cd-sec"><span class="sec-label">Actions</span><span class="sec-rule"></span>' +
         '<button type="button" class="sec-link" data-role="add-action">' + BK_PLUS_SVG + 'Add action</button></div>' +
@@ -13441,6 +13544,15 @@
       patchConv(v.id, { matterId: id });
       if (id) logMatter(id, 'note', 'Conversation added: ' + convName(v));
     });
+    var sjSel = wrap.querySelector('[data-role="sj"]');
+    if (sjSel){
+      var sjo = function(val, text, group){ var o = document.createElement('option'); o.value = val; o.textContent = text; if (group) o.dataset.hint = group; sjSel.appendChild(o); };
+      sjo('', 'Not linked');
+      sjList('client', v.sjId).forEach(function(r){ sjo(r.id, r.name || 'Unnamed', 'Client'); });
+      sjList('team', v.sjId).forEach(function(r){ sjo(r.id, r.name || 'Unnamed', 'Team'); });
+      sjSel.value = v.sjId || '';
+      sjSel.addEventListener('change', function(){ patchConv(v.id, { sjId: sjSel.value || null }); });
+    }
     var close = wrap.querySelector('#sheetCloseBtn');
     if (close) close.addEventListener('click', function(){ flushCommsSavers(); closeSheet(); });
 
@@ -13487,7 +13599,9 @@
 
     wrap.querySelector('[data-role="actions"]').appendChild(actionListEl(convActions(v), 'No actions. Add one when you need to do something — waiting needs none.'));
     wrap.querySelector('[data-role="add-action"]').addEventListener('click', function(){
+      var sjr = sjById(v.sjId);
       openCommitmentSheet(null, { pickDate: true, date: todayStr(), category: 'communicate',
+        sj: sjr ? (sjr.kind === 'client' ? { clientId: sjr.id } : { teamId: sjr.id }) : null,
         links: { matterId: v.matterId || null, conversationId: v.id }, onDone: function(){ returnToComms(sel); } });
     });
     wireLogAdder(wrap, function(kind, text){ logConv(v.id, kind, text); });
@@ -13713,6 +13827,298 @@
     if (!existing) setTimeout(function(){ try { nameIn.focus(); } catch(e){} }, 60);
   }
 
+  // ============ Smith & Johnson (2026-11-18) ============
+  // Shaun's business, in its own tab. Nothing here is a second task list: an S&J Action is an
+  // ordinary Action marked sj (with, optionally, a client and someone from the team), so it
+  // sits on Today on its day as any other. Business conversations are Comms' own records,
+  // linked to a client or a team member by sjId. Clients and the team are private records in
+  // ledger_sj/{id} ({ kind: 'client' | 'team', name, detail, notes, status }), owner-only.
+  // Only Shaun signs in: the team are people he keeps track of, never users.
+  var SJ_COLL = 'ledger_sj', SJ_LOCAL = 'ledger_sj_fallback';
+  var sjRecs = [];
+  var sjShowAll = {};
+  var SJ_KIND = { client: { one: 'Client', many: 'Clients', detail: 'Main contact', detailPh: 'e.g. Sarah Jones, Finance Director', namePh: 'e.g. Acme Ltd', none: 'No client' },
+    team: { one: 'Team', many: 'Team', detail: 'Role', detailPh: 'e.g. Bookkeeper', namePh: 'e.g. Kaz', none: 'Nobody' } };
+  function sjLocalSave(){ try { localStorage.setItem(SJ_LOCAL, JSON.stringify(sjRecs)); } catch(e){} }
+  function sjLocalLoad(){ try { sjRecs = JSON.parse(localStorage.getItem(SJ_LOCAL) || '[]') || []; } catch(e){ sjRecs = []; } }
+  function startSJListener(){
+    liveSnapshot(dbRef.collection(SJ_COLL), function(snap){
+      sjRecs = snap.docs.map(function(d){ var x = d.data() || {}; x.id = d.id; return x; });
+      sjLocalSave();
+      sjChanged();
+    }, function(err){ console.error('S&J snapshot error', err); });
+  }
+  function sjById(id){ return (id && sjRecs.find(function(r){ return r.id === id; })) || null; }
+  function sjName(id){ var r = sjById(id); return r ? (r.name || 'Unnamed') : ''; }
+  function sjList(kind, keepId){
+    return sjRecs.filter(function(r){ return r.kind === kind && (r.status !== 'archived' || r.id === keepId); })
+      .sort(function(a, b){ return String(a.name || '').localeCompare(String(b.name || '')); });
+  }
+  function saveSJ(rec){
+    rec = Object.assign({}, rec, { updatedAt: new Date().toISOString() });
+    if (!rec.id) rec.id = uid();
+    if (!rec.createdAt) rec.createdAt = rec.updatedAt;
+    var i = sjRecs.findIndex(function(r){ return r.id === rec.id; });
+    if (i > -1) sjRecs[i] = rec; else sjRecs.push(rec);
+    sjLocalSave();
+    sjChanged();
+    if (dbReady && dbRef){
+      var copy = Object.assign({}, rec); delete copy.id;
+      dbRef.collection(SJ_COLL).doc(rec.id).set(copy).catch(function(e){
+        console.error('S&J save failed', e);
+        showPinToast(e && e.code === 'permission-denied' ? 'S&J isn’t set up on the server yet — run Deploy Firebase.' : 'Couldn’t save that — check your connection and try again.', true);
+      });
+    }
+    return rec;
+  }
+  function sjNew(kind, name){ return saveSJ({ kind: kind, name: String(name || '').trim().slice(0, 80), detail: null, notes: '', status: 'active' }); }
+  function sjRefresh(){
+    if (currentView === 'sj') renderSJ();
+    if (activeSheetRefresh && activeSheetRefresh.onSJ) activeSheetRefresh();
+  }
+  function sjChanged(){ sjRefresh(); renderCommitments(); }
+  // what belongs to a client or a team member
+  function sjOpen(c){ return !!c && c.status !== 'completed' && c.category !== 'roadblock' && !!c.title; }
+  function sjActionsOf(r){ return commitments.filter(function(c){ return c.sj && (c.clientId === r.id || c.teamId === r.id); }); }
+  function sjConvsOf(r){ return conversations.filter(function(v){ return v.sjId === r.id; }); }
+  function sjWaiting(c){ var s = actionExecState(c); return s === 'waiting' || s === 'blocked'; }
+  function sjByDate(a, b){ return a.date === b.date ? (actionTime(a) || '99').localeCompare(actionTime(b) || '99') : (a.date < b.date ? -1 : 1); }
+  // the line under a client or team member: what's open, what's waiting, who needs a reply
+  function sjCountsLine(r){
+    var open = sjActionsOf(r).filter(sjOpen), wait = open.filter(sjWaiting).length;
+    var needs = sjConvsOf(r).filter(function(v){ return convIsActive(v) && (v.attentionState || 'needs_me') === 'needs_me'; }).length;
+    var bits = [];
+    if (open.length - wait) bits.push(plural(open.length - wait, 'open action'));
+    if (wait) bits.push(wait + ' waiting');
+    if (needs) bits.push(needs === 1 ? '1 needs a reply' : needs + ' need a reply');
+    return bits.join(' · ') || 'Nothing open';
+  }
+
+  // ---- the tab ----
+  function sjSection(parent, title, count, opts){
+    opts = opts || {};
+    var card = document.createElement('section'); card.className = 'tcard sj-card' + (opts.cls ? ' ' + opts.cls : '');
+    var head = document.createElement('div'); head.className = 'sj-head';
+    head.innerHTML = '<h2 class="sj-title"></h2><span class="sj-count"></span>';
+    head.querySelector('.sj-title').textContent = title;
+    head.querySelector('.sj-count').textContent = count == null ? '' : String(count);
+    if (opts.add){
+      var a = document.createElement('button'); a.type = 'button'; a.className = 'sec-add sj-add'; a.setAttribute('aria-label', opts.add.label); a.title = opts.add.label;
+      a.innerHTML = BK_PLUS_SVG; if (opts.add.id) a.id = opts.add.id;
+      a.addEventListener('click', opts.add.fn);
+      head.appendChild(a);
+    }
+    card.appendChild(head);
+    var body = document.createElement('div'); body.className = 'sj-body';
+    card.appendChild(body);
+    parent.appendChild(card);
+    return body;
+  }
+  function sjEmpty(body, text){ var p = document.createElement('p'); p.className = 'sj-empty'; p.textContent = text; body.appendChild(p); }
+  function sjActionRows(body, list, key, limit){
+    var shown = sjShowAll[key] ? list : list.slice(0, limit || 6);
+    shown.forEach(function(c){ body.appendChild(buildCommitmentRow(c, todayStr(), {})); });
+    if (list.length > shown.length || (sjShowAll[key] && list.length > (limit || 6))){
+      var more = document.createElement('button'); more.type = 'button'; more.className = 'btn-link sj-more';
+      more.textContent = sjShowAll[key] ? 'Show fewer' : 'Show all ' + list.length;
+      more.addEventListener('click', function(){ sjShowAll[key] = !sjShowAll[key]; renderSJ(); });
+      body.appendChild(more);
+    }
+  }
+  function sjRecRow(r){
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'sj-rec'; b.dataset.sj = r.id;
+    b.innerHTML = '<span class="sj-rec-main"><span class="sj-rec-name"></span><span class="sj-rec-sub"></span></span><span class="chev">' + UI_ICON.chevronRight + '</span>';
+    b.querySelector('.sj-rec-name').textContent = r.name || 'Unnamed';
+    b.querySelector('.sj-rec-sub').textContent = (r.detail ? r.detail + ' · ' : '') + sjCountsLine(r);
+    b.addEventListener('click', function(){ openSJRecord(r.id); });
+    return b;
+  }
+  function sjNewAction(preset){
+    openCommitmentSheet(null, { pickDate: true, date: todayStr(), category: 'work', sj: preset || {},
+      onDone: preset && (preset.clientId || preset.teamId) ? function(){ openSJRecord(preset.clientId || preset.teamId); } : null });
+  }
+  function renderSJ(){
+    var el = document.getElementById('view-sj');
+    if (!el || currentView !== 'sj') return;
+    if (sortDragActive) return;
+    var y = window.scrollY;
+    el.innerHTML = '';
+    var wrap = document.createElement('div'); wrap.className = 'sj';
+    el.appendChild(wrap);
+    var today = todayStr();
+    var all = commitments.filter(function(c){ return c.sj && sjOpen(c); });
+    var waiting = all.filter(sjWaiting).sort(sjByDate);
+    var rest = all.filter(function(c){ return !sjWaiting(c); });
+    var overdue = rest.filter(function(c){ return c.date < today; }).sort(sjByDate);
+    var todays = rest.filter(function(c){ return c.date === today; }).sort(sjByDate);
+    var later = rest.filter(function(c){ return c.date > today; }).sort(sjByDate);
+    var doneToday = commitments.filter(function(c){ return c.sj && c.status === 'completed' && c.date === today; }).length;
+
+    // the day at a glance
+    var sum = document.createElement('div'); sum.className = 'sj-summary';
+    [[todays.length, 'today'], [overdue.length, 'overdue'], [waiting.length, 'waiting']].forEach(function(x, i){
+      var t = document.createElement('div'); t.className = 'sj-tile' + (i === 1 && x[0] ? ' warn' : '');
+      t.innerHTML = '<span class="sj-tile-n"></span><span class="sj-tile-l"></span>';
+      t.firstChild.textContent = x[0]; t.lastChild.textContent = x[1];
+      sum.appendChild(t);
+    });
+    wrap.appendChild(sum);
+
+    var body = sjSection(wrap, 'Today', doneToday ? doneToday + ' done' : null, { add: { label: 'Add an S&J action', id: 'sjAddAction', fn: function(){ sjNewAction({}); } } });
+    if (todays.length) sjActionRows(body, todays, 'today', 12);
+    else sjEmpty(body, all.length ? 'Nothing for S&J today.' : 'Mark an Action as S&J — or add one here — and it shows on this tab and on Today.');
+    if (overdue.length) sjActionRows(sjSection(wrap, 'Overdue', overdue.length, { cls: 'sj-overdue' }), overdue, 'overdue', 5);
+    if (waiting.length) sjActionRows(sjSection(wrap, 'Waiting on others', waiting.length), waiting, 'waiting', 6);
+    if (later.length) sjActionRows(sjSection(wrap, 'Coming up', later.length), later, 'later', 5);
+
+    // the business side of Comms: who needs a reply, who we're waiting on
+    var convs = conversations.filter(function(v){ return convIsActive(v) && (v.category === 'business' || v.sjId); })
+      .sort(function(a, b){
+        var na = (a.attentionState || 'needs_me') === 'needs_me' ? 0 : 1, nb = (b.attentionState || 'needs_me') === 'needs_me' ? 0 : 1;
+        return (na - nb) || byTimeDesc(a, b);
+      });
+    var needs = convs.filter(function(v){ return (v.attentionState || 'needs_me') === 'needs_me'; }).length;
+    var cb = sjSection(wrap, 'Comms', needs ? needs + ' need you' : null, { add: { label: 'Add a business conversation', id: 'sjAddConv', fn: function(){ openNewCommsSheet('conv', { category: 'business' }); } } });
+    var shownConvs = sjShowAll.comms ? convs : convs.slice(0, 6);
+    shownConvs.forEach(function(v){ cb.appendChild(convRowEl(v, false, function(){ openCommsSheet({ kind: 'conv', id: v.id }); })); });
+    if (!convs.length) sjEmpty(cb, 'No business conversations open.');
+    var cl = document.createElement('div'); cl.className = 'sj-links-row';
+    if (convs.length > 6){
+      var cm = document.createElement('button'); cm.type = 'button'; cm.className = 'btn-link sj-more';
+      cm.textContent = sjShowAll.comms ? 'Show fewer' : 'Show all ' + convs.length;
+      cm.addEventListener('click', function(){ sjShowAll.comms = !sjShowAll.comms; renderSJ(); });
+      cl.appendChild(cm);
+    }
+    var go = document.createElement('button'); go.type = 'button'; go.className = 'btn-link sj-more'; go.id = 'sjOpenComms';
+    go.innerHTML = '<span>Business in Comms</span>' + UI_ICON.arrowRight;
+    go.addEventListener('click', function(){ commsCat = 'business'; try { lsSet(COMMS_CAT_KEY, 'business'); } catch(e){} goView('comms'); window.scrollTo(0, 0); });
+    cl.appendChild(go);
+    cb.appendChild(cl);
+
+    ['client', 'team'].forEach(function(kind){
+      var K = SJ_KIND[kind], list = sjList(kind);
+      var b = sjSection(wrap, K.many, list.length || null, { add: { label: kind === 'client' ? 'Add a client' : 'Add someone to the team', id: kind === 'client' ? 'sjAddClient' : 'sjAddTeam', fn: function(){ openSJForm(kind, null); } } });
+      list.forEach(function(r){ b.appendChild(sjRecRow(r)); });
+      if (!list.length) sjEmpty(b, kind === 'client' ? 'Add a client to keep their actions, conversations and notes together.' : 'Add the people you work with, to track what’s with them.');
+      var archived = sjRecs.filter(function(r){ return r.kind === kind && r.status === 'archived'; });
+      if (archived.length){
+        var ab = document.createElement('button'); ab.type = 'button'; ab.className = 'btn-link sj-more';
+        ab.textContent = sjShowAll['arch-' + kind] ? 'Hide archived' : 'Archived · ' + archived.length;
+        ab.addEventListener('click', function(){ sjShowAll['arch-' + kind] = !sjShowAll['arch-' + kind]; renderSJ(); });
+        b.appendChild(ab);
+        if (sjShowAll['arch-' + kind]) archived.forEach(function(r){ var row = sjRecRow(r); row.classList.add('archived'); b.appendChild(row); });
+      }
+    });
+    if (y) window.scrollTo(0, y);
+  }
+
+  // ---- a client or a team member: everything about them in one place ----
+  function openSJRecord(id){
+    var r = sjById(id);
+    if (!r) return;
+    editingId = null;
+    var K = SJ_KIND[r.kind] || SJ_KIND.client;
+    function draw(){
+      r = sjById(id);
+      if (!r){ closeSheet(); return; }
+      var act = document.activeElement;
+      if (act && sheetEl.contains(act) && act.id === 'sjNotes') return;   // never under someone typing
+      var acts = sjActionsOf(r), open = acts.filter(sjOpen).sort(sjByDate);
+      var doneRecent = acts.filter(function(c){ return c.status === 'completed' && c.date >= fmtDate(addDays(todayStr(), -30)); }).length;
+      var convs = sjConvsOf(r).sort(byTimeDesc);
+      sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+        '<div class="sheet-head"><div class="sj-sheet-name"><div class="cd-kicker" id="sjKicker"></div><div class="sheet-title" id="sjName"></div></div>' +
+        '<button class="sheet-close" id="sheetCloseBtn" aria-label="Close">' + CLOSE_SVG + '</button></div>' +
+        '<p class="sj-rec-detail" id="sjDetail"></p>' +
+        '<div class="sj-sheet-sec"><div class="hs-sec-head"><h3 class="cz-sec-title">Open actions</h3><span class="cz-sec-count" id="sjOpenN"></span></div>' +
+          '<div id="sjActs"></div>' +
+          '<button type="button" class="btn-link fl-add" id="sjAct">' + BK_PLUS_SVG + '<span></span></button></div>' +
+        '<div class="sj-sheet-sec"><div class="hs-sec-head"><h3 class="cz-sec-title">Conversations</h3></div>' +
+          '<div id="sjConvs"></div>' +
+          '<div class="field sj-link-conv"><select id="sjLinkConv" data-picker-title="Link a conversation"></select></div></div>' +
+        '<div class="sj-sheet-sec"><div class="hs-sec-head"><h3 class="cz-sec-title">Notes</h3></div>' +
+          '<textarea id="sjNotes" class="sj-notes" rows="3" maxlength="4000"></textarea></div>' +
+        '<div class="act-rows">' +
+          '<button type="button" class="act-row" id="sjEdit"><span class="act-ic">' + UI_ICON.note + '</span><span class="act-label">Edit details</span><span class="chev">' + UI_ICON.chevronRight + '</span></button>' +
+        '</div>';
+      sheetEl.querySelector('#sjKicker').textContent = (r.kind === 'client' ? 'Client' : 'Team') + (r.status === 'archived' ? ' · archived' : '');
+      sheetEl.querySelector('#sjName').textContent = r.name || 'Unnamed';
+      var det = sheetEl.querySelector('#sjDetail');
+      det.textContent = [r.detail, doneRecent ? plural(doneRecent, 'action') + ' done in the last 30 days' : ''].filter(Boolean).join(' · ');
+      det.hidden = !det.textContent;
+      sheetEl.querySelector('#sjOpenN').textContent = open.length ? String(open.length) : '';
+      var al = sheetEl.querySelector('#sjActs');
+      open.forEach(function(c){ al.appendChild(buildCommitmentRow(c, todayStr(), {})); });
+      if (!open.length) sjEmpty(al, r.kind === 'client' ? 'Nothing open for ' + (r.name || 'them') + '.' : 'Nothing open with ' + (r.name || 'them') + '.');
+      sheetEl.querySelector('#sjAct span').textContent = r.kind === 'client' ? 'Action for ' + (r.name || 'them') : 'Action with ' + (r.name || 'them');
+      sheetEl.querySelector('#sjAct').addEventListener('click', function(){ sjNewAction(r.kind === 'client' ? { clientId: r.id } : { teamId: r.id }); });
+      var cv = sheetEl.querySelector('#sjConvs');
+      convs.forEach(function(v){ cv.appendChild(convRowEl(v, false, function(){ openCommsSheet({ kind: 'conv', id: v.id }); })); });
+      if (!convs.length) sjEmpty(cv, 'None linked yet.');
+      // link one of Comms' conversations: business ones first
+      var ls = sheetEl.querySelector('#sjLinkConv');
+      var cands = conversations.filter(function(v){ return v.sjId !== r.id && convIsActive(v); })
+        .sort(function(a, b){ return ((a.category === 'business' ? 0 : 1) - (b.category === 'business' ? 0 : 1)) || byTimeDesc(a, b); }).slice(0, 80);
+      var o0 = document.createElement('option'); o0.value = ''; o0.textContent = cands.length ? 'Link a conversation…' : 'No conversations to link'; ls.appendChild(o0);
+      cands.forEach(function(v){ var o = document.createElement('option'); o.value = v.id; o.textContent = convName(v); ls.appendChild(o); });
+      var on = document.createElement('option'); on.value = '__new__'; on.textContent = 'New conversation…'; ls.appendChild(on);
+      ls.addEventListener('change', function(){
+        if (ls.value === '__new__'){ openNewCommsSheet('conv', { category: 'business', sjId: r.id }); return; }
+        if (ls.value){ patchConv(ls.value, { sjId: r.id, category: convById(ls.value).category || 'business' }); setTimeout(draw, 0); }
+      });
+      var notes = sheetEl.querySelector('#sjNotes');
+      notes.value = r.notes || '';
+      notes.placeholder = r.kind === 'client' ? 'Anything worth keeping: how they like to work, key dates…' : 'To raise at your next catch-up…';
+      function saveNotes(){ var cur = sjById(id); if (cur && (cur.notes || '') !== notes.value) saveSJ(Object.assign({}, cur, { notes: notes.value })); }
+      var nt = null;
+      notes.addEventListener('input', function(){ clearTimeout(nt); nt = setTimeout(saveNotes, 800); });
+      notes.addEventListener('blur', function(){ clearTimeout(nt); saveNotes(); });
+      sheetEl.querySelector('#sheetCloseBtn').addEventListener('click', function(){ clearTimeout(nt); saveNotes(); closeSheet(); });
+      sheetEl.querySelector('#sjEdit').addEventListener('click', function(){ clearTimeout(nt); saveNotes(); openSJForm(r.kind, r); });
+    }
+    draw.onSJ = true;
+    draw();
+    backdrop.classList.add('open');
+    activeSheetRefresh = draw;
+  }
+  // add or edit: a name and one line of detail; an old one archived keeps its history
+  function openSJForm(kind, existing){
+    editingId = null;
+    activeSheetRefresh = null;
+    var K = SJ_KIND[kind];
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.briefcase, existing ? 'Edit details' : (kind === 'client' ? 'Add a client' : 'Add to the team'),
+        existing ? '' : (kind === 'client' ? 'Their actions, conversations and notes, together.' : 'Someone you work with — they don’t sign in.'), '') +
+      '<div class="field"><label>Name</label><input type="text" id="f_sjName" maxlength="80"></div>' +
+      '<div class="field"><label>' + K.detail + ' (optional)</label><input type="text" id="f_sjDetail" maxlength="120"></div>' +
+      '<button class="save-btn" id="sjSave">' + (existing ? 'Save' : 'Add') + '</button>' +
+      (existing ? '<button type="button" class="delete-btn" id="sjArchive">' + (existing.status === 'archived' ? 'Restore' : 'Archive') + '</button>' : '');
+    var nameIn = document.getElementById('f_sjName'), detIn = document.getElementById('f_sjDetail');
+    nameIn.placeholder = K.namePh; detIn.placeholder = K.detailPh;
+    nameIn.value = existing ? existing.name || '' : '';
+    detIn.value = existing ? existing.detail || '' : '';
+    backdrop.classList.add('open');
+    function back(){ if (existing) openSJRecord(existing.id); else closeSheet(); }
+    document.getElementById('sheetCloseBtn').addEventListener('click', back);
+    function save(){
+      var name = nameIn.value.trim();
+      if (!name){ nameIn.focus(); return; }
+      var rec = existing ? Object.assign({}, sjById(existing.id) || existing, { name: name.slice(0, 80), detail: detIn.value.trim().slice(0, 120) || null })
+        : { kind: kind, name: name.slice(0, 80), detail: detIn.value.trim().slice(0, 120) || null, notes: '', status: 'active' };
+      rec = saveSJ(rec);
+      openSJRecord(rec.id);
+    }
+    document.getElementById('sjSave').addEventListener('click', save);
+    nameIn.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); save(); } });
+    if (existing) document.getElementById('sjArchive').addEventListener('click', function(){
+      var cur = sjById(existing.id) || existing;
+      saveSJ(Object.assign({}, cur, { status: cur.status === 'archived' ? 'active' : 'archived' }));
+      showPinToast(cur.status === 'archived' ? 'Restored' : 'Archived — its actions and conversations stay', false, CHECK_SVG);
+      closeSheet();
+    });
+    if (!existing) setTimeout(function(){ var a = document.activeElement; if (a && sheetEl.contains(a) && a.tagName === 'INPUT') return; try { nameIn.focus(); } catch(e){} }, 60);
+  }
+
   // Who has the ball changes in one place, so the log and the waiting text stay honest.
   function setConvState(id, next, waitingOn, followUp){
     var v = convById(id);
@@ -13811,14 +14217,15 @@
             matters.filter(function(m){ return m.status !== 'closed'; }).map(function(m){ return '<option value="' + m.id + '"></option>'; }).join('') +
           '</select></div>' +
           '<div class="field"><label>Category</label>' +
-            commsChipsHtml('newcat', [{ value: 'personal', label: 'Personal' }, { value: 'business', label: 'Business' }], defaultConvCategory()) + '</div>' +
+            commsChipsHtml('newcat', [{ value: 'personal', label: 'Personal' }, { value: 'business', label: 'Business' }], (preset && preset.category) || defaultConvCategory()) + '</div>' +
           '<div class="field"><label>Who has the ball</label>' +
             commsChipsHtml('newstate', ['needs_me', 'waiting_on_person', 'waiting_on_third_party'].map(function(k){ return { value: k, label: ATTENTION_LABEL[k] }; }), 'needs_me') + '</div>'
         : '<div class="field"><label>Area</label>' +
             commsChipsHtml('newarea', Object.keys(MATTER_AREA_LABEL).map(function(k){ return { value: k, label: MATTER_AREA_LABEL[k] }; }), 'business') + '</div>') +
       '<div class="sheet-actionbar"><button type="button" class="btn-primary" id="newCommsSave">' + (isConv ? 'Add conversation' : 'Add matter') + '</button></div>';
     backdrop.classList.add('open');
-    var chosen = isConv ? 'needs_me' : 'business', newCat = defaultConvCategory();
+    preset = preset || {};
+    var chosen = isConv ? 'needs_me' : 'business', newCat = preset.category || defaultConvCategory();
     if (isConv){
       var ms = document.getElementById('f_newCommsMatter');
       matters.filter(function(m){ return m.status !== 'closed'; }).forEach(function(m, i){ ms.options[i + 1].textContent = m.title || 'Untitled matter'; });
@@ -13850,9 +14257,12 @@
         rec = { id: uid(), title: name, matterId: matterId, participants: [{ name: name, role: '' }], category: newCat, tags: [],
           channel: 'other', externalRef: null, attentionState: chosen, waitingOn: chosen === 'waiting_on_person' ? name : '',
           lastActivityAt: now, nextFollowUpAt: null, summary: '', notes: '', log: [{ at: now, kind: 'state', text: 'Started · ' + ATTENTION_LABEL[chosen] }] };
+        if (preset.sjId) rec.sjId = preset.sjId;
         saveCommsRecord('ledger_conversations', rec);
         if (matterId) logMatter(matterId, 'note', 'Conversation added: ' + name);
         closeSheet();
+        // from the S&J tab: it opens where it was added, and S&J stays put
+        if (currentView === 'sj'){ openCommsSheet({ kind: 'conv', id: rec.id }); return; }
         if (currentView !== 'comms') openComms(null);
         selectComms({ kind: 'conv', id: rec.id });
       } else {
@@ -32272,6 +32682,8 @@
   // carry data-picker-title, and data-picker-new naming an entry in PICKER_NEW to offer
   // "+ New …". A select marked data-native is left alone.
   var PICKER_NEW = {
+    sjClient: { label: 'New client', placeholder: 'e.g. Acme Ltd', create: function(name){ return sjNew('client', name).id; } },
+    sjTeam: { label: 'Someone new', placeholder: 'e.g. Kaz', create: function(name){ return sjNew('team', name).id; } },
     matter: {
       label: 'New matter', placeholder: 'e.g. Pinewood sale',
       create: function(name){

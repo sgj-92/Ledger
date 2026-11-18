@@ -242,7 +242,7 @@ These are observed facts about this repo, useful before making changes.
   than once. Treat it as a bug pattern.
 - User-supplied text is written with `textContent` or as an input `value`,
   never interpolated into an HTML string.
-- **Navigation:** five tabs, Plan · Today · Me · Comms · Home. `goView(view)` is the
+- **Navigation:** six tabs, Plan · Today · Me · Comms · S&J · Home (S&J since 2026-11-18). `goView(view)` is the
   one way to change view; `currentView` is always the real view (`calendar`,
   `stats` and `focus` sit under the Me tab's switch). Use `goCalendarOn(date)` for a
   dated link. Tabs add no browser history.

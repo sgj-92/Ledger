@@ -100,7 +100,7 @@ Carried from `PROJECT_LEDGER.md`. These are the durable ones.
 
 ## Current primary surfaces
 
-Five tabs: **Plan · Today · Me · Comms · Home** (since 2026-10-22). The order is
+Six tabs: **Plan · Today · Me · Comms · S&J · Home** (five since 2026-10-22; S&J added 2026-11-18). The order is
 itself a product decision and should not be changed casually. **Me** holds Calendar,
 Progress and Focus behind one switch (it remembers the last one per device; a link to
 a date always opens Calendar on that date).
@@ -118,6 +118,7 @@ a date always opens Calendar on that date).
 | **Me → Calendar** | What actually happened. Month view with an activity filter, day detail (Planned, Recorded, Outcome), day status. |
 | **Me → Progress** | Am I moving there? Towards your focus, weekly chart, health and training stats, stat detail. |
 | **Me → Focus** | Where am I going? Player card, priorities (optionally linked to evidence), active focus, target weight, Settings. |
+| **Smith & Johnson** | Shaun's business, its own tab (2026-11-18; "S&J" on phones). Not a second task list: an S&J Action is an ordinary Action marked S&J, optionally with a **client** and someone from the **team**, so it is on Today on its day as any other. The tab shows the S&J day at a glance (today, overdue, waiting), then Today, Overdue, Waiting on others, Coming up, the business side of Comms (who needs a reply, who we're waiting on), Clients and Team. A **client's page** gathers its open Actions, linked conversations and notes; a **team member's page** the same, with notes for the next catch-up. The team never sign in. |
 | **Comms** | Who has the ball? Matters and the conversations inside them, by attention state. Its own tab (headed Communications); Today keeps its Communications section and links. **Quick capture** records a morning sweep in one go: one person per line ("James — reply about accounts"), each becoming Needs me, matched to an existing conversation only on the same name. Each conversation is **Personal or Business** (older ones stay unset until chosen), with an All · Personal · Business switch remembered per device. Records carry an empty `tags` list for later; there is no tag UI yet. **Comms sweep** (2026-11-04): a Morning Prime step goes through each of Shaun's channels and notes who needs a reply, channel by channel (WhatsApp Personal, WhatsApp Business, Email…: choose one, jot the names); they sit at the top of Comms as Replies, and on Today as one "Replies" Action that fits Overview and Flow (and can be the Focus); each name can be starred, made its own Action, moved into Comms or added to Keep in touch; they carry forward until ticked, and become conversations only when moved. **People** (keep in touch): who he checks in with, how often, when they last spoke and who is due; Today says "N to check in with". |
 | **Home** | What needs doing at home, shared with Abi and the people who help: pinned at the top, the standing lists (Food shopping, the week's food plan: never finished, anyone ticks and adds) and each person's daily tasks; one slim row of counts (for me, others, overdue when there is any); today, upcoming, recent updates, People. Add one request, a whole list at once, a checklist (the shopping), or a recurring responsibility set up once. Never Shaun's private Ledger. |
 
@@ -212,7 +213,10 @@ Today is the centre of the product. Everything else supports it.
 - Not a general task manager competing with Todoist.
 - Not a calendar replacement.
 - Not an email client, a messaging app or a CRM — Communications tracks who
-  has the ball, not the messages themselves.
+  has the ball, not the messages themselves. S&J's client pages (2026-11-18) gather
+  what Ledger already holds about a client; there is no pipeline, billing or contact
+  database.
+- The S&J team are people Shaun keeps track of; they never sign in (Shaun, 2026-11-18).
 - Not a habit-streak app that rewards self-report over evidence.
 - Not an automatic scheduler — it does not move work without being told.
 - Not a system that carries unfinished work forward silently.

@@ -21,7 +21,7 @@ and `functions/` (the push engine and Home's server jobs — see `CLAUDE.md`).
   own iPhone (free Personal Team signing, which expires every 7 days).
 - See `docs/NATIVE_MIGRATION.md` §12a and `native/README.md`.
 
-**Five tabs (since 2026-10-22):** Plan · Today · **Me** · **Comms** · **Home**. Me holds
+**Six tabs (S&J since 2026-11-18):** Plan · Today · **Me** · **Comms** · **S&J** · **Home**. Me holds
 Calendar, Progress and Goals (formerly Focus, renamed 2026-10-31) behind one switch (remembered per device; a dated link
 always opens Calendar on that date). Comms is the Communications Centre as its own tab.
 Home is the shared household screen (summary, today, upcoming, recent updates,
@@ -761,6 +761,30 @@ Conventions that should not be casually changed.
 ---
 
 ## Decisions Log
+
+### 2026-11-18 — Smith & Johnson gets its own tab (Shaun's answers: all four recommendations)
+
+- **A sixth tab, "S&J"** ("Smith & Johnson" on wide screens), between Comms and Home.
+  Comms stays whole-life.
+- **Just Shaun.** The team are people he tracks, never users. "Not a team product" holds.
+- **S&J Actions are ordinary Actions** marked `sj: true`, with optional `clientId` and
+  `teamId`. They show on Today on their day, with the client and "with Kaz" on the row.
+  - The Action sheet has a Smith & Johnson Yes/No, then Client and With. Both pickers can
+    add someone new.
+  - The fields are written only once an Action is marked; other Actions are untouched.
+- **The tab:** three tiles (today, overdue, waiting), then Today, Overdue, Waiting on
+  others, Coming up, Comms (business conversations; needs-a-reply first), Clients and Team.
+  Waiting Actions sit only under Waiting.
+- **A page per client and per team member:** open Actions, linked conversations, notes,
+  "+ Action for/with them". "Edit details" renames them or archives them.
+  - This is a light CRM by Shaun's choice: no pipeline, billing or contacts.
+    `docs/PRODUCT.md`'s "not a CRM" now says so.
+- **Data:**
+  - Clients and the team are in `ledger_sj/{id}`:
+    `{ kind: 'client' | 'team', name, detail, notes, status }`, owner-only.
+  - A conversation links to one of them by `sjId`.
+- **Needs a Firebase deploy** (rules) before clients and the team can be saved in
+  production. Until then the app says "S&J isn't set up on the server yet".
 
 ### 2026-11-15 — Checklists inside an Action; skip Morning Prime for a day (Shaun, while packing for the UK)
 
@@ -2881,7 +2905,13 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (use it)
+Owner: Shaun (deploy, then set up)
+**Deploy Firebase** (GitHub → Actions → Deploy Firebase → Everything). S&J's clients and
+team can't be saved in production until the rules are deployed. Do the Microsoft 365
+registration first (`docs/MICROSOFT_365.md`), so one deploy covers both. Then, in S&J,
+add your clients and team, and mark your business Actions as S&J.
+
+**Before that**: Owner: Shaun (use it)
 **Packing checklist**: open the Action → "+ Add a checklist" → paste or type the list. And
 "Skip Morning Prime today" is under Morning Prime's steps when a morning doesn't allow it.
 
@@ -3177,6 +3207,13 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-18) — **Smith & Johnson tab** (decision above).
+  - **New `tests/e2e/sj.test.js` (25 checks):** the sections and tiles, a client saved and
+    shown live on a second device, an Action from the client's page, marking an existing
+    Action, others untouched, linking a conversation, notes.
+  - **Rules 802.** Every other suite passes unchanged: partner-sharing 209, home 382,
+    assistant 68, execution 81, native-shell 90, comms-capture 50, goals 42,
+    action-files 24, offline 16, offline-start 8, settings-sync 13.
 - (2026-11-15) — **Checklists in Actions; skip Morning Prime** (decision above). action-files
   e2e 24 (4 new: a pasted list saved at once, a tick saved with when, Today's count live on
   another device, Save keeping the ticks). Execution 81, offline 16.
