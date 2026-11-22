@@ -9,6 +9,7 @@
 //   npx firebase emulators:exec --only firestore,auth --project ledger-6aec3 \
 //     --config ../../firebase.json "node native-shell.test.js [shots-dir]"
 const { chromium } = require('playwright');
+const acceptConfirms = require('./confirm-sheet');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -387,7 +388,7 @@ function fakeBridgeWhenAsked(){
   check(!(await sheetOpen(I)), 'iOS push tap: a link that isn\'t Ledger\'s is ignored');
   // signing out empties the widget, and the phone stops being his for notifications
   I.on('dialog', d => d.accept());
-  await openSettings(I); await I.waitForSelector('#setSignOut'); await I.click('#setSignOut');
+  await openSettings(I); await I.waitForSelector('#setSignOut'); await I.click('#setSignOut'); await I.click('#cfYes');
   check(await until(I, () => { try { return JSON.parse(sessionStorage.getItem('__natlog') || '[]').indexOf('LedgerWidget.clear') > -1; } catch (e){ return false; } }, null, 15000),
     'iOS: signing out clears the widget');
   check(await until(I, () => { try { return JSON.parse(sessionStorage.getItem('__natlog') || '[]').indexOf('FirebaseMessaging.deleteToken') > -1; } catch (e){ return false; } }, null, 15000)

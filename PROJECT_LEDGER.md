@@ -762,6 +762,37 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-22 — Native feel (Shaun: "feel like a polished native iOS app rather than a web form")
+
+This settles four of `docs/DESIGN_SYSTEM.md`'s open items (5, 11, 13 in part, 14) at
+Shaun's direction. Phone layout unchanged: before and after at 390px are pixel-identical.
+
+- **No browser dialogs.** The 27 `confirm()` calls are now an in-app sheet over whatever
+  is open (`askConfirm`, `cfOk`). The action is named on a filled button, red when
+  destructive. Cancel, Escape and a tap outside all answer no.
+  - The "keep this cardio type?" question now comes after the save, never in its way.
+- **Pills for short choices.** `data-pills` on a select shows its options as one-tap
+  pills, with the select still holding the value. Used for:
+  - padel session type;
+  - cardio type and unit (the unit now sits on its own row);
+  - disruption reason;
+  - a conversation's channel.
+  - Longer lists (category, duration, goals) keep Ledger's bottom-sheet picker, which
+    already replaced every native dropdown.
+- **Motion:**
+  - Controls scale under the thumb; rows highlight.
+  - Revealed fields and folds ease in.
+  - A closing sheet slides away.
+  - All of it is off under reduced motion.
+- **Mobile polish:**
+  - On touch screens every field is at least 16px, so iOS never zooms in.
+  - Buttons and rows can't be text-selected or long-press-called-out.
+  - Small controls take a 44pt touch area without changing their look.
+- **Skeletons** replace the six "Loading…" texts.
+- **Optimistic updates** were already the pattern: Firestore's local cache shows a write
+  at once. What still waits, by design: password, sign-in and Comms quick capture's
+  per-row result.
+
 ### 2026-11-18 — Strength: weight before reps; each exercise's history in the sheet (Shaun)
 
 - **Weight before reps.** A set now reads Weight, then Reps. Adding a set or opening Sets
@@ -3229,6 +3260,17 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-22) — **Native feel** (decision above).
+  - **Tests:**
+    - The suites that used browser dialogs now answer the sheet instead, via
+      `tests/e2e/confirm-sheet.js`.
+    - Passing: partner-sharing 209, native-shell 90, offline 16, execution 81 and
+      home 382 (one H25 timing failure in one earlier run).
+  - **Checked by script:**
+    - No field under 16px on a touch screen.
+    - No selectable button.
+    - The confirm sheet: Cancel keeps, Delete deletes, and no browser dialog appears.
+    - The tabs and Action sheet are pixel-identical before and after at 390px.
 - (2026-11-18) — **Strength sheet** (decision above): checked in the browser, light and
   dark. Execution 81, offline 16.
 - (2026-11-18) — **Action sheet reordered** (decision above). Every suite that uses the

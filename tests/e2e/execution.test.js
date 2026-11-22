@@ -8,6 +8,7 @@
 // else is real: the app, the Firestore rules, the Cloud Functions in functions/, web-push's
 // VAPID signing and payload encryption — which this script decrypts with each device's key.
 const { chromium } = require('playwright');
+const acceptConfirms = require('./confirm-sheet');
 const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
@@ -198,6 +199,7 @@ async function swChecks(){
     const p = await ctx.newPage(); p.errs = []; p.name = name; p.ctx = ctx;
     p.on('pageerror', e => p.errs.push(String(e)));
     p.on('dialog', d => d.accept());
+    await acceptConfirms(p);
     return p;
   }
   async function signIn(p, email){
@@ -352,7 +354,7 @@ async function swChecks(){
   await samsung.click('[data-today-mode="overview"]');
 
   // ---- deep links: cold, and handed over by the service worker ----
-  const cold = await iphone.ctx.newPage(); cold.on('dialog', d => d.accept());
+  const cold = await iphone.ctx.newPage(); cold.on('dialog', d => d.accept()); await acceptConfirms(cold);
   await cold.goto(APP + '?sprint=' + sp.id);
   check(await until(cold, () => !!document.querySelector('.sheet .sp-panel') && document.getElementById('sheetBackdrop').classList.contains('open'), null, 20000), 'a notification link (?sprint=) opens the sprint');
   await cold.goto(APP + '?openAction=a1');

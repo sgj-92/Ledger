@@ -5,6 +5,7 @@
 //   npx firebase emulators:exec --only firestore,auth --project ledger-6aec3 \
 //     --config ../../firebase.json "node home.test.js [shots-dir] [dark|light] [width]"
 const { chromium } = require('playwright');
+const acceptConfirms = require('./confirm-sheet');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -109,6 +110,7 @@ async function oobLink(email){
     p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|permission|Missing or insufficient|offline|net::ERR/i.test(m.text())) p.errs.push('console: ' + m.text()); });
     p.on('response', r => { if (r.status() === 404) p.errs.push('404 ' + r.url()); });
     p.dialogs = []; p.on('dialog', d => { p.dialogs.push(d.message()); d.accept(); });
+    await acceptConfirms(p, p.dialogs);
     return p;
   }
   let lastLink = null;

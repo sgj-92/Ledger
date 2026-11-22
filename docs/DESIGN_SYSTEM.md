@@ -481,7 +481,16 @@ used four times in the app for confirmation — the browser-native dialog,
 which does not match the sheet system visually and cannot be styled. →
 **Needs design decision** against UX principle §10.
 
+> **Since then (2026-11-22, Shaun's "native iOS" request): a sheet.** No
+> `confirm()` remains (27 sites by then). `askConfirm()` is an action sheet over
+> whatever is open: the question in serif, a line of detail, the action named on a
+> filled button (`--danger` when destructive), and Cancel. On wide screens it is a
+> centred card. `cfOk(el, …)` wraps it for a tap handler.
+
 ### Loading
+
+> **Since then (2026-11-22):** skeletons. `.hs-loading` (blocks) and `.sk-lines`
+> (lines) pulse where content is coming; no "Loading…" text remains.
 
 **There is no loading state anywhere.** No spinner, skeleton or progress
 class exists in the source. The app renders from local state and re-renders
@@ -516,6 +525,16 @@ keyframes: `fadein` and `sheet-up`. One cubic-bezier in general use
 > **Gap.** `prefers-reduced-motion` is **not handled anywhere** (zero
 > occurrences). Tracked as an Issue.
 
+> **Since then (2026-11-22): the "Native feel" block** (end of the phone
+> stylesheet).
+> - **Press:** controls (chips, segmented buttons, small round buttons, add
+>   buttons) scale to 0.96 over 0.14s; rows (`.act-row`, `.cv-row`, `.sj-rec`)
+>   highlight instead.
+> - **Appear:** a revealed field or opened fold eases in (`nf-in`, 0.18s).
+> - **Leave:** a closing sheet slides away (a copy of it, `.sheet-ghost`). The
+>   confirm sheet does the same.
+> - **Reduced motion:** all of these are off under `prefers-reduced-motion`.
+
 ---
 
 ## 14. Touch targets
@@ -539,6 +558,11 @@ target problem, and the bottom tabs sit 1px under the 44px guideline.
 
 > **Needs design decision** — a stated minimum, and whether it is 44px (Apple)
 > or 48px (Material). Tracked as an Issue.
+
+> **Since then (2026-11-22): 44pt touch areas** (Apple's), at Shaun's request.
+> Small controls keep their look. An invisible `::before` or `::after` widens what
+> takes the tap: section links, folds, the close button, round and icon buttons,
+> the status circle, segmented buttons and chips.
 
 ---
 
@@ -586,16 +610,16 @@ lost. Those with a filed Issue are marked.
 2. Radius tokens — extend the set, or treat the literals as drift.
 3. Component padding — from the spacing scale, or literals by convention.
 4. Button taxonomy — retire duplicate names, define when each applies.
-5. Press feedback — one convention (scale / background / colour / opacity).
+5. Press feedback — one convention (scale / background / colour / opacity). *Decided 2026-11-22: scale for controls, highlight for rows.*
 6. Disclosure pattern — `.sec-head-toggle` vs `.section-toggle`. **Issue filed.**
 7. Chip vs tag.
 8. Rank-tier colours — resolved by removal (2026-11-11).
 9. Legacy token aliases — migrate or keep.
 10. Icon labelling convention for icon-only buttons.
-11. Confirmation dialogs — native `confirm()` vs a sheet.
+11. Confirmation dialogs — native `confirm()` vs a sheet. *Decided 2026-11-22: a sheet.*
 12. Error/offline signalling — how the user learns which storage mode is live.
 13. Motion tokens — durations and easings.
-14. Minimum touch target — 44px or 48px. **Issue filed.**
+14. Minimum touch target — 44px or 48px. **Issue filed.** *Decided 2026-11-22: 44pt touch areas.*
 15. Whether the absence of a success state is the intended end state.
 
 ---

@@ -9,6 +9,7 @@
 //   npx firebase emulators:exec --only firestore,auth --project ledger-6aec3 \
 //     --config ../../firebase.json "node offline.test.js"
 const { chromium } = require('playwright');
+const acceptConfirms = require('./confirm-sheet');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -135,7 +136,7 @@ async function wait(fn){ for (let i = 0; i < 25; i++){ const v = await fn(); if 
   check((await dbs()).length > 0, 'Signed in: Firestore\'s copy is on this device');
   p.on('dialog', d => d.accept());
   await p.click('.tab-btn[data-view="me"]'); await p.click('[data-me-sub="focus"]');
-  await p.click('#openSettingsBtn'); await p.waitForSelector('#setSignOut'); await p.click('#setSignOut');
+  await p.click('#openSettingsBtn'); await p.waitForSelector('#setSignOut'); await p.click('#setSignOut'); await p.click('#cfYes');
   check(await p.waitForSelector('#authEmail', { timeout: 30000 }).then(() => true, () => false), 'Signed out: the sign-in screen');
   await sleep(1500);
   const left = await dbs();

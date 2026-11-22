@@ -4947,6 +4947,113 @@
   #view-log .tcard .quicklog-card { background: var(--surface-2); }
 
   /* ==========================================================
+     Native feel (2026-11-22): controls behave as an iOS app's do.
+     ========================================================== */
+  /* a control is not text: no selection, no callout on a long press, no double-tap wait */
+  button, [role="button"], summary, .tab-btn, .lp-trigger, .commitment-item, .cv-row, .mt-row, .sj-rec,
+  .act-row, .hs-row, .hl-row, .panel-row, label.cd-chip, label.bk-btn {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
+  }
+  .hl-text[role="button"] { -webkit-user-select: none; user-select: none; }
+  /* iOS zooms into a field under 16px the moment it's tapped. On touch screens every field
+     is at least 16px; a mouse and keyboard keep the compact sizes. */
+  @media (pointer: coarse) {
+    .qc-text-input, .snap-name input, .field input, .field select, .field textarea, .ac-compose textarea,
+    .field textarea.food-diary, .field textarea.dn-sheet-area, .yn-inline-field input, .exercise-row input,
+    .exercise-row input.ex-name, .exercise-row select, .exercise-row select.ex-unit, .simple-row input,
+    .mp-intention-wrap textarea, .kt-search input, .aa-input, .pdp-input, .lp-search input, .lp-new-form input,
+    .comms-search input, .cd-waiting input, .cd-field input, .cd-field select, .cd-field textarea,
+    .cd-log-input input, .ns-third input, .swc-add input, .hl-edit, .hl-add textarea, .hb-input {
+      font-size: 16px;
+    }
+  }
+  /* generous targets: small controls keep their look and take a 44pt touch */
+  .sec-link, .wk-fold, .cal-target-set, .sheet-close, .circ-btn, .icon-btn, .sec-add, .btn-link,
+  .ex-rm, .ex-set-rm, .hl-star, .commitment-status-dot { position: relative; }
+  .sec-link::before, .wk-fold::before, .cal-target-set::before, .btn-link::before {
+    content: ''; position: absolute; inset: -14px -8px; }
+  .sheet-close::before, .circ-btn::before, .icon-btn::before, .sec-add::before, .ex-rm::before, .ex-set-rm::before, .hl-star::before {
+    content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
+  .commitment-status-dot::before { content: ''; position: absolute; inset: -12px; border-radius: 50%; }
+  .view-switch button, .freq-period button, .comms-filter button, .me-switch button, .yn-toggle button { position: relative; }
+  .view-switch button::after, .freq-period button::after, .comms-filter button::after, .me-switch button::after, .yn-toggle button::after {
+    content: ''; position: absolute; left: 0; right: 0; top: -8px; bottom: -8px; }
+  .cd-chip { position: relative; }
+  .cd-chip::after { content: ''; position: absolute; left: -2px; right: -2px; top: -3px; bottom: -3px; }
+  .nf-pills { margin: 2px 0 0; }
+  .field .nf-pills, .cd-field .nf-pills { margin-bottom: 0; }
+  .nf-pill-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .cd-chip:disabled { opacity: 0.45; cursor: default; }
+
+  /* press: a control gives under the thumb, and springs back */
+  .cd-chip, .bk-filter-chip, .bk-btn, .dpa-add-btn, .sec-add, .sheet-close, .circ-btn, .icon-btn, .ex-more,
+  .lp-trigger, .yn-toggle button, .view-switch button, .freq-period button, .comms-filter button, .me-switch button,
+  .sj-tile, .rq-send, .fl-add, .ex-set-add, .add-exercise-btn, .custom-log-btn, .btn-secondary, .global-fab {
+    transition: transform 0.14s cubic-bezier(.3,.7,.4,1), background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease, opacity 0.14s ease;
+  }
+  .cd-chip:active, .bk-filter-chip:active, .bk-btn:active, .dpa-add-btn:active, .sec-add:active, .sheet-close:active,
+  .circ-btn:active, .icon-btn:active, .ex-more:active, .yn-toggle button:active, .view-switch button:active,
+  .freq-period button:active, .comms-filter button:active, .me-switch button:active, .rq-send:active, .fl-add:active,
+  .ex-set-add:active, .add-exercise-btn:active, .custom-log-btn:active, .btn-secondary:active { transform: scale(0.96); }
+  .lp-trigger:active { transform: scale(0.985); }
+  .commitment-status-dot:active { transform: scale(0.86); }
+  /* rows highlight, as iOS lists do, rather than shrink */
+  .act-row, .sj-rec, .cv-row, .mt-row, .lp-opt { transition: background-color 0.12s ease; }
+  .act-row:active, .sj-rec:active, .cv-row:active, .mt-row:active { background-color: rgba(var(--gold-rgb),0.07); opacity: 1; }
+
+  /* what appears eases in: a revealed field, an opened fold, a new list */
+  @keyframes nf-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .as-ctx, #disruptionReasonField, .sj-links, .ex-nums, .ex-hist-more, .ex-suggest, .ex-hint, .hl-tools,
+  .hl-done-list, .wr-open-list, .cd-more[open] > :not(summary), details.more-fields[open] > :not(summary),
+  .cd-waiting, .hl-add, .ac-list .hl-list { animation: nf-in 0.18s cubic-bezier(.2,.8,.3,1); }
+  /* a sheet leaving slides away instead of vanishing (a copy of it, while the next opens) */
+  @keyframes nf-sheet-down { to { transform: translateY(40%); opacity: 0; } }
+  @keyframes nf-fade-out { to { opacity: 0; } }
+  .sheet-ghost { position: fixed; inset: 0; z-index: 29; display: flex; align-items: flex-end; justify-content: center;
+    pointer-events: none; background: var(--backdrop); animation: nf-fade-out 0.2s ease-in forwards; }
+  .sheet-ghost > .sheet { animation: nf-sheet-down 0.2s cubic-bezier(.4,0,.9,.6) forwards; overflow: hidden; }
+  @keyframes nf-sheet-right { to { transform: translateX(48px); opacity: 0; } }
+  .sheet-ghost.wide { justify-content: flex-end; align-items: stretch; background: transparent;
+    padding-right: max(0px, calc((100vw - var(--ws-max)) / 2)); }
+  .sheet-ghost.wide > .sheet { animation: nf-sheet-right 0.2s cubic-bezier(.4,0,.9,.6) forwards; }
+
+  /* skeletons: the shape of what's coming, never a word saying "Loading" */
+  .sk-lines { display: flex; flex-direction: column; gap: 10px; padding: 6px 0; }
+  .sk-lines span { display: block; height: 14px; border-radius: 7px; background: var(--surface-2); animation: hsPulse 1.2s ease-in-out infinite; }
+  .sk-lines span:nth-child(2) { width: 72%; }
+  .sk-lines span:nth-child(3) { width: 48%; }
+
+  /* the question before something consequential: an action sheet over whatever is open */
+  @keyframes nf-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  /* above everything a question can come from: Shaun's sheets (30), the picker (70), the
+     household and partner portal (1500–1600) and the photo viewer (1650) */
+  .cf-layer { position: fixed; inset: 0; z-index: 1800; display: flex; align-items: flex-end; justify-content: center;
+    background: var(--backdrop); animation: nf-fade-in 0.18s ease-out; }
+  .cf-sheet { width: 100%; max-width: 480px; background: var(--surface); border-top: 1px solid var(--line-2); border-radius: 24px 24px 0 0;
+    padding: 12px 20px calc(18px + env(safe-area-inset-bottom)); box-shadow: var(--shadow-raised); animation: sheet-up 0.22s cubic-bezier(.2,.9,.3,1); }
+  .cf-layer.leaving { animation: nf-fade-out 0.17s ease-in forwards; }
+  .cf-layer.leaving .cf-sheet { animation: nf-sheet-down 0.17s ease-in forwards; }
+  .cf-title { margin: 8px 2px 6px; font-family: var(--serif); font-size: 21px; line-height: 1.3; letter-spacing: -0.01em; color: var(--text); overflow-wrap: anywhere; }
+  .cf-detail { margin: 0 2px; font-size: 14.5px; line-height: 1.5; color: var(--text-2); }
+  .cf-detail[hidden] { display: none; }
+  .cf-actions { display: flex; flex-direction: column; gap: 4px; margin-top: var(--sp-5); }
+  .cf-yes.danger { background: var(--danger); color: #fff; }
+  .cf-yes.danger:active { background: var(--danger); filter: brightness(0.92); }
+  .cf-no { min-height: 48px; padding: 12px 0; font-size: 15px; color: var(--text-2); }
+  @media (min-width: 768px) {
+    .cf-layer { align-items: center; }
+    .cf-sheet { max-width: 420px; border: 1px solid var(--line-2); border-radius: var(--r-lg); padding: 20px 24px 18px; }
+    .cf-sheet .sheet-handle { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .as-ctx, #disruptionReasonField, .sj-links, .ex-nums, .ex-hist-more, .ex-suggest, .ex-hint, .hl-tools,
+    .hl-done-list, .wr-open-list, .cd-more[open] > :not(summary), details.more-fields[open] > :not(summary),
+    .cd-waiting, .hl-add, .ac-list .hl-list, .cf-layer, .cf-sheet { animation: none; }
+    .sheet-ghost { display: none; }
+    *:active { transform: none !important; }
+  }
+
+  /* ==========================================================
      Wider screens — one app, one URL.
      Phones never reach anything below the first block. Everything here
      rearranges the same DOM, data and handlers: the tab bar becomes the
@@ -10915,7 +11022,7 @@
             '<button type="button" class="btn-link as-outcome' + (stateVal === 'not_done' ? ' sel' : '') + '" data-as="not_done">Not done</button></p>' : '') +
         '</div>' +
         '<div id="disruptionReasonField" style="' + (stateVal==='disrupted' ? '' : 'display:none') + '">' +
-          fieldSelect('f_disruptionReason', 'Disruption reason', [{value:'',label:'Not specified'}].concat(DISRUPTION_REASONS.map(function(r){ return {value:r,label:r}; })), disruptionVal || '') +
+          fieldSelect('f_disruptionReason', 'Disruption reason', [{value:'',label:'Not specified'}].concat(DISRUPTION_REASONS.map(function(r){ return {value:r,label:r}; })), disruptionVal || '', 'data-pills') +
         '</div>';
         dateHtml = fieldDate('f_commitDate', 'Scheduled for', existing.date || todayStr());
         var orig = actionOriginalDate(existing), created = actionCreatedDate(existing);
@@ -10965,7 +11072,7 @@
         if (existing.id && dbReady && dbRef) html += '<div class="ph-sec" id="commitPhotos"></div><div class="ph-sec fl-sec" id="commitFiles"></div>';
         html += '<div class="au-sec"><h3 class="cz-sec-title rq-upd-title">Private updates</h3>' +
           '<p class="au-private">Only you can see these.</p>' +
-          '<div class="rq-tl au-tl" id="auTimeline"><p class="rq-empty">Loading…</p></div>' +
+          '<div class="rq-tl au-tl" id="auTimeline"><div class="sk-lines" aria-label="Loading" role="status"><span></span><span></span><span></span></div></div>' +
           '<div class="rq-compose au-compose"><textarea id="auText" rows="1" maxlength="500" placeholder="Add an update…" aria-label="Add a private update"></textarea>' +
           '<button type="button" class="rq-send" id="auSend" disabled>Add</button></div>' +
           (shareReq ? '<button type="button" class="btn-link au-share" id="auShare">Share an update with ' +
@@ -13553,7 +13660,7 @@
       '<div data-role="log"></div>' +
       '<details class="cd-more"' + (v.notes || participantNames(v).length ? ' open' : '') + '><summary>People, channel and notes</summary>' +
         '<label class="cd-field"><span>People</span><input data-role="people" placeholder="Yusuf (Client), Abi"></label>' +
-        '<label class="cd-field"><span>Channel</span><select data-role="channel">' +
+        '<label class="cd-field"><span>Channel</span><select data-role="channel" data-pills>' +
           Object.keys(CHANNEL_LABEL).map(function(k){ return '<option value="' + k + '">' + CHANNEL_LABEL[k] + '</option>'; }).join('') +
         '</select></label>' +
         '<label class="cd-field"><span>Notes</span><textarea data-role="notes" rows="3" placeholder="Anything worth keeping"></textarea></label>' +
@@ -13848,7 +13955,7 @@
       document.getElementById('ppSpoke').addEventListener('click', function(){ personSpokeToday(p); closeSheet(); });
       document.getElementById('ppPause').addEventListener('click', function(){ savePerson(Object.assign({}, personById(p.id) || p, { paused: !p.paused })); closeSheet(); });
       document.getElementById('ppRemove').addEventListener('click', function(){
-        if (!confirm('Stop keeping in touch with ' + (p.name || 'them') + '?\n\nTheir conversations stay; only the reminder goes.')) return;
+        if (!cfOk(this, 'Stop keeping in touch with ' + (p.name || 'them') + '?\n\nTheir conversations stay; only the reminder goes.', { yes: 'Stop keeping in touch' })) return;
         removePerson(p.id); closeSheet();
       });
     }
@@ -15348,7 +15455,7 @@
     });
     var del = document.getElementById('lcDelete');
     if (del) del.addEventListener('click', function(){
-      if (!confirm('Delete this life context?')) return;
+      if (!cfOk(this, 'Delete this life context?', { yes: 'Delete' })) return;
       deleteLifeContext(r.id); done();
     });
   }
@@ -16613,7 +16720,7 @@
       });
       var stopBtn = document.getElementById('shareStopBtn');
       if (stopBtn) stopBtn.addEventListener('click', function(){
-        if (!confirm('Stop sharing this ' + (period === 'week' ? 'week' : 'day') + ' with ' + partnerName(member) + '? It disappears from their Ledger.')) return;
+        if (!cfOk(this, 'Stop sharing this ' + (period === 'week' ? 'week' : 'day') + ' with ' + partnerName(member) + '?\n\nIt disappears from their Ledger.', { yes: 'Stop sharing' })) return;
         unpublishShare(pubId()).then(function(){ showPinToast('No longer shared', false, CHECK_SVG); if (document.getElementById('shareState')) render(); })
           .catch(function(e){ console.error(e); showPinToast('Couldn’t stop sharing — try again.', true); });
       });
@@ -16632,7 +16739,7 @@
       var del = document.getElementById('snapDelete');
       if (del) del.addEventListener('click', function(){
         var p = activePreset();
-        if (!confirm('Delete the preset “' + p.name + '”?')) return;
+        if (!cfOk(this, 'Delete the preset “' + p.name + '”?', { yes: 'Delete' })) return;
         saveSnapPresets(snapUserPresets().filter(function(x){ return x.id !== p.id; }));
         pid = mode === 'partner' ? sharePresetFor(member).id : 'hf';
         if (mode === 'image') lsSet(SNAP_LAST_KEY, pid);
@@ -17343,7 +17450,7 @@
       '<div class="rq-prov" id="rqProv"></div>' +
       '<div class="rq-act" id="rqAct"></div>' +
       '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
-      '<div class="rq-tl" id="rqTimeline"><p class="rq-empty">Loading…</p></div>' +
+      '<div class="rq-tl" id="rqTimeline"><div class="sk-lines" aria-label="Loading" role="status"><span></span><span></span><span></span></div></div>' +
       rqComposerHtml() +
       '<div id="rqDelWrap"></div>';
     backdrop.classList.add('open');
@@ -17675,7 +17782,7 @@
     wrap.querySelectorAll('[data-hb-open]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbOpen)]; if (it) openHomeDetail(it.r.id); }); });
     wrap.querySelectorAll('[data-hb-today]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbToday)]; if (it) hrAccept(it.r, todayStr()); }); });
     wrap.querySelectorAll('[data-hb-day]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbDay)]; if (it) openRequestDaySheet(it.r, hrAccept, 'From ' + homeNameOf(it.r.requesterUid)); }); });
-    wrap.querySelectorAll('[data-hb-done]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbDone)]; if (it && hrConfirmDone(it.r)) hrSetStatus(it.r, 'done'); }); });
+    wrap.querySelectorAll('[data-hb-done]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbDone)]; if (it && hrConfirmDone(it.r, b)) hrSetStatus(it.r, 'done'); }); });
     wrap.querySelectorAll('[data-hb-cant]').forEach(function(b){ b.addEventListener('click', function(){ var it = hItems[Number(b.dataset.hbCant)]; if (it) openHomeCantDo(it.r); }); });
     // ids are the partner's to choose, so rows are found by position, never by id in markup
     items.forEach(function(it, i){
@@ -17779,7 +17886,7 @@
     if (shareUnavailable){
       html = '<div class="set-card"><div class="set-row static"><span class="set-share-note">Partner Sharing needs the updated security rules to be published (docs/SECURITY.md).</span></div></div>';
     } else if (!shareLoaded.members){
-      html = '<div class="set-card"><div class="set-row static"><span class="set-share-note">Loading…</span></div></div>';
+      html = '<div class="set-card"><div class="set-row static"><div class="sk-lines" aria-label="Loading" role="status"><span></span><span></span></div></div></div>';
     } else if (!m){
       html = '<div class="set-card">' + settingsRow('setPartnerAdd', 'Set up a partner', '') + '</div>' +
         '<p class="set-note">A partner sees only the days and weeks you publish to them, and can send you requests. Never your Ledger.</p>';
@@ -17821,7 +17928,7 @@
       b.addEventListener('click', function(){ ref.update({ checkpointWeekday: b.dataset.setCp, updatedAt: new Date().toISOString() }).catch(function(){}); });
     });
     document.getElementById('setShareRemove').addEventListener('click', function(){
-      if (!confirm('Remove ' + partnerName(m) + '? Everything you shared with them is taken down. Their requests stay with you.')) return;
+      if (!cfOk(this, 'Remove ' + partnerName(m) + '?\n\nEverything you shared with them is taken down. Their requests stay with you.', { yes: 'Remove' })) return;
       var pubs = Object.assign({}, (sharingMeta && sharingMeta.publications) || {});
       var mine = sharedSnaps.filter(function(s){ return s.partnerUid === m.partnerUid; });
       mine.forEach(function(s){ delete pubs[s.id]; });
@@ -18405,10 +18512,10 @@
     return hrItemsRef(r.id).doc(it.id).update({ order: (a + z) / 2, updatedByUid: homeMe(), updatedAt: new Date().toISOString() }).catch(hrFail('move it'));
   }
   // Done never ticks the items for you: with some left, it asks first
-  function hrConfirmDone(r){
+  function hrConfirmDone(r, el){
     var left = hrOutstanding(r);
     if (!left) return true;
-    return confirm(left + (left === 1 ? ' item isn’t' : ' items aren’t') + ' ticked. Mark it done anyway? They’ll stay as they are.');
+    return cfOk(el, left + (left === 1 ? ' item isn’t' : ' items aren’t') + ' ticked.\n\nMark it done anyway? They’ll stay as they are.', { yes: 'Mark done', danger: false });
   }
   // the checklist inside a request's sheet
   // ---- "tell me when it's ticked / done" ----
@@ -18712,8 +18819,8 @@
       && ['requested', 'planned', 'in_progress', 'cant_do'].indexOf(r.status) > -1;
   }
   // Done from the row: it shows done at once, and is only written once Undo has passed
-  function hrTickDone(r){
-    if (home.pendingDone[r.id] || !hrConfirmDone(r)) return;
+  function hrTickDone(r, el){
+    if (home.pendingDone[r.id] || !hrConfirmDone(r, el)) return;
     home.pendingDone[r.id] = setTimeout(function(){
       delete home.pendingDone[r.id];
       var cur = homeReq(r.id);
@@ -18736,7 +18843,7 @@
       tick = document.createElement('button'); tick.type = 'button';
       tick.className = 'commitment-status-dot' + (pending ? ' completed' : '');
       tick.setAttribute('aria-label', pending ? 'Done' : 'Mark done');
-      tick.addEventListener('click', function(e){ e.stopPropagation(); if (!pending) hrTickDone(r); });
+      tick.addEventListener('click', function(e){ e.stopPropagation(); if (!pending) hrTickDone(r, tick); });
       row.appendChild(tick);
     } else {
       var dot = document.createElement('span'); dot.className = 'hs-mark'; dot.setAttribute('aria-hidden', 'true');
@@ -19108,7 +19215,7 @@
         act.querySelector('#rcEdit').addEventListener('click', function(){ openHomeRecurring(rcTemplate(tid)); });
         act.querySelector('#rcPause').addEventListener('click', function(){ var x = rcTemplate(tid); rcSetStatus(x, x.status === 'paused' ? 'active' : 'paused'); });
         act.querySelector('#rcEnd').addEventListener('click', function(){
-          if (!confirm('End “' + rcTemplate(tid).title + '”? Nothing more is made from it; what was done stays in history.')) return;
+          if (!cfOk(this, 'End “' + rcTemplate(tid).title + '”?\n\nNothing more is made from it; what was done stays in history.', { yes: 'End it' })) return;
           rcSetStatus(rcTemplate(tid), 'ended').then(function(){ homeCloseAll(); });
         });
       }
@@ -19450,7 +19557,7 @@
           var rm = card.querySelector('#lsRemove');
           if (rm) rm.addEventListener('click', function(){
             var x = homeReq(rid);
-            if (!x || !confirm('Remove “' + x.text + '”? Everything on it goes too.')) return;
+            if (!x || !cfOk(this, 'Remove “' + x.text + '”?\n\nEverything on it goes too.', { yes: 'Remove' })) return;
             hrDelete(x).then(function(){ homeCloseAll(); showPinToast('List removed', false, CHECK_SVG); }).catch(hrFail('remove it'));
           });
           actsEl.appendChild(card);
@@ -19713,7 +19820,7 @@
       var off = document.createElement('button'); off.type = 'button'; off.className = 'btn-quiet dl-off'; off.id = 'dlOff';
       off.textContent = 'Stop daily tasks for ' + (uid === homeMe() ? 'me' : homeNameOf(uid));
       off.addEventListener('click', function(){
-        if (!confirm('Stop daily tasks for ' + (uid === homeMe() ? 'you' : homeNameOf(uid)) + '? Their lists so far stay as they are.')) return;
+        if (!cfOk(this, 'Stop daily tasks for ' + (uid === homeMe() ? 'you' : homeNameOf(uid)) + '?\n\nTheir lists so far stay as they are.', { yes: 'Stop daily tasks' })) return;
         dailySave(uid, { status: 'off' }).then(function(){ homeCloseAll(); });
       });
       el.appendChild(off);
@@ -19950,7 +20057,7 @@
       '<div id="ogAct"></div>' +
       '<div class="rq-own" id="ogOwn"></div>' +
       '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
-      '<div class="rq-tl" id="ogTimeline"><p class="rq-empty">Loading…</p></div>' +
+      '<div class="rq-tl" id="ogTimeline"><div class="sk-lines" aria-label="Loading" role="status"><span></span><span></span><span></span></div></div>' +
       (ogCanPost(ogGet(oid)) ? rqComposerHtml() : ''));
     var mark = sh.querySelector('#ogState'), doneOpen = false;
     function paint(){
@@ -20014,7 +20121,7 @@
         on('ogWaitBtn', function(){ openOngoingWaiting(ogGet(oid)); });
         on('ogFinish', function(){
           var x = ogGet(oid), left = ogSteps(x).filter(hrOpen).length;
-          if (left && !confirm(left + (left === 1 ? ' step is' : ' steps are') + ' still open. Mark “' + x.title + '” finished anyway? Open steps stay as they are.')) return;
+          if (left && !cfOk(this, 'Mark “' + x.title + '” finished?\n\n' + left + (left === 1 ? ' step is' : ' steps are') + ' still open. Open steps stay as they are.', { yes: 'Mark finished', danger: false })) return;
           ogWrite(x, { status: 'done', doneAt: new Date().toISOString() }).then(function(){ showPinToast('Finished — it moves to Finished in Ongoing', false, CHECK_SVG); }).catch(hrFail('finish it'));
         });
         on('ogReopen', function(){ ogWrite(ogGet(oid), { status: 'active', doneAt: null }).then(function(){ showPinToast('Reopened', false, CHECK_SVG); }).catch(hrFail('reopen it')); });
@@ -20945,7 +21052,7 @@
       '<div id="hdShareWrap"></div>' +
       '<div id="hdDelWrap"></div>' +
       '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
-      '<div class="rq-tl" id="hdTimeline"><p class="rq-empty">Loading…</p></div>' +
+      '<div class="rq-tl" id="hdTimeline"><div class="sk-lines" aria-label="Loading" role="status"><span></span><span></span><span></span></div></div>' +
       rqComposerHtml());
     var mark = sh.querySelector('#hdState');
     function cur(){ return homeReq(rid); }
@@ -21001,11 +21108,11 @@
       on('hdDay', function(){ var x = cur(); openRequestDaySheet(x, hrAccept, hrOwnIdea(x) ? 'Your task' : 'From ' + homeNameOf(x.requesterUid), function(){ openHomeDetail(rid); }); });
       on('hdStart', function(){ hrSetStatus(cur(), 'in_progress'); });
       on('hdClaim', function(){ var b = sh.querySelector('#hdClaim'); if (b) b.disabled = true; hrClaim(cur()); });
-      on('hdDone', function(){ var x = cur(); if (hrConfirmDone(x)) hrFinish(x); });
+      on('hdDone', function(){ var x = cur(); if (hrConfirmDone(x, this)) hrFinish(x); });
       on('hdReopen', function(){ var x = cur(); if (x.status === 'cant_do') hrWrite(x, { status: 'requested', cantDoReason: null }, 'status', null, { status: 'requested' }).catch(hrFail('reopen it')); else hrSetStatus(x, 'in_progress'); });
       on('hdCant', function(){ openHomeCantDo(cur()); });
       on('hdPass', function(){ openHomePass(cur()); });
-      on('hdAdminDone', function(){ var x = cur(); if (hrConfirmDone(x)) hrWrite(x, { status: 'done' }, 'status', null, { status: 'done', forUid: x.assigneeUid })
+      on('hdAdminDone', function(){ var x = cur(); if (hrConfirmDone(x, this)) hrWrite(x, { status: 'done' }, 'status', null, { status: 'done', forUid: x.assigneeUid })
         .then(function(){ showPinToast('Done for ' + homeNameOf(x.assigneeUid) + ' — they’ll see it', false, CHECK_SVG); }).catch(hrFail('mark it done')); });
       on('hdAdminReopen', function(){ var x = cur(); hrWrite(x, { status: 'requested' }, 'status', null, { status: 'requested' })
         .then(function(){ showPinToast('Reopened', false, CHECK_SVG); }).catch(hrFail('reopen it')); });
@@ -21050,7 +21157,7 @@
       if (!ttl.dataset.wired){ ttl.dataset.wired = '1';
         ttl.addEventListener('click', function(){ if (ttl.classList.contains('rq-title-edit')) openHomeEdit(cur()); });
         ttl.addEventListener('keydown', function(e){ if (e.key === 'Enter' && ttl.classList.contains('rq-title-edit')) openHomeEdit(cur()); }); }
-      on('hdWithdraw', function(){ if (confirm('Withdraw this request?')) hrWithdraw(cur()); });
+      on('hdWithdraw', function(){ if (cfOk(this, 'Withdraw this request?', { yes: 'Withdraw' })) hrWithdraw(cur()); });
       var shareWrap = sh.querySelector('#hdShareWrap');
       if (r.createdByUid === me || homeIsAdmin()){
         if (!shareWrap.firstChild){
@@ -21245,7 +21352,7 @@
       .catch(function(e){ console.error('home setup failed', e); showPinToast('Couldn’t set up Home — the updated rules may not be published yet.', true); });
   }
   function startHomeMigration(){
-    if (!confirm('Move your requests with ' + partnerName() + ' into Home? They stay private to the two of you, with their history and any linked Actions.')) return;
+    if (!cfOk(this, 'Move your requests with ' + partnerName() + ' into Home?\n\nThey stay private to the two of you, with their history and any linked Actions.', { yes: 'Move them', danger: false })) return;
     dbRef.collection('ledger_meta').doc('homeMigration').set({ status: 'requested', requestedBy: homeMe(), requestedAt: new Date().toISOString() })
       .then(function(){ showPinToast('Moving them into Home…', false, CHECK_SVG); })
       .catch(hrFail('start that'));
@@ -21300,7 +21407,7 @@
     var base = { homeId: m.homeId, role: m.role, displayName: m.displayName, label: m.label || null, addedByUid: m.addedByUid || homeMe(), addedAt: m.addedAt || now, updatedAt: now };
     var rm = sh.querySelector('#hmmRemove');
     if (rm) rm.addEventListener('click', function(){
-      if (!confirm('Remove ' + m.displayName + ' from Home?')) return;
+      if (!cfOk(this, 'Remove ' + m.displayName + ' from Home?', { yes: 'Remove' })) return;
       ref.set(Object.assign({}, base, { status: 'removed', removedByUid: homeMe(), removedAt: now })).then(function(){ openHomePeople(); showPinToast(m.displayName + ' removed', false, CHECK_SVG); }).catch(hrFail('remove them'));
     });
     var bk = sh.querySelector('#hmmBack');
@@ -21388,7 +21495,7 @@
     document.getElementById('hpDate').textContent = toLocalDate(todayStr()).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
     homeScreenInto(document.getElementById('hpList'));
     var who = document.getElementById('ppWho'); if (who) who.textContent = (authUser && authUser.email) || '';
-    document.getElementById('ppSignOut').addEventListener('click', function(){ if (confirm('Sign out on this device?')) signOutLedger(); });
+    document.getElementById('ppSignOut').addEventListener('click', function(){ if (cfOk(this, 'Sign out on this device?', { yes: 'Sign out' })) signOutLedger(); });
     document.getElementById('ppNotify').addEventListener('click', function(){ wireNotificationsSheet(ppSheetOpen(notificationsSheetHtml())); });
     document.getElementById('ppPassword').addEventListener('click', function(){
       var sh = ppSheetOpen('<div class="sheet-handle"></div>' + sheetHead('', 'Password', 'Sign in with your email and this password.', '') + passwordFormHtml());
@@ -21654,7 +21761,7 @@
     });
     var add = document.getElementById('ppAddReq'); if (add) add.addEventListener('click', function(){ ppOpenRequest(null); });
     var all = document.getElementById('ppAllReq'); if (all) all.addEventListener('click', ppOpenAllRequests);
-    document.getElementById('ppSignOut').addEventListener('click', function(){ if (confirm('Sign out of Ledger on this device?')) signOutLedger(); });
+    document.getElementById('ppSignOut').addEventListener('click', function(){ if (cfOk(this, 'Sign out of Ledger on this device?', { yes: 'Sign out' })) signOutLedger(); });
     document.getElementById('ppNotify').addEventListener('click', function(){
       wireNotificationsSheet(ppSheetOpen(notificationsSheetHtml()));
     });
@@ -21700,7 +21807,7 @@
       '<div class="rq-prov" id="rqProv"></div>' +
       '<div class="rq-own" id="rqOwn"></div>' +
       '<h3 class="cz-sec-title rq-upd-title">Updates</h3>' +
-      '<div class="rq-tl" id="rqTimeline"><p class="rq-empty">Loading…</p></div>' +
+      '<div class="rq-tl" id="rqTimeline"><div class="sk-lines" aria-label="Loading" role="status"><span></span><span></span><span></span></div></div>' +
       rqComposerHtml() +
       '<button type="button" class="delete-btn rq-del-btn" id="rqDelBtn">Delete request</button>');
     var sheetMark = sh.querySelector('#rqState');
@@ -21719,7 +21826,7 @@
         own.innerHTML = '<button type="button" class="btn-link" id="rqEdit">Edit request</button>' +
           '<button type="button" class="btn-link rq-withdraw" id="rqWithdraw">Withdraw</button>';
         document.getElementById('rqEdit').addEventListener('click', function(){ ppEditRequest(cur()); });
-        document.getElementById('rqWithdraw').addEventListener('click', function(){ ppWithdraw(cur()); });
+        document.getElementById('rqWithdraw').addEventListener('click', function(){ ppWithdraw(cur(), this); });
       } else if (x.status === 'withdrawn'){
         // withdrawn is not a dead end: ask again later, or let it go from her list
         own.innerHTML = (x.renewedAs ? '' : '<button type="button" class="btn-link" id="rqRenew">Move to upcoming</button>') +
@@ -21744,8 +21851,8 @@
     rqMarkRead(r, 'partner');
   }
   // withdrawing keeps the request and its history: it is a state, recorded once
-  function ppWithdraw(r){
-    if (!r || !confirm('Withdraw this request?')) return;
+  function ppWithdraw(r, el){
+    if (!r || !cfOk(el, 'Withdraw this request?', { yes: 'Withdraw' })) return;
     var now = new Date().toISOString(), b = dbRef.batch();
     b.update(requestRef(r.id), { status: 'withdrawn', updatedAt: now, latestUpdateAt: now, latestUpdateBy: 'partner', latestUpdateType: 'withdrawn' });
     b.set(dbRef.collection(RQ_UPD).doc(r.id + '_withdrawn'), rqEvent(r, 'withdrawn', 'partner', null, {}));
@@ -23306,8 +23413,8 @@
       el('ktDoneBtn').addEventListener('click', function(){ markReviewed(); });
       el('ktNoneBtn').addEventListener('click', function(){
         var ks = getKeyTasks(dateStr);
-        if (ks.length && !confirm('Clear ' + (ks.length === 1 ? 'the key task' : 'all ' + ks.length + ' key tasks') +
-            ' for today?\n\nThe actions stay where they are; they just stop being key tasks.')) return;
+        if (ks.length && !cfOk(this, 'Clear ' + (ks.length === 1 ? 'the key task' : 'all ' + ks.length + ' key tasks') +
+            ' for today?\n\nThe actions stay where they are; they just stop being key tasks.', { yes: 'Clear' })) return;
         quietly(function(){ ks.forEach(deselect); });
         markReviewed();
       });
@@ -26026,7 +26133,7 @@
     }
     var signOutBtn = document.getElementById('setSignOut');
     if (signOutBtn) signOutBtn.addEventListener('click', function(){
-      if (confirm('Sign out of Ledger on this device?')) signOutLedger();
+      if (cfOk(this, 'Sign out of Ledger on this device?', { yes: 'Sign out' })) signOutLedger();
     });
     renderThemeSwitch();
     renderSharingSettings();
@@ -27980,7 +28087,7 @@
     });
     if (delBtn) delBtn.addEventListener('click', function(){
       var whole = !(scope === 'day' || (scope === 'forward' && !startsHere));
-      if (whole && !confirm('Remove "' + task.title + '" from this challenge?\n\nNumbers already logged stay on their days; they just stop counting.')) return;
+      if (whole && !cfOk(this, 'Remove “' + task.title + '” from this challenge?\n\nNumbers already logged stay on their days; they just stop counting.', { yes: 'Remove' })) return;
       var saved = czRemoveTask(c, task, day, scope);
       reconcileChallengeActions(challenges.find(function(x){ return x.id === c.id; }) || saved, task.id);
       back();
@@ -28171,7 +28278,7 @@
     if (restore) restore.addEventListener('click', function(){ czwApplyEdit(c, target, w, 'week', { removed: false }); back(); });
     if (delBtn) delBtn.addEventListener('click', function(){
       var whole = !(scope === 'week' || (scope === 'forward' && !startsHere));
-      if (whole && !confirm('Remove "' + target.title + '" from this challenge?\n\nNumbers already logged stay on their days; they just stop counting.')) return;
+      if (whole && !cfOk(this, 'Remove “' + target.title + '” from this challenge?\n\nNumbers already logged stay on their days; they just stop counting.', { yes: 'Remove' })) return;
       czwRemove(c, target, w, scope);
       back();
     });
@@ -28345,7 +28452,7 @@
         closeSheet();
       });
       document.getElementById('czCancelBtn').addEventListener('click', function(){
-        if (!confirm('Cancel this challenge? It is kept as a record, but no longer shown.')) return;
+        if (!cfOk(this, 'Cancel this challenge?\n\nIt is kept as a record, but no longer shown.', { yes: 'Cancel challenge' })) return;
         var gone = Object.assign({}, c, { status: 'cancelled', cancelledAt: new Date().toISOString() });
         saveChallenge(gone);
         reconcileChallengeActions(gone);
@@ -30250,15 +30357,15 @@
       return bits.join(', ');
     }
 
-    function confirmRemoveTraining(t){
+    function confirmRemoveTraining(t, el){
       var det = trainingDetailsState[t];
       if (!det) return true;
       if (det.completed){
-        return confirm(TYPE_LABEL[t] + ' is already logged for this day.\n\nRemove it from the plan? The recorded activity itself is kept.');
+        return cfOk(el, TYPE_LABEL[t] + ' is already logged for this day.\n\nRemove it from the plan? The recorded activity itself is kept.', { yes: 'Remove from plan' });
       }
       var summary = plannedDetailSummary(t);
       if (!summary) return true;
-      return confirm('Remove ' + TYPE_LABEL[t] + ' from the plan?\n\nIts planned details (' + summary + ') will be cleared.');
+      return cfOk(el, 'Remove ' + TYPE_LABEL[t] + ' from the plan?\n\nIts planned details (' + summary + ') will be cleared.', { yes: 'Remove' });
     }
 
     function wireTypeGrid(){
@@ -30269,7 +30376,7 @@
           if (idx === -1){
             trainingTypes.push(t);
           } else {
-            if (!confirmRemoveTraining(t)) return;
+            if (!confirmRemoveTraining(t, btn)) return;
             trainingTypes.splice(idx, 1);
             delete trainingDetailsState[t];
           }
@@ -30455,7 +30562,7 @@
       // sessions and food entries are records of their own
       document.getElementById('deletePlanBtn').addEventListener('click', function(){
         var weekday = d.toLocaleDateString('en-GB', { weekday: 'long' });
-        if (!confirm('Clear health & fitness for ' + weekday + '?\n\nThis removes planned training, meals and the Nutrition Plan for this day. Recorded activity is not deleted.')) return;
+        if (!cfOk(this, 'Clear health & fitness for ' + weekday + '?\n\nThis removes planned training, meals and the Nutrition Plan for this day. Recorded activity is not deleted.', { yes: 'Clear' })) return;
         flushText();
         if (getPlanForDate(dateStr)){
           savePlanFields(dateStr, { restDay: false, trainingTypes: [], trainingDetails: {}, carbLevel: null, fasting: false, meals: [] });
@@ -32580,7 +32687,7 @@
       });
       document.getElementById('outRemove').addEventListener('click', function(){
         var n = outcomeActions(o).length;
-        if (n && !confirm('Remove this outcome?\n\nThe ' + plural(n, 'action') + ' linked to it stay; they just stop naming it.')) return;
+        if (n && !cfOk(this, 'Remove this outcome?\n\nThe ' + plural(n, 'action') + ' linked to it stay; they just stop naming it.', { yes: 'Remove' })) return;
         removeOutcome(ws, o.id);
         closeSheet();
       });
@@ -32736,6 +32843,7 @@
 
   function enhanceSelect(sel){
     if (sel.dataset.lp || sel.hasAttribute('data-native')) return;
+    if (sel.hasAttribute('data-pills')){ enhancePills(sel); return; }
     sel.dataset.lp = '1';
     var btn = document.createElement('button');
     btn.type = 'button';
@@ -32771,6 +32879,69 @@
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); openSelectPicker(sel, btn); }
     });
     sync();
+  }
+
+  // A short choice shown whole (2026-11-22): a select marked data-pills becomes a row of
+  // pills, one tap each. As with the picker, the select stays as the value holder.
+  function enhancePills(sel){
+    sel.dataset.lp = '1';
+    var row = document.createElement('div');
+    row.className = 'cd-chips nf-pills';
+    row.setAttribute('role', 'radiogroup');
+    var title = pickerTitleFor(sel);
+    if (title) row.setAttribute('aria-label', title);
+    sel.parentNode.insertBefore(row, sel);
+    sel.classList.add('lp-native');
+    sel.tabIndex = -1;
+    sel.setAttribute('aria-hidden', 'true');
+    function sync(){
+      var v = SELECT_VALUE.get.call(sel);
+      row.querySelectorAll('.cd-chip').forEach(function(b){
+        var on = b.dataset.v === v;
+        b.classList.toggle('sel', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+        b.tabIndex = on ? 0 : -1;
+      });
+      if (!row.querySelector('.cd-chip.sel')){ var f = row.querySelector('.cd-chip'); if (f) f.tabIndex = 0; }
+    }
+    function draw(){
+      row.innerHTML = '';
+      Array.prototype.forEach.call(sel.options, function(o){
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'cd-chip'; b.dataset.v = o.value;
+        b.setAttribute('role', 'radio');
+        if (o.dataset.dot){ var d = document.createElement('span'); d.className = 'nf-pill-dot'; d.style.background = o.dataset.dot; b.appendChild(d); }
+        b.appendChild(document.createTextNode(o.textContent));
+        b.disabled = o.disabled || sel.disabled;
+        b.addEventListener('click', function(){
+          if (o.value === SELECT_VALUE.get.call(sel)) return;
+          SELECT_VALUE.set.call(sel, o.value);
+          sync();
+          sel.dispatchEvent(new Event('input', { bubbles: true }));
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        row.appendChild(b);
+      });
+      sync();
+    }
+    // arrows move along the row, as a segmented control's do
+    row.addEventListener('keydown', function(e){
+      if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].indexOf(e.key) === -1) return;
+      var bs = [].slice.call(row.querySelectorAll('.cd-chip:not(:disabled)')), i = bs.indexOf(document.activeElement);
+      if (i < 0) return;
+      e.preventDefault();
+      var n = bs[(i + (e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : bs.length - 1)) % bs.length];
+      n.focus(); n.click();
+    });
+    sel._lpSync = draw;
+    Object.defineProperty(sel, 'value', { configurable: true,
+      get: function(){ return SELECT_VALUE.get.call(sel); },
+      set: function(v){ SELECT_VALUE.set.call(sel, v); sync(); } });
+    Object.defineProperty(sel, 'selectedIndex', { configurable: true,
+      get: function(){ return SELECT_INDEX.get.call(sel); },
+      set: function(v){ SELECT_INDEX.set.call(sel, v); sync(); } });
+    sel.addEventListener('change', sync);
+    draw();
   }
 
   function openSelectPicker(sel, btn){
@@ -32974,6 +33145,7 @@
   if (WIDE_MQ.addEventListener) WIDE_MQ.addEventListener('change', function(){ closePicker(false); });
 
   function closeSheet(){
+    sheetLeaving();
     backdrop.classList.remove('open');
     var fabEl = document.getElementById('globalFabBtn');
     if (fabEl) fabEl.classList.remove('tucked', 'typing');     // back for what comes next
@@ -32985,6 +33157,74 @@
     setTimeout(function(){ if (!backdrop.classList.contains('open')) maybeOfferUpdate(); }, 400);
   }
   backdrop.addEventListener('click', function(e){ if (e.target === backdrop) closeSheet(); });
+  // A closing sheet slides away rather than vanishing (2026-11-22). A copy of it, with no ids
+  // and no way to touch it, animates out behind whatever comes next; when the next sheet
+  // opens straight away (a sheet leading to another), there is no copy at all.
+  function sheetLeaving(){
+    if (!backdrop.classList.contains('open') || reducedMotion() || !sheetEl.firstChild) return;
+    var copy = sheetEl.cloneNode(true);
+    copy.removeAttribute('id');
+    copy.querySelectorAll('[id]').forEach(function(x){ x.removeAttribute('id'); });
+    copy.querySelectorAll('input, textarea, select, button').forEach(function(x){ x.tabIndex = -1; });
+    var top = sheetEl.scrollTop;
+    Promise.resolve().then(function(){
+      if (backdrop.classList.contains('open')) return;
+      var g = document.createElement('div');
+      g.className = 'sheet-ghost' + (isWide() ? ' wide' : '');
+      g.setAttribute('aria-hidden', 'true');
+      g.inert = true;
+      g.appendChild(copy);
+      document.body.appendChild(g);
+      copy.scrollTop = top;
+      setTimeout(function(){ g.remove(); }, 240);
+    });
+  }
+
+  // ---- a question before something consequential (2026-11-22) ----
+  // Ledger's own bottom sheet, over whatever is open, in place of the browser's confirm():
+  // the question, what it means, the action named on its button, and Cancel. Escape, a tap
+  // outside or Cancel all answer no. Resolves true or false.
+  function askConfirm(text, opts){
+    opts = opts || {};
+    return new Promise(function(resolve){
+      var prev = document.querySelector('.cf-layer');
+      if (prev) prev.remove();
+      var parts = String(text || '').split(/\n\s*\n/);
+      var title = (parts.shift() || '').trim(), detail = opts.detail || parts.join('\n\n').trim();
+      var layer = document.createElement('div'); layer.className = 'cf-layer';
+      layer.innerHTML = '<div class="cf-sheet" role="alertdialog" aria-modal="true" aria-labelledby="cfTitle" aria-describedby="cfDetail">' +
+        '<div class="sheet-handle"></div><p class="cf-title" id="cfTitle"></p><p class="cf-detail" id="cfDetail"></p>' +
+        '<div class="cf-actions"><button type="button" class="btn-primary cf-yes' + (opts.danger === false ? '' : ' danger') + '" id="cfYes"></button>' +
+        '<button type="button" class="btn-quiet cf-no" id="cfNo">Cancel</button></div></div>';
+      layer.querySelector('#cfTitle').textContent = title;
+      var det = layer.querySelector('#cfDetail'); det.textContent = detail; det.hidden = !detail;
+      layer.querySelector('#cfYes').textContent = opts.yes || 'OK';
+      var was = document.activeElement, done = false;
+      function finish(ok){
+        if (done) return; done = true;
+        document.removeEventListener('keydown', onKey, true);
+        layer.classList.add('leaving');
+        setTimeout(function(){ layer.remove(); }, reducedMotion() ? 0 : 170);
+        try { if (was && document.body.contains(was)) was.focus({ preventScroll: true }); } catch(e){}
+        resolve(ok);
+      }
+      function onKey(e){ if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); finish(false); } }
+      layer.addEventListener('click', function(e){ if (e.target === layer) finish(false); });
+      layer.querySelector('#cfYes').addEventListener('click', function(){ finish(true); });
+      layer.querySelector('#cfNo').addEventListener('click', function(){ finish(false); });
+      document.addEventListener('keydown', onKey, true);
+      document.body.appendChild(layer);
+      setTimeout(function(){ try { layer.querySelector(opts.danger === false ? '#cfYes' : '#cfNo').focus({ preventScroll: true }); } catch(e){} }, 30);
+    });
+  }
+  // For a tap handler: false the first time (the question is asked); once answered yes the
+  // same tap is made again and this returns true, so the handler carries on as it was
+  function cfOk(el, text, opts){
+    if (el && el._cfOk){ el._cfOk = false; return true; }
+    askConfirm(text, opts).then(function(ok){ if (ok && el){ el._cfOk = true; el.click(); } });
+    return false;
+  }
+  function reducedMotion(){ try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } }
 
   // ---- Steps: one daily total per date ----
   // Logging a date that already has steps edits that record — it never adds a second.
@@ -33038,7 +33278,7 @@
     numEl.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); save(); } });
     del.addEventListener('click', function(){
       var r = current();
-      if (r && confirm('Delete the steps logged for this day?')){ deleteSession(r.id); done(); }
+      if (r && cfOk(this, 'Delete the steps logged for this day?', { yes: 'Delete' })){ deleteSession(r.id); done(); }
     });
   }
 
@@ -33074,14 +33314,14 @@
   function fieldDate(id, label, value){
     return '<div class="field"><label>'+label+'</label><input type="date" id="'+id+'" value="'+value+'"></div>';
   }
-  function fieldSelect(id, label, options, value){
+  function fieldSelect(id, label, options, value, attrs){
     var opts = options.map(function(o){
       var v = typeof o === 'object' ? o.value : o;
       var l = typeof o === 'object' ? o.label : o;
       var dot = typeof o === 'object' && o.dot ? ' data-dot="' + o.dot + '"' : '';
       return '<option value="'+v+'"' + dot + (v===value?' selected':'') + '>'+l+'</option>';
     }).join('');
-    return '<div class="field"><label>'+label+'</label><select id="'+id+'">'+opts+'</select></div>';
+    return '<div class="field"><label>'+label+'</label><select id="'+id+'"'+(attrs ? ' ' + attrs : '')+'>'+opts+'</select></div>';
   }
   function fieldNotes(value){
     return '<div class="field"><label>Notes</label><textarea id="f_notes" placeholder="Anything worth remembering">'+(value||'')+'</textarea></div>';
@@ -33229,7 +33469,7 @@
     if (type === 'padel'){
       html += fieldSelect('f_padelType', 'Session type',
         [{value:'match',label:'Match'}, {value:'tournament',label:'Tournament'}, {value:'social',label:'Social'}, {value:'training',label:'Training'}],
-        d.padelType || 'match');
+        d.padelType || 'match', 'data-pills');
 
       var padelMatchHtml = '<div id="padelMatchFields" style="display:none">';
       padelMatchHtml += '<div class="field"><label>Result</label><div class="seg-toggle" id="resultToggle">' +
@@ -33270,14 +33510,13 @@
     if (type === 'cardio'){
       var cardioTypeOpts = presets.cardioTypes.map(function(t){ return {value:t, label:t}; });
       cardioTypeOpts.push({value:'__new__', label:'+ New type…'});
-      html += fieldSelect('f_cardioType', 'Type', cardioTypeOpts, d.cardioType || presets.cardioTypes[0]);
+      html += fieldSelect('f_cardioType', 'Type', cardioTypeOpts, d.cardioType || presets.cardioTypes[0], 'data-pills');
       html += '<div class="field" id="cardioNewTypeField" style="display:none">' +
         '<label>New type name</label><input type="text" id="f_cardioTypeNew" placeholder="e.g. Rowing machine"></div>';
       html += fieldText('f_venue', 'Location', d.venue, 'e.g. local park, gym');
-      html += '<div class="field-row">' +
-        fieldNum('f_distance','Amount', d.distance, '5') +
-        fieldSelect('f_distanceUnit', 'Unit', ['km','mi','m','reps','lengths'], d.distanceUnit || 'km') +
-      '</div>';
+      // the amount, then its unit as a row of pills (2026-11-22)
+      html += fieldNum('f_distance','Amount', d.distance, '5') +
+        fieldSelect('f_distanceUnit', 'Unit', ['km','mi','m','reps','lengths'], d.distanceUnit || 'km', 'data-pills');
       html += fieldNum('f_durationMin','Duration (min)', d.durationMin, '28');
     }
 
@@ -34220,11 +34459,14 @@
           var newName = document.getElementById('f_cardioTypeNew').value.trim();
           if (newName){
             chosenType = newName;
-            if (presets.cardioTypes.indexOf(newName) === -1 &&
-                confirm('Save "' + newName + '" as a new cardio type for quick access?')){
-              presets.cardioTypes.push(newName);
-              savePresets();
-            }
+            // offered once the session is saved, never in its way
+            if (presets.cardioTypes.indexOf(newName) === -1) setTimeout(function(){
+              askConfirm('Keep “' + newName + '” as a cardio type?\n\nIt’s then one tap next time.', { yes: 'Keep it', danger: false }).then(function(ok){
+                if (!ok || presets.cardioTypes.indexOf(newName) > -1) return;
+                presets.cardioTypes.push(newName);
+                savePresets();
+              });
+            }, 350);
           } else {
             chosenType = presets.cardioTypes[0];
           }
