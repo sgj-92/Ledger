@@ -1214,7 +1214,9 @@ async function oobLink(email){
     // Abi adds two for today: the day's list is made with them
     await A.fill('#dlAdd', 'Hoover upstairs\nIron the tops'); await A.click('#dlAddBtn');
     check(await until(A, () => document.querySelectorAll('#dlList .hl-row').length === 2, null, 10000), 'H25 two tasks on today’s list');
-    const tl = await getDoc(`${HR}/${lid(maria, today)}`);
+    // the screen shows the rows from the device's copy first; the server's follows
+    let tl = null;
+    for (let k = 0; k < 20 && !(tl && tl.kind); k++){ tl = await getDoc(`${HR}/${lid(maria, today)}`); if (!(tl && tl.kind)) await sleep(250); }
     check(tl && tl.kind === 'daily' && tl.dailyUid === maria && tl.dailyDate === today && tl.assigneeUid === maria && tl.createdByUid === abi, 'H25 today’s list: one request, kind daily, Maria’s, from Abi', tl && { k: tl.kind, d: tl.dailyDate });
     // a repeating task, every day
     await A.click('#dlAddRep'); await A.waitForSelector('#drText');

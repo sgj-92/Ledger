@@ -3263,9 +3263,13 @@ minutes before", recurring/accountability).
 - (2026-11-22) — **Native feel** (decision above).
   - **Tests:**
     - The suites that used browser dialogs now answer the sheet instead, via
-      `tests/e2e/confirm-sheet.js`.
-    - Passing: partner-sharing 209, native-shell 90, offline 16, execution 81 and
-      home 382 (one H25 timing failure in one earlier run).
+      `tests/e2e/confirm-sheet.js`. It fails if the sheet is ever covered by another
+      layer. That caught the sheet sitting under the household and partner portal;
+      it is now fixed.
+    - H25 read the server copy without waiting, a race; it now waits.
+    - Every e2e suite passes: home 382, partner-sharing 209, native-shell 90,
+      execution 81, assistant 68, comms-capture 50, goals 42, sj 25, action-files 24,
+      offline 16, settings-sync 13, offline-start 8.
   - **Checked by script:**
     - No field under 16px on a touch screen.
     - No selectable button.
