@@ -2679,6 +2679,9 @@
   .acc-diary li { padding: 9px 2px; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.4; color: var(--text); overflow-wrap: anywhere; }
   .acc-diary li.acc-diary-empty { color: var(--text-3); font-style: italic; }
   .acc-meal-head { margin: 2px 0 8px; font-size: 15px; color: var(--text); }
+  .acc-plan-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 14px 16px;
+    border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+  .acc-plan-v { font-size: 16px; color: var(--text); }
 
   /* ---------- exercise / simple rows ---------- */
   .exercise-row { margin-bottom: 8px; }
@@ -30161,6 +30164,8 @@
     var restDay = !!p.restDay;
     var trainingTypes = (p.trainingTypes || []).slice();
     var carbLevel = p.carbLevel || null;
+    // the day's carbs, when aCcountable has set them (it decides; Ledger shows)
+    function accCarbs(){ var cur = getPlanForDate(dateStr) || p; return cur.carbSource === 'accountable' && !!nutritionPlanValue(cur); }
     var fasting = !!p.fasting;
     var trainingDetailsState = Object.assign({}, p.trainingDetails || {});
     var mealsState = getPlanMeals(existing);
@@ -30207,7 +30212,11 @@
               planTypeGridHtml() +
             '</div><div class="plan-type-hint">Tap to select. Use Details to add more.</div></div>' +
           '</div>' +
-          fieldSelect('f_nutritionPlan', 'Nutrition Plan', NUTRITION_PLAN_OPTIONS, nutritionPlanValue({ fasting: fasting, carbLevel: carbLevel })) +
+          // aCcountable decides the day's carbs when it says so (2026-11-23): shown, not chosen here
+          (accCarbs()
+            ? '<div class="field"><label>Nutrition Plan</label><div class="acc-plan-row"><span class="acc-plan-v">' +
+                nutritionPlanLabel({ fasting: fasting, carbLevel: carbLevel }) + '</span><span class="acc-from">set by aCcountable</span></div></div>'
+            : fieldSelect('f_nutritionPlan', 'Nutrition Plan', NUTRITION_PLAN_OPTIONS, nutritionPlanValue({ fasting: fasting, carbLevel: carbLevel }))) +
           '<div class="field"><label>Food Plan</label><div id="planMealRows"></div>' +
             '<button type="button" class="add-exercise-btn" id="addPlanMealBtn">+ Add meal</button></div>' +
           '<button type="button" class="dp-clear" id="deletePlanBtn"' + (healthHasState() ? '' : ' hidden') + '>Clear health &amp; fitness</button>') +
@@ -30571,7 +30580,8 @@
         render(true);
       });
       // one choice sets both stored fields; until it changes, an older record keeps both as they were
-      document.getElementById('f_nutritionPlan').addEventListener('change', function(){
+      var npSel = document.getElementById('f_nutritionPlan');
+      if (npSel) npSel.addEventListener('change', function(){
         var f = nutritionPlanFields(this.value);
         fasting = f.fasting;
         carbLevel = f.carbLevel;

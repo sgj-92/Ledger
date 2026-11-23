@@ -23,7 +23,8 @@
 // aCcountable fills the day's food (diary, calories, macros, targets) and Ledger shows it
 // read-only, while the day rating and daily checks stay Ledger's; on a day aCcountable
 // plans, its meals are the day's meals, and ticking one asks aCcountable to log it —
-// Ledger doesn't also write it into its own diary.
+// Ledger doesn't also write it into its own diary. And (later that day) aCcountable sets
+// the day's Nutrition Plan when it sends a carbLevel: fasting, low, normal or high.
 
 const crypto = require('crypto');
 
@@ -120,7 +121,10 @@ function createAccountable(deps) {
       diary: (Array.isArray(n.diary) ? n.diary : []).slice(0, 120).map((l) => str(l, 300)).filter(Boolean)
     } : null;
     const w = num(payload.weightKg);
-    return { date: payload.date, training, meals, nutrition, weightKg: w != null && w > 20 && w < 400 ? w : null };
+    // the day's carbs, as aCcountable decides them (2026-11-23): one of Ledger's Nutrition Plans
+    const cl = String(payload.carbLevel != null ? payload.carbLevel : (n && n.carbLevel) || '').toLowerCase();
+    const carbLevel = ['fasting', 'low', 'normal', 'high'].indexOf(cl) > -1 ? cl : null;
+    return { date: payload.date, training, meals, nutrition, carbLevel, weightKg: w != null && w > 20 && w < 400 ? w : null };
   }
   function mealText(m) {
     const foods = m.foods.map((f) => f.name + (f.amount ? ' ' + f.amount : '')).join(', ');
@@ -139,7 +143,7 @@ function createAccountable(deps) {
     const plan = planSnap.exists ? planSnap.data() : null;
     const base = plan || { date: d.date, restDay: false, trainingTypes: [], meals: [] };
     const next = Object.assign({}, base);
-    const changed = { training: false, meals: false, nutrition: false, weight: false };
+    const changed = { training: false, meals: false, carbs: false, nutrition: false, weight: false };
 
     // training: the day's list as aCcountable has it. A type it no longer lists goes only if
     // aCcountable had it before (it carries syncSessions) — one planned in Ledger that hasn't
@@ -192,8 +196,17 @@ function createAccountable(deps) {
       if (!same(meals, old)) { next.meals = meals; changed.meals = true; }
     }
 
+    // the day's Nutrition Plan: aCcountable decides when it says; silence leaves Ledger's choice
+    if (d.carbLevel) {
+      const fasting = d.carbLevel === 'fasting', level = fasting ? null : d.carbLevel;
+      if (!!base.fasting !== fasting || (base.carbLevel || null) !== level || base.carbSource !== 'accountable') {
+        next.fasting = fasting; next.carbLevel = level; next.carbSource = 'accountable';
+        changed.carbs = true;
+      }
+    }
+
     const batch = db.batch();
-    if (changed.training || changed.meals) {
+    if (changed.training || changed.meals || changed.carbs) {
       next.date = d.date;
       next.syncedFromAccountableAt = now;
       batch.set(planRef, next);

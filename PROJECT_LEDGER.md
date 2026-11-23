@@ -762,6 +762,17 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-23 — aCcountable decides the day's carbs (Shaun: "I want accountable to determine the type of carbs")
+
+- aCcountable sends `carbLevel` (fasting, low, normal or high) with its day, and Ledger
+  sets the day's Nutrition Plan from it.
+- The Plan sheet shows it read-only, as "set by aCcountable". With no `carbLevel` from
+  aCcountable, Shaun's own choice stays.
+- **Not live yet:**
+  - aCcountable must start sending `carbLevel`; it's in `docs/ACCOUNTABLE_SYNC.md` for
+    the aCcountable session.
+  - Firebase needs a redeploy for the server half.
+
 ### 2026-11-23 — Two-way sync with aCcountable (Shaun's answers: build it, all four recommendations)
 
 The request came from the aCcountable session, at Shaun's request; Shaun confirmed it here.

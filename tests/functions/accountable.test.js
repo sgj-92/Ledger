@@ -178,6 +178,22 @@ const day = (over) => Object.assign({
   const all26 = JSON.stringify([p26.trainingDetails.cardio.syncSessions, p26.meals, n26.accountable.diary, n26.foodDiary]);
   check(!/[<>]/.test(all26) && /Run/.test(all26) && /Lunch/.test(all26), 'no < or > is stored from aCcountable: titles, meals, foods and diary are text', all26);
 
+  // ---- the day's carbs: aCcountable decides when it says ----
+  NOW = new Date('2026-11-27T09:00:00Z');
+  await db.doc('ledger_plans/2026-11-27').set({ date: '2026-11-27', restDay: false, trainingTypes: [], meals: [], carbLevel: 'normal', fasting: false });
+  const c0 = await acc().applyDay(day({ date: '2026-11-27', training: [], meals: [], carbLevel: null }));
+  check(!c0.body.changed.carbs && (await get('ledger_plans/2026-11-27')).carbLevel === 'normal', 'no carbLevel from aCcountable: Ledger\'s own Nutrition Plan stays');
+  const c1 = await acc().applyDay(day({ date: '2026-11-27', training: [], meals: [], carbLevel: 'high' }));
+  let p27 = await get('ledger_plans/2026-11-27');
+  check(c1.body.changed.carbs && p27.carbLevel === 'high' && p27.fasting === false && p27.carbSource === 'accountable', 'carbLevel high: the day is High Carb, set by aCcountable', p27);
+  await acc().applyDay(day({ date: '2026-11-27', training: [], meals: [], carbLevel: 'fasting' }));
+  p27 = await get('ledger_plans/2026-11-27');
+  check(p27.fasting === true && p27.carbLevel === null, 'carbLevel fasting: a fasting day (no carb level)', p27);
+  const c3 = await acc().applyDay(day({ date: '2026-11-27', training: [], meals: [], carbLevel: 'fasting' }));
+  check(!c3.body.changed.carbs, 'the same carbs again change nothing');
+  await acc().applyDay(day({ date: '2026-11-28', training: [], meals: [], carbLevel: 'ketogenic' }));
+  check(!(await get('ledger_plans/2026-11-28')) || !(await get('ledger_plans/2026-11-28')).carbSource, 'an unknown carbLevel is ignored');
+
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(2); });
