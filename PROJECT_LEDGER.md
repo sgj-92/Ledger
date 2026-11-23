@@ -2986,17 +2986,14 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (finish the aCcountable sync)
-Firebase is done (2026-11-23):
-- the secret is set and the functions are allowed to read it;
-- Deploy Firebase #33 created `accountableSync`, `onPlanForAccountable` and
-  `onWeightForAccountable`.
+Owner: Shaun (check the aCcountable sync)
+Fully set up (2026-11-23): the Firebase secret and deploy, and Supabase's
+`LEDGER_SYNC_SECRET` and `LEDGER_SYNC_URL`. To check:
+- change a training time or a food in aCcountable, and it shows in Ledger;
+- change a session, tick a meal or weigh in, in Ledger, and it shows in aCcountable.
 
-Left, in Supabase:
-- `LEDGER_SYNC_SECRET`: the same string as Firebase's.
-- `LEDGER_SYNC_URL`: `https://us-central1-ledger-6aec3.cloudfunctions.net/accountableSync`.
-
-Settings → aCcountable shows "Synced …" once the first day arrives.
+Settings → aCcountable should read "Synced …". "Not connected yet" means the secrets
+don't match. "Couldn't send · aCcountable answered N" means aCcountable refused.
 
 **Before that**: Owner: Shaun (review)
 **Smith & Johnson and Outlook & Teams** (2026-11-18): Firebase is deployed and Microsoft
