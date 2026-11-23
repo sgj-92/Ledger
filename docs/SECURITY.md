@@ -62,6 +62,7 @@ The rules themselves are in `firestore.rules`; this is the runbook around them.
 | `ledger_pins` | Pin now requests | owner; a pin names its owner; only the sender updates it |
 | `ledger_push_events` | the sender's log and de-duplication marks | no client access |
 | `ledger_connections` | Microsoft 365's refresh token and one-time sign-in states (`docs/MICROSOFT_365.md`) | no client access; the owner's pages see only `ledger_meta/connections` |
+| `ledger_sync` | The aCcountable sync's bookkeeping: a hash of what was last said about each day (`docs/ACCOUNTABLE_SYNC.md`) | no client access; the owner's pages see only `ledger_meta/accountable` |
 | `ledger_meta/sharing` | what each publication was chosen to include | owner |
 | `ledger_share_members` | the owner–partner relationship | owner manages own; partner reads own |
 | `ledger_shared_snapshots` | published day and week projections | owner writes own; partner reads own, while active |

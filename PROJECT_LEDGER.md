@@ -762,6 +762,33 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-23 — Two-way sync with aCcountable (Shaun's answers: build it, all four recommendations)
+
+The request came from the aCcountable session, at Shaun's request; Shaun confirmed it here.
+The contract is aCcountable's `docs/ledger-sync.md`; Ledger's side is
+`docs/ACCOUNTABLE_SYNC.md`.
+
+- **What syncs:**
+  - planned training and its times, both ways;
+  - weight, both ways;
+  - aCcountable's meals (time, foods, kcal) into Ledger;
+  - meals ticked in Ledger back to aCcountable;
+  - the day's food from aCcountable.
+- **Two sessions of one type** (a run and a walk) are both kept
+  (`trainingDetails[type].syncSessions`) and both shown.
+- **aCcountable fills the food.** It shows read-only in Nutrition; the day rating and
+  checks stay Ledger's. A diary typed in Ledger first is kept aside.
+- **aCcountable's meals lead** on a day it plans. Ticking one doesn't write Ledger's
+  diary.
+- **Signing and storage:**
+  - Signed both ways (HMAC over the timestamp and raw body, within five minutes).
+  - The secret lives only in Secret Manager (`ACCOUNTABLE_SYNC_SECRET`).
+  - The bookkeeping is in `ledger_sync`, which is server only.
+  - Nothing aCcountable sends is stored with `<` or `>`.
+- **Fixed on the way:** the nutrition form saved only the fields it shows, which dropped
+  the meal-to-diary links (`planMealLines`) and would have dropped aCcountable's food. It
+  now keeps both.
+
 ### 2026-11-22 — Native feel (Shaun: "feel like a polished native iOS app rather than a web form")
 
 This settles four of `docs/DESIGN_SYSTEM.md`'s open items (5, 11, 13 in part, 14) at
@@ -2959,7 +2986,18 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (review)
+Owner: Shaun (set up the aCcountable sync)
+`docs/ACCOUNTABLE_SYNC.md` → "Setting it up":
+1. Make one random secret of 32 or more characters.
+2. Save it as the Firebase secret `ACCOUNTABLE_SYNC_SECRET`, **before** the next deploy.
+3. Save the same string as Supabase's `LEDGER_SYNC_SECRET`.
+4. Run Deploy Firebase → Everything.
+5. Set Supabase's `LEDGER_SYNC_URL` to
+   `https://us-central1-ledger-6aec3.cloudfunctions.net/accountableSync`.
+
+Settings → aCcountable then shows when it last synced.
+
+**Before that**: Owner: Shaun (review)
 **Smith & Johnson and Outlook & Teams** (2026-11-18): Firebase is deployed and Microsoft
 365 is connected (Shaun). S&J is showing. Next: add clients and the team, mark business
 Actions as S&J, try **Check Outlook & Teams** in the Comms sweep, then send feedback.
@@ -3260,6 +3298,15 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-23) — **aCcountable sync, Ledger's side** (decision above). Not live until the
+  secret is set and Firebase is deployed (Current Task).
+  - **Tests:**
+    - Server: `tests/functions/accountable.test.js`, 37 checks.
+    - Rules: 805.
+    - e2e: assistant 68, offline 16, settings-sync 13, native-shell 90, goals 42.
+  - **Checked in the browser:** both sessions on Today, meals with time and kcal, an
+    aCcountable meal ticked without touching the diary, the read-only food, and a save
+    keeping it.
 - (2026-11-22) — **Native feel** (decision above).
   - **Tests:**
     - The suites that used browser dialogs now answer the sheet instead, via

@@ -22,7 +22,9 @@ fs.writeFileSync(envFile, [
   'VAPID_SUBJECT=mailto:test@example.com',
   'APP_URL=' + APP_URL,
   'FUNCTIONS_REGION=us-central1',
-  'MS_CLIENT_ID=not-set'
+  'MS_CLIENT_ID=not-set',
+  // the aCcountable sync: somewhere that never answers (no secret is set, so nothing is sent)
+  'ACCOUNTABLE_SYNC_URL=https://accountable.invalid/functions/v1/ledger-sync'
 ].join('\n') + '\n');
 fs.writeFileSync(secretFile, 'VAPID_PRIVATE_KEY=' + keys.privateKey + '\n');
 
