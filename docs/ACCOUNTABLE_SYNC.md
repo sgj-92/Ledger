@@ -80,11 +80,14 @@ is more than five minutes off.
    a function's secret doesn't exist.
    - On the Mac:
      `npx firebase-tools functions:secrets:set ACCOUNTABLE_SYNC_SECRET --project ledger-6aec3`
-   - If the deploy then says `secretmanager.secrets.setIamPolicy` is denied, see
-     `docs/DEPLOY_FROM_GITHUB.md` ("A new secret").
+   - Then let the functions read it. The GitHub deploy account deliberately can't
+     grant this, so without it the deploy fails with "`secretmanager.secrets.setIamPolicy`
+     denied". In Cloud Shell, once:
+     `gcloud secrets add-iam-policy-binding ACCOUNTABLE_SYNC_SECRET --project ledger-6aec3 --member="serviceAccount:607695857530-compute@developer.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"`
 3. **Save the same string in Supabase** as `LEDGER_SYNC_SECRET`, on aCcountable's project.
 4. **Deploy:** GitHub → Actions → Deploy Firebase → Everything.
-5. **Point aCcountable at Ledger:** on Supabase, set `LEDGER_SYNC_URL` to
+5. **Point aCcountable at Ledger:** in Supabase's Edge Function secrets (where its
+   functions read every setting from, even ones that aren't secret), set `LEDGER_SYNC_URL` to
    `https://us-central1-ledger-6aec3.cloudfunctions.net/accountableSync`. Use another
    region in place of `us-central1` if `FUNCTIONS_REGION` is different.
 
