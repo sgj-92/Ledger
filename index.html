@@ -2679,9 +2679,6 @@
   .acc-diary li { padding: 9px 2px; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.4; color: var(--text); overflow-wrap: anywhere; }
   .acc-diary li.acc-diary-empty { color: var(--text-3); font-style: italic; }
   .acc-meal-head { margin: 2px 0 8px; font-size: 15px; color: var(--text); }
-  .acc-plan-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 14px 16px;
-    border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
-  .acc-plan-v { font-size: 16px; color: var(--text); }
 
   /* ---------- exercise / simple rows ---------- */
   .exercise-row { margin-bottom: 8px; }
@@ -6747,6 +6744,14 @@
   function nutritionPlanLabel(p){
     var v = nutritionPlanValue(p);
     return v === 'fasting' ? 'Fasting' : v ? CARB_LEVEL_LABEL[v] : '';
+  }
+  // aCcountable decides the carbs on a day marked "TBD by aCcountable" (2026-11-23):
+  // carbByAccountable on the plan; carbSource 'accountable' once its answer has come
+  function carbsByAcc(p){ return !!p && (!!p.carbByAccountable || p.carbSource === 'accountable'); }
+  // what the day's plan says, TBD included ("Carbs TBD" where space is short)
+  function nutritionPlanShown(p, short){
+    var l = short ? nutritionPlanShort(p) : nutritionPlanLabel(p);
+    return l || (carbsByAcc(p) ? (short ? 'Carbs TBD' : 'TBD by aCcountable') : '');
   }
   var editingId = null;
   // Desktop and laptop widths: the same app, arranged for a wider screen. A few renderers
@@ -29319,8 +29324,8 @@
       '</button>');
     }
 
-    if (nutritionPlanValue(plan)){
-      cards.push(planCardHtml({ icon: UI_ICON.leaf, title: 'Nutrition Plan', sub: nutritionPlanLabel(plan), attr: ' data-plan-edit="1"' }));
+    if (nutritionPlanShown(plan)){
+      cards.push(planCardHtml({ icon: UI_ICON.leaf, title: 'Nutrition Plan', sub: nutritionPlanShown(plan), attr: ' data-plan-edit="1"' }));
     }
 
     // The grid is training, meals, diet and whatever got in the way of them —
@@ -29369,9 +29374,9 @@
         });
       }
       // the day's one nutrition choice, always named — never a bare "Normal"
-      if (nutritionPlanValue(plan)){
+      if (nutritionPlanShown(plan)){
         lines.push('<button type="button" class="hf-line hf-kv" data-plan-edit="1">' + hfKey('Nutrition Plan') +
-          '<span class="hf-v">' + nutritionPlanLabel(plan) + '</span></button>');
+          '<span class="hf-v">' + nutritionPlanShown(plan) + '</span></button>');
       }
       if (meals.length){
         var mealsEaten = meals.filter(function(m){ return m.completed; }).length;
@@ -29988,7 +29993,7 @@
     });
     var meals = (p.meals || []).filter(function(m){ return planMealText(m).trim(); }).length;
     if (meals) bits.push(plural(meals, 'meal'));
-    if (nutritionPlanValue(p)) bits.push(nutritionPlanShort(p));
+    if (nutritionPlanShown(p, true)) bits.push(nutritionPlanShown(p, true));
     return bits.length ? bits.join(' · ') : 'Nothing planned';
   }
   function dpDirectionSummary(intention, support){
@@ -30164,8 +30169,13 @@
     var restDay = !!p.restDay;
     var trainingTypes = (p.trainingTypes || []).slice();
     var carbLevel = p.carbLevel || null;
-    // the day's carbs, when aCcountable has set them (it decides; Ledger shows)
-    function accCarbs(){ var cur = getPlanForDate(dateStr) || p; return cur.carbSource === 'accountable' && !!nutritionPlanValue(cur); }
+    // "TBD by aCcountable": the day's carbs are aCcountable's to decide, and show as its
+    // answer once that has come (carbSource). A level chosen here is Shaun's, and stays.
+    var carbBy = carbsByAcc(p), carbSrc = p.carbSource || null;
+    function nutritionPlanOptions(){
+      var decided = carbBy && carbSrc === 'accountable' && nutritionPlanLabel({ fasting: fasting, carbLevel: carbLevel });
+      return NUTRITION_PLAN_OPTIONS.concat([{ value: 'acc', label: decided ? 'aCcountable: ' + decided : 'TBD by aCcountable' }]);
+    }
     var fasting = !!p.fasting;
     var trainingDetailsState = Object.assign({}, p.trainingDetails || {});
     var mealsState = getPlanMeals(existing);
@@ -30212,11 +30222,7 @@
               planTypeGridHtml() +
             '</div><div class="plan-type-hint">Tap to select. Use Details to add more.</div></div>' +
           '</div>' +
-          // aCcountable decides the day's carbs when it says so (2026-11-23): shown, not chosen here
-          (accCarbs()
-            ? '<div class="field"><label>Nutrition Plan</label><div class="acc-plan-row"><span class="acc-plan-v">' +
-                nutritionPlanLabel({ fasting: fasting, carbLevel: carbLevel }) + '</span><span class="acc-from">set by aCcountable</span></div></div>'
-            : fieldSelect('f_nutritionPlan', 'Nutrition Plan', NUTRITION_PLAN_OPTIONS, nutritionPlanValue({ fasting: fasting, carbLevel: carbLevel }))) +
+          fieldSelect('f_nutritionPlan', 'Nutrition Plan', nutritionPlanOptions(), carbBy ? 'acc' : nutritionPlanValue({ fasting: fasting, carbLevel: carbLevel })) +
           '<div class="field"><label>Food Plan</label><div id="planMealRows"></div>' +
             '<button type="button" class="add-exercise-btn" id="addPlanMealBtn">+ Add meal</button></div>' +
           '<button type="button" class="dp-clear" id="deletePlanBtn"' + (healthHasState() ? '' : ' hidden') + '>Clear health &amp; fitness</button>') +
@@ -30338,7 +30344,7 @@
 
     function currentPlanish(){
       return { restDay: restDay, trainingTypes: restDay ? [] : trainingTypes, trainingDetails: trainingDetailsState,
-               meals: mealsState, carbLevel: carbLevel, fasting: fasting };
+               meals: mealsState, carbLevel: carbLevel, fasting: fasting, carbByAccountable: carbBy, carbSource: carbSrc };
     }
     function setSum(key, text){
       var el = sheetEl.querySelector('[data-dp-sum="' + key + '"]');
@@ -30469,6 +30475,8 @@
         trainingTypes: finalTypes,
         trainingDetails: prunedDetails,
         carbLevel: carbLevel,
+        carbByAccountable: carbBy,
+        carbSource: carbBy ? carbSrc : null,
         fasting: fasting,
         meals: mealsState
           .map(function(m){ return Object.assign({}, m, { text: (m.text||'').trim() }); })
@@ -30582,9 +30590,16 @@
       // one choice sets both stored fields; until it changes, an older record keeps both as they were
       var npSel = document.getElementById('f_nutritionPlan');
       if (npSel) npSel.addEventListener('change', function(){
-        var f = nutritionPlanFields(this.value);
-        fasting = f.fasting;
-        carbLevel = f.carbLevel;
+        if (this.value === 'acc'){
+          // aCcountable's to decide: what it decided stays shown; anything chosen here goes
+          carbBy = true;
+          if (carbSrc !== 'accountable'){ fasting = false; carbLevel = null; }
+        } else {
+          var f = nutritionPlanFields(this.value);
+          fasting = f.fasting;
+          carbLevel = f.carbLevel;
+          carbBy = false; carbSrc = null;
+        }
         refreshSummaries();
       });
       wireTypeGrid();
@@ -30627,9 +30642,9 @@
         if (!cfOk(this, 'Clear health & fitness for ' + weekday + '?\n\nThis removes planned training, meals and the Nutrition Plan for this day. Recorded activity is not deleted.', { yes: 'Clear' })) return;
         flushText();
         if (getPlanForDate(dateStr)){
-          savePlanFields(dateStr, { restDay: false, trainingTypes: [], trainingDetails: {}, carbLevel: null, fasting: false, meals: [] });
+          savePlanFields(dateStr, { restDay: false, trainingTypes: [], trainingDetails: {}, carbLevel: null, fasting: false, carbByAccountable: false, carbSource: null, meals: [] });
         }
-        restDay = false; trainingTypes = []; trainingDetailsState = {}; carbLevel = null; fasting = false;
+        restDay = false; trainingTypes = []; trainingDetailsState = {}; carbLevel = null; fasting = false; carbBy = false; carbSrc = null;
         mealsState = [blankMeal()];
         render(true);
       });

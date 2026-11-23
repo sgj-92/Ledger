@@ -178,19 +178,26 @@ const day = (over) => Object.assign({
   const all26 = JSON.stringify([p26.trainingDetails.cardio.syncSessions, p26.meals, n26.accountable.diary, n26.foodDiary]);
   check(!/[<>]/.test(all26) && /Run/.test(all26) && /Lunch/.test(all26), 'no < or > is stored from aCcountable: titles, meals, foods and diary are text', all26);
 
-  // ---- the day's carbs: aCcountable decides when it says ----
+  // ---- the day's carbs: aCcountable decides on TBD days (and unset ones); Shaun's choice stands ----
   NOW = new Date('2026-11-27T09:00:00Z');
-  await db.doc('ledger_plans/2026-11-27').set({ date: '2026-11-27', restDay: false, trainingTypes: [], meals: [], carbLevel: 'normal', fasting: false });
-  const c0 = await acc().applyDay(day({ date: '2026-11-27', training: [], meals: [], carbLevel: null }));
-  check(!c0.body.changed.carbs && (await get('ledger_plans/2026-11-27')).carbLevel === 'normal', 'no carbLevel from aCcountable: Ledger\'s own Nutrition Plan stays');
-  const c1 = await acc().applyDay(day({ date: '2026-11-27', training: [], meals: [], carbLevel: 'high' }));
-  let p27 = await get('ledger_plans/2026-11-27');
-  check(c1.body.changed.carbs && p27.carbLevel === 'high' && p27.fasting === false && p27.carbSource === 'accountable', 'carbLevel high: the day is High Carb, set by aCcountable', p27);
-  await acc().applyDay(day({ date: '2026-11-27', training: [], meals: [], carbLevel: 'fasting' }));
-  p27 = await get('ledger_plans/2026-11-27');
-  check(p27.fasting === true && p27.carbLevel === null, 'carbLevel fasting: a fasting day (no carb level)', p27);
-  const c3 = await acc().applyDay(day({ date: '2026-11-27', training: [], meals: [], carbLevel: 'fasting' }));
-  check(!c3.body.changed.carbs, 'the same carbs again change nothing');
+  const D27 = '2026-11-27', carbs = (level) => day({ date: D27, training: [], meals: [], carbLevel: level });
+  await db.doc('ledger_plans/' + D27).set({ date: D27, restDay: false, trainingTypes: [], meals: [], carbLevel: 'normal', fasting: false });
+  const c0 = await acc().applyDay(carbs('high'));
+  check(!c0.body.changed.carbs && (await get('ledger_plans/' + D27)).carbLevel === 'normal', 'a level Shaun chose in Ledger stands');
+  await db.doc('ledger_plans/' + D27).set({ carbLevel: null, fasting: false, carbByAccountable: true }, { merge: true });
+  const c1 = await acc().applyDay(carbs(null));
+  check(!c1.body.changed.carbs && (await get('ledger_plans/' + D27)).carbLevel === null, 'TBD, and aCcountable says nothing: still TBD');
+  const c2 = await acc().applyDay(carbs('high'));
+  let p27 = await get('ledger_plans/' + D27);
+  check(c2.body.changed.carbs && p27.carbLevel === 'high' && p27.fasting === false && p27.carbSource === 'accountable' && p27.carbByAccountable === true, 'TBD: aCcountable decides High Carb', p27);
+  await acc().applyDay(carbs('fasting'));
+  p27 = await get('ledger_plans/' + D27);
+  check(p27.fasting === true && p27.carbLevel === null, 'and can change its mind: a fasting day', p27);
+  check(!(await acc().applyDay(carbs('fasting'))).body.changed.carbs, 'the same carbs again change nothing');
+  await db.doc('ledger_plans/2026-11-29').set({ date: '2026-11-29', restDay: false, trainingTypes: [], meals: [] });
+  await acc().applyDay(day({ date: '2026-11-29', training: [], meals: [], carbLevel: 'low' }));
+  const p29 = await get('ledger_plans/2026-11-29');
+  check(p29.carbLevel === 'low' && p29.carbByAccountable === true, 'a day with nothing chosen takes aCcountable\'s', p29);
   await acc().applyDay(day({ date: '2026-11-28', training: [], meals: [], carbLevel: 'ketogenic' }));
   check(!(await get('ledger_plans/2026-11-28')) || !(await get('ledger_plans/2026-11-28')).carbSource, 'an unknown carbLevel is ignored');
 

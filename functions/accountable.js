@@ -23,8 +23,9 @@
 // aCcountable fills the day's food (diary, calories, macros, targets) and Ledger shows it
 // read-only, while the day rating and daily checks stay Ledger's; on a day aCcountable
 // plans, its meals are the day's meals, and ticking one asks aCcountable to log it —
-// Ledger doesn't also write it into its own diary. And (later that day) aCcountable sets
-// the day's Nutrition Plan when it sends a carbLevel: fasting, low, normal or high.
+// Ledger doesn't also write it into its own diary. And (later that day) aCcountable's
+// carbLevel (fasting, low, normal or high) sets the day's Nutrition Plan on a day marked
+// "TBD by aCcountable" or left unset; a level Shaun chose in Ledger stands.
 
 const crypto = require('crypto');
 
@@ -196,11 +197,14 @@ function createAccountable(deps) {
       if (!same(meals, old)) { next.meals = meals; changed.meals = true; }
     }
 
-    // the day's Nutrition Plan: aCcountable decides when it says; silence leaves Ledger's choice
-    if (d.carbLevel) {
+    // the day's Nutrition Plan: aCcountable decides on a day marked "TBD by aCcountable"
+    // (carbByAccountable), one it already decided, or one with nothing chosen. A level
+    // Shaun chose in Ledger stands. Silence from aCcountable changes nothing.
+    const accDecides = !!base.carbByAccountable || base.carbSource === 'accountable' || (!base.carbLevel && !base.fasting);
+    if (d.carbLevel && accDecides) {
       const fasting = d.carbLevel === 'fasting', level = fasting ? null : d.carbLevel;
-      if (!!base.fasting !== fasting || (base.carbLevel || null) !== level || base.carbSource !== 'accountable') {
-        next.fasting = fasting; next.carbLevel = level; next.carbSource = 'accountable';
+      if (!!base.fasting !== fasting || (base.carbLevel || null) !== level || base.carbSource !== 'accountable' || !base.carbByAccountable) {
+        next.fasting = fasting; next.carbLevel = level; next.carbSource = 'accountable'; next.carbByAccountable = true;
         changed.carbs = true;
       }
     }

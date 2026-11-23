@@ -18,7 +18,7 @@ aCcountable's `docs/ledger-sync.md` is the contract. This page covers Ledger's h
 | Meals (name, time, foods, kcal, done) | aCcountable → Ledger | `ledger_plans/<date>.meals`, each with `ref`, `source: 'accountable'`, `time`, `tag`, `kcal`, `foods` |
 | A meal ticked in Ledger | Ledger → aCcountable | sent as `mealsDone`; aCcountable logs its foods |
 | The day's food (eaten, macros, targets, diary, day type) | aCcountable → Ledger | the day's `ledger_sessions` nutrition record: `accountable`, `foodDiary`, `foodDiarySource: 'accountable'` |
-| The day's Nutrition Plan (carbs) | aCcountable → Ledger, when it sends one | `ledger_plans/<date>`: `carbLevel` / `fasting`, with `carbSource: 'accountable'` |
+| The day's Nutrition Plan (carbs) | aCcountable → Ledger, on days marked "TBD by aCcountable" or left unset | `ledger_plans/<date>`: `carbLevel` / `fasting`, with `carbSource: 'accountable'` |
 | Weight | both ways; the last change wins | a `ledger_sessions` weight record (`acc-weight-<date>` when aCcountable made it) |
 
 ### Shaun's choices (2026-11-23)
@@ -44,9 +44,14 @@ aCcountable decides the day's Nutrition Plan. It sends it as a top-level field i
 `"carbLevel"`, set to one of `"fasting"`, `"low"`, `"normal"` or `"high"`; `null` means no
 opinion. Ledger also accepts it as `nutrition.carbLevel`.
 
-- Ledger sets the day's plan from it: Fasting, No / Low Carb, Normal or High Carb.
-- The Plan sheet shows it read-only, as "set by aCcountable".
-- When aCcountable sends nothing, or `null`, Ledger's own choice stays and can be edited.
+- Ledger sets the day's plan from it (Fasting, No / Low Carb, Normal or High Carb), but
+  only on a day Shaun marked **"TBD by aCcountable"** in the Plan sheet's Nutrition
+  Plan, or left Not set. A level he chose himself stands (Shaun, 2026-11-23).
+- Once aCcountable has answered, the option reads "aCcountable: High Carb".
+- Picking a level himself takes the day back; picking TBD again gives it to aCcountable.
+- On the plan, this is `carbByAccountable`, and `carbSource: 'accountable'` once the answer
+  has come.
+- When aCcountable sends nothing, or `null`, the day stays as it is.
 - This is an addition to aCcountable's contract (still `v: 1`). Ledger ignores an unknown
   value.
 

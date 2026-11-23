@@ -766,8 +766,10 @@ Conventions that should not be casually changed.
 
 - aCcountable sends `carbLevel` (fasting, low, normal or high) with its day, and Ledger
   sets the day's Nutrition Plan from it.
-- The Plan sheet shows it read-only, as "set by aCcountable". With no `carbLevel` from
-  aCcountable, Shaun's own choice stays.
+- **Superseded the same day (Shaun's answer: "only TBD days"):** Nutrition Plan has a
+  **"TBD by aCcountable"** option. aCcountable decides only on those days, or ones left
+  Not set, and the option then reads "aCcountable: High Carb". A level Shaun picks
+  himself stands. Server tests 44.
 - **Not live yet:**
   - aCcountable must start sending `carbLevel`; it's in `docs/ACCOUNTABLE_SYNC.md` for
     the aCcountable session.
