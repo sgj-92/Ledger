@@ -2986,16 +2986,17 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (set up the aCcountable sync)
-`docs/ACCOUNTABLE_SYNC.md` → "Setting it up":
-1. Make one random secret of 32 or more characters.
-2. Save it as the Firebase secret `ACCOUNTABLE_SYNC_SECRET`, **before** the next deploy.
-3. Save the same string as Supabase's `LEDGER_SYNC_SECRET`.
-4. Run Deploy Firebase → Everything.
-5. Set Supabase's `LEDGER_SYNC_URL` to
-   `https://us-central1-ledger-6aec3.cloudfunctions.net/accountableSync`.
+Owner: Shaun (finish the aCcountable sync)
+Firebase is done (2026-11-23):
+- the secret is set and the functions are allowed to read it;
+- Deploy Firebase #33 created `accountableSync`, `onPlanForAccountable` and
+  `onWeightForAccountable`.
 
-Settings → aCcountable then shows when it last synced.
+Left, in Supabase:
+- `LEDGER_SYNC_SECRET`: the same string as Firebase's.
+- `LEDGER_SYNC_URL`: `https://us-central1-ledger-6aec3.cloudfunctions.net/accountableSync`.
+
+Settings → aCcountable shows "Synced …" once the first day arrives.
 
 **Before that**: Owner: Shaun (review)
 **Smith & Johnson and Outlook & Teams** (2026-11-18): Firebase is deployed and Microsoft
