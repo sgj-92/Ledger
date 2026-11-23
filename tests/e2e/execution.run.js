@@ -26,7 +26,8 @@ fs.writeFileSync(envFile, [
   // the aCcountable sync: somewhere that never answers (no secret is set, so nothing is sent)
   'ACCOUNTABLE_SYNC_URL=https://accountable.invalid/functions/v1/ledger-sync'
 ].join('\n') + '\n');
-fs.writeFileSync(secretFile, 'VAPID_PRIVATE_KEY=' + keys.privateKey + '\n');
+// the aCcountable sync's shared secret, for this run only (execution.test.js signs with it)
+fs.writeFileSync(secretFile, 'VAPID_PRIVATE_KEY=' + keys.privateKey + '\nACCOUNTABLE_SYNC_SECRET=e2e-only-shared-secret-0123456789abcdef\n');
 
 const bin = process.env.FIREBASE_BIN || path.join(__dirname, 'node_modules/.bin/firebase');
 let status = 1;

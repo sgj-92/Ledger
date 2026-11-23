@@ -559,6 +559,32 @@ async function swChecks(){
   check((await pre('https://ledger.sgj.luxe')).headers.get('access-control-allow-origin') === 'https://ledger.sgj.luxe', 'assistant: Ledger\'s own page may call it');
   // (the emulator opens CORS to every site, so the refusal of other sites is checked in tests/functions/assistant.test.js)
 
+  // ---- the aCcountable sync's endpoint, as aCcountable calls it (docs/ACCOUNTABLE_SYNC.md) ----
+  // The signature is over the raw body exactly as sent; Ledger checks it against the bytes
+  // it received, then writes the day.
+  {
+    const crypto = require('crypto');
+    const SYNC = `http://127.0.0.1:5001/${PID}/us-central1/accountableSync`;
+    const SECRET = 'e2e-only-shared-secret-0123456789abcdef';
+    const DAY = '2030-01-15';
+    const body = JSON.stringify({ v: 1, origin: 'accountable', date: DAY,
+      training: [{ ref: 'acc:session:e2e', type: 'padel', title: 'Padel', startTime: '18:00', durationMin: 90 }],
+      meals: [{ ref: 'acc:meal:e2e', name: 'Meal 1', time: '08:00', kcal: 400, done: false, foods: [{ name: 'Eggs', amount: '2 eggs', kcal: 143 }] }],
+      nutrition: { eatenKcal: 400, proteinG: 30, carbsG: 10, fatG: 20, targetKcal: 2400, targetProteinG: 180, targetCarbsG: 270, targetFatG: 67, dayType: 'Padel day', diaryOnly: false, diary: ['Meal 1: Eggs'] },
+      weightKg: 98.3 });
+    const post = (b, ts, sig) => fetch(SYNC, { method: 'POST', headers: { 'content-type': 'application/json', 'x-sync-timestamp': ts, 'x-sync-signature': sig }, body: b });
+    const ts = String(Date.now());
+    const sig = 'sha256=' + crypto.createHmac('sha256', SECRET).update(ts + '.' + body).digest('hex');
+    check((await post(body.replace('98.3', '99.9'), ts, sig)).status === 401, 'aCcountable sync: a body changed after signing is refused (401)');
+    check((await post(body, ts, 'sha256=' + '0'.repeat(64))).status === 401, 'aCcountable sync: a wrong signature is refused (401)');
+    const r = await post(body, ts, sig);
+    check(r.status === 200, 'aCcountable sync: a signed day is accepted (200)', r.status);
+    const plan = await get('ledger_plans/' + DAY);
+    check(plan && (plan.trainingTypes || []).indexOf('padel') > -1 && plan.trainingDetails.padel.activityTime === '18:00' && (plan.meals || []).some(m => m.ref === 'acc:meal:e2e'),
+      'aCcountable sync: the day is in Ledger — padel at 18:00, the meal', plan);
+    check((await fetch(SYNC, { method: 'GET' })).status === 405, 'aCcountable sync: POST only');
+  }
+
   for (const p of [mac, iphone, samsung, abiPhone]){
     const errs = p.errs.filter(e => !/permission|offline|network/i.test(e));
     check(!errs.length, p.name + ': no page errors ' + errs.join(' | '));
