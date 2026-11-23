@@ -218,6 +218,12 @@ service cloud.firestore {
     match /ledger_connections/{docId=**} {
       allow read, write: if false;
     }
+    // The aCcountable sync's bookkeeping (functions/accountable.js, 2026-11-23): what was
+    // last said about each day, so nothing echoes. Server only. The app sees
+    // ledger_meta/accountable (when it last heard and spoke).
+    match /ledger_sync/{docId=**} {
+      allow read, write: if false;
+    }
 
     // ---- Home: Shaun, Abi and the people who help at home ----
     // A separate shared namespace. Nothing here reads or reaches a private Ledger

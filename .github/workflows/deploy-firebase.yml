@@ -82,6 +82,7 @@ jobs:
           APP_URL: ${{ vars.APP_URL }}
           FUNCTIONS_REGION: ${{ vars.FUNCTIONS_REGION }}
           MS_CLIENT_ID: ${{ vars.MS_CLIENT_ID }}
+          ACCOUNTABLE_SYNC_URL: ${{ vars.ACCOUNTABLE_SYNC_URL }}
         run: |
           for k in VAPID_PUBLIC_KEY VAPID_SUBJECT FUNCTIONS_REGION; do
             if [ -z "${!k}" ]; then echo "::error::Missing variable $k in the \"firebase\" environment (docs/DEPLOY_FROM_GITHUB.md)"; exit 1; fi
@@ -91,6 +92,7 @@ jobs:
           trim() { printf '%s' "$1" | tr -d '[:space:]'; }
           VAPID_PUBLIC_KEY=$(trim "$VAPID_PUBLIC_KEY"); VAPID_SUBJECT=$(trim "$VAPID_SUBJECT")
           FUNCTIONS_REGION=$(trim "$FUNCTIONS_REGION"); APP_URL=$(trim "$APP_URL"); MS_CLIENT_ID=$(trim "$MS_CLIENT_ID")
+          ACCOUNTABLE_SYNC_URL=$(trim "$ACCOUNTABLE_SYNC_URL")
           bad() { echo "::error::The variable $1 is \"$2\", which doesn't look right — $3 (Settings → Environments → firebase)"; exit 1; }
           [[ "$FUNCTIONS_REGION" =~ ^[a-z]+-[a-z]+[0-9]+$ ]] || bad FUNCTIONS_REGION "$FUNCTIONS_REGION" "a region looks like us-central1 or europe-west2"
           [[ "$VAPID_PUBLIC_KEY" =~ ^[A-Za-z0-9_-]{40,}=*$ ]] || bad VAPID_PUBLIC_KEY "$VAPID_PUBLIC_KEY" "the public key is letters, digits, - and _ only"
@@ -98,6 +100,8 @@ jobs:
           [ -z "$APP_URL" ] || [[ "$APP_URL" =~ ^https://[^%]+$ ]] || bad APP_URL "$APP_URL" "it should be https://ledger.sgj.luxe/ (or left out)"
           # optional: Microsoft 365 for the Comms sweep (docs/MICROSOFT_365.md); not a secret
           [ -z "$MS_CLIENT_ID" ] || [[ "$MS_CLIENT_ID" =~ ^[0-9a-fA-F-]{36}$ ]] || bad MS_CLIENT_ID "$MS_CLIENT_ID" "it's the Application (client) ID, like 11111111-2222-3333-4444-555555555555"
+          # optional: where Ledger sends its side of the aCcountable sync (docs/ACCOUNTABLE_SYNC.md)
+          [ -z "$ACCOUNTABLE_SYNC_URL" ] || [[ "$ACCOUNTABLE_SYNC_URL" =~ ^https://[^%\ ]+$ ]] || bad ACCOUNTABLE_SYNC_URL "$ACCOUNTABLE_SYNC_URL" "it should be aCcountable's https://…/functions/v1/ledger-sync (or left out)"
           {
             echo "VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY"
             echo "VAPID_SUBJECT=$VAPID_SUBJECT"
@@ -106,6 +110,7 @@ jobs:
             # to a param's default without one ("not-set" means Outlook & Teams isn't set up)
             echo "APP_URL=${APP_URL:-https://ledger.sgj.luxe/}"
             echo "MS_CLIENT_ID=${MS_CLIENT_ID:-not-set}"
+            echo "ACCOUNTABLE_SYNC_URL=${ACCOUNTABLE_SYNC_URL:-https://lubouzocrluaojfjaqjy.supabase.co/functions/v1/ledger-sync}"
           } > functions/.env
       - name: Sign in to Google (keyless)
         uses: google-github-actions/auth@v3

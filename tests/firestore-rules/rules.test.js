@@ -454,6 +454,10 @@ async function check(name, fn){
   await check('owner: cannot write a connected account', () => assertFails(owner.doc('ledger_connections/microsoft').set({ refreshToken: 'x' })));
   await check('owner: cannot list connected accounts', () => assertFails(owner.collection('ledger_connections').get()));
   await check('partner: cannot read a connected account\'s token', () => assertFails(partner.doc('ledger_connections/microsoft').get()));
+  // the aCcountable sync's bookkeeping: the server's alone
+  await check('owner: cannot read the aCcountable sync bookkeeping', () => assertFails(owner.doc('ledger_sync/accountable-2026-11-24').get()));
+  await check('owner: cannot write the aCcountable sync bookkeeping', () => assertFails(owner.doc('ledger_sync/accountable-2026-11-24').set({ outHash: 'x' })));
+  await check('partner: cannot read the aCcountable sync bookkeeping', () => assertFails(partner.doc('ledger_sync/accountable-2026-11-24').get()));
   await check('owner: can read whether Microsoft 365 is connected', () => assertSucceeds(owner.doc('ledger_meta/connections').get()));
   await check('owner: cannot write the sender\'s log', () => assertFails(owner.doc('ledger_push_events/e2').set({ x: 1 })));
   await check('partner: cannot read the sender\'s log', () => assertFails(partner.doc('ledger_push_events/e1').get()));

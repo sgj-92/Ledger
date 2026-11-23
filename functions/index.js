@@ -33,6 +33,9 @@
 //   FUNCTIONS_REGION   functions/.env:   the region of the Firestore database
 //   ANTHROPIC_API_KEY  Secret Manager:   firebase functions:secrets:set ANTHROPIC_API_KEY
 //                                        (Ask Claude; the key never reaches a browser)
+//   ACCOUNTABLE_SYNC_SECRET  Secret Manager: firebase functions:secrets:set ACCOUNTABLE_SYNC_SECRET
+//                                        (the aCcountable sync's shared signing secret)
+//   ACCOUNTABLE_SYNC_URL     functions/.env: aCcountable's ledger-sync function (the default)
 // See docs/SECURITY.md, "Push notifications", for the exact steps.
 //
 // Deploy with: firebase deploy --only functions
@@ -55,6 +58,7 @@ const { createDaily } = require('./daily');
 const { createReminders } = require('./remind');
 const { createConnect } = require('./connect');
 const { createAssistant, ALLOWED_ORIGINS } = require('./assistant');
+const { createAccountable } = require('./accountable');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -73,6 +77,11 @@ const FUNCTIONS_REGION = defineString('FUNCTIONS_REGION', { default: 'us-central
 // it's set up (an empty default makes a deploy stop and ask for it) — the feature
 // then says so, and nothing else depends on it. No secret.
 const MS_CLIENT_ID = defineString('MS_CLIENT_ID', { default: 'not-set' });
+// aCcountable, Shaun's calorie and training app (accountable.js, docs/ACCOUNTABLE_SYNC.md):
+// the shared signing secret (the same string as aCcountable's LEDGER_SYNC_SECRET), and where
+// Ledger's changes go. Not a secret, the URL; every message is signed.
+const ACCOUNTABLE_SYNC_SECRET = defineSecret('ACCOUNTABLE_SYNC_SECRET');
+const ACCOUNTABLE_SYNC_URL = defineString('ACCOUNTABLE_SYNC_URL', { default: 'https://lubouzocrluaojfjaqjy.supabase.co/functions/v1/ledger-sync' });
 
 setGlobalOptions({ region: FUNCTIONS_REGION, maxInstances: 5 });
 
@@ -291,6 +300,56 @@ exports.connections = onRequest({ cors: ALLOWED_ORIGINS, timeoutSeconds: 60, max
 exports.msCallback = onRequest({ timeoutSeconds: 60, maxInstances: 2 }, async (req, res) => {
   const out = await connector().callback(req.query || {}).catch(() => ({ redirect: APP_URL.value() + '?connected=failed' }));
   res.redirect(302, out.redirect);
+});
+
+// ---- aCcountable (accountable.js, docs/ACCOUNTABLE_SYNC.md) ----
+// accountableSync: aCcountable posts a day, signed with the shared secret over the raw body.
+// The triggers send Ledger's side of a day back when its training, meal ticks or weight
+// change; a write that only brings Ledger in line with aCcountable sends nothing.
+function accountable() {
+  return createAccountable({ db, fetch: (u, i) => fetch(u, i), secret: ACCOUNTABLE_SYNC_SECRET.value(),
+    url: ACCOUNTABLE_SYNC_URL.value(), log: (...a) => logger.warn(...a) });
+}
+exports.accountableSync = onRequest({ secrets: [ACCOUNTABLE_SYNC_SECRET], timeoutSeconds: 60, maxInstances: 3 }, async (req, res) => {
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+  const raw = req.rawBody ? req.rawBody.toString('utf8') : '';
+  const a = accountable();
+  const v = a.verify(req.headers || {}, raw);
+  if (!v.ok) { res.status(v.status).json({ error: v.error }); return; }
+  let body = null;
+  try { body = JSON.parse(raw); } catch (e) { res.status(400).json({ error: 'Not JSON.' }); return; }
+  try {
+    const out = await a.applyDay(body);
+    if (out.status === 200) logger.info('accountable day in', out.body); else logger.warn('accountable day refused', out.body);
+    res.status(out.status).json(out.body);
+  } catch (e) {
+    logger.error('accountable day failed', e && e.message);
+    res.status(500).json({ error: 'Ledger could not save the day.' });
+  }
+});
+// only what aCcountable hears about: a plan write that changes none of it costs nothing
+const accountableView = (date, p) => { const o = createAccountable({ db: null }).outboundOf(date, p, []); return JSON.stringify([o.training, o.mealsDone]); };
+async function accountablePush(dates) {
+  const a = accountable();
+  for (const d of dates) {
+    try { const out = await a.pushDay(d); if (out.sent !== undefined) logger.info('accountable day out', d, out); }
+    catch (e) { logger.warn('accountable push failed', d, e && e.message); }
+  }
+}
+exports.onPlanForAccountable = onDocumentWritten({ document: 'ledger_plans/{date}', secrets: [ACCOUNTABLE_SYNC_SECRET] }, async (event) => {
+  const before = event.data && event.data.before && event.data.before.exists ? event.data.before.data() : null;
+  const after = event.data && event.data.after && event.data.after.exists ? event.data.after.data() : null;
+  const date = event.params.date;
+  if (accountableView(date, before) === accountableView(date, after)) return;
+  await accountablePush([date]);
+});
+exports.onWeightForAccountable = onDocumentWritten({ document: 'ledger_sessions/{id}', secrets: [ACCOUNTABLE_SYNC_SECRET] }, async (event) => {
+  const before = event.data && event.data.before && event.data.before.exists ? event.data.before.data() : null;
+  const after = event.data && event.data.after && event.data.after.exists ? event.data.after.data() : null;
+  const isW = (x) => !!x && x.type === 'weight';
+  if (!isW(before) && !isW(after)) return;
+  if (isW(before) && isW(after) && before.date === after.date && Number(before.weightKg) === Number(after.weightKg)) return;
+  await accountablePush([before && before.date, after && after.date].filter((d, i, l) => d && l.indexOf(d) === i));
 });
 
 // Daily tasks at Home (docs/HOME_DAILY.md): hourly, in each person's own timezone, what
