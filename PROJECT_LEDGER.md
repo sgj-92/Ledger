@@ -3303,7 +3303,9 @@ minutes before", recurring/accountability).
   - **Tests:**
     - Server: `tests/functions/accountable.test.js`, 37 checks.
     - Rules: 805.
-    - e2e: assistant 68, offline 16, settings-sync 13, native-shell 90, goals 42.
+    - e2e: execution 86 (5 new: the real endpoint refuses a tampered body and a wrong
+      signature, accepts a signed day and writes it); assistant 68, offline 16,
+      settings-sync 13, native-shell 90, goals 42.
   - **Checked in the browser:** both sessions on Today, meals with time and kcal, an
     aCcountable meal ticked without touching the diary, the read-only food, and a save
     keeping it.
