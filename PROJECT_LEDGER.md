@@ -3011,11 +3011,10 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy, then try it)
-**"ledger:" in Teams:**
-1. Run Deploy Firebase → Everything. This also puts the aCcountable carbs change live.
-2. In any Teams chat, type `ledger: test from Teams tomorrow`. Within about two minutes it
-   should be an S&J Action for tomorrow, and the phone should say "Added to Ledger".
+Owner: Shaun (try it)
+**"ledger:" in Teams** and the aCcountable carbs change are deployed (2026-11-25). Nothing
+needs restarting. Try it: type `ledger: test from Teams tomorrow` in any Teams chat; within
+about two minutes it's an S&J Action for tomorrow, and the phone says "Added to Ledger".
 
 **Before that**: Owner: Shaun (check the aCcountable sync)
 Fully set up (2026-11-23): the Firebase secret and deploy, and Supabase's
