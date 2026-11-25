@@ -1,0 +1,2 @@
+# the Firebase emulators write these wherever tests run them; never committed
+*-debug.log
