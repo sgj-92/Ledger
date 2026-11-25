@@ -3021,11 +3021,13 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (deploy, and tell the aCcountable session)
+Owner: Shaun (deploy, then try it)
 **Food from Ledger to aCcountable:**
 1. Run Deploy Firebase → Everything.
-2. Tell the aCcountable session to log each `diaryAdded` entry (`docs/ACCOUNTABLE_SYNC.md`,
-   "Food added in Ledger").
+   aCcountable's side is already live (2026-11-25). A day it couldn't take is retried every
+   half hour.
+2. Try it: Nutrition → Add food → "banana". It shows as "sending", then appears in
+   aCcountable's diary with its calories.
 
 **Before that**: Owner: Shaun (try it)
 **"ledger:" in Teams** and the aCcountable carbs change are deployed (2026-11-25). Nothing

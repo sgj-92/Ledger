@@ -286,15 +286,31 @@ function createAccountable(deps) {
       log('accountable push failed', date, r.status);
       await db.collection('ledger_meta').doc('accountable').set({ lastError: 'aCcountable answered ' + r.status, lastErrorAt: now }, { merge: true });
       // food not yet across waits for the next send
-      if (added.length) await db.collection(SYNC).doc('accountable-' + date).set({ pendingDiary: added.slice(0, 40) }, { merge: true });
+      if (added.length) await db.collection(SYNC).doc('accountable-' + date).set({ pendingDiary: added.slice(0, 40), hasPending: true, pendingAt: now }, { merge: true });
       return { sent: false, status: r.status };
     }
-    await db.collection(SYNC).doc('accountable-' + date).set({ outHash: h, outAt: now, pendingDiary: [] }, { merge: true });
+    await db.collection(SYNC).doc('accountable-' + date).set({ outHash: h, outAt: now, pendingDiary: [], hasPending: false }, { merge: true });
     await db.collection('ledger_meta').doc('accountable').set({ lastOutAt: now, lastOutDate: date, lastError: null }, { merge: true });
     return { sent: true };
   }
 
-  return { verify, applyDay, pushDay, outboundOf, configured };
+  // food that couldn't go (aCcountable down, or out of its AI calls for the day) is tried
+  // again on a schedule, not only with the next change to that day
+  async function retryPending() {
+    if (!configured() || !/^https:\/\//.test(url)) return { skipped: 'not set up' };
+    const q = await db.collection(SYNC).where('hasPending', '==', true).limit(20).get();
+    const out = { tried: 0, sent: 0 };
+    for (const d of q.docs) {
+      const m = /^accountable-(\d{4}-\d{2}-\d{2})$/.exec(d.id);
+      if (!m) continue;
+      out.tried++;
+      const r = await pushDay(m[1]).catch((e) => ({ error: e && e.message }));
+      if (r.sent) out.sent++;
+    }
+    return out;
+  }
+
+  return { verify, applyDay, pushDay, retryPending, outboundOf, configured };
 }
 
 // ---- food added in Ledger (2026-11-25): what a nutrition record's write adds ----

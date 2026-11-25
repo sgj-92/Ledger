@@ -69,8 +69,11 @@ Food Shaun adds in Ledger goes to aCcountable as an entry.
 - **In the outbound day** this is `"diaryAdded": [{ "ref": "ledger:diary:<date>:<id>", "text": "2 eggs and toast" }]`.
   - It goes even when nothing else on the day changed.
   - aCcountable logs each ref once; working out the calories from the words is its job.
-  - If aCcountable can't be reached, the entries wait in `ledger_sync` and go with the
-    next send.
+  - If aCcountable can't take them (unreachable, or out of AI calls: a 502, 429 or 500),
+    they wait in `ledger_sync`. They go with the next send, or within half an hour
+    (`onAccountableRetryTick`).
+  - aCcountable's side went live on 2026-11-25: each ref is logged once, and the day comes
+    straight back with the food in its diary, which clears "sending".
   - This is an addition to the contract, still `v: 1`.
 
 ## How it works

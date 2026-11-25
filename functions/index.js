@@ -347,6 +347,11 @@ exports.accountableSync = onRequest({ secrets: [ACCOUNTABLE_SYNC_SECRET], timeou
     res.status(500).json({ error: 'Ledger could not save the day.' });
   }
 });
+// food from Ledger that aCcountable couldn't take yet, tried again every half hour
+exports.onAccountableRetryTick = onSchedule({ schedule: 'every 30 minutes', timeZone: 'Etc/UTC', secrets: [ACCOUNTABLE_SYNC_SECRET], maxInstances: 1 }, async () => {
+  const out = await accountable().retryPending();
+  if (out.tried) logger.info('accountable retry', out);
+});
 // only what aCcountable hears about: a plan write that changes none of it costs nothing
 const accountableView = (date, p) => { const o = createAccountable({ db: null }).outboundOf(date, p, []); return JSON.stringify([o.training, o.mealsDone]); };
 async function accountablePush(dates) {

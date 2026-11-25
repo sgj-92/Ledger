@@ -228,6 +228,17 @@ const day = (over) => Object.assign({
   check(f2.sent === true && JSON.stringify((body25.diaryAdded || []).map((x) => x.text)) === '["Eggs and toast","Apple"]', 'what failed to send goes with the next, once', body25.diaryAdded);
   sent.length = 0;
   check((await acc().pushDay(D25)).skipped === 'unchanged' && !sent.length, 'and once across, it isn\'t sent again');
+  // and food still waiting is tried again on its own, without another change to the day
+  answer = 429;
+  await acc().pushDay(D25, { diaryAdded: [{ ref: 'ledger:diary:2026-11-25:f4', text: 'Pear' }] });
+  check((await get('ledger_sync/accountable-' + D25)).hasPending === true, 'a refusal (429: out of AI calls) leaves the food waiting');
+  answer = 200; sent.length = 0;
+  const rp = await acc().retryPending();
+  const rb = sent.length ? JSON.parse(sent[0].body) : {};
+  check(rp.sent === 1 && (rb.diaryAdded || []).map((x) => x.text).join() === 'Pear' && (await get('ledger_sync/accountable-' + D25)).hasPending === false,
+    'the retry sends it once aCcountable takes it, and stops', rp);
+  sent.length = 0;
+  check((await acc().retryPending()).tried === 0 && !sent.length, 'nothing waiting: nothing sent');
 
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
