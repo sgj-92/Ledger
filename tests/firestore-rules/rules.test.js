@@ -458,6 +458,10 @@ async function check(name, fn){
   await check('owner: cannot read the aCcountable sync bookkeeping', () => assertFails(owner.doc('ledger_sync/accountable-2026-11-24').get()));
   await check('owner: cannot write the aCcountable sync bookkeeping', () => assertFails(owner.doc('ledger_sync/accountable-2026-11-24').set({ outHash: 'x' })));
   await check('partner: cannot read the aCcountable sync bookkeeping', () => assertFails(partner.doc('ledger_sync/accountable-2026-11-24').get()));
+  // the coach's record of the nudges it sent (2026-11-25): server-only
+  await check('owner: cannot read the nudges record', () => assertFails(owner.doc('ledger_nudges/2026-11-25').get()));
+  await check('owner: cannot write the nudges record', () => assertFails(owner.doc('ledger_nudges/2026-11-25').set({ morning: { body: 'x' } })));
+  await check('partner: cannot read the nudges record', () => assertFails(partner.doc('ledger_nudges/2026-11-25').get()));
   await check('owner: can read whether Microsoft 365 is connected', () => assertSucceeds(owner.doc('ledger_meta/connections').get()));
   await check('owner: cannot write the sender\'s log', () => assertFails(owner.doc('ledger_push_events/e2').set({ x: 1 })));
   await check('partner: cannot read the sender\'s log', () => assertFails(partner.doc('ledger_push_events/e1').get()));

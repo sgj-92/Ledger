@@ -74,7 +74,8 @@ service cloud.firestore {
     // and never by a client. The owner reads his own and records what he did with it —
     // applied (all or part), cancelled or undone — and nothing else about it changes.
     // The conversation (ledger_assistant_threads) and the daily count
-    // (ledger_assistant_usage) are server-only: unlisted, so no client reaches them.
+    // (ledger_assistant_usage) are server-only: unlisted, so no client reaches them. So is
+    // the coach's record of the nudges it sent (ledger_nudges, 2026-11-25).
     // (2026-10-30) a Home admin's own proposals too (Ask Claude at Home): each person reads
     // and marks only their own; the server alone makes them
     match /ledger_assistant_proposals/{proposalId} {

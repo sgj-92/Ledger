@@ -32,7 +32,7 @@
 //   APP_URL            functions/.env:   https://ledger.sgj.luxe/ (the default)
 //   FUNCTIONS_REGION   functions/.env:   the region of the Firestore database
 //   ANTHROPIC_API_KEY  Secret Manager:   firebase functions:secrets:set ANTHROPIC_API_KEY
-//                                        (Ask Claude; the key never reaches a browser)
+//                                        (Ask Claude and the coach; the key never reaches a browser)
 //   ACCOUNTABLE_SYNC_SECRET  Secret Manager: firebase functions:secrets:set ACCOUNTABLE_SYNC_SECRET
 //                                        (the aCcountable sync's shared signing secret)
 //   ACCOUNTABLE_SYNC_URL     functions/.env: aCcountable's ledger-sync function (the default)
@@ -59,6 +59,7 @@ const { createReminders } = require('./remind');
 const { createConnect } = require('./connect');
 const { createAssistant, ALLOWED_ORIGINS } = require('./assistant');
 const { createAccountable, diaryAdditions } = require('./accountable');
+const { createCoach } = require('./coach');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -411,6 +412,33 @@ exports.onReminderTick = onSchedule({ schedule: 'every 1 minutes', timeZone: 'Et
     appLink: (params) => appLink(ev.appUrl, params)
   }).run();
   if (out.sent || out.errors.length) report('reminder tick', out);
+});
+// ---- The coach (coach.js, 2026-11-25) ----
+// A new Action gets a "why it matters" line from Claude; and up to three nudges a day, at
+// late morning, mid-afternoon and early evening, only when the day is slipping.
+function claudeClient() {
+  const Anthropic = require('@anthropic-ai/sdk');
+  const AnthropicClient = Anthropic.default || Anthropic;
+  return new AnthropicClient({ apiKey: ANTHROPIC_API_KEY.value() });
+}
+exports.onActionCreatedWhy = onDocumentCreated({ document: 'ledger_commitments/{id}', secrets: [ANTHROPIC_API_KEY], maxInstances: 3 }, async (event) => {
+  const snap = event.data;
+  if (!snap) return;
+  try {
+    const out = await createCoach({ db, client: claudeClient(), log: (...a) => logger.warn(...a) }).suggestWhy(event.params.id, snap.data());
+    if (out && out.why) logger.info('why suggested', { id: event.params.id });
+  } catch (e) { logger.warn('why not suggested', e && e.message); }
+});
+exports.onNudgeTick = onSchedule({ schedule: 'every 10 minutes', timeZone: 'Etc/UTC', secrets: [ANTHROPIC_API_KEY, VAPID_PRIVATE_KEY], maxInstances: 1 }, async () => {
+  const e = engine(), ev = common();
+  const out = await createCoach({
+    db, client: claudeClient(),
+    log: (...a) => logger.warn(...a),
+    claim: (id, info) => e.claimEvent(id, info),
+    send: (uid, payload) => e.sendPushToUser(uid, payload, { urgency: 'normal', ttl: 60 * 60, vapidPublicKey: ev.vapidPublicKey }),
+    appLink: (params) => appLink(ev.appUrl, params)
+  }).nudge();
+  if (out.sent || out.errors.length) report('nudge tick', out);
 });
 exports.onDailyWritten = onDocumentWritten(
   { document: 'ledger_home_daily/{uid}' },

@@ -237,6 +237,35 @@
   }
   h2.section-title::after { content: ''; flex: 1; height: 1px; background: var(--line); order: 1; }
   /* a quiet aside after the rule, e.g. the dates a rolling period covers */
+  /* follow-through (2026-11-25): five counts, eight weeks of bars, the ones that keep moving */
+  .ft-card { margin-bottom: var(--sp-5); }
+  .ft-week { margin: 0 0 var(--sp-2); font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+  .ft-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .ft-stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .ft-n { font-family: var(--serif); font-size: 24px; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; }
+  .ft-onDay .ft-n { color: var(--gold); }
+  .ft-l { font-size: 11px; line-height: 1.25; color: var(--text-3); }
+  .ft-note { margin: var(--sp-2) 0 0; font-size: 12px; color: var(--text-3); }
+  .ft-chart { display: flex; align-items: flex-end; gap: 6px; height: 112px; margin-top: var(--sp-4); }
+  .ft-col { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 0; border: none; background: none; cursor: pointer; }
+  .ft-bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; border-radius: 4px; overflow: hidden; background: rgba(var(--gold-rgb),0.04); }
+  .ft-seg { display: block; width: 100%; }
+  .ft-seg.onday, .ft-legend i.onday { background: var(--gold); }
+  .ft-seg.later, .ft-legend i.later { background: rgba(var(--gold-rgb),0.45); }
+  .ft-seg.open, .ft-legend i.open { background: var(--line-2); }
+  .ft-col.sel .ft-bar { box-shadow: 0 0 0 1.5px var(--text-2); }
+  .ft-x { font-size: 10.5px; color: var(--text-3); text-align: center; font-variant-numeric: tabular-nums; }
+  .ft-col.sel .ft-x { color: var(--text); font-weight: 600; }
+  .ft-legend { display: flex; gap: 14px; margin-top: var(--sp-2); font-size: 11.5px; color: var(--text-3); }
+  .ft-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .ft-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .ft-stuck { margin-top: var(--sp-4); border-top: 1px solid var(--line); padding-top: var(--sp-3); }
+  .ft-stuck-h { margin: 0 0 4px; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+  .ft-stuck-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t c" "m c"; align-items: center; column-gap: 8px; width: 100%;
+    min-height: 48px; padding: 8px 0; border: none; border-bottom: 1px solid var(--line); background: none; text-align: left; cursor: pointer; font-family: var(--sans); color: var(--text); }
+  .ft-stuck-t { grid-area: t; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ft-stuck-m { grid-area: m; font-size: 12px; color: var(--text-3); }
+  .ft-stuck-row .chev { grid-area: c; color: var(--text-3); }
   .section-title-aside {
     order: 2; flex-shrink: 0; font-size: 11px; font-weight: 400; text-transform: none;
     letter-spacing: 0.01em; color: var(--text-3); font-variant-numeric: tabular-nums;
@@ -3859,7 +3888,7 @@
      Time on the left, a capsule on a hairline rail, what it is, and a tick. Free
      time between timed items and the current time sit on the same rail. */
   .tl-list { position: relative; margin-top: 2px; }
-  .tl-row, .tl-now, .tl-gap {
+  .tl-row, .tl-now, .tl-gap, .tl-block {
     display: grid; grid-template-columns: 40px 40px minmax(0, 1fr) auto auto;
     column-gap: 12px; align-items: center; position: relative;
   }
@@ -4404,6 +4433,14 @@
     padding: 6px 0 10px; font-family: var(--serif); font-size: 21px; line-height: 1.3;
   }
   .field > #f_commitTitle:focus { border-bottom-color: rgba(var(--gold-rgb),0.5); }
+  /* why it matters (2026-11-25): one quiet line under the title, here and on Today */
+  .commit-why-field { margin-top: calc(-1 * var(--sp-2)); }
+  .commit-why-field > label { font-size: 11.5px; letter-spacing: 0.02em; }
+  .commit-why-field .cw-by { color: var(--text-3); font-weight: 400; }
+  .commit-why-field > input { background: none; border: none; border-bottom: 1px solid var(--line); border-radius: 0; padding: 4px 0 8px; font-style: italic; color: var(--text-2); }
+  .commit-why-field > input:focus { border-bottom-color: rgba(var(--gold-rgb),0.5); color: var(--text); }
+  .commitment-why { font-size: 12.5px; line-height: 1.35; color: var(--text-2); font-style: italic; margin-top: 1px;
+    overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .more-fields[open] > summary { margin-bottom: var(--sp-4); }
   .cd-more > summary {
     list-style: none; cursor: pointer; padding: 6px 0; margin-bottom: var(--sp-3);
@@ -4599,6 +4636,31 @@
   .ft-note { margin: 0 0 var(--sp-3); }
   .ft-actions { margin-bottom: var(--sp-2); }
   .now-done { width: 26px; height: 26px; margin-right: 2px; }
+  /* the focus block (2026-11-25): the same card shape as Now, quieter until it's time */
+  .fb-cue { display: flex; align-items: center; gap: 8px; margin: 0 0 var(--sp-1); padding: 9px 10px 9px 14px;
+    border: 1px dashed rgba(var(--gold-rgb),0.4); border-radius: var(--r-md); }
+  .fb-cue.now { border-style: solid; background: rgba(var(--gold-rgb),0.045); }
+  .fb-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 0; border: none; background: none;
+    text-align: left; font-family: var(--sans); color: var(--text); cursor: pointer; min-height: 44px; justify-content: center; }
+  .fb-k { display: inline-flex; align-items: center; gap: 5px; font-size: 9.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .fb-k svg { width: 12px; height: 12px; }
+  .fb-title { font-size: 14.5px; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fb-meta { font-size: 12px; color: var(--text-3); }
+  .fb-start { flex-shrink: 0; min-height: 40px; }
+  .fb-list .fp-row { position: relative; padding-right: 36px; }
+  .fb-check { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--gold); display: none; }
+  .fb-check svg { width: 18px; height: 18px; display: block; }
+  .fb-list .fp-row[aria-checked="true"] .fb-check { display: block; }
+  .fb-list .fp-row[aria-checked="true"] .fp-title { color: var(--gold); }
+  .tl-block { min-height: 44px; margin: 2px 0; }
+  .tl-block .tl-time { align-self: center; padding-top: 0; color: var(--gold); font-weight: 500; }
+  .tl-block .tl-rail::before { top: 0; bottom: 0; background: rgba(var(--gold-rgb),0.55); }
+  .tl-block-band { grid-column: 3 / -1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; min-width: 0; min-height: 44px; padding: 6px 10px; border: none; cursor: pointer; text-align: left;
+    border-radius: var(--r-sm, 8px); background: repeating-linear-gradient(135deg, rgba(var(--gold-rgb),0.07) 0 6px, rgba(var(--gold-rgb),0.02) 6px 12px);
+    font-family: var(--sans); font-size: 12.5px; color: var(--text-2); }
+  .tl-block-band b { color: var(--gold); font-weight: 600; }
+  .tl-block-band span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tl-block-band .tbb-t { font-size: 13.5px; font-weight: 500; color: var(--text); }
   /* the focus, full screen: the one thing and its time left, big enough to read across a
      room; the screen stays awake while it's open */
   body.ff-open { overflow: hidden; }
@@ -4946,7 +5008,7 @@
     #view-log #inboxSection:not(:empty), #view-log #backlogSection:not(:empty), #view-log #sprintSection:not(:empty),
     #view-log #commsSummary:not(:empty), #view-log #todayPlanWidget:not(:empty),
     #view-log #todayFlow:not([hidden]), #view-log #todayPlanWidget.today-plan-widget:not(:empty),
-    #view-log .mp-card, #view-log .wd-card, #view-log .now-cue { margin-left: -6px; margin-right: -6px; }
+    #view-log .mp-card, #view-log .wd-card, #view-log .now-cue, #view-log .fb-cue { margin-left: -6px; margin-right: -6px; }
   }
   #view-log .tcard .actions-head .view-switch button { padding-left: 6px; padding-right: 6px; }
   #view-log #todayPlanWidget.today-plan-widget:not(:empty) { margin-top: 0; margin-bottom: var(--sp-3); }
@@ -6196,6 +6258,8 @@
     <div id="morningPrime"></div>
     <!-- Current Focus: the one thing being done now, on every device -->
     <div id="nowCue"></div>
+    <!-- the day's focus block, locked in Morning Prime: when it is, and Start once it's time -->
+    <div id="focusBlockCue"></div>
     </div>
 
     <!-- Overview is the editable day; Flow is the order it is being worked in. Morning
@@ -6356,6 +6420,12 @@
     <div class="pg-block" id="pgFocus">
       <h2 class="section-title">Your goals</h2>
       <div id="focusEvidence"></div>
+    </div>
+
+    <!-- follow-through (2026-11-25): what he said he'd do, week by week — counts, never a score -->
+    <div class="pg-block" id="pgFollow">
+      <h2 class="section-title">Following through <span class="section-title-aside" id="ftRange"></span></h2>
+      <div id="followThrough"></div>
     </div>
 
     <div class="pg-block" id="pgLast7">
@@ -8754,6 +8824,11 @@
     // what changed, from the Action as this device last knew it — the private timeline's facts
     var prev = item.id ? actionPrev[item.id] : null;
     normaliseExecState(item, prev);
+    // the server's "why it matters" line may have arrived after this copy was taken: keep it
+    var live = item.id ? commitments.find(function(c){ return c.id === item.id; }) : null;
+    if (live && !('why' in item) && live.why != null){ item.why = live.why; item.whySuggested = !!live.whySuggested; }
+    // follow-through (2026-11-25): every move to another day is counted on the Action itself
+    if (prev && prev.date && item.date && prev.date !== item.date) item.moveCount = (Number(prev.moveCount) || 0) + 1;
     var evs = prev ? actionTimelineEvents(prev, item) : [];
     if (item.id) actionPrev[item.id] = Object.assign({}, item);
     if (dbReady && dbRef){
@@ -10096,6 +10171,7 @@
           // Morning Prime picks the day's three; a small star keeps them obvious at a glance
           (c.isKeyTask ? '<span class="key-star" aria-label="Key task">' + STAR_SVG + '</span>' : '') +
           '<span class="ct-text"></span></div>' +
+        (c.why && !done ? '<div class="commitment-why"></div>' : '') +
         '<div class="commitment-meta"></div>' +
       '</div>' +
       // the day label only earns its place when it isn't the day you're looking at —
@@ -10104,6 +10180,7 @@
       (isRoadblock ? '' : '<button type="button" class="commitment-status-dot ' + c.status + '" aria-label="' + (done ? 'Reopen' : 'Complete') + '"></button>');
     // user text is written as text
     row.querySelector('.ct-text').textContent = c.title;
+    if (c.why && !done) row.querySelector('.commitment-why').textContent = c.why;
     var bits = [];
     if (t) bits.push(timeRangeLabel(t, c.durationMin));
     if (!done && hhmm(c.remindAt)) bits.push('Reminder ' + hhmm(c.remindAt));
@@ -10576,8 +10653,16 @@
       nowAt = behind + 1;
     }
     var parts = [], prevEnd = null;
+    // the focus block (2026-11-25): a protected band on the line, before the first timed item at or after its start
+    var fbF = focusBlockOf(dateStr), fbDone = !fbF || (isToday && focusBlockPhase(fbF, dateStr) === 'after');
+    function fbHtml(){
+      fbDone = true;
+      return '<div class="tl-block"><span class="tl-time">' + fbF.time + '</span><span class="tl-rail"></span>' +
+        '<button type="button" class="tl-block-band" id="flowFocusBlock"><span class="tbb-k"><b>Focus block</b> \u00b7 ' + fmtDuration(fbF.durationMin) + '</span><span class="tbb-t" data-fb-flow-title></span></button></div>';
+    }
     shown.forEach(function(it, i){
       var t = itemTime(it);
+      if (!fbDone && t && timeToMin(t) >= timeToMin(fbF.time)) parts.push(fbHtml());
       if (i === nowAt) parts.push(nowHtml());
       if (t){
         var start = timeToMin(t);
@@ -10592,6 +10677,7 @@
       parts.push(rowHtml(it));
     });
     if (nowAt === shown.length) parts.push(nowHtml());
+    if (!fbDone) parts.push(fbHtml());
 
     var wd = isToday ? windDownState(dateStr) : null;
     var wdReady = !!(wd && wd.total && !wd.completedAt && new Date().getHours() >= windDownHour());
@@ -10645,6 +10731,13 @@
         '<button type="button" class="sec-link" id="flowCtxOverview">Open Overview' + UI_ICON.arrowRight + '</button></div>' +
     '</aside>';
     wrap.innerHTML = main + ctx;
+    var fbBand = document.getElementById('flowFocusBlock');
+    if (fbBand){
+      var fbA = focusBlockAction(fbF);
+      var fbT = fbBand.querySelector('[data-fb-flow-title]');
+      if (fbA) fbT.textContent = fbA.title; else fbT.remove();          // user text
+      fbBand.addEventListener('click', function(){ openFocusBlockSheet(dateStr); });
+    }
 
     // user text is written as text
     shown.forEach(function(it){
@@ -11086,7 +11179,10 @@
       var html = '<div class="sheet-handle"></div>' +
         '<div class="sheet-head"><div class="sheet-title">' + (isEditing ? 'Edit action' : 'New action') + '</div><button class="sheet-close" id="sheetCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
         '<div class="field"><label>Action</label><input type="text" id="f_commitTitle" placeholder="e.g. Strength session" value="' + (existing ? existing.title.replace(/"/g,'&quot;') : '') + '"></div>' +
-        (isEditing && existing.sourceType === 'home_request' && homeReq(existing.sourceRequestId) && homeReq(existing.sourceRequestId).why ? '<p class="rq-why commit-why" id="commitWhy"></p>' : '') +
+        (isEditing && existing.sourceType === 'home_request' && homeReq(existing.sourceRequestId) && homeReq(existing.sourceRequestId).why ? '<p class="rq-why commit-why" id="commitWhy"></p>'
+          // why it matters (2026-11-25): Claude suggests a line for a new Action; Shaun can change or clear it
+          : '<div class="field commit-why-field"><label for="f_commitWhy">Why it matters<span class="cw-by" id="commitWhyBy" hidden> \u00b7 suggested by Claude</span></label>' +
+            '<input type="text" id="f_commitWhy" maxlength="140" autocomplete="off" placeholder="' + (isEditing ? 'One line: why this is worth doing' : 'Leave it, and Claude suggests one') + '"></div>') +
         statusHtml +
         dateHtml +
         whenFieldsHtml() +
@@ -11283,6 +11379,13 @@
         });
       } else srcNote.textContent = srcText;
     }
+    var whyIn = document.getElementById('f_commitWhy');
+    if (whyIn && existing){
+      var liveA = commitments.find(function(x){ return x.id === existing.id; }) || existing;
+      whyIn.value = liveA.why || '';                                   // user text, as a value
+      document.getElementById('commitWhyBy').hidden = !(liveA.why && liveA.whySuggested);
+      whyIn.addEventListener('input', function(){ document.getElementById('commitWhyBy').hidden = true; });
+    }
     backdrop.classList.add('open');
     wireSheet();
 
@@ -11322,6 +11425,12 @@
         out.sj = sjOn;
         out.clientId = sjOn ? (document.getElementById('f_sjClient').value || null) : null;
         out.teamId = sjOn ? (document.getElementById('f_sjTeam').value || null) : null;
+      }
+      // why it matters: written only when he changed it, so a new Action without one gets Claude's
+      var whyEl = document.getElementById('f_commitWhy');
+      if (whyEl){
+        var whyNow = clipText(whyEl.value.replace(/\s+/g, ' ').trim(), 140), whyWas = existing && existing.why != null ? existing.why : null;
+        if (whyNow !== (whyWas || '') || (whyWas === null && whyNow)){ out.why = whyNow; out.whySuggested = false; }
       }
       // the checklist as ticked here, never as it was when the sheet opened
       if (acState && (acState.items.length || (existing && existing.checklist))) out.checklist = acState.items;
@@ -22086,7 +22195,8 @@
     weighIn: RT_WEIGHT_SVG, bodyPhoto: RT_PHOTO_SVG, supplements: UI_ICON.box,
     water: UI_ICON.glass, stretch: TRAINING_ICON_SVG.yoga,
     foodLog: UI_ICON.cutlery, dayQuality: UI_ICON.chart, gluten: UI_ICON.alert,
-    accountability: UI_ICON.chat, reviewTomorrow: UI_ICON.calendar, sweep: UI_ICON.chat
+    accountability: UI_ICON.chat, reviewTomorrow: UI_ICON.calendar, sweep: UI_ICON.chat,
+    focusBlock: UI_ICON.clock
   };
   function routineIcon(item){
     return (item.key && ROUTINE_ICON[item.key]) || UI_ICON.note;
@@ -22100,6 +22210,8 @@
     plan: [
       { id: 'plan-intention', key: 'intention', label: 'One-line intention',      enabled: true },
       { id: 'plan-keys',      key: 'keys',      label: 'Choose key tasks',        enabled: true },
+      // the day's protected block for deep work (2026-11-25): when, how long, on what
+      { id: 'plan-focus',     key: 'focusBlock', label: 'Lock your focus block',  enabled: true },
       { id: 'plan-meals',     key: 'meals',     label: 'Plan main meals',         enabled: true },
       { id: 'plan-plan',      key: 'plan',      label: 'Review today\'s plan',    enabled: true },
       // the daily sweep of every channel (2026-11-04): who needs a reply, and where
@@ -22272,6 +22384,10 @@
       plan = getPlanForDate(dateStr);
       return { done: !!(plan && plan.planReviewedAt), value: (plan && plan.planReviewedAt) ? 'Complete' : 'Needs review' };
     }
+    if (key === 'focusBlock'){
+      var fbk = focusBlockOf(dateStr);
+      return { done: !!fbk, value: fbk ? timeRangeLabel(fbk.time, fbk.durationMin) : '' };
+    }
     if (key === 'intention'){
       var text = (mpIntentionValue(dateStr) || '').trim();
       return { done: !!text, value: '' };
@@ -22314,7 +22430,7 @@
 
   // The keys Ledger holds a real record for. Everything else — supplements,
   // water, a stretch, anything custom — is a plain checklist item.
-  var ROUTINE_RECORD_KEYS = ['meals','keys','plan','intention', 'sweep','weighIn','bodyPhoto',
+  var ROUTINE_RECORD_KEYS = ['meals','keys','plan','intention', 'sweep', 'focusBlock','weighIn','bodyPhoto',
                              'foodLog','dayQuality','gluten','reviewTomorrow'];
   function routineHasRecord(key){ return ROUTINE_RECORD_KEYS.indexOf(key) > -1; }
 
@@ -22368,6 +22484,7 @@
     if (k === 'plan'){ openPlanSheet(dateStr, getPlanForDate(dateStr), { returnToMorningPrime: true, sections: ['health'], focus: 'health' }); return true; }
     if (k === 'intention'){ openIntentionSheet(dateStr); return true; }
     if (k === 'sweep'){ openSweepSheet(dateStr); return true; }
+    if (k === 'focusBlock'){ openFocusBlockSheet(dateStr); return true; }
     if (k === 'weighIn'){
       openSheet('weight', sessions.find(function(x){ return x.type === 'weight' && x.date === dateStr; }) || null, dateStr);
       return true;
@@ -25128,6 +25245,7 @@
 
   // ---- Today: the NOW cue — one restrained line close to the day's controls ----
   function renderNowCue(){
+    renderFocusBlockCue();
     var el = document.getElementById('nowCue');
     if (!el) return;
     var t = viewedDate === todayStr() ? focusTarget() : null;
@@ -25155,6 +25273,137 @@
       completeFocus();
     });
   }
+  // ---- the focus block (2026-11-25, Shaun) ----
+  // One protected block a day for the work that matters most, locked in Morning Prime:
+  // a start time, a length and (usually) an Action. It sits on the day's plan record
+  // (ledger_plans/<date>.focusBlock = { time, durationMin, actionId, lockedAt }). Today shows
+  // it until it ends, Flow marks it on the timeline, a push comes at its start, and Start
+  // (or the push) begins the focus timer on its Action for the time the block has left.
+  var FOCUS_BLOCK_LENGTHS = [30, 45, 60, 90, 120];
+  function focusBlockOf(dateStr){
+    var plan = getPlanForDate(dateStr), fb = plan && plan.focusBlock;
+    return fb && hhmm(fb.time) ? { time: hhmm(fb.time), durationMin: Number(fb.durationMin) || 60, actionId: fb.actionId || null, lockedAt: fb.lockedAt || null } : null;
+  }
+  function focusBlockAction(fb){
+    return fb && fb.actionId ? (commitments.find(function(c){ return c.id === fb.actionId; }) || null) : null;
+  }
+  // 'before' | 'now' | 'after', on today; minutes left while it runs
+  function focusBlockPhase(fb, dateStr){
+    if (!fb || dateStr !== todayStr()) return dateStr > todayStr() ? 'before' : 'after';
+    var d = new Date(), now = d.getHours() * 60 + d.getMinutes(), start = timeToMin(fb.time), end = start + fb.durationMin;
+    return now < start ? 'before' : now < end ? 'now' : 'after';
+  }
+  function focusBlockLeft(fb){
+    var d = new Date(), now = d.getHours() * 60 + d.getMinutes();
+    return Math.max(5, timeToMin(fb.time) + fb.durationMin - now);
+  }
+  async function saveFocusBlock(dateStr, fb){
+    var plan = getPlanForDate(dateStr) || { restDay: false, trainingTypes: [], meals: [] };
+    await savePlanForDate(dateStr, Object.assign({}, plan, { focusBlock: fb }));
+  }
+  // Start: the focus timer on the block's Action, for what the block has left
+  function startFocusBlock(dateStr){
+    var fb = focusBlockOf(dateStr || todayStr());
+    if (!fb) return false;
+    var a = focusBlockAction(fb);
+    if (!a || a.status === 'completed'){ openFocusTimerStartSheet(); return true; }
+    var min = focusBlockPhase(fb, todayStr()) === 'now' ? focusBlockLeft(fb) : fb.durationMin;
+    var d = focusDoc(focusForAction(a));
+    d.timerMin = min; d.endsAt = new Date(Date.now() + min * 60000).toISOString();
+    nativeAskNotifyPermission();
+    writeFocus(d);
+    openFocusFullSoon();
+    return true;
+  }
+  function focusBlockOnNow(fb){
+    var f = focusActive();
+    return !!(f && f.endsAt && fb.actionId && f.type === 'action' && f.sourceId === fb.actionId && focusLeftMs(f) > 0);
+  }
+  function renderFocusBlockCue(){
+    var el = document.getElementById('focusBlockCue');
+    if (!el) return;
+    var ds = viewedDate, fb = focusBlockOf(ds), phase = fb ? focusBlockPhase(fb, ds) : null;
+    if (!fb || phase === 'after' || ds < todayStr()){ el.innerHTML = ''; return; }
+    var a = focusBlockAction(fb), running = phase === 'now' && focusBlockOnNow(fb);
+    if (running && ds === todayStr()){ el.innerHTML = ''; return; }    // under way: the Now card above carries it
+    var state = phase === 'now' ? 'Now · ' + fmtDuration(focusBlockLeft(fb)) + ' left' : 'Protected';
+    el.innerHTML = '<div class="fb-cue' + (phase === 'now' ? ' now' : '') + '">' +
+      '<button type="button" class="fb-main" id="fbOpen">' +
+        '<span class="fb-k">' + UI_ICON.clock + 'Focus block · ' + timeRangeLabel(fb.time, fb.durationMin) + '</span>' +
+        '<span class="fb-title" id="fbTitle"></span>' +
+        '<span class="fb-meta">' + state + '</span>' +
+      '</button>' +
+      (phase === 'now' && ds === todayStr() ? '<button type="button" class="bk-btn fb-start" id="fbStart">Start</button>' : '') +
+    '</div>';
+    document.getElementById('fbTitle').textContent = a ? a.title : 'Deep work, nothing else';   // user text
+    document.getElementById('fbOpen').addEventListener('click', function(){ openFocusBlockSheet(ds); });
+    var st = document.getElementById('fbStart');
+    if (st) st.addEventListener('click', function(){ startFocusBlock(ds); });
+  }
+  // a quiet repaint at the block's edges, while Today is open
+  setInterval(function(){ if (currentView === 'log' && viewedDate === todayStr() && focusBlockOf(viewedDate)) renderFocusBlockCue(); }, 60000);
+
+  function openFocusBlockSheet(dateStr){
+    editingId = null; activeSheetRefresh = null;
+    var cur = focusBlockOf(dateStr);
+    var nowD = new Date(), next = Math.ceil((nowD.getHours() * 60 + nowD.getMinutes() + 15) / 30) * 30;
+    var time = cur ? cur.time : (dateStr === todayStr() && next < 21 * 60 ? minToTime(next) : '09:30');
+    var len = cur ? cur.durationMin : 90, pick = cur ? cur.actionId : null;
+    var acts = commitments.filter(function(c){ return c.date === dateStr && c.status !== 'completed' && c.category !== 'roadblock' && c.sourceType !== 'prime'; });
+    acts = sortByOrderHint(acts, dayActionOrder(dateStr));
+    acts.sort(function(a, b){ return (b.isKeyTask ? 1 : 0) - (a.isKeyTask ? 1 : 0); });
+    if (!pick && acts.length && acts[0].isKeyTask) pick = acts[0].id;
+    sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
+      sheetHead(UI_ICON.clock, 'Your focus block', 'One protected block for the work that matters most. Nothing else goes in it.', '') +
+      '<div class="field"><label for="fbTime">Starts at</label><input type="time" id="fbTime" step="300"></div>' +
+      '<div class="field"><label>How long</label><div class="ft-choices" role="radiogroup" aria-label="How long">' + FOCUS_BLOCK_LENGTHS.map(function(m){
+        return '<button type="button" class="bk-filter-chip" role="radio" data-fb-len="' + m + '">' + fmtDuration(m) + '</button>';
+      }).join('') + '</div></div>' +
+      '<div class="sec-head"><span class="sec-label">On what</span><span class="sec-rule"></span></div>' +
+      '<div class="fp-list fb-list">' +
+        acts.map(function(c, i){ return '<button type="button" class="fp-row" role="radio" data-fb-act="' + i + '"><span class="fp-title"></span><span class="fp-sub"></span><span class="fb-check">' + CHECK_SVG + '</span></button>'; }).join('') +
+        '<button type="button" class="fp-row" role="radio" data-fb-act="none"><span class="fp-title">Just protect the time</span><span class="fp-sub">Decide when it starts</span><span class="fb-check">' + CHECK_SVG + '</span></button>' +
+      '</div>' +
+      '<p class="set-note">A notification comes when it starts; tap it to start the timer.</p>' +
+      '<div class="sheet-actionbar"><button type="button" class="btn-primary" id="fbLock">' + (cur ? 'Save' : 'Lock it in') + '</button>' +
+        (cur ? '<button type="button" class="btn-link" id="fbClear">Clear the block</button>' : '') + '</div>';
+    var tIn = document.getElementById('fbTime'); tIn.value = time;
+    function paint(){
+      sheetEl.querySelectorAll('[data-fb-len]').forEach(function(b){ var on = Number(b.dataset.fbLen) === len; b.classList.toggle('sel', on); b.setAttribute('aria-checked', String(on)); });
+      sheetEl.querySelectorAll('[data-fb-act]').forEach(function(b){
+        var id = b.dataset.fbAct === 'none' ? null : acts[Number(b.dataset.fbAct)].id, on = id === pick;
+        b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on));
+      });
+    }
+    acts.forEach(function(c, i){
+      var b = sheetEl.querySelector('[data-fb-act="' + i + '"]');
+      b.querySelector('.fp-title').textContent = c.title;            // user text
+      b.querySelector('.fp-sub').textContent = [c.isKeyTask ? 'Key task' : '', c.why || ''].filter(Boolean).join(' · ');
+    });
+    sheetEl.querySelectorAll('[data-fb-len]').forEach(function(b){ b.addEventListener('click', function(){ len = Number(b.dataset.fbLen); paint(); }); });
+    sheetEl.querySelectorAll('[data-fb-act]').forEach(function(b){
+      b.addEventListener('click', function(){ pick = b.dataset.fbAct === 'none' ? null : acts[Number(b.dataset.fbAct)].id; paint(); });
+    });
+    paint();
+    document.getElementById('fbLock').addEventListener('click', async function(){
+      var t = hhmm(tIn.value);
+      if (!t){ tIn.focus(); return; }
+      closeSheet();
+      await saveFocusBlock(dateStr, { time: t, durationMin: len, actionId: pick, lockedAt: (cur && cur.lockedAt) || new Date().toISOString() });
+      if (remindLoaded && remindCfg.tz !== deviceTz()) saveRemindCfg();    // the push comes in the timezone he's in
+      showPinToast('Focus block locked · ' + timeRangeLabel(t, len), false, CHECK_SVG);
+      renderMorningPrime(); renderNowCue(); if (todayMode === 'flow') renderFlow();
+    });
+    var clr = document.getElementById('fbClear');
+    if (clr) clr.addEventListener('click', async function(){
+      closeSheet();
+      await saveFocusBlock(dateStr, null);
+      renderMorningPrime(); renderNowCue(); if (todayMode === 'flow') renderFlow();
+    });
+    backdrop.classList.add('open');
+    document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+  }
+
   // Change: one list of what could be the focus now — the sprint's open items, then the
   // day's open Actions (key tasks first). Choosing one replaces the focus; there is no queue.
   function focusChoices(){
@@ -25942,9 +26191,13 @@
     editingId = null;
     activeSheetRefresh = null;
     var items = remindItems();
+    var nudgesOn = remindCfg.nudges !== false;      // the coach's nudges (2026-11-25): on unless switched off
     function draw(){
       sheetEl.innerHTML = '<div class="sheet-handle"></div>' +
         sheetHead(BELL_SVG, 'Reminders', 'A notification on your devices at these times. Morning Prime, Wind-down, the sweep and the reviews stay quiet once they’re done.', '') +
+        '<div class="rm-item field rm-nudges' + (nudgesOn ? ' on' : '') + '"><div class="rm-top"><span class="rm-name">Nudges when the day slips' +
+          '<span class="rm-hint">Up to three a day, written by Claude, only when something is slipping: late morning, mid-afternoon, early evening.</span></span>' +
+          '<button type="button" class="set-row rm-switch' + (nudgesOn ? ' on' : '') + '" id="rmNudges" role="switch" aria-checked="' + nudgesOn + '" aria-label="Nudges when the day slips"><span class="ls-switch" aria-hidden="true"></span></button></div></div>' +
         '<div class="rm-list" id="rmList"></div>' +
         '<button type="button" class="dpa-add-btn" id="rmAdd">' + BK_PLUS_SVG + 'Add a reminder</button>' +
         '<p class="set-note rm-note">' + (LOCAL_ONLY
@@ -26006,6 +26259,7 @@
       });
       var nb = document.getElementById('rmNotif');
       if (nb) nb.addEventListener('click', openNotificationsSheet);
+      document.getElementById('rmNudges').addEventListener('click', function(){ nudgesOn = !nudgesOn; draw(); });
       document.getElementById('rmBack').addEventListener('click', function(){ if (back) openSettingsSheet(); else closeSheet(); });
       document.getElementById('rmSave').addEventListener('click', async function(){
         var keep = items.filter(function(x){ return x.kind !== 'custom' || (x.text || '').trim(); }).map(function(x){
@@ -26013,6 +26267,7 @@
           if (x.kind === 'custom') o.text = String(x.text).trim().slice(0, 120);
           return o;
         });
+        remindCfg.nudges = nudgesOn;
         await saveRemindCfg(keep);
         showPinToast('Reminders saved', false, CHECK_SVG);
         if (back) openSettingsSheet(); else closeSheet();
@@ -26023,12 +26278,14 @@
   }
 
   // a link from a reminder: ?open=prime | winddown | sweep | review-business | review-personal | review-quarter
+  // | focus-block (the focus block's start: its timer begins on its Action)
   function openFromReminder(what){
     var t = todayStr();
     var ra = reviewAreaFromOpen(what);
     if (what === 'review-quarter'){ viewedDate = t; goView('log'); renderAll(); openQuarterReviewSheet(quarterDue() || quarterOf(t)); return true; }
     if (ra){ viewedDate = t; goView('log'); renderAll(); openWeekReviewSheet(ra, ra === 'personal' && new Date().getDay() === 1 ? reviewWeekFor(ra, fmtDate(addDays(t, -1))) : reviewWeekFor(ra, t)); return true; }
     if (what === 'prime'){ openPrimeOnToday(); return true; }
+    if (what === 'focus-block'){ viewedDate = t; goView('log'); renderAll(); if (!startFocusBlock(t)) openFocusTimerStartSheet(); return true; }
     if (what === 'sweep'){ viewedDate = t; goView('log'); renderAll(); openSweepSheet(t); return true; }
     if (what === 'winddown'){
       viewedDate = t; goView('log'); renderAll();
@@ -28577,8 +28834,108 @@
     });
   });
 
+  // ---- follow-through (2026-11-25, Shaun) ----
+  // Whether what he plans gets done, week by week, so ignoring or re-scheduling shows over
+  // time. An Action belongs to the week it was first planned for (originalDate). Counts and
+  // gaps only — no score, no percentage (Decisions Log, 2026-09-29). Moves come from the
+  // Action's own count (moveCount, since 2026-11-25) or its history, whichever says more.
+  var FT_WEEKS = 8;
+  var ftSel = null, ftMoves = null, ftMovesAt = 0;
+  function ftLoadMoves(){
+    if (Date.now() - ftMovesAt < 5 * 60000) return;
+    ftMovesAt = Date.now();
+    function count(list){
+      var m = {};
+      list.forEach(function(x){ if (x.type === 'moved' && x.actionId) m[x.actionId] = (m[x.actionId] || 0) + 1; });
+      ftMoves = m;
+      if (currentView === 'stats') renderFollowThrough();
+    }
+    if (dbReady && dbRef && authUser){
+      dbRef.collection(AU_COLL).where('ownerUid', '==', authUser.uid).where('type', '==', 'moved').limit(3000).get()
+        .then(function(snap){ count(snap.docs.map(function(d){ return d.data(); })); })
+        .catch(function(e){ console.warn('moves not read', e && e.code); });
+    } else count(auLocalAll());
+  }
+  function ftMovesOf(c){ return Math.max(Number(c.moveCount) || 0, (ftMoves && ftMoves[c.id]) || 0, actionOriginalDate(c) !== c.date ? 1 : 0); }
+  function ftCounts(list){
+    var o = { planned: 0, onDay: 0, later: 0, moved: 0, open: 0, letGo: 0 };
+    list.forEach(function(c){
+      var mv = ftMovesOf(c);
+      o.planned++;
+      if (mv) o.moved++;
+      if (c.status === 'completed'){ if (mv) o.later++; else o.onDay++; }
+      else if (c.status === 'disrupted' || c.status === 'not_done') o.letGo++;
+      else o.open++;
+    });
+    return o;
+  }
+  function ftActions(){
+    return commitments.filter(function(c){ return c.category !== 'roadblock' && c.sourceType !== 'prime' && c.sourceType !== 'sweep'; });
+  }
+  function renderFollowThrough(){
+    var el = document.getElementById('followThrough');
+    if (!el) return;
+    ftLoadMoves();
+    var thisWeek = weekStartFor(todayStr()), weeks = [];
+    for (var i = FT_WEEKS - 1; i >= 0; i--) weeks.push(fmtDate(addDays(thisWeek, -7 * i)));
+    var acts = ftActions(), byWeek = {};
+    weeks.forEach(function(w){ byWeek[w] = []; });
+    var first = weeks[0], today = todayStr();
+    acts.forEach(function(c){
+      var od = actionOriginalDate(c);
+      if (!od || od < first || od > today) return;
+      var w = fmtDate(weekStartFor(od));
+      if (byWeek[w]) byWeek[w].push(c);
+    });
+    if (!ftSel || weeks.indexOf(ftSel) === -1) ftSel = weeks[weeks.length - 1];
+    var counts = weeks.map(function(w){ return ftCounts(byWeek[w]); });
+    var max = Math.max.apply(null, counts.map(function(o){ return o.planned; }).concat([1]));
+    var sel = counts[weeks.indexOf(ftSel)];
+    function dlabel(w){ return new Date(w + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
+    document.getElementById('ftRange').textContent = 'last ' + FT_WEEKS + ' weeks';
+    var stats = [['planned', 'Planned'], ['onDay', 'Done on the day'], ['later', 'Done later'], ['moved', 'Moved'], ['open', 'Still open']];
+    var html = '<div class="ft-card">' +
+      '<p class="ft-week">' + (ftSel === weeks[weeks.length - 1] ? 'This week' : 'Week of ' + dlabel(ftSel)) + '</p>' +
+      '<div class="ft-stats">' + stats.map(function(x){
+        return '<div class="ft-stat ft-' + x[0] + '"><span class="ft-n">' + sel[x[0]] + '</span><span class="ft-l">' + x[1] + '</span></div>';
+      }).join('') + '</div>' +
+      (sel.letGo ? '<p class="ft-note">' + sel.letGo + ' let go on purpose.</p>' : '') +
+      '<div class="ft-chart" role="group" aria-label="Week by week">' + weeks.map(function(w, i){
+        var o = counts[i], h = function(n){ return Math.round(n / max * 100); };
+        var label = dlabel(w) + ': ' + o.planned + ' planned, ' + o.onDay + ' done on the day, ' + o.later + ' done later, ' + o.open + ' still open';
+        return '<button type="button" class="ft-col' + (w === ftSel ? ' sel' : '') + '" data-ft-week="' + w + '" aria-label="' + label + '" aria-pressed="' + (w === ftSel) + '">' +
+          '<span class="ft-bar">' +
+            '<span class="ft-seg open" style="height:' + h(o.open + o.letGo) + '%"></span>' +
+            '<span class="ft-seg later" style="height:' + h(o.later) + '%"></span>' +
+            '<span class="ft-seg onday" style="height:' + h(o.onDay) + '%"></span>' +
+          '</span><span class="ft-x">' + (i === weeks.length - 1 ? 'Now' : (i === 0 || w.slice(5, 7) !== weeks[i - 1].slice(5, 7)) ? dlabel(w) : dlabel(w).split(' ')[0]) + '</span></button>';
+      }).join('') + '</div>' +
+      '<div class="ft-legend"><span><i class="onday"></i>On the day</span><span><i class="later"></i>Later</span><span><i class="open"></i>Not done</span></div>';
+    // the ones that keep moving: still open, moved three times or more
+    var stuck = acts.filter(function(c){ return c.status !== 'completed' && c.status !== 'disrupted' && c.status !== 'not_done' && ftMovesOf(c) >= 3; })
+      .sort(function(a, b){ return ftMovesOf(b) - ftMovesOf(a); }).slice(0, 8);
+    html += stuck.length
+      ? '<div class="ft-stuck"><p class="ft-stuck-h">Moved 3 times or more</p>' + stuck.map(function(c, i){
+          return '<button type="button" class="ft-stuck-row" data-ft-stuck="' + i + '"><span class="ft-stuck-t"></span><span class="ft-stuck-m"></span><span class="chev">' + UI_ICON.chevronRight + '</span></button>';
+        }).join('') + '<p class="ft-note">Do the smallest first step, give it a time, or let it go.</p></div>'
+      : '';
+    html += '</div>';
+    el.innerHTML = html;
+    stuck.forEach(function(c, i){
+      var b = el.querySelector('[data-ft-stuck="' + i + '"]');
+      b.querySelector('.ft-stuck-t').textContent = c.title;     // user text
+      b.querySelector('.ft-stuck-m').textContent = 'Moved ' + ftMovesOf(c) + ' times \u00b7 first planned ' +
+        new Date(actionOriginalDate(c) + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' \u00b7 now ' + relativeDayLabel(c.date);
+      b.addEventListener('click', function(){ openCommitmentSheet(c); });
+    });
+    el.querySelectorAll('[data-ft-week]').forEach(function(b){
+      b.addEventListener('click', function(){ ftSel = b.dataset.ftWeek; renderFollowThrough(); });
+    });
+  }
+
   function renderStats(){
     renderFocusEvidence();
+    renderFollowThrough();
     renderWeekBar();
     renderTrainingFrequency();
     renderChallengeZone();

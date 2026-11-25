@@ -209,7 +209,9 @@ These are observed facts about this repo, useful before making changes.
   Shaun's reminders), plus `connections`/`msCallback` (`connect.js`: Microsoft 365 for the
   Comms sweep, `docs/MICROSOFT_365.md`; and every two minutes `onTeamsCaptureTick`, which turns
   Shaun's "ledger: …" Teams messages into S&J Actions), and `accountableSync` with the plan and weight
-  triggers (`accountable.js`: the two-way sync with aCcountable, `docs/ACCOUNTABLE_SYNC.md`). `recur.js` generates recurring Home responsibilities
+  triggers (`accountable.js`: the two-way sync with aCcountable, `docs/ACCOUNTABLE_SYNC.md`), and the coach
+  (`coach.js`, `docs/COACH.md`): `onActionCreatedWhy` (Claude's "why it matters" line on a new Action) and
+  `onNudgeTick` (up to three nudges a day, only when the day is slipping). `recur.js` generates recurring Home responsibilities
   (`docs/HOME_RECURRENCE.md`); `daily.js` runs each person's daily tasks
   (`docs/HOME_DAILY.md`); `migrate.js` moves Partner Sharing into Home.
   `assistant.js` is Ask Claude's server (with `assistant-home.js` for Home admins and

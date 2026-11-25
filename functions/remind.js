@@ -5,6 +5,8 @@
 //      days. Morning Prime, Wind-down and the sweep stay quiet once they're done that day.
 //   2. a "Remind me" time on an Action (remindAt "HH:MM" on its own date), unless it's
 //      done by then. Moving the Action to another day moves the reminder with it.
+//   3. the start of the day's focus block (ledger_plans/<date>.focusBlock = { time,
+//      durationMin, actionId }), unless its Action is already done.
 //
 // A reminder fires once: from its minute until REMIND_GRACE_MIN later (a late or skipped
 // tick still delivers it), never twice — each is claimed as a push event first. Changing
@@ -167,6 +169,31 @@ function createReminders(deps) {
         });
       }
     } catch (e) { out.errors.push('actions: ' + (e && e.message)); }
+
+    // 3. the day's focus block (2026-11-25): locked in Morning Prime, a push at its start
+    //    that opens the focus timer on its Action, for its length
+    try {
+      const pd = await db.collection('ledger_plans').doc(c.date).get();
+      const fb = pd.exists ? ((pd.data() || {}).focusBlock || null) : null;
+      if (fb && dueNow(fb.time, c)) {
+        let title = '';
+        let skip = false;
+        if (fb.actionId) {
+          const a = await db.collection('ledger_commitments').doc(String(fb.actionId)).get();
+          if (a.exists) { title = String((a.data() || {}).title || ''); skip = (a.data() || {}).status === 'completed'; }
+        }
+        const len = Number(fb.durationMin) || 60;
+        if (skip) out.skipped++;
+        else {
+          await deliver('focusblock_' + c.date + '_' + String(fb.time).replace(':', ''), { kind: 'reminder', reminder: 'focusBlock' }, {
+            title: 'Your focus block starts now',
+            body: (title ? title.slice(0, 140) + ' · ' : '') + len + ' min, protected. Tap to start the timer.',
+            url: appLink({ open: 'focus-block' }),
+            tag: 'ledger-focus-block', renotify: true, kind: 'reminder'
+          });
+        }
+      }
+    } catch (e) { out.errors.push('focus block: ' + (e && e.message)); }
 
     if (out.errors.length) log('reminders', out);
     return Object.assign(out, { date: c.date, min: c.min, tz: c.tz });

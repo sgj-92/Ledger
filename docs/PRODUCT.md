@@ -131,6 +131,12 @@ Today is the centre of the product. Everything else supports it.
 - **Plan vs evidence.** A planned activity and a recorded activity are
   distinct records that are linked, never merged. Planning something does not
   make it true.
+- **The coach (since 2026-11-25; `docs/COACH.md`).** Help to do what he says he'll do,
+  without nagging. Every Action carries a short "why it matters" line that Claude suggests
+  and Shaun can change or clear. Morning Prime locks one protected focus block a day.
+  Progress shows follow-through week by week (planned, done on the day, done later, moved,
+  still open), as counts and never a score. Up to three nudges a day come only when the day
+  is slipping, written by Claude: kind, specific, never "failed" or "late".
 - **Key tasks.** Morning Prime chooses three per day. They are ordinary
   actions carrying a flag, not a separate list. The flag does not survive a
   date change — each day chooses its own three.

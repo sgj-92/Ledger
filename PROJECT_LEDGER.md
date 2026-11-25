@@ -762,6 +762,28 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-25 — The coach: why, a focus block, follow-through and nudges (Shaun's answers: all four recommendations)
+
+Shaun: "It's easy for me to just ignore tasks or keep re-scheduling." `docs/COACH.md`.
+
+- **Why it matters:** every new Action gets one short line from Claude (`why`,
+  `whySuggested`), written on the server when it's created. Shaun can change or clear it in
+  the Action sheet, and a cleared line stays cleared. It shows under the title on Today.
+- **Focus block:** a new Morning Prime step, "Lock your focus block": a time, a length and
+  an Action, saved as `ledger_plans/<date>.focusBlock`.
+  - It shows on Today and in Flow, protected.
+  - A push at its start opens the focus timer on that Action, for the time left.
+  - No nudge comes during it.
+- **Follow-through:** a card in Me → Progress, covering 8 weeks.
+  - For each week: planned, done on the day, done later, moved, still open; a bar per
+    week; and the open Actions moved 3+ times.
+  - Counts only, keeping "counts and gaps, never a score".
+  - Moves are now counted on the Action (`moveCount`).
+- **Nudges, only when slipping:** up to three a day (late morning, mid-afternoon, early
+  evening), each only with a reason. Claude writes each from the day's facts: kind and
+  specific, never "failed", "late", "missed" or "behind" (a harsh line is replaced). They
+  are on by default and can be switched off in Settings → Reminders.
+
 ### 2026-11-25 — Food added in Ledger goes to aCcountable (Shaun's answers: both recommendations)
 
 - **On aCcountable's days:** an **Add food** line under its read-only diary. The entry
@@ -3022,6 +3044,17 @@ wider exposure — see Open Questions.
 ## Current Task
 
 Owner: Shaun (deploy, then try it)
+**The coach** (`docs/COACH.md`). One deploy covers this and the food change below.
+1. Run Deploy Firebase → Everything. It adds `onActionCreatedWhy`, `onNudgeTick` and the
+   focus block's push. The Anthropic key Ask Claude uses is enough; nothing new to set.
+2. Try it:
+   - add an Action, and within a few seconds a "why it matters" line appears under it;
+   - lock a focus block in Morning Prime, and a notification comes at its start;
+   - see Me → Progress → Following through;
+   - nudges come only if the day slips (11:00, 15:00, 18:00); switch them off in
+     Settings → Reminders.
+
+**Also waiting on that deploy:**
 **Food from Ledger to aCcountable:**
 1. Run Deploy Firebase → Everything.
    aCcountable's side is already live (2026-11-25). A day it couldn't take is retried every
@@ -3344,6 +3377,18 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-25) — **The coach** (decision above). Live once Firebase is deployed; the app
+  parts are live on push.
+  - **Tests:**
+    - Server: `tests/functions/coach.test.js`, 29 checks; reminders 37 (5 new: the focus
+      block's push).
+    - e2e: `tests/e2e/coach.test.js`, 29 checks.
+    - Rules: 3 new (`ledger_nudges` is server-only).
+  - **Checked in the browser at 390px:**
+    - the why line and its sheet field;
+    - the focus block's step, sheet, Today card, Start, Flow band and link;
+    - the Progress card;
+    - the Settings switch.
 - (2026-11-25) — **"ledger:" in Teams** (decision above).
   - `tests/functions/connect.test.js`: 30 checks (9 new).
   - Live once Firebase is deployed.

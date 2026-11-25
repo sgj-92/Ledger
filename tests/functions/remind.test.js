@@ -189,6 +189,28 @@ const WEEKDAYS = [1, 2, 3, 4, 5];
   check(sent.filter((x) => x.title === 'Quarter review').length === 1, 'Quarter review: his own day and time in the last week');
   await db.collection('ledger_quarters').doc('2026-Q4').delete();
 
+  // the focus block (2026-11-25): a push at its start, opening the timer; quiet once its Action is done
+  await cfg([], 'Europe/London');
+  await db.collection('ledger_push_events').get().then((s) => Promise.all(s.docs.map((d) => d.ref.delete())));
+  await db.collection('ledger_commitments').doc('fbA').set({ title: 'Write the Hill proposal', date: DAY, status: 'planned' });
+  await db.collection('ledger_plans').doc(DAY).set({ focusBlock: { time: '10:00', durationMin: 90, actionId: 'fbA' } });
+  await run('2026-11-11T09:59:00Z');
+  check(!sent.some((x) => x.title === 'Your focus block starts now'), 'focus block: nothing before its time');
+  await run('2026-11-11T10:00:20Z');
+  const fbs = sent.filter((x) => x.title === 'Your focus block starts now');
+  check(fbs.length === 1 && /Write the Hill proposal/.test(fbs[0].body) && /90 min/.test(fbs[0].body) && /open=focus-block/.test(fbs[0].url),
+    'focus block: at its start, its Action and length, opening the timer', sent);
+  await run('2026-11-11T10:03:00Z');
+  check(!sent.some((x) => x.title === 'Your focus block starts now'), 'focus block: once');
+  await db.collection('ledger_push_events').get().then((s) => Promise.all(s.docs.map((d) => d.ref.delete())));
+  await db.collection('ledger_commitments').doc('fbA').set({ status: 'completed' }, { merge: true });
+  await run('2026-11-11T10:00:20Z');
+  check(!sent.some((x) => x.title === 'Your focus block starts now'), 'focus block: quiet when its Action is already done');
+  await db.collection('ledger_plans').doc(DAY).set({ focusBlock: { time: '14:00', durationMin: 45, actionId: null } });
+  await run('2026-11-11T14:00:20Z');
+  const fb2 = sent.filter((x) => x.title === 'Your focus block starts now');
+  check(fb2.length === 1 && /^45 min/.test(fb2[0].body), 'focus block: with no Action, just its length', sent);
+
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
