@@ -762,6 +762,16 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-25 — Food added in Ledger goes to aCcountable (Shaun's answers: both recommendations)
+
+- **On aCcountable's days:** an **Add food** line under its read-only diary. The entry
+  shows as "sending" until aCcountable's diary includes it.
+- **On Ledger's own days:** new diary lines go across as they're added.
+- **Only additions are sent.** Edits and deletions are made in aCcountable.
+- **For aCcountable:** the outbound day has a new `diaryAdded` list (`docs/ACCOUNTABLE_SYNC.md`);
+  aCcountable must log those entries.
+- Server tests: 53.
+
 ### 2026-11-25 — "ledger: …" in Teams adds an Action (Shaun's answers: all four recommendations)
 
 - **Where:** any Teams chat. Only Shaun's own messages that start "ledger:" or "send to
@@ -3011,7 +3021,13 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (try it)
+Owner: Shaun (deploy, and tell the aCcountable session)
+**Food from Ledger to aCcountable:**
+1. Run Deploy Firebase → Everything.
+2. Tell the aCcountable session to log each `diaryAdded` entry (`docs/ACCOUNTABLE_SYNC.md`,
+   "Food added in Ledger").
+
+**Before that**: Owner: Shaun (try it)
 **"ledger:" in Teams** and the aCcountable carbs change are deployed (2026-11-25). Nothing
 needs restarting. Try it: type `ledger: test from Teams tomorrow` in any Teams chat; within
 about two minutes it's an S&J Action for tomorrow, and the phone says "Added to Ledger".

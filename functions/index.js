@@ -58,7 +58,7 @@ const { createDaily } = require('./daily');
 const { createReminders } = require('./remind');
 const { createConnect } = require('./connect');
 const { createAssistant, ALLOWED_ORIGINS } = require('./assistant');
-const { createAccountable } = require('./accountable');
+const { createAccountable, diaryAdditions } = require('./accountable');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -363,9 +363,17 @@ exports.onPlanForAccountable = onDocumentWritten({ document: 'ledger_plans/{date
   if (accountableView(date, before) === accountableView(date, after)) return;
   await accountablePush([date]);
 });
+// (named for weight, its first job; it also carries food added in Ledger, 2026-11-25 — a
+// rename would make a deploy delete and recreate it)
 exports.onWeightForAccountable = onDocumentWritten({ document: 'ledger_sessions/{id}', secrets: [ACCOUNTABLE_SYNC_SECRET] }, async (event) => {
   const before = event.data && event.data.before && event.data.before.exists ? event.data.before.data() : null;
   const after = event.data && event.data.after && event.data.after.exists ? event.data.after.data() : null;
+  const added = diaryAdditions(before, after);
+  if (added.length) {
+    try { const out = await accountable().pushDay(after.date, { diaryAdded: added }); logger.info('accountable food out', after.date, added.length, out); }
+    catch (e) { logger.warn('accountable food push failed', e && e.message); }
+    return;
+  }
   const isW = (x) => !!x && x.type === 'weight';
   if (!isW(before) && !isW(after)) return;
   if (isW(before) && isW(after) && before.date === after.date && Number(before.weightKg) === Number(after.weightKg)) return;

@@ -259,7 +259,10 @@ function createAccountable(deps) {
   // ---- Ledger → aCcountable ----
   // Sends the day when what Ledger would say about it differs from what was last said (or
   // just received). A day it has never spoken about, with nothing on it, stays quiet.
-  async function pushDay(date) {
+  // Food Shaun adds in Ledger (2026-11-25) goes with it as diaryAdded: new lines only, each
+  // with a ref aCcountable keeps so it logs it once. Unsent ones wait in ledger_sync and go
+  // with the next send.
+  async function pushDay(date, extra) {
     if (!DATE_RE.test(String(date || ''))) return { skipped: 'date' };
     if (!configured() || !/^https:\/\//.test(url)) return { skipped: 'not set up' };
     const [planSnap, weights, syncSnap] = await Promise.all([
@@ -268,8 +271,13 @@ function createAccountable(deps) {
     const out = outboundOf(date, planSnap.exists ? planSnap.data() : null, weights);
     const h = hash(out);
     const prev = syncSnap.exists ? syncSnap.data() : null;
-    if (prev && prev.outHash === h) return { skipped: 'unchanged' };
-    if (!prev && !out.training.length && !out.mealsDone.length && out.weightKg == null) return { skipped: 'empty' };
+    const added = [];
+    ((prev && prev.pendingDiary) || []).concat((extra && extra.diaryAdded) || []).forEach((x) => {
+      if (x && x.ref && x.text && !added.some((y) => y.ref === x.ref)) added.push({ ref: x.ref, text: x.text });
+    });
+    if (!added.length && prev && prev.outHash === h) return { skipped: 'unchanged' };
+    if (!added.length && !prev && !out.training.length && !out.mealsDone.length && out.weightKg == null) return { skipped: 'empty' };
+    if (added.length) out.diaryAdded = added.slice(0, 40);
     const raw = JSON.stringify(out);
     const ts = String(clock().getTime());
     const r = await http(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-sync-timestamp': ts, 'x-sync-signature': sign(secret, ts, raw) }, body: raw });
@@ -277,15 +285,42 @@ function createAccountable(deps) {
     if (!r.ok) {
       log('accountable push failed', date, r.status);
       await db.collection('ledger_meta').doc('accountable').set({ lastError: 'aCcountable answered ' + r.status, lastErrorAt: now }, { merge: true });
+      // food not yet across waits for the next send
+      if (added.length) await db.collection(SYNC).doc('accountable-' + date).set({ pendingDiary: added.slice(0, 40) }, { merge: true });
       return { sent: false, status: r.status };
     }
-    await db.collection(SYNC).doc('accountable-' + date).set({ outHash: h, outAt: now }, { merge: true });
+    await db.collection(SYNC).doc('accountable-' + date).set({ outHash: h, outAt: now, pendingDiary: [] }, { merge: true });
     await db.collection('ledger_meta').doc('accountable').set({ lastOutAt: now, lastOutDate: date, lastError: null }, { merge: true });
     return { sent: true };
   }
 
   return { verify, applyDay, pushDay, outboundOf, configured };
 }
+
+// ---- food added in Ledger (2026-11-25): what a nutrition record's write adds ----
+// On a day Ledger keeps its own diary, the lines that weren't there before. On a day
+// aCcountable fills, the entries in accAdd (the Nutrition sheet's "Add food") that are new.
+// Only additions: a line changed or deleted in Ledger isn't sent (Shaun's choice).
+function diaryLines(t) { return String(t || '').split('\n').map((l) => str(l, 300)).filter(Boolean); }
+function diaryAdditions(before, after) {
+  if (!after || after.type !== 'nutrition' || !DATE_RE.test(String(after.date || ''))) return [];
+  const date = after.date, out = [];
+  if (after.foodDiarySource !== 'accountable' && !(before && before.foodDiarySource === 'accountable')) {
+    const had = {};
+    diaryLines(before && before.date === date ? before.foodDiary : '').forEach((l) => { had[l] = (had[l] || 0) + 1; });
+    const seen = {};
+    diaryLines(after.foodDiary).forEach((l) => {
+      seen[l] = (seen[l] || 0) + 1;
+      if (seen[l] > (had[l] || 0)) out.push({ ref: 'ledger:diary:' + date + ':' + crypto.createHash('sha1').update(date + '|' + l + '|' + seen[l]).digest('hex').slice(0, 16), text: l });
+    });
+  }
+  const old = {};
+  ((before && before.accAdd) || []).forEach((x) => { if (x && x.id) old[x.id] = true; });
+  ((after.accAdd) || []).forEach((x) => {
+    if (x && x.id && !old[x.id] && str(x.text, 300)) out.push({ ref: 'ledger:diary:' + date + ':' + str(x.id, 40), text: str(x.text, 300) });
+  });
+  return out.slice(0, 40);
+}
 function pick(o, keys) { const r = {}; keys.forEach((k) => { if (o[k] !== undefined) r[k] = o[k]; }); return r; }
 
-module.exports = { createAccountable, sign, hash, mealId };
+module.exports = { createAccountable, sign, hash, mealId, diaryAdditions };

@@ -55,6 +55,24 @@ opinion. Ledger also accepts it as `nutrition.carbLevel`.
 - This is an addition to aCcountable's contract (still `v: 1`). Ledger ignores an unknown
   value.
 
+### Food added in Ledger (Shaun, 2026-11-25)
+
+Food Shaun adds in Ledger goes to aCcountable as an entry.
+
+- **On a day aCcountable fills,** the Nutrition sheet has an **Add food** line under its
+  diary. Each entry is saved on the day's record (`accAdd`) and shows as "sending to
+  aCcountable" until aCcountable's next day for that date arrives.
+- **On a day Ledger keeps its own diary,** each new line is sent. Once the sync has run,
+  the diary's label says "new lines go to aCcountable".
+- **Only additions are sent.** A line changed or deleted in Ledger isn't. Fixing or
+  removing an entry is done in aCcountable.
+- **In the outbound day** this is `"diaryAdded": [{ "ref": "ledger:diary:<date>:<id>", "text": "2 eggs and toast" }]`.
+  - It goes even when nothing else on the day changed.
+  - aCcountable logs each ref once; working out the calories from the words is its job.
+  - If aCcountable can't be reached, the entries wait in `ledger_sync` and go with the
+    next send.
+  - This is an addition to the contract, still `v: 1`.
+
 ## How it works
 
 - **In:** `accountableSync` (HTTPS POST) checks the signature (below) over the raw body.

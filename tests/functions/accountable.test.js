@@ -11,7 +11,7 @@ const path = require('path');
 const crypto = require('crypto');
 const fnDir = path.join(__dirname, '../../functions');
 const admin = require(path.join(fnDir, 'node_modules/firebase-admin'));
-const { createAccountable, sign, mealId } = require(path.join(fnDir, 'accountable.js'));
+const { createAccountable, sign, mealId, diaryAdditions } = require(path.join(fnDir, 'accountable.js'));
 
 admin.initializeApp({ projectId: 'demo-ledger' });
 const db = admin.firestore();
@@ -200,6 +200,34 @@ const day = (over) => Object.assign({
   check(p29.carbLevel === 'low' && p29.carbByAccountable === true, 'a day with nothing chosen takes aCcountable\'s', p29);
   await acc().applyDay(day({ date: '2026-11-28', training: [], meals: [], carbLevel: 'ketogenic' }));
   check(!(await get('ledger_plans/2026-11-28')) || !(await get('ledger_plans/2026-11-28')).carbSource, 'an unknown carbLevel is ignored');
+
+  // ---- food added in Ledger goes to aCcountable: new lines only ----
+  const N = (o) => Object.assign({ type: 'nutrition', date: '2026-11-25' }, o);
+  const a1 = diaryAdditions(N({ foodDiary: 'Porridge' }), N({ foodDiary: 'Porridge\nEggs and toast\nPorridge' }));
+  check(a1.length === 2 && a1[0].text === 'Eggs and toast' && a1[1].text === 'Porridge' && a1.every((x) => /^ledger:diary:2026-11-25:/.test(x.ref)),
+    'Ledger\'s own diary: the lines added are sent (a second Porridge counts), each with a ref', a1);
+  check(diaryAdditions(N({ foodDiary: 'Porridge\nEggs' }), N({ foodDiary: 'Porridge' })).length === 0, 'a line deleted in Ledger isn\'t sent');
+  check(diaryAdditions(N({ foodDiary: 'Porridge' }), N({ foodDiary: 'Porridge oats' })).map((x) => x.text).join() === 'Porridge oats', 'a changed line goes as new text (the old one stays in aCcountable)');
+  check(diaryAdditions(N({ foodDiary: 'Mine' }), N({ foodDiary: 'Meal 1: Eggs', foodDiarySource: 'accountable' })).length === 0, 'aCcountable\'s own diary arriving is never sent back');
+  const accDay = { foodDiarySource: 'accountable', foodDiary: 'Meal 1: Eggs' };
+  const a2 = diaryAdditions(N(Object.assign({ accAdd: [{ id: 'f1', text: 'Apple' }] }, accDay)), N(Object.assign({ accAdd: [{ id: 'f1', text: 'Apple' }, { id: 'f2', text: '2 <b>eggs</b> and toast' }] }, accDay)));
+  check(a2.length === 1 && a2[0].ref === 'ledger:diary:2026-11-25:f2' && a2[0].text === '2 beggs/b and toast', 'on aCcountable\'s days, "Add food" entries go once each, as text', a2);
+  check(diaryAdditions(null, { type: 'weight', date: '2026-11-25' }).length === 0, 'other records add no food');
+  // sent with the day, even when nothing else changed; kept and resent if aCcountable fails
+  const D25 = '2026-11-25';
+  NOW = new Date('2026-11-25T12:00:00Z');
+  sent.length = 0;
+  await acc().pushDay(D25);                                    // whatever the day is, said once
+  sent.length = 0;
+  answer = 503;
+  const f1 = await acc().pushDay(D25, { diaryAdded: [{ ref: 'ledger:diary:2026-11-25:f2', text: 'Eggs and toast' }] });
+  check(f1.sent === false && sent.length === 1 && JSON.parse(sent[0].body).diaryAdded.length === 1, 'food goes with the day even when nothing else changed');
+  answer = 200; sent.length = 0;
+  const f2 = await acc().pushDay(D25, { diaryAdded: [{ ref: 'ledger:diary:2026-11-25:f3', text: 'Apple' }] });
+  const body25 = sent.length ? JSON.parse(sent[0].body) : {};
+  check(f2.sent === true && JSON.stringify((body25.diaryAdded || []).map((x) => x.text)) === '["Eggs and toast","Apple"]', 'what failed to send goes with the next, once', body25.diaryAdded);
+  sent.length = 0;
+  check((await acc().pushDay(D25)).skipped === 'unchanged' && !sent.length, 'and once across, it isn\'t sent again');
 
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
