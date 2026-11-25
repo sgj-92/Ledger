@@ -171,7 +171,9 @@ const connect = (clientId) => createConnect({ db, fetch: fakeFetch, clientId: cl
   captureMsgs.cB = [{ id: 'b1', messageType: 'message', createdDateTime: '2026-11-25T06:59:00Z', from: me, body: { contentType: 'text', content: 'ledger: in a quiet chat' } }];
   const told = [];
   const cap1 = await connect().capture({ timezone: 'Europe/London', notify: async (uid, a) => { told.push([uid, a.title, a.date]); } });
-  const acts = (await db.collection('ledger_commitments').get()).docs.map((d) => Object.assign({ id: d.id }, d.data()));
+  // only the Actions from Teams: other suites share this database and leave their own
+  const teamsActs = async () => (await db.collection('ledger_commitments').where('sourceType', '==', 'teams').get()).docs.map((d) => Object.assign({ id: d.id }, d.data()));
+  const acts = await teamsActs();
   const pack = acts.find((a) => /Acme/.test(a.title)), vat = acts.find((a) => /VAT/.test(a.title));
   check(cap1.added.length === 2 && acts.length === 2, 'capture: two Actions, from his own "ledger" messages only', acts.map((a) => a.title));
   check(pack && pack.title === 'Send Acme the pack' && pack.date === '2026-11-27' && pack.sj === true && pack.category === 'work' && pack.status === 'planned' && pack.sourceType === 'teams' && pack.sourceLabel === 'Teams · Kori Lane',
@@ -186,7 +188,7 @@ const connect = (clientId) => createConnect({ db, fetch: fakeFetch, clientId: cl
   await db.collection('ledger_connections').doc('microsoft').set({ captureSince: '2026-11-25T09:00:00.000Z' }, { merge: true });
   told.length = 0;
   const cap2 = await connect().capture({ timezone: 'Europe/London', notify: async (uid, a) => { told.push(a.title); } });
-  check(cap2.added.length === 0 && !told.length && (await db.collection('ledger_commitments').get()).size === 2, 'capture: a message already made into an Action never makes a second', cap2);
+  check(cap2.added.length === 0 && !told.length && (await teamsActs()).length === 2, 'capture: a message already made into an Action never makes a second', cap2);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
