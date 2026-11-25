@@ -10107,6 +10107,7 @@
     if (opts.showCategory) bits.push(actionCategoryLabel(actionCategoryKey(c)));
     if (c.minVersion && !done) bits.push('Min: ' + c.minVersion);
     if (c.sourceType === 'partner_request' || c.sourceType === 'home_request') bits.push('From ' + (c.sourceLabel || 'your partner'));
+    else if (c.sourceType === 'teams') bits.push(c.sourceLabel || 'Teams');      // "ledger: …" in Teams (2026-11-25)
     var listReq = actionChecklistReq(c), listProg = listReq && hrProgress(listReq);
     if (listProg && listProg.total) bits.push(listProg.done + ' of ' + listProg.total + (listProg.total === 1 ? ' item' : ' items'));
     else if (!listReq && (c.checklist || []).length){

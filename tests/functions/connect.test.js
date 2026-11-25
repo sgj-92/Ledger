@@ -54,6 +54,10 @@ async function fakeFetch(url, init) {
     { conversationId: 'c2', sentDateTime: '2026-11-10T16:00:00Z' },        // Ben answered
     { conversationId: 'c1', sentDateTime: '2026-11-10T09:00:00Z' }         // before Kori's newest
   ] });
+  // "ledger: …" capture: its own chats and their messages, when a test sets them
+  if (captureChats && u.pathname === '/v1.0/me/chats') return json(200, { value: captureChats });
+  const cm = /^\/v1\.0\/me\/chats\/([^/]+)\/messages$/.exec(u.pathname);
+  if (cm && captureMsgs[decodeURIComponent(cm[1])]) return json(200, { value: captureMsgs[decodeURIComponent(cm[1])] });
   if (u.pathname === '/v1.0/me/chats') return json(200, { value: [
     { id: 'ch1', chatType: 'oneOnOne', lastMessagePreview: { id: 'm1', createdDateTime: '2026-11-11T07:00:00Z', messageType: 'message', from: { user: { id: 'u-jc', displayName: 'JC' } } } },
     { id: 'ch2', chatType: 'oneOnOne', lastMessagePreview: { id: 'm2', createdDateTime: '2026-11-11T07:30:00Z', messageType: 'message', from: { user: { id: 'me-id', displayName: 'Shaun' } } } },
@@ -63,6 +67,8 @@ async function fakeFetch(url, init) {
   ] });
   return json(404, { error: { message: 'not faked: ' + u.pathname } });
 }
+let captureChats = null;
+const captureMsgs = {};
 const connect = (clientId) => createConnect({ db, fetch: fakeFetch, clientId: clientId === undefined ? CLIENT : clientId, redirectUri: REDIRECT, appUrl: 'https://ledger.sgj.luxe/', now: () => NOW });
 
 (async () => {
@@ -143,6 +149,44 @@ const connect = (clientId) => createConnect({ db, fetch: fakeFetch, clientId: cl
   check((await connect().disconnect('abi')).status === 403, 'disconnect: only the owner');
   out = await connect().disconnect('shaun');
   check(out.status === 200 && !(await db.collection('ledger_connections').doc('microsoft').get()).exists, 'disconnect: the token is deleted');
+
+  // ---- "ledger: …" in Teams: his own messages become S&J Actions ----
+  check((await connect().capture()).skipped === 'not connected', 'capture: nothing until Microsoft 365 is connected');
+  await db.collection('ledger_connections').doc('microsoft').set({ uid: 'shaun', refreshToken: 'rt-c', msUserId: 'me-id', account: 'shaun@sj.example' });
+  NOW = new Date('2026-11-25T10:00:00Z');                     // a Wednesday
+  const me = { user: { id: 'me-id', displayName: 'Shaun' } }, kori = { user: { id: 'u-kori', displayName: 'Kori Lane' } };
+  captureChats = [
+    { id: 'cA', chatType: 'oneOnOne', lastMessagePreview: { id: 'x', createdDateTime: '2026-11-25T09:58:00Z', from: kori } },
+    { id: 'cB', chatType: 'group', topic: 'Old project', lastMessagePreview: { id: 'y', createdDateTime: '2026-11-25T07:00:00Z', from: kori } }
+  ];
+  captureMsgs.cA = [
+    { id: 'k1', messageType: 'message', createdDateTime: '2026-11-25T09:58:00Z', from: kori, body: { contentType: 'html', content: '<p>ledger: pay me now</p>' } },
+    { id: 'm1', messageType: 'message', createdDateTime: '2026-11-25T09:57:00Z', from: me, body: { contentType: 'html', content: '<p>Ledger:&nbsp;send Acme the pack by Friday</p>' } },
+    { id: 'm3', messageType: 'message', createdDateTime: '2026-11-25T09:56:00Z', from: me, body: { contentType: 'html', content: '<attachment id="q1"></attachment><p>ledger</p>' },
+      attachments: [{ id: 'q1', contentType: 'messageReference', content: JSON.stringify({ messagePreview: 'Can you review the <b>VAT</b> figures?', messageSender: kori }) }] },
+    { id: 'm4', messageType: 'message', createdDateTime: '2026-11-25T09:55:00Z', from: me, body: { contentType: 'html', content: '<p>it is in the ledger: later</p>' } },
+    { id: 'm6', messageType: 'message', createdDateTime: '2026-11-25T09:54:00Z', from: me, deletedDateTime: '2026-11-25T09:59:00Z', body: { contentType: 'html', content: 'ledger: deleted one' } },
+    { id: 'm5', messageType: 'message', createdDateTime: '2026-11-25T08:00:00Z', from: me, body: { contentType: 'html', content: 'ledger: from this morning' } }
+  ];
+  captureMsgs.cB = [{ id: 'b1', messageType: 'message', createdDateTime: '2026-11-25T06:59:00Z', from: me, body: { contentType: 'text', content: 'ledger: in a quiet chat' } }];
+  const told = [];
+  const cap1 = await connect().capture({ timezone: 'Europe/London', notify: async (uid, a) => { told.push([uid, a.title, a.date]); } });
+  const acts = (await db.collection('ledger_commitments').get()).docs.map((d) => Object.assign({ id: d.id }, d.data()));
+  const pack = acts.find((a) => /Acme/.test(a.title)), vat = acts.find((a) => /VAT/.test(a.title));
+  check(cap1.added.length === 2 && acts.length === 2, 'capture: two Actions, from his own "ledger" messages only', acts.map((a) => a.title));
+  check(pack && pack.title === 'Send Acme the pack' && pack.date === '2026-11-27' && pack.sj === true && pack.category === 'work' && pack.status === 'planned' && pack.sourceType === 'teams' && pack.sourceLabel === 'Teams · Kori Lane',
+    'capture: "ledger: send Acme the pack by Friday" is an S&J Action for Friday, from Teams · Kori Lane', pack);
+  check(vat && vat.title === 'Can you review the VAT figures?' && vat.date === '2026-11-25', 'capture: a bare "ledger" in reply takes the message replied to, for today, as text', vat);
+  check(!acts.some((a) => /pay me|later|deleted|morning|quiet/.test(a.title)), 'capture: not someone else\'s, not "ledger" mid-sentence, not deleted, not before the first look, not a quiet chat');
+  check(told.length === 2 && told.every((t) => t[0] === 'shaun'), 'capture: his phone is told, once for each', told);
+  check(!calls.some((c) => /\/chats\/cB\/messages/.test(c.path)), 'capture: a chat with nothing new isn\'t read');
+  const capConn = (await db.collection('ledger_connections').doc('microsoft').get()).data();
+  check(capConn.captureSince === '2026-11-25T09:59:00.000Z' && /^rt/.test(capConn.refreshToken) && capConn.refreshToken !== 'rt-c', 'capture: the next look starts a minute back; the rotated token is kept', capConn);
+  // the same messages again (an overlap): nothing is made twice
+  await db.collection('ledger_connections').doc('microsoft').set({ captureSince: '2026-11-25T09:00:00.000Z' }, { merge: true });
+  told.length = 0;
+  const cap2 = await connect().capture({ timezone: 'Europe/London', notify: async (uid, a) => { told.push(a.title); } });
+  check(cap2.added.length === 0 && !told.length && (await db.collection('ledger_commitments').get()).size === 2, 'capture: a message already made into an Action never makes a second', cap2);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);

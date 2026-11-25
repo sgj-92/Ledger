@@ -762,6 +762,18 @@ Conventions that should not be casually changed.
 
 ## Decisions Log
 
+### 2026-11-25 — "ledger: …" in Teams adds an Action (Shaun's answers: all four recommendations)
+
+- **Where:** any Teams chat. Only Shaun's own messages that start "ledger:" or "send to
+  ledger:" count. A bare "ledger" as a reply takes the message replied to.
+- **What it makes:** an S&J Action on Today, or on the day named at the end ("Friday",
+  "tomorrow").
+- **Confirmation:** a Ledger push notification, "Added to Ledger".
+- **How:** a two-minute server job (`onTeamsCaptureTick`) using the existing Microsoft 365
+  connection and `Chat.Read`. No Teams app or admin approval is needed.
+- **One exception to "names only":** the line he sent, or the message he replied to,
+  becomes the Action's title (`docs/MICROSOFT_365.md`).
+
 ### 2026-11-23 — aCcountable decides the day's carbs (Shaun: "I want accountable to determine the type of carbs")
 
 - aCcountable sends `carbLevel` (fasting, low, normal or high) with its day, and Ledger
@@ -2999,7 +3011,13 @@ wider exposure — see Open Questions.
 
 ## Current Task
 
-Owner: Shaun (check the aCcountable sync)
+Owner: Shaun (deploy, then try it)
+**"ledger:" in Teams:**
+1. Run Deploy Firebase → Everything. This also puts the aCcountable carbs change live.
+2. In any Teams chat, type `ledger: test from Teams tomorrow`. Within about two minutes it
+   should be an S&J Action for tomorrow, and the phone should say "Added to Ledger".
+
+**Before that**: Owner: Shaun (check the aCcountable sync)
 Fully set up (2026-11-23): the Firebase secret and deploy, and Supabase's
 `LEDGER_SYNC_SECRET` and `LEDGER_SYNC_URL`. To check:
 - change a training time or a food in aCcountable, and it shows in Ledger;
@@ -3309,6 +3327,9 @@ minutes before", recurring/accountability).
 
 ## Recently Completed
 
+- (2026-11-25) — **"ledger:" in Teams** (decision above).
+  - `tests/functions/connect.test.js`: 30 checks (9 new).
+  - Live once Firebase is deployed.
 - (2026-11-23) — **aCcountable sync, Ledger's side** (decision above). Not live until the
   secret is set and Firebase is deployed (Current Task).
   - **Tests:**

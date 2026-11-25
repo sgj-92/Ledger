@@ -180,7 +180,147 @@ function createConnect(deps) {
     return { status: 200, body: { found: found.slice(0, 60), errors, since: sinceIso } };
   }
 
-  return { start, callback, disconnect, pull, configured };
+  // 4. "ledger: …" in Teams (2026-11-25): every couple of minutes, the chats with something
+  // new are read, and only Shaun's own messages that start "ledger:" (or "send to ledger:")
+  // are acted on. Each becomes an S&J Action on its day; a bare "ledger" in reply to a
+  // message takes that message. Nobody else's message is kept, except the one he replied
+  // to with "ledger". Each Teams message makes one Action at most (its id is the key).
+  async function capture(opts) {
+    opts = opts || {};
+    if (!configured()) return { skipped: 'not set up' };
+    const ref = db.collection(CONN).doc('microsoft');
+    const snap = await ref.get();
+    if (!snap.exists) return { skipped: 'not connected' };
+    const c = snap.data() || {};
+    if (!c.msUserId || !c.uid) return { skipped: 'no account id' };
+    let t;
+    try {
+      t = await form(AUTH + '/token', { client_id: clientId, grant_type: 'refresh_token', refresh_token: c.refreshToken, scope: SCOPES });
+    } catch (e) {
+      if (e.code === 'invalid_grant') {
+        await ref.delete();
+        await meta({ connected: false, account: c.account || null, expired: true });
+        return { skipped: 'expired' };
+      }
+      throw e;
+    }
+    const nowD = clock();
+    // from the last look, with a minute's overlap (ids stop doubles); the first time, ten minutes
+    const since = c.captureSince ? new Date(c.captureSince) : new Date(nowD.getTime() - 10 * 60000);
+    const sinceIso = since.toISOString();
+    const out = { checked: 0, added: [], errors: [] };
+    const tz = opts.timezone || 'Europe/London';
+    try {
+      const chats = await graph(t.access_token, '/me/chats?$expand=lastMessagePreview&$top=50&$orderby=' + encodeURIComponent('lastMessagePreview/createdDateTime desc'));
+      for (const ch of (chats.value || [])) {
+        const lp = ch.lastMessagePreview;
+        if (!lp || !lp.createdDateTime || lp.createdDateTime < sinceIso) continue;
+        out.checked++;
+        let msgs;
+        try { msgs = await graph(t.access_token, '/me/chats/' + encodeURIComponent(ch.id) + '/messages?$top=20&$orderby=' + encodeURIComponent('createdDateTime desc')); }
+        catch (e) { out.errors.push('chat'); log('teams capture: a chat failed', e && e.message); continue; }
+        for (const m of (msgs.value || [])) {
+          if (!m || m.deletedDateTime || (m.messageType && m.messageType !== 'message')) continue;
+          if (!m.createdDateTime || m.createdDateTime < sinceIso) continue;
+          const u = m.from && m.from.user;
+          if (!u || u.id !== c.msUserId) continue;                 // only his own messages
+          const cmd = ledgerCommand(htmlText(m.body && m.body.content, m.body && m.body.contentType));
+          if (!cmd) continue;
+          let text = cmd.rest;
+          if (!text) {                                               // "ledger" in reply: the message replied to
+            const refA = (m.attachments || []).find((a) => a && a.contentType === 'messageReference');
+            let quoted = '';
+            try { quoted = refA ? String((JSON.parse(refA.content || '{}') || {}).messagePreview || '') : ''; } catch (e) { quoted = ''; }
+            text = cleanLine(htmlText(quoted, 'html'));
+          }
+          if (!text) continue;
+          const when = dateFromText(text, clock(), tz);
+          const title = capFirst(cleanLine(when.text)).slice(0, 200);
+          if (!title) continue;
+          const id = 'teams-' + crypto.createHash('sha1').update(ch.id + '|' + m.id).digest('hex').slice(0, 20);
+          const chatName = chatLabel(ch, c.msUserId, msgs.value || []);
+          const now = clock().toISOString();
+          try {
+            await db.collection('ledger_commitments').doc(id).create({
+              title, date: when.date, originalDate: when.date, category: 'work', status: 'planned', sj: true, clientId: null, teamId: null,
+              priorityId: null, minVersion: null, disruptionReason: null,
+              sourceType: 'teams', sourceLabel: chatName ? 'Teams · ' + chatName : 'Teams', createdAt: now
+            });
+          } catch (e) {
+            if (e && (e.code === 6 || /already exists/i.test(e.message || ''))) continue;   // made already
+            throw e;
+          }
+          out.added.push({ id, title, date: when.date });
+          if (opts.notify) {
+            try { await opts.notify(c.uid, { id, title, date: when.date, today: when.today }); } catch (e) { log('teams capture: notify failed', e && e.message); }
+          }
+        }
+      }
+    } catch (e) { out.errors.push('chats'); log('teams capture failed', e && e.message); }
+    const patch = { captureSince: new Date(nowD.getTime() - 60000).toISOString() };
+    if (out.errors.indexOf('chats') > -1) delete patch.captureSince;   // look again next time
+    if (t.refresh_token) patch.refreshToken = t.refresh_token;
+    await ref.set(patch, { merge: true });
+    return out;
+  }
+
+  return { start, callback, disconnect, pull, capture, configured };
 }
 
-module.exports = { createConnect, SCOPES, NOT_PEOPLE };
+// ---- "ledger: …": reading the line ----
+// Teams sends a message as HTML: tags go, entities are read, lines are joined
+function htmlText(content, type) {
+  let s = String(content || '');
+  if (String(type || '').toLowerCase() === 'html') {
+    s = s.replace(/<attachment[^>]*>[\s\S]*?<\/attachment>/gi, ' ').replace(/<br\s*\/?>/gi, ' ').replace(/<\/(p|div)>/gi, ' ').replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  }
+  return s.replace(/\s+/g, ' ').trim();
+}
+// "ledger: send Acme the pack", "Ledger - …", "send to ledger: …", or a bare "ledger"
+function ledgerCommand(text) {
+  const m = /^(?:send\s+to\s+)?ledger\b\s*(?:[:\-\u2013\u2014]\s*([\s\S]*))?$/i.exec(String(text || '').trim());
+  if (!m) return null;
+  return { rest: cleanLine(m[1] || '') };
+}
+// text only, never markup (it is written into Ledger)
+function cleanLine(t) { return String(t || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 300); }
+function capFirst(t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; }
+// the day it's for, from a word at the end: today, tomorrow, or a weekday (the next one,
+// today counting). "…pack by Friday" is for Friday, titled "…pack". Otherwise today.
+const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+function localDate(d, tz) {
+  const p = {};
+  new Intl.DateTimeFormat('en-GB', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' }).formatToParts(d).forEach((x) => { p[x.type] = x.value; });
+  return { date: p.year + '-' + p.month + '-' + p.day, weekday: DAYS.indexOf(String(p.weekday).toLowerCase()) };
+}
+function addDays(ymd, n) { const d = new Date(ymd + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+function dateFromText(text, now, tz) {
+  let zone = tz;
+  try { new Intl.DateTimeFormat('en-GB', { timeZone: zone }); } catch (e) { zone = 'Europe/London'; }
+  const today = localDate(now, zone);
+  const m = /\s*(?:\b(?:by|on|for|due)\s+)?\b(today|tomorrow|tmrw|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\.?\s*$/i.exec(text);
+  if (!m) return { text, date: today.date, today: true };
+  const w = m[1].toLowerCase();
+  let date;
+  if (w === 'today') date = today.date;
+  else if (w === 'tomorrow' || w === 'tmrw') date = addDays(today.date, 1);
+  else {
+    const idx = DAYS.findIndex((d) => d.indexOf(w.slice(0, 3)) === 0);
+    date = addDays(today.date, (idx - today.weekday + 7) % 7);
+  }
+  const rest = text.slice(0, m.index).trim();
+  return { text: rest || text, date, today: date === today.date };
+}
+// the chat, as he'd know it: its topic, or the other person (from its recent messages)
+function chatLabel(ch, me, msgs) {
+  if (ch.topic) return cleanLine(ch.topic).slice(0, 60);
+  const names = [];
+  (msgs || []).concat([ch.lastMessagePreview || {}]).forEach((x) => {
+    const u = x && x.from && x.from.user;
+    if (u && u.id !== me && u.displayName && names.indexOf(u.displayName) === -1) names.push(u.displayName);
+  });
+  return names.length ? cleanLine(names.slice(0, 3).join(', ')).slice(0, 60) : '';
+}
+
+module.exports = { createConnect, SCOPES, NOT_PEOPLE, ledgerCommand, htmlText, dateFromText };

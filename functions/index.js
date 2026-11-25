@@ -302,6 +302,26 @@ exports.msCallback = onRequest({ timeoutSeconds: 60, maxInstances: 2 }, async (r
   res.redirect(302, out.redirect);
 });
 
+// "ledger: …" in Teams (connect.js capture, 2026-11-25; docs/MICROSOFT_365.md): every two
+// minutes, Shaun's own Teams messages that start "ledger:" become S&J Actions, and his
+// phone hears "Added to Ledger". Nothing happens until Microsoft 365 is connected.
+exports.onTeamsCaptureTick = onSchedule({ schedule: 'every 2 minutes', timeZone: 'Etc/UTC', secrets: [VAPID_PRIVATE_KEY], maxInstances: 1 }, async () => {
+  const c = connector();
+  if (!c.configured()) return;
+  const rem = await db.collection('ledger_meta').doc('reminders').get();
+  const tz = (rem.exists && (rem.data() || {}).tz) || 'Europe/London';
+  const e = engine(), ev = common();
+  const out = await c.capture({
+    timezone: tz,
+    notify: (uid, a) => e.sendPushToUser(uid, {
+      title: 'Added to Ledger',
+      body: a.title + (a.today ? '' : ' \u00b7 ' + new Date(a.date + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC' })),
+      url: appLink(ev.appUrl, { openAction: a.id }), tag: 'ledger-teams-' + a.id, kind: 'teams'
+    }, { urgency: 'normal', ttl: 60 * 60, vapidPublicKey: ev.vapidPublicKey })
+  });
+  if ((out.added && out.added.length) || (out.errors && out.errors.length)) report('teams capture', out);
+});
+
 // ---- aCcountable (accountable.js, docs/ACCOUNTABLE_SYNC.md) ----
 // accountableSync: aCcountable posts a day, signed with the shared secret over the raw body.
 // The triggers send Ledger's side of a day back when its training, meal ticks or weight

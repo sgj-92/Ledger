@@ -36,6 +36,32 @@ cleanly and asks him to connect again.
 **Gmail** isn't included. A personal Gmail connection like this lasts only 7 days unless
 the app passes Google's security review, so it's left for later.
 
+## "ledger: …" in Teams (2026-11-25)
+
+Shaun types a line in any Teams chat, and it becomes an Action:
+
+| He types | Ledger adds |
+| --- | --- |
+| `ledger: send Acme the pack by Friday` | an S&J Action, "Send Acme the pack", on Friday |
+| `send to ledger: call Kaz` | "Call Kaz", today |
+| `ledger` (as a reply to someone's message) | that message, today |
+
+- **Every two minutes**, `onTeamsCaptureTick` looks at chats with something new since the
+  last look. It acts only on **his own** messages that start with the keyword. Anyone
+  else's message is never acted on, even if it starts "ledger:".
+- **A day word at the end** sets the date: today, tomorrow, or a weekday (the next one,
+  counting today). Otherwise the Action is for today.
+- **The Action:**
+  - Work, marked S&J.
+  - Its row says where it came from: "Teams · Kori Lane".
+  - His phone gets "Added to Ledger" with a link to it.
+  - Each Teams message makes one Action at most; its id is the key.
+- **What's kept:** the Action's title, which is his own words or the message he replied to
+  with "ledger". This is the one exception to "no message text leaves the server", and
+  only because he asked for it. Nothing else from the chat is stored.
+- **What it needs:** the `Chat.Read` permission he has already granted, and nothing new.
+  It starts once Microsoft 365 is connected and the functions are deployed.
+
 ## Setting it up (once, Shaun)
 
 1. **Register Ledger with Microsoft.**

@@ -207,7 +207,8 @@ These are observed facts about this repo, useful before making changes.
   Home request updates and lists, ongoing-task updates, watched checklist ticks, the Home migration) and the hourly
   `onRecurringTick` and `onDailyTick`, and the every-minute `onReminderTick` (`remind.js`:
   Shaun's reminders), plus `connections`/`msCallback` (`connect.js`: Microsoft 365 for the
-  Comms sweep, `docs/MICROSOFT_365.md`), and `accountableSync` with the plan and weight
+  Comms sweep, `docs/MICROSOFT_365.md`; and every two minutes `onTeamsCaptureTick`, which turns
+  Shaun's "ledger: …" Teams messages into S&J Actions), and `accountableSync` with the plan and weight
   triggers (`accountable.js`: the two-way sync with aCcountable, `docs/ACCOUNTABLE_SYNC.md`). `recur.js` generates recurring Home responsibilities
   (`docs/HOME_RECURRENCE.md`); `daily.js` runs each person's daily tasks
   (`docs/HOME_DAILY.md`); `migrate.js` moves Partner Sharing into Home.
